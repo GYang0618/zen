@@ -1,0 +1,222 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+enum MfaType {
+  TOTP
+  SMS
+  EMAIL
+  OFF
+}
+
+enum Theme {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
+enum RecordStatus {
+  ACTIVE
+  DISABLED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  username      String    @unique
+  nickname      String?
+  email         String    @unique
+  phone         String?   @unique
+  password      String
+  status        Int       @default(1) // 1: Active, 0: Disabled
+  loginAttempts Int       @default(0)
+  isLocked      Boolean   @default(false)
+  lockExpireAt  DateTime?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  profile     UserProfile?
+  security    UserSecurity?
+  preference  UserPreference?
+  audit       UserAudit?
+  roles       UserRole[]
+  departments UserDepartment[]
+
+  @@index([email])
+  @@index([username])
+  @@map("users")
+}
+
+model UserProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique @map("user_id")
+  realName  String?  @map("real_name")
+  avatar    String?
+  gender    Gender   @default(UNKNOWN)
+  jobTitle  String?  @map("job_title")
+  remark    String?
+  meta      Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([gender])
+  @@map("user_profiles")
+}
+
+model UserSecurity {
+  id                 String    @id @default(cuid())
+  userId             String    @unique @map("user_id")
+  mfaEnabled         Boolean   @default(false) @map("mfa_enabled")
+  mfaType            MfaType   @default(OFF) @map("mfa_type")
+  passwordExpireAt   DateTime? @map("password_expire_at")
+  lastPasswordChange DateTime? @map("last_password_change")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([mfaEnabled])
+  @@index([mfaType])
+  @@map("user_security")
+}
+
+model UserPreference {
+  id                String   @id @default(cuid())
+  userId            String   @unique @map("user_id")
+  locale            String   @default("zh-CN")
+  timezone          String   @default("Asia/Shanghai")
+  theme             Theme    @default(SYSTEM)
+  notifyByEmail     Boolean  @default(true) @map("notify_by_email")
+  notifyByPush      Boolean  @default(true) @map("notify_by_push")
+  notifyBySms       Boolean  @default(false) @map("notify_by_sms")
+  dashboardSettings Json?    @map("dashboard_settings")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([theme])
+  @@map("user_preferences")
+}
+
+model UserAudit {
+  id           String    @id @default(cuid())
+  userId       String    @unique @map("user_id")
+  createdBy    String?   @map("created_by")
+  updatedBy    String?   @map("updated_by")
+  lastLoginAt  DateTime? @map("last_login_at")
+  lastLoginIp  String?   @map("last_login_ip")
+  lastActiveAt DateTime? @map("last_active_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([lastLoginAt])
+  @@index([lastActiveAt])
+  @@map("user_audit")
+}
+
+model Role {
+  id          String       @id @default(cuid())
+  code        String       @unique
+  name        String
+  description String?
+  isSystem    Boolean      @default(false) @map("is_system")
+  status      RecordStatus @default(ACTIVE)
+  sort        Int?
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  users       UserRole[]
+  permissions RolePermission[]
+
+  @@index([status])
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  module      String?
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  roles RolePermission[]
+
+  @@index([module])
+  @@map("permissions")
+}
+
+model UserRole {
+  userId    String   @map("user_id")
+  roleId    String   @map("role_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       String   @map("role_id")
+  permissionId String   @map("permission_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+model Department {
+  id          String       @id @default(cuid())
+  code        String       @unique
+  name        String
+  parentId    String?      @map("parent_id")
+  description String?
+  status      RecordStatus @default(ACTIVE)
+  sort        Int?
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  parent   Department?      @relation("DepartmentHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children Department[]     @relation("DepartmentHierarchy")
+  users    UserDepartment[]
+
+  @@index([parentId])
+  @@index([status])
+  @@map("departments")
+}
+
+model UserDepartment {
+  userId       String   @map("user_id")
+  departmentId String   @map("department_id")
+  isPrimary    Boolean  @default(false) @map("is_primary")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@id([userId, departmentId])
+  @@index([departmentId])
+  @@map("user_departments")
+}
