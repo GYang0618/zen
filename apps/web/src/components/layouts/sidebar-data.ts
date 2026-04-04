@@ -47,7 +47,11 @@ export const sidebarData: SidebarData = {
       plan: 'Startup'
     }
   ],
-  user: { name: '缪白', email: 'miao.bai@example.com', avatar: '/path/to/avatar.jpg' },
+  user: {
+    name: '缪白',
+    email: 'miao.bai@example.com',
+    avatar: '/path/to/avatar.jpg'
+  },
   navGroups: [
     {
       title: '工作台',
