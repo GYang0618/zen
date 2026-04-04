@@ -9,20 +9,21 @@ import {
   Button,
   cn
 } from '@zen/ui'
+import type { JSX, ReactNode } from 'react'
 
 type ConfirmDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  title: React.ReactNode
+  title: ReactNode
   disabled?: boolean
-  desc: React.JSX.Element | string
+  desc: JSX.Element | string
   cancelBtnText?: string
-  confirmText?: React.ReactNode
+  confirmText?: ReactNode
   destructive?: boolean
   handleConfirm: () => void
   isLoading?: boolean
   className?: string
-  children?: React.ReactNode
+  children?: ReactNode
 }
 
 export function ConfirmDialog(props: ConfirmDialogProps) {

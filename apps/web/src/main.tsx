@@ -5,7 +5,6 @@ import { routeTree } from './routeTree.gen'
 
 import '@/styles/index.css'
 
-import { DirectionProvider } from '@/context/direction-provider'
 import type { RouterMeta } from '@/types/router'
 import { ThemeProvider } from './context/theme-provider'
 
@@ -27,9 +26,7 @@ declare module '@tanstack/react-router' {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
-      <DirectionProvider>
-        <RouterProvider router={router} />
-      </DirectionProvider>
+      <RouterProvider router={router} />
     </ThemeProvider>
   </StrictMode>
 )

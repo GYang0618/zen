@@ -20,6 +20,7 @@ export * from './components/separator'
 export * from './components/sheet'
 export * from './components/sidebar'
 export * from './components/skeleton'
+export * from './components/tabs'
 export * from './components/textarea'
 export * from './components/tooltip'
 

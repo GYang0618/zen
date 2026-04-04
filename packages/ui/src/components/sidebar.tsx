@@ -11,7 +11,12 @@ import {
   SheetTitle
 } from '@zen/ui/components/sheet'
 import { Skeleton } from '@zen/ui/components/skeleton'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@zen/ui/components/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@zen/ui/components/tooltip'
 import { useIsMobile } from '@zen/ui/hooks/use-mobile'
 import { cn } from '@zen/ui/lib/utils'
 import { cva, type VariantProps } from 'class-variance-authority'
@@ -120,23 +125,25 @@ function SidebarProvider({
 
   return (
     <SidebarContext.Provider value={contextValue}>
-      <div
-        data-slot="sidebar-wrapper"
-        style={
-          {
-            '--sidebar-width': SIDEBAR_WIDTH,
-            '--sidebar-width-icon': SIDEBAR_WIDTH_ICON,
-            ...style
-          } as React.CSSProperties
-        }
-        className={cn(
-          'group/sidebar-wrapper flex min-h-svh w-full has-data-[variant=inset]:bg-sidebar',
-          className
-        )}
-        {...props}
-      >
-        {children}
-      </div>
+      <TooltipProvider delayDuration={0}>
+        <div
+          data-slot="sidebar-wrapper"
+          style={
+            {
+              '--sidebar-width': SIDEBAR_WIDTH,
+              '--sidebar-width-icon': SIDEBAR_WIDTH_ICON,
+              ...style
+            } as React.CSSProperties
+          }
+          className={cn(
+            'group/sidebar-wrapper flex min-h-svh w-full has-data-[variant=inset]:bg-sidebar',
+            className
+          )}
+          {...props}
+        >
+          {children}
+        </div>
+      </TooltipProvider>
     </SidebarContext.Provider>
   )
 }

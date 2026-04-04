@@ -1,14 +1,15 @@
 import { Button, cn } from '@zen/ui'
 import { SearchIcon } from 'lucide-react'
+import type { HTMLInputTypeAttribute } from 'react'
 import { useSearch } from '@/context/search-provider'
 
 type SearchProps = {
   className?: string
-  type?: React.HTMLInputTypeAttribute
+  type?: HTMLInputTypeAttribute
   placeholder?: string
 }
 
-export function Search({ className = '', placeholder = 'Search' }: SearchProps) {
+export function Search({ className = '', placeholder = '搜索' }: SearchProps) {
   const { setOpen } = useSearch()
   return (
     <Button
