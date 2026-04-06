@@ -19,7 +19,6 @@ import { Route as Errors403RouteImport } from './routes/errors/403'
 import { Route as Errors401RouteImport } from './routes/errors/401'
 import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
 import { Route as authSignInRouteImport } from './routes/(auth)/sign-in'
-import { Route as AuthenticatedSystemRouteRouteImport } from './routes/_authenticated/system/route'
 import { Route as AuthenticatedSystemUsersRouteImport } from './routes/_authenticated/system/users'
 import { Route as AuthenticatedSystemRolesRouteImport } from './routes/_authenticated/system/roles'
 
@@ -71,28 +70,21 @@ const authSignInRoute = authSignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => authRouteRoute,
 } as any)
-const AuthenticatedSystemRouteRoute =
-  AuthenticatedSystemRouteRouteImport.update({
-    id: '/system',
-    path: '/system',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedSystemUsersRoute =
   AuthenticatedSystemUsersRouteImport.update({
-    id: '/users',
-    path: '/users',
-    getParentRoute: () => AuthenticatedSystemRouteRoute,
+    id: '/system/users',
+    path: '/system/users',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedSystemRolesRoute =
   AuthenticatedSystemRolesRouteImport.update({
-    id: '/roles',
-    path: '/roles',
-    getParentRoute: () => AuthenticatedSystemRouteRoute,
+    id: '/system/roles',
+    path: '/system/roles',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
-  '/system': typeof AuthenticatedSystemRouteRouteWithChildren
   '/sign-in': typeof authSignInRoute
   '/sign-up': typeof authSignUpRoute
   '/errors/401': typeof Errors401Route
@@ -104,7 +96,6 @@ export interface FileRoutesByFullPath {
   '/system/users': typeof AuthenticatedSystemUsersRoute
 }
 export interface FileRoutesByTo {
-  '/system': typeof AuthenticatedSystemRouteRouteWithChildren
   '/sign-in': typeof authSignInRoute
   '/sign-up': typeof authSignUpRoute
   '/errors/401': typeof Errors401Route
@@ -120,7 +111,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/(auth)': typeof authRouteRouteWithChildren
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/_authenticated/system': typeof AuthenticatedSystemRouteRouteWithChildren
   '/(auth)/sign-in': typeof authSignInRoute
   '/(auth)/sign-up': typeof authSignUpRoute
   '/errors/401': typeof Errors401Route
@@ -136,7 +126,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/system'
     | '/sign-in'
     | '/sign-up'
     | '/errors/401'
@@ -148,7 +137,6 @@ export interface FileRouteTypes {
     | '/system/users'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/system'
     | '/sign-in'
     | '/sign-up'
     | '/errors/401'
@@ -163,7 +151,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/(auth)'
     | '/_authenticated'
-    | '/_authenticated/system'
     | '/(auth)/sign-in'
     | '/(auth)/sign-up'
     | '/errors/401'
@@ -258,26 +245,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authSignInRouteImport
       parentRoute: typeof authRouteRoute
     }
-    '/_authenticated/system': {
-      id: '/_authenticated/system'
-      path: '/system'
-      fullPath: '/system'
-      preLoaderRoute: typeof AuthenticatedSystemRouteRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/system/users': {
       id: '/_authenticated/system/users'
-      path: '/users'
+      path: '/system/users'
       fullPath: '/system/users'
       preLoaderRoute: typeof AuthenticatedSystemUsersRouteImport
-      parentRoute: typeof AuthenticatedSystemRouteRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/system/roles': {
       id: '/_authenticated/system/roles'
-      path: '/roles'
+      path: '/system/roles'
       fullPath: '/system/roles'
       preLoaderRoute: typeof AuthenticatedSystemRolesRouteImport
-      parentRoute: typeof AuthenticatedSystemRouteRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
@@ -296,30 +276,16 @@ const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
   authRouteRouteChildren,
 )
 
-interface AuthenticatedSystemRouteRouteChildren {
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedSystemRolesRoute: typeof AuthenticatedSystemRolesRoute
   AuthenticatedSystemUsersRoute: typeof AuthenticatedSystemUsersRoute
 }
 
-const AuthenticatedSystemRouteRouteChildren: AuthenticatedSystemRouteRouteChildren =
-  {
-    AuthenticatedSystemRolesRoute: AuthenticatedSystemRolesRoute,
-    AuthenticatedSystemUsersRoute: AuthenticatedSystemUsersRoute,
-  }
-
-const AuthenticatedSystemRouteRouteWithChildren =
-  AuthenticatedSystemRouteRoute._addFileChildren(
-    AuthenticatedSystemRouteRouteChildren,
-  )
-
-interface AuthenticatedRouteRouteChildren {
-  AuthenticatedSystemRouteRoute: typeof AuthenticatedSystemRouteRouteWithChildren
-  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
-}
-
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedSystemRouteRoute: AuthenticatedSystemRouteRouteWithChildren,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedSystemRolesRoute: AuthenticatedSystemRolesRoute,
+  AuthenticatedSystemUsersRoute: AuthenticatedSystemUsersRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

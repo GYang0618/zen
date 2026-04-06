@@ -58,7 +58,7 @@ export const sidebarData: SidebarData = {
       items: [
         {
           title: '概览',
-          url: '/workspace/overview',
+          url: '/',
           icon: LayoutDashboard
         },
         {
@@ -78,13 +78,14 @@ export const sidebarData: SidebarData = {
         },
         {
           title: '数据治理',
-          url: '/governance/data-quality',
-          icon: ShieldCheck
-        },
-        {
-          title: '元数据管理',
-          url: '/data-catalog/metadata',
-          icon: Layers
+          icon: ShieldCheck,
+          items: [
+            {
+              title: '元数据管理',
+              url: '/data/metadata',
+              icon: Layers
+            }
+          ]
         }
       ]
     },
@@ -98,7 +99,7 @@ export const sidebarData: SidebarData = {
         },
         {
           title: '自动化与流程',
-          url: '/automation/workflows',
+          url: '/ai/workflows',
           icon: GitBranch
         },
         {
@@ -118,17 +119,17 @@ export const sidebarData: SidebarData = {
           items: [
             {
               title: '成员管理',
-              url: '/system/iam/members',
+              url: '/system/users',
               icon: UserRoundCog
             },
             {
               title: '角色与权限',
-              url: '/system/iam/roles',
+              url: '/system/roles',
               icon: KeyRound
             },
             {
               title: '组织架构',
-              url: '/system/organization/structure',
+              url: '/system/organization',
               icon: FolderKanban
             }
           ]
@@ -139,34 +140,23 @@ export const sidebarData: SidebarData = {
           items: [
             {
               title: '资源监控',
-              url: '/system/observability/resources',
+              url: '/system/monitoring',
               icon: Activity
             },
             {
               title: '系统日志',
-              url: '/system/observability/logs',
+              url: '/system/logs',
               icon: Logs
             },
             {
               title: '安全中心',
-              url: '/system/security/center',
+              url: '/system/security',
               icon: ShieldEllipsis
             },
             {
               title: '审计日志',
-              url: '/system/security/audit-logs',
+              url: '/system/audit-logs',
               icon: HardDrive
-            }
-          ]
-        },
-        {
-          title: '安全中心',
-          icon: ShieldCheck,
-          items: [
-            {
-              title: '资源监控',
-              url: '/system/security/resource-posture',
-              icon: Activity
             }
           ]
         }
@@ -182,39 +172,39 @@ export const sidebarData: SidebarData = {
           items: [
             {
               title: '个人资料',
-              url: '/account/profile',
+              url: '/settings/profile',
               icon: UserRound
             },
             {
               title: '账户',
-              url: '/account/credentials',
+              url: '/settings/account',
               icon: Wrench
             },
             {
               title: '安全',
-              url: '/account/security',
+              url: '/settings/security',
               icon: Lock
             },
             {
               title: '外观',
-              url: '/preferences/appearance',
+              url: '/settings/appearance',
               icon: Palette
             },
             {
               title: '通知',
-              url: '/preferences/notifications',
+              url: '/settings/notifications',
               icon: Bell
             },
             {
               title: '显示',
-              url: '/preferences/display',
+              url: '/settings/display',
               icon: Monitor
             }
           ]
         },
         {
           title: '帮助中心',
-          url: '/support/help-center',
+          url: '/help-center',
           icon: HelpCircle
         }
       ]
