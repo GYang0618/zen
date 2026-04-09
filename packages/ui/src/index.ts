@@ -25,14 +25,13 @@ export * from './components/separator'
 export * from './components/sheet'
 export * from './components/sidebar'
 export * from './components/skeleton'
+export * from './components/switch'
 export * from './components/table'
 export * from './components/tabs'
 export * from './components/textarea'
 export * from './components/tooltip'
-
 // Hooks
 export * from './hooks/use-dialog-state'
 export * from './hooks/use-mobile'
-
 // Lib
 export * from './lib/utils'

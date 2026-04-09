@@ -8,7 +8,8 @@
           "options": {
             "groups": [
               { "type": false, "source": ":NODE:" },
-              { "type": false, "source": ":PACKAGE:" },
+              ":BLANK_LINE:",
+              { "type": false, "source": [":PACKAGE:"] },
               ":BLANK_LINE:",
               { "type": false, "source": ":ALIAS:" },
               ":BLANK_LINE:",
@@ -38,6 +39,10 @@
       },
       "a11y": {
         "useButtonType": "off"
+      },
+
+      "suspicious": {
+        "noArrayIndexKey": "off"
       }
     }
   },
