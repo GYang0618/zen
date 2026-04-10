@@ -1,12 +1,14 @@
 import { NestFactory } from '@nestjs/core'
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify'
 import { Logger } from 'nestjs-pino'
+
 import {
   type AppConfig,
   CONFIG_NAMESPACES,
   type SecurityConfig,
   type SwaggerConfig
 } from '@/config'
+
 import { AppModule } from './app.module'
 
 async function bootstrap() {

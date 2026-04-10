@@ -2,6 +2,7 @@
 
 import { cn } from '@zen/ui/lib/utils'
 import { Avatar as AvatarPrimitive } from 'radix-ui'
+
 import type * as React from 'react'
 
 function Avatar({

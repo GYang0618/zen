@@ -12,6 +12,7 @@ import {
   ScrollArea
 } from '@zen/ui'
 import { ArrowRight, ChevronRight, Laptop, Moon, Sun } from 'lucide-react'
+
 import { sidebarData } from '@/components/layouts/sidebar-data'
 import { useSearch } from '@/context/search-provider'
 import { useTheme } from '@/context/theme-provider'

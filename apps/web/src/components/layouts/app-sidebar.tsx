@@ -1,5 +1,7 @@
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from '@zen/ui'
+
 import { useLayout } from '@/context/layout-provider'
+
 import { AppNav } from './components/app-nav'
 import { NavUser } from './components/nav-user'
 import { TeamSwitcher } from './components/team-switcher'

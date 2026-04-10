@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common'
+
 import { CommonModule } from '@/common'
 import { ConfigModule } from '@/config'
 import { LoggerModule } from '@/infra/logger'

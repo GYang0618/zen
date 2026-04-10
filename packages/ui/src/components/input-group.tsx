@@ -4,7 +4,9 @@ import { Button } from '@zen/ui/components/button'
 import { Input } from '@zen/ui/components/input'
 import { Textarea } from '@zen/ui/components/textarea'
 import { cn } from '@zen/ui/lib/utils'
-import { cva, type VariantProps } from 'class-variance-authority'
+import { cva } from 'class-variance-authority'
+
+import type { VariantProps } from 'class-variance-authority'
 import type * as React from 'react'
 
 function InputGroup({ className, ...props }: React.ComponentProps<'div'>) {

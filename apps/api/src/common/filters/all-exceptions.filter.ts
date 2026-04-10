@@ -1,10 +1,13 @@
 import { randomUUID } from 'node:crypto'
-import type { ArgumentsHost, ExceptionFilter } from '@nestjs/common'
+
 import { Catch, HttpException, HttpStatus, Inject } from '@nestjs/common'
 import { HttpAdapterHost } from '@nestjs/core'
 import { Logger } from 'nestjs-pino'
-import type { AppConfig } from '@/config'
+
 import { appConfig } from '@/config'
+
+import type { ArgumentsHost, ExceptionFilter } from '@nestjs/common'
+import type { AppConfig } from '@/config'
 import type { ApiErrorResponse } from '../interfaces/api-response.interface'
 
 type HttpRequest = {

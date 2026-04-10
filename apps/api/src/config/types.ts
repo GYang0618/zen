@@ -1,4 +1,5 @@
 import { ConfigType } from '@nestjs/config'
+
 import { CONFIG_NAMESPACES } from './constants'
 import {
   appConfig,

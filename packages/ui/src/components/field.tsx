@@ -1,9 +1,10 @@
 import { Label } from '@zen/ui/components/label'
 import { Separator } from '@zen/ui/components/separator'
-
 import { cn } from '@zen/ui/lib/utils'
-import { cva, type VariantProps } from 'class-variance-authority'
+import { cva } from 'class-variance-authority'
 import { useMemo } from 'react'
+
+import type { VariantProps } from 'class-variance-authority'
 
 function FieldSet({ className, ...props }: React.ComponentProps<'fieldset'>) {
   return (

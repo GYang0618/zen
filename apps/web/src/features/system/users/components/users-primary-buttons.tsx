@@ -1,5 +1,6 @@
 import { Button } from '@zen/ui'
 import { MailPlus, UserPlus } from 'lucide-react'
+
 import { useUsers } from './users-provider'
 
 export function UsersPrimaryButtons() {

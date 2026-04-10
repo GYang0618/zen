@@ -1,5 +1,7 @@
 import { Global, Module } from '@nestjs/common'
+
 import { CONFIG_NAMESPACES, type DatabaseConfig } from '@/config'
+
 import { PrismaService } from './prisma.service'
 
 @Global()

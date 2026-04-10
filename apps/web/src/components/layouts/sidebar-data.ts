@@ -29,6 +29,7 @@ import {
   UserRoundCog,
   Wrench
 } from 'lucide-react'
+
 import type { SidebarData } from './types'
 export const sidebarData: SidebarData = {
   teams: [

@@ -2,6 +2,7 @@ import { Button } from '@zen/ui/components/button'
 import { cn } from '@zen/ui/lib/utils'
 import { XIcon } from 'lucide-react'
 import { Dialog as DialogPrimitive } from 'radix-ui'
+
 import type * as React from 'react'
 
 function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {

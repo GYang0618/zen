@@ -1,7 +1,9 @@
 import { Button, cn } from '@zen/ui'
 import { SearchIcon } from 'lucide-react'
-import type { HTMLInputTypeAttribute } from 'react'
+
 import { useSearch } from '@/context/search-provider'
+
+import type { HTMLInputTypeAttribute } from 'react'
 
 type SearchProps = {
   className?: string

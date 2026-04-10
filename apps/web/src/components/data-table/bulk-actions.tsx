@@ -1,7 +1,8 @@
-import type { Table } from '@tanstack/react-table'
 import { Badge, Button, cn, Separator, Tooltip, TooltipContent, TooltipTrigger } from '@zen/ui'
 import { X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+
+import type { Table } from '@tanstack/react-table'
 
 type DataTableBulkActionsProps<TData> = {
   table: Table<TData>

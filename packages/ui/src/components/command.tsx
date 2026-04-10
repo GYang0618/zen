@@ -6,10 +6,10 @@ import {
   DialogTitle
 } from '@zen/ui/components/dialog'
 import { InputGroup, InputGroupAddon } from '@zen/ui/components/input-group'
-
 import { cn } from '@zen/ui/lib/utils'
 import { Command as CommandPrimitive } from 'cmdk'
 import { CheckIcon, SearchIcon } from 'lucide-react'
+
 import type * as React from 'react'
 
 function Command({ className, ...props }: React.ComponentProps<typeof CommandPrimitive>) {

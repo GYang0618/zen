@@ -1,16 +1,11 @@
 import { Label } from '@zen/ui/components/label'
 import { cn } from '@zen/ui/lib/utils'
-import { type Label as LabelPrimitive, Slot } from 'radix-ui'
+import { Slot } from 'radix-ui'
 import * as React from 'react'
-import {
-  Controller,
-  type ControllerProps,
-  type FieldPath,
-  type FieldValues,
-  FormProvider,
-  useFormContext,
-  useFormState
-} from 'react-hook-form'
+import { Controller, FormProvider, useFormContext, useFormState } from 'react-hook-form'
+
+import type { Label as LabelPrimitive } from 'radix-ui'
+import type { ControllerProps, FieldPath, FieldValues } from 'react-hook-form'
 
 const Form = FormProvider
 

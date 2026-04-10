@@ -1,5 +1,6 @@
 import { Outlet } from '@tanstack/react-router'
 import { Card, CardContent, cn, FieldDescription } from '@zen/ui'
+
 import bgPng from '@/assets/hero.png'
 
 export function AuthLayout() {

@@ -1,6 +1,8 @@
 import { cn } from '@zen/ui/lib/utils'
-import { cva, type VariantProps } from 'class-variance-authority'
+import { cva } from 'class-variance-authority'
 import { Slot } from 'radix-ui'
+
+import type { VariantProps } from 'class-variance-authority'
 import type * as React from 'react'
 
 const buttonVariants = cva(

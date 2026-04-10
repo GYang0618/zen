@@ -4,7 +4,6 @@ import {
   DoubleArrowLeftIcon,
   DoubleArrowRightIcon
 } from '@radix-ui/react-icons'
-import type { Table } from '@tanstack/react-table'
 import {
   Button,
   cn,
@@ -15,6 +14,8 @@ import {
   SelectTrigger,
   SelectValue
 } from '@zen/ui'
+
+import type { Table } from '@tanstack/react-table'
 
 type DataTablePaginationProps<TData> = {
   table: Table<TData>

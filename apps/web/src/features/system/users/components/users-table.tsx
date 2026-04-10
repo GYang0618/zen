@@ -6,18 +6,21 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  type SortingState,
-  useReactTable,
-  type VisibilityState
+  useReactTable
 } from '@tanstack/react-table'
 import { cn, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@zen/ui'
 import { useEffect, useState } from 'react'
+
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
-import { type NavigateFn, useTableUrlState } from '@/hooks/use-table-url-state'
+import { useTableUrlState } from '@/hooks/use-table-url-state'
+
 import { roles } from '../data/data'
-import type { User } from '../data/schema'
 import { DataTableBulkActions } from './data-table-bulk-actions'
 import { usersColumns as columns } from './users-columns'
+
+import type { SortingState, VisibilityState } from '@tanstack/react-table'
+import type { NavigateFn } from '@/hooks/use-table-url-state'
+import type { User } from '../data/schema'
 
 type DataTableProps = {
   data: User[]

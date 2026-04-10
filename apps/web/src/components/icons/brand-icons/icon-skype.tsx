@@ -1,4 +1,5 @@
 import { cn } from '@zen/ui'
+
 import type { SVGProps } from 'react'
 
 export function IconSkype({ className, ...props }: SVGProps<SVGSVGElement>) {

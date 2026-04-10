@@ -8,6 +8,7 @@ import {
 } from '@zen/ui'
 import { Check, Moon, Sun } from 'lucide-react'
 import { useEffect } from 'react'
+
 import { useTheme } from '@/context/theme-provider'
 
 export function ThemeSwitch() {

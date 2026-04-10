@@ -1,4 +1,5 @@
 import { Button, Field } from '@zen/ui'
+
 import { IconApple, IconGoogle, IconMeta } from '@/components/icons'
 
 export function ThirdPartyLogin() {

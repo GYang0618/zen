@@ -9,6 +9,7 @@ import {
   Button,
   cn
 } from '@zen/ui'
+
 import type { JSX, ReactNode } from 'react'
 
 type ConfirmDialogProps = {

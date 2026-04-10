@@ -11,9 +11,8 @@ import {
   SheetTrigger,
   useSidebar
 } from '@zen/ui'
-
 import { CircleCheck, RotateCcw, Settings } from 'lucide-react'
-import type { ReactElement, SVGProps } from 'react'
+
 import {
   IconLayoutCompact,
   IconLayoutDefault,
@@ -25,8 +24,11 @@ import {
   IconThemeLight,
   IconThemeSystem
 } from '@/components/icons'
-import { type Collapsible, useLayout } from '@/context/layout-provider'
+import { useLayout } from '@/context/layout-provider'
 import { useTheme } from '@/context/theme-provider'
+
+import type { ReactElement, SVGProps } from 'react'
+import type { Collapsible } from '@/context/layout-provider'
 
 const { Item, Root: Radio } = RadioGroup
 

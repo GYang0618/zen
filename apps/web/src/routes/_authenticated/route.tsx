@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+
 import { AuthenticatedLayout } from '@/components/layouts'
 
 export const Route = createFileRoute('/_authenticated')({

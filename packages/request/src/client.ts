@@ -1,5 +1,9 @@
-import axios, { type AxiosInstance, type AxiosRequestConfig, isAxiosError } from 'axios'
+import { isAxiosError } from 'axios'
+
 import { runPipeline } from './pipeline'
+
+import type axios from 'axios'
+import type { AxiosInstance, AxiosRequestConfig } from 'axios'
 import type { HttpClientConfig } from './types'
 
 export const createHttpClient = (config: HttpClientConfig): AxiosInstance => {

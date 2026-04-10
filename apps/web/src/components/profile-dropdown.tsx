@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
   useDialogState
 } from '@zen/ui'
+
 import { SignOutDialog } from '@/components/sign-out-dialog'
 
 export function ProfileDropdown() {

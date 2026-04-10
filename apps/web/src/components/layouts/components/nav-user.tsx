@@ -17,7 +17,9 @@ import {
   useSidebar
 } from '@zen/ui'
 import { BadgeCheck, Bell, ChevronsUpDown, CreditCard, LogOut, Sparkles } from 'lucide-react'
+
 import { SignOutDialog } from '@/components/sign-out-dialog'
+
 import type { User } from '../types'
 
 type NavUserProps = {

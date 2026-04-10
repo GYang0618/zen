@@ -1,4 +1,5 @@
 import { cn } from '@zen/ui'
+
 import type { SVGProps } from 'react'
 
 export function IconGithub({ className, ...props }: SVGProps<SVGSVGElement>) {

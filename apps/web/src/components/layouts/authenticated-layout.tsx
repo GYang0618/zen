@@ -1,8 +1,10 @@
 import { Outlet } from '@tanstack/react-router'
 import { cn, SidebarInset, SidebarProvider } from '@zen/ui'
+
 import { LayoutProvider } from '@/context/layout-provider'
 import { SearchProvider } from '@/context/search-provider'
 import { getCookie } from '@/lib'
+
 import { AppSidebar } from './app-sidebar'
 
 export function AuthenticatedLayout() {

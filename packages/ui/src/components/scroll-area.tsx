@@ -1,7 +1,7 @@
-import * as React from 'react'
+import { cn } from '@zen/ui/lib/utils'
 import { ScrollArea as ScrollAreaPrimitive } from 'radix-ui'
 
-import { cn } from '@zen/ui/lib/utils'
+import type * as React from 'react'
 
 function ScrollArea({
   className,

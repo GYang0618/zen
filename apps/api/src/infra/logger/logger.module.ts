@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common'
 import { LoggerModule as Logger } from 'nestjs-pino'
+
 import { type AppConfig, CONFIG_NAMESPACES, type LoggerConfig } from '@/config'
 
 @Module({

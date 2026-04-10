@@ -21,8 +21,8 @@ import {
   useSidebar
 } from '@zen/ui'
 import { ChevronRight } from 'lucide-react'
-import type { ReactNode } from 'react'
 
+import type { ReactNode } from 'react'
 import type { NavCollapsible, NavGroup as NavGroupProps, NavItem, NavLink } from '../types'
 
 export function NavGroup({ title, items }: NavGroupProps) {

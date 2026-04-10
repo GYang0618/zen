@@ -1,10 +1,11 @@
 import { getRouteApi } from '@tanstack/react-router'
+
 import { ConfigDrawer } from '@/components/config-drawer'
 import { Header, Main } from '@/components/layouts'
-
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
+
 import { UsersDialogs } from './components/users-dialogs'
 import { UsersPrimaryButtons } from './components/users-primary-buttons'
 import { UsersProvider } from './components/users-provider'
