@@ -21,6 +21,7 @@ import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
 import { Route as authSignInRouteImport } from './routes/(auth)/sign-in'
 import { Route as AuthenticatedSystemUsersRouteImport } from './routes/_authenticated/system/users'
 import { Route as AuthenticatedSystemRolesRouteImport } from './routes/_authenticated/system/roles'
+import { Route as AuthenticatedAiCopilotRouteImport } from './routes/_authenticated/ai/copilot'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -82,6 +83,11 @@ const AuthenticatedSystemRolesRoute =
     path: '/system/roles',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAiCopilotRoute = AuthenticatedAiCopilotRouteImport.update({
+  id: '/ai/copilot',
+  path: '/ai/copilot',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -92,6 +98,7 @@ export interface FileRoutesByFullPath {
   '/errors/404': typeof Errors404Route
   '/errors/500': typeof Errors500Route
   '/errors/503': typeof Errors503Route
+  '/ai/copilot': typeof AuthenticatedAiCopilotRoute
   '/system/roles': typeof AuthenticatedSystemRolesRoute
   '/system/users': typeof AuthenticatedSystemUsersRoute
 }
@@ -104,6 +111,7 @@ export interface FileRoutesByTo {
   '/errors/500': typeof Errors500Route
   '/errors/503': typeof Errors503Route
   '/': typeof AuthenticatedIndexRoute
+  '/ai/copilot': typeof AuthenticatedAiCopilotRoute
   '/system/roles': typeof AuthenticatedSystemRolesRoute
   '/system/users': typeof AuthenticatedSystemUsersRoute
 }
@@ -119,6 +127,7 @@ export interface FileRoutesById {
   '/errors/500': typeof Errors500Route
   '/errors/503': typeof Errors503Route
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/ai/copilot': typeof AuthenticatedAiCopilotRoute
   '/_authenticated/system/roles': typeof AuthenticatedSystemRolesRoute
   '/_authenticated/system/users': typeof AuthenticatedSystemUsersRoute
 }
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/errors/404'
     | '/errors/500'
     | '/errors/503'
+    | '/ai/copilot'
     | '/system/roles'
     | '/system/users'
   fileRoutesByTo: FileRoutesByTo
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
     | '/errors/500'
     | '/errors/503'
     | '/'
+    | '/ai/copilot'
     | '/system/roles'
     | '/system/users'
   id:
@@ -159,6 +170,7 @@ export interface FileRouteTypes {
     | '/errors/500'
     | '/errors/503'
     | '/_authenticated/'
+    | '/_authenticated/ai/copilot'
     | '/_authenticated/system/roles'
     | '/_authenticated/system/users'
   fileRoutesById: FileRoutesById
@@ -259,6 +271,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSystemRolesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ai/copilot': {
+      id: '/_authenticated/ai/copilot'
+      path: '/ai/copilot'
+      fullPath: '/ai/copilot'
+      preLoaderRoute: typeof AuthenticatedAiCopilotRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -278,12 +297,14 @@ const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAiCopilotRoute: typeof AuthenticatedAiCopilotRoute
   AuthenticatedSystemRolesRoute: typeof AuthenticatedSystemRolesRoute
   AuthenticatedSystemUsersRoute: typeof AuthenticatedSystemUsersRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAiCopilotRoute: AuthenticatedAiCopilotRoute,
   AuthenticatedSystemRolesRoute: AuthenticatedSystemRolesRoute,
   AuthenticatedSystemUsersRoute: AuthenticatedSystemUsersRoute,
 }

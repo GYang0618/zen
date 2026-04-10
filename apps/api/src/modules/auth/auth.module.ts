@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common'
-import type { ConfigType } from '@nestjs/config'
 import { JwtModule } from '@nestjs/jwt'
+
 import { authConfig } from '@/config'
+
 import { UserModule } from '../user/user.module'
 import { AuthController } from './auth.controller'
 import { AuthService } from './auth.service'
+
+import type { ConfigType } from '@nestjs/config'
 
 @Module({
   imports: [

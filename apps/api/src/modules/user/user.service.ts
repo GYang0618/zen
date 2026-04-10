@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
-
 import { Gender, MfaType, Prisma, Theme, User } from '@prisma/client'
 import argon2 from 'argon2'
+
 import { PrismaService } from '@/infra/prisma/prisma.service'
+
 import type { CreateUserDto } from './dto/create-user.dto'
 import type { RoleInfoResponse, UserInfoResponse } from './responses/user.response'
 

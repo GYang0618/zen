@@ -3,6 +3,7 @@ import {
   AudioWaveform,
   Bell,
   Bot,
+  BotMessageSquare,
   Building2,
   ChartColumn,
   ClipboardList,
@@ -62,9 +63,34 @@ export const sidebarData: SidebarData = {
           icon: LayoutDashboard
         },
         {
+          title: 'Copilot',
+          url: '/ai/copilot',
+          icon: BotMessageSquare
+        },
+        {
           title: '我的待办',
           url: '/workspace/tasks',
           icon: ClipboardList
+        }
+      ]
+    },
+    {
+      title: 'AI 智能',
+      items: [
+        {
+          title: 'Agent中心',
+          url: '/ai/agents',
+          icon: Bot
+        },
+        {
+          title: '自动化与流程',
+          url: '/ai/workflows',
+          icon: GitBranch
+        },
+        {
+          title: '提示词仓库',
+          url: '/ai/prompt-library',
+          icon: Library
         }
       ]
     },
@@ -86,26 +112,6 @@ export const sidebarData: SidebarData = {
               icon: Layers
             }
           ]
-        }
-      ]
-    },
-    {
-      title: 'AI 智能',
-      items: [
-        {
-          title: 'Agent中心',
-          url: '/ai/agents',
-          icon: Bot
-        },
-        {
-          title: '自动化与流程',
-          url: '/ai/workflows',
-          icon: GitBranch
-        },
-        {
-          title: '提示词仓库',
-          url: '/ai/prompt-library',
-          icon: Library
         }
       ]
     },

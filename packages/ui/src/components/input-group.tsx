@@ -1,12 +1,11 @@
 'use client'
 
-import * as React from 'react'
-import { cva, type VariantProps } from 'class-variance-authority'
-
-import { cn } from '@zen/ui/lib/utils'
 import { Button } from '@zen/ui/components/button'
 import { Input } from '@zen/ui/components/input'
 import { Textarea } from '@zen/ui/components/textarea'
+import { cn } from '@zen/ui/lib/utils'
+import { cva, type VariantProps } from 'class-variance-authority'
+import type * as React from 'react'
 
 function InputGroup({ className, ...props }: React.ComponentProps<'div'>) {
   return (
@@ -138,7 +137,7 @@ export {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
-  InputGroupText,
   InputGroupInput,
+  InputGroupText,
   InputGroupTextarea
 }

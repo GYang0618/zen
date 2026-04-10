@@ -1,12 +1,14 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UsePipes } from '@nestjs/common'
 
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
-import type { CreateUserDto } from './dto/create-user.dto'
+
 import { createUserSchema } from './dto/create-user.dto'
-import type { UpdateUserDto } from './dto/update-user.dto'
 import { updateUserSchema } from './dto/update-user.dto'
-import type { UserInfoResponse } from './responses/user.response'
 import { UserService } from './user.service'
+
+import type { CreateUserDto } from './dto/create-user.dto'
+import type { UpdateUserDto } from './dto/update-user.dto'
+import type { UserInfoResponse } from './responses/user.response'
 
 @Controller('user')
 export class UserController {

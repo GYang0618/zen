@@ -4,10 +4,11 @@ import { Public } from '@/common/decorators/public.decorator'
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
 
 import { AuthService } from './auth.service'
-import type { LoginDto } from './dto/login.dto'
 import { loginSchema } from './dto/login.dto'
-import type { RegisterDto } from './dto/register.dto'
 import { registerSchema } from './dto/register.dto'
+
+import type { LoginDto } from './dto/login.dto'
+import type { RegisterDto } from './dto/register.dto'
 import type { LoginResponse, RegisterResponse } from './responses/auth.response'
 
 @Controller('auth')

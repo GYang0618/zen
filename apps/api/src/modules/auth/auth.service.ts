@@ -6,11 +6,14 @@ import {
   UnauthorizedException
 } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
-import type { User } from '@prisma/client'
 import argon2 from 'argon2'
-import type { AuthConfig } from '@/config'
+
 import { CONFIG_NAMESPACES } from '@/config'
+
 import { UserService } from '../user/user.service'
+
+import type { User } from '@prisma/client'
+import type { AuthConfig } from '@/config'
 import type { LoginDto } from './dto/login.dto'
 import type { RegisterDto } from './dto/register.dto'
 import type { LoginResponse, RegisterResponse } from './responses/auth.response'
