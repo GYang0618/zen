@@ -2,10 +2,22 @@ import { useChat } from '@ai-sdk/react'
 import { ScrollArea } from '@zen/ui'
 import { DefaultChatTransport } from 'ai'
 
+import { AITable } from '@/components/ai'
 import { Main } from '@/components/layouts'
 
 import { Messages } from './components/messages'
 import { NotionPromptForm } from './components/notion-prompt-form'
+
+import type { User } from '@/components/ai'
+
+export const data: User[] = [
+  {
+    username: '缪白',
+    name: 'Miubai',
+    email: '2559058772@qq.com',
+    phoneNumber: '18554564566'
+  }
+]
 
 export function AICopilot() {
   const transport = new DefaultChatTransport({
@@ -29,6 +41,9 @@ export function AICopilot() {
             })}
           </div>
         ))}
+
+        {/* <AIForm /> */}
+        <AITable data={data} />
       </ScrollArea>
 
       <NotionPromptForm onSubmit={handleSendMessage} />

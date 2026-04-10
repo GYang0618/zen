@@ -1,8 +1,7 @@
-import { isAxiosError } from 'axios'
+import axios, { isAxiosError } from 'axios'
 
 import { runPipeline } from './pipeline'
 
-import type axios from 'axios'
 import type { AxiosInstance, AxiosRequestConfig } from 'axios'
 import type { HttpClientConfig } from './types'
 
