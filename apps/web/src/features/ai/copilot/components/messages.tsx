@@ -1,18 +1,26 @@
 import AIMessage from './ai-message'
 import { HumanMessage } from './human-message'
 
-import type { UIMessage } from 'ai'
+import type { ChatStatus, UIMessage } from 'ai'
 
 interface MessagesProps {
-  message: string
+  parts: UIMessage['parts']
   role: UIMessage['role']
+  status?: ChatStatus
 }
 
-export function Messages({ message, role }: MessagesProps) {
+export function Messages({ parts, role, status }: MessagesProps) {
   return (
     <>
-      {role === 'user' && <HumanMessage message={message} />}
-      {role === 'assistant' && <AIMessage message={message} />}
+      {parts.map((part, i) => {
+        if (part.type === 'text') {
+          if (role === 'user') return <HumanMessage key={i} message={part.text} />
+          if (role === 'assistant')
+            return <AIMessage key={i} message={part.text} isAnimating={status === 'streaming'} />
+        }
+
+        return null
+      })}
     </>
   )
 }

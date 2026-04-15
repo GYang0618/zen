@@ -1,10 +1,21 @@
-import { Button } from '@zen/ui/index'
+import { cjk } from '@streamdown/cjk'
+import { Button } from '@zen/ui'
 import { Copy, RefreshCw, ThumbsDown, ThumbsUp } from 'lucide-react'
+import { Streamdown } from 'streamdown'
+import 'streamdown/styles.css'
 
-export default function AIMessage({ message }: { message: string }) {
+export default function AIMessage({
+  message,
+  isAnimating
+}: {
+  message: string
+  isAnimating?: boolean
+}) {
   return (
     <div>
-      <div> {message}</div>
+      <Streamdown plugins={{ cjk }} animated isAnimating={isAnimating}>
+        {message}
+      </Streamdown>
       <div className="h-9 flex items-center gap-1">
         <Button size="icon-sm" variant="ghost">
           <Copy />

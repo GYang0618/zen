@@ -1,4 +1,5 @@
 import { Body, Controller, Post, UsePipes } from '@nestjs/common'
+import { createUIMessageStreamResponse } from 'ai'
 
 import { BypassTransform, Public, ZodValidationPipe } from '@/common'
 
@@ -15,7 +16,9 @@ export class CopilotController {
   @BypassTransform()
   @Post()
   @UsePipes(new ZodValidationPipe(callSchema))
-  run(@Body() callDto: CallDto) {
-    return this.copilotService.call(callDto)
+  async call(@Body() callDto: CallDto) {
+    const stream = await this.copilotService.call(callDto)
+
+    return createUIMessageStreamResponse({ stream })
   }
 }

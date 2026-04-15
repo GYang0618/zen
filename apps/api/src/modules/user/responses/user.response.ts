@@ -74,3 +74,15 @@ export interface UserInfoResponse {
   remark?: string
   meta?: Record<string, unknown>
 }
+
+export interface UserPaginationResponse {
+  page: number
+  pageSize: number
+  total: number
+  totalPages: number
+}
+
+export interface UserListResponse {
+  items: UserInfoResponse[]
+  pagination: UserPaginationResponse
+}

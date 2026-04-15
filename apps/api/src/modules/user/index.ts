@@ -1,4 +1,6 @@
 export { createUserSchema } from './dto/create-user.dto'
+export { findUsersQuerySchema } from './dto/find-users-query.dto'
 export { updateUserSchema } from './dto/update-user.dto'
+export { UserTool } from './tools/user.tool'
 export { UserModule } from './user.module'
 export { UserService } from './user.service'

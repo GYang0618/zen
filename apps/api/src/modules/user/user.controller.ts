@@ -1,14 +1,16 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UsePipes } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UsePipes } from '@nestjs/common'
 
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
 
 import { createUserSchema } from './dto/create-user.dto'
+import { findUsersQuerySchema } from './dto/find-users-query.dto'
 import { updateUserSchema } from './dto/update-user.dto'
 import { UserService } from './user.service'
 
 import type { CreateUserDto } from './dto/create-user.dto'
+import type { FindUsersQueryDto } from './dto/find-users-query.dto'
 import type { UpdateUserDto } from './dto/update-user.dto'
-import type { UserInfoResponse } from './responses/user.response'
+import type { UserInfoResponse, UserListResponse } from './responses/user.response'
 
 @Controller('user')
 export class UserController {
@@ -21,8 +23,9 @@ export class UserController {
   }
 
   @Get()
-  findAll(): Promise<UserInfoResponse[]> {
-    return this.userService.findAll()
+  @UsePipes(new ZodValidationPipe(findUsersQuerySchema, { types: ['query'] }))
+  findAll(@Query() query?: FindUsersQueryDto): Promise<UserListResponse> {
+    return this.userService.findAll(query)
   }
 
   @Get(':id')
@@ -33,10 +36,7 @@ export class UserController {
   @Patch(':id')
   @UsePipes(new ZodValidationPipe(updateUserSchema))
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto): Promise<UserInfoResponse> {
-    return this.userService.update({
-      where: { id },
-      data: updateUserDto
-    })
+    return this.userService.update(id, updateUserDto)
   }
 
   @Delete(':id')

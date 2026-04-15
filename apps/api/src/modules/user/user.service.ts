@@ -1,381 +1,122 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
-import { Gender, MfaType, Prisma, Theme, User } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import argon2 from 'argon2'
 
-import { PrismaService } from '@/infra/prisma/prisma.service'
+import { findUsersQuerySchema } from './dto/find-users-query.dto'
+import { toUserInfoResponse } from './user.mapper'
+import { UserRepository } from './user.repository'
 
 import type { CreateUserDto } from './dto/create-user.dto'
-import type { RoleInfoResponse, UserInfoResponse } from './responses/user.response'
+import type { FindUsersQueryDto } from './dto/find-users-query.dto'
+import type { UpdateUserDto } from './dto/update-user.dto'
+import type { UserInfoResponse, UserListResponse } from './responses/user.response'
 
-const USER_INCLUDE = {
-  profile: true,
-  security: true,
-  preference: true,
-  audit: true,
-  departments: {
-    include: {
-      department: true
-    }
-  },
-  roles: {
-    include: {
-      role: {
-        include: {
-          permissions: {
-            include: {
-              permission: true
-            }
-          }
-        }
-      }
-    }
-  }
-} satisfies Prisma.UserInclude
-
-type UserWithDomain = Prisma.UserGetPayload<{
-  include: typeof USER_INCLUDE
-}>
+const DEFAULT_ROLE_CODE = 'guest'
 
 @Injectable()
 export class UserService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly userRepo: UserRepository) {}
 
   async create(data: CreateUserDto): Promise<UserInfoResponse> {
     const hashedPassword = await argon2.hash(data.password)
-    const created = await this.prisma.user.create({
-      data: {
-        username: data.username,
-        email: data.email,
-        phone: data.phone,
-        nickname: data.nickname,
-        password: hashedPassword
-      }
+    const created = await this.userRepo.create({
+      username: data.username,
+      email: data.email,
+      phone: data.phone,
+      nickname: data.nickname,
+      password: hashedPassword
     })
 
-    await this.ensureUserDomainData(created.id)
-    await this.assignRoleByCode(created.id, 'guest')
+    await this.userRepo.ensureDomainData(created.id)
+    await this.assignRoleByCode(created.id, DEFAULT_ROLE_CODE)
     return this.getUserInfoByUserId(created.id)
   }
 
-  async findOne(where: Prisma.UserWhereUniqueInput): Promise<User | null> {
-    return this.prisma.user.findUnique({
-      where
-    })
+  findOne(where: Prisma.UserWhereUniqueInput) {
+    return this.userRepo.findUnique(where)
   }
 
   async getUserInfoByUserId(userId: string): Promise<UserInfoResponse> {
-    await this.ensureUserDomainData(userId)
+    await this.userRepo.ensureDomainData(userId)
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      include: USER_INCLUDE
-    })
-    if (!user) {
-      throw new NotFoundException('用户不存在')
-    }
+    const user = await this.userRepo.findUniqueWithDomain({ id: userId })
+    if (!user) throw new NotFoundException('用户不存在')
 
-    return this.toUserInfo(user)
+    return toUserInfoResponse(user)
   }
 
-  async update(params: {
-    where: Prisma.UserWhereUniqueInput
-    data: Prisma.UserUpdateInput
-  }): Promise<UserInfoResponse> {
-    const { where, data } = params
-    const passwordValue = data.password
+  async update(id: string, data: UpdateUserDto): Promise<UserInfoResponse> {
     const nextData: Prisma.UserUpdateInput = { ...data }
-    if (typeof passwordValue === 'string') {
-      nextData.password = await argon2.hash(passwordValue)
+    if (typeof data.password === 'string') {
+      nextData.password = await argon2.hash(data.password)
     }
 
-    const updated = await this.prisma.user.update({
-      data: nextData,
-      where
-    })
-
-    await this.ensureUserDomainData(updated.id)
+    const updated = await this.userRepo.update({ id }, nextData)
+    await this.userRepo.ensureDomainData(updated.id)
     return this.getUserInfoByUserId(updated.id)
   }
 
-  async findAll(): Promise<UserInfoResponse[]> {
-    const users = await this.prisma.user.findMany({
-      include: USER_INCLUDE
-    })
+  /** 供内部（AuthService）使用，更新登录安全相关字段 */
+  updateSecurityFields(id: string, data: Prisma.UserUpdateInput) {
+    return this.userRepo.update({ id }, data)
+  }
 
-    const missing = users
-      .filter((user) => !user.profile || !user.security || !user.preference || !user.audit)
-      .map((user) => user.id)
-
-    if (missing.length === 0) {
-      return users.map((user) => this.toUserInfo(user))
-    }
-
-    await Promise.all(missing.map((id) => this.ensureUserDomainData(id)))
-    const hydrated = await this.prisma.user.findMany({
-      include: USER_INCLUDE
-    })
-    return hydrated.map((user) => this.toUserInfo(user))
+  async findAll(query?: FindUsersQueryDto): Promise<UserListResponse> {
+    const { keyword, page, pageSize } = findUsersQuerySchema.parse(query ?? {})
+    const where = this.buildKeywordWhere(keyword)
+    return this.paginateUsers(where, page, pageSize)
   }
 
   async remove(id: string): Promise<UserInfoResponse> {
-    const deleted = await this.prisma.user.delete({
-      where: { id }
-    })
+    const user = await this.userRepo.findUniqueWithDomain({ id })
+    if (!user) throw new NotFoundException('用户不存在')
 
-    return {
-      id: deleted.id,
-      profile: {
-        username: deleted.username,
-        nickname: deleted.nickname ?? undefined
-      },
-      contact: {
-        email: deleted.email,
-        phone: deleted.phone ?? undefined
-      },
-      account: {
-        status: this.toAccountStatus(deleted.status, deleted.isLocked),
-        isVerified: true,
-        isLocked: deleted.isLocked,
-        lockExpireAt: deleted.lockExpireAt?.toISOString()
-      },
-      preferences: {
-        locale: 'zh-CN',
-        timezone: 'Asia/Shanghai',
-        theme: 'system',
-        notifications: {
-          email: true,
-          push: true,
-          sms: false
-        }
-      },
-      audit: {
-        createdAt: deleted.createdAt.toISOString(),
-        updatedAt: deleted.updatedAt.toISOString()
-      }
-    }
+    await this.userRepo.delete({ id })
+    return toUserInfoResponse(user)
   }
 
   async ensureUserDomainData(userId: string) {
-    await this.prisma.$transaction([
-      this.prisma.userProfile.upsert({
-        where: { userId },
-        create: { userId },
-        update: {}
-      }),
-      this.prisma.userSecurity.upsert({
-        where: { userId },
-        create: { userId },
-        update: {}
-      }),
-      this.prisma.userPreference.upsert({
-        where: { userId },
-        create: { userId },
-        update: {}
-      }),
-      this.prisma.userAudit.upsert({
-        where: { userId },
-        create: { userId },
-        update: {}
-      })
-    ])
+    return this.userRepo.ensureDomainData(userId)
   }
 
   async touchLoginAudit(userId: string, loginIp?: string) {
-    await this.ensureUserDomainData(userId)
-    await this.prisma.userAudit.update({
-      where: { userId },
-      data: {
-        lastLoginAt: new Date(),
-        lastActiveAt: new Date(),
-        lastLoginIp: loginIp
-      }
-    })
+    await this.userRepo.ensureDomainData(userId)
+    return this.userRepo.touchLoginAudit(userId, loginIp)
   }
 
   async assignRoleByCode(userId: string, roleCode: string) {
-    const role = await this.prisma.role.findUnique({
-      where: { code: roleCode }
-    })
-    if (!role) {
-      return
-    }
-
-    await this.prisma.userRole.upsert({
-      where: {
-        userId_roleId: {
-          userId,
-          roleId: role.id
-        }
-      },
-      create: {
-        userId,
-        roleId: role.id
-      },
-      update: {}
-    })
+    const role = await this.userRepo.findRoleByCode(roleCode)
+    if (!role) return
+    await this.userRepo.upsertUserRole(userId, role.id)
   }
 
-  private toUserInfo(user: UserWithDomain): UserInfoResponse {
-    const department = user.departments.find((item) => item.isPrimary) ?? user.departments[0]
-    const roleDetails: RoleInfoResponse[] = user.roles.map(({ role }) => ({
-      id: role.id,
-      code: role.code,
-      name: role.name,
-      description: role.description ?? undefined,
-      permissions: role.permissions.map((item) => item.permission.code),
-      isSystem: role.isSystem,
-      status: role.status === 'ACTIVE' ? 'active' : 'disabled',
-      sort: role.sort ?? undefined,
-      createdAt: role.createdAt.toISOString(),
-      updatedAt: role.updatedAt.toISOString()
-    }))
-    const permissionSet = new Set<string>()
-    roleDetails.forEach((role) => {
-      role.permissions.forEach((permission) => permissionSet.add(permission))
-    })
+  private buildKeywordWhere(keyword?: string): Prisma.UserWhereInput {
+    if (!keyword) return {}
+    const mode = 'insensitive' as const
+    return {
+      OR: [
+        { email: { contains: keyword, mode } },
+        { username: { contains: keyword, mode } },
+        { nickname: { contains: keyword, mode } },
+        { phone: { contains: keyword, mode } }
+      ]
+    }
+  }
 
-    const profile = user.profile
-    const security = user.security
-    const preference = user.preference
-    const audit = user.audit
+  private async paginateUsers(
+    where: Prisma.UserWhereInput,
+    page: number,
+    pageSize: number
+  ): Promise<UserListResponse> {
+    const skip = (page - 1) * pageSize
+    const [total, users] = await Promise.all([
+      this.userRepo.count(where),
+      this.userRepo.findManyWithDomain(where, skip, pageSize)
+    ])
 
     return {
-      id: user.id,
-      profile: {
-        username: user.username,
-        nickname: user.nickname ?? undefined,
-        realName: profile?.realName ?? undefined,
-        avatar: profile?.avatar ?? undefined,
-        gender: this.toGender(profile?.gender)
-      },
-      contact: {
-        email: user.email,
-        phone: user.phone ?? undefined
-      },
-      auth: {
-        roles: roleDetails.map((role) => role.code),
-        permissions: Array.from(permissionSet),
-        roleDetails
-      },
-      org: {
-        deptId: department?.departmentId,
-        deptName: department?.department.name,
-        jobTitle: profile?.jobTitle ?? undefined
-      },
-      account: {
-        status: this.toAccountStatus(user.status, user.isLocked),
-        isVerified: true,
-        isLocked: user.isLocked,
-        lockExpireAt: user.lockExpireAt?.toISOString()
-      },
-      security: {
-        mfaEnabled: security?.mfaEnabled ?? false,
-        mfaType: this.toMfaType(security?.mfaType),
-        passwordExpireAt: security?.passwordExpireAt?.toISOString(),
-        lastPasswordChange: security?.lastPasswordChange?.toISOString(),
-        loginAttempts: user.loginAttempts
-      },
-      preferences: {
-        locale: preference?.locale ?? 'zh-CN',
-        timezone: preference?.timezone ?? 'Asia/Shanghai',
-        theme: this.toTheme(preference?.theme),
-        notifications: {
-          email: preference?.notifyByEmail ?? true,
-          push: preference?.notifyByPush ?? true,
-          sms: preference?.notifyBySms ?? false
-        },
-        dashboard: this.toDashboardSettings(preference?.dashboardSettings)
-      },
-      audit: {
-        createdAt: user.createdAt.toISOString(),
-        createdBy: audit?.createdBy ?? undefined,
-        updatedAt: user.updatedAt.toISOString(),
-        updatedBy: audit?.updatedBy ?? undefined,
-        lastLoginAt: audit?.lastLoginAt?.toISOString(),
-        lastLoginIp: audit?.lastLoginIp ?? undefined,
-        lastActiveAt: audit?.lastActiveAt?.toISOString()
-      },
-      remark: profile?.remark ?? undefined,
-      meta: this.toMeta(profile?.meta)
+      items: users.map(toUserInfoResponse),
+      pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) }
     }
-  }
-
-  private toAccountStatus(
-    status: number,
-    isLocked: boolean
-  ): UserInfoResponse['account']['status'] {
-    if (isLocked) {
-      return 'locked'
-    }
-
-    if (status === 0) {
-      return 'disabled'
-    }
-
-    return 'active'
-  }
-
-  private toGender(gender?: Gender): UserInfoResponse['profile']['gender'] {
-    if (!gender) {
-      return undefined
-    }
-
-    if (gender === 'MALE') {
-      return 'male'
-    }
-    if (gender === 'FEMALE') {
-      return 'female'
-    }
-
-    return 'unknown'
-  }
-
-  private toMfaType(mfaType?: MfaType): NonNullable<UserInfoResponse['security']>['mfaType'] {
-    if (!mfaType) {
-      return 'off'
-    }
-
-    if (mfaType === 'TOTP') return 'totp'
-    if (mfaType === 'SMS') return 'sms'
-    if (mfaType === 'EMAIL') return 'email'
-    return 'off'
-  }
-
-  private toTheme(theme?: Theme): UserInfoResponse['preferences']['theme'] {
-    if (!theme) {
-      return 'system'
-    }
-
-    if (theme === 'LIGHT') return 'light'
-    if (theme === 'DARK') return 'dark'
-    return 'system'
-  }
-
-  private toDashboardSettings(
-    dashboardSettings?: Prisma.JsonValue | null
-  ): UserInfoResponse['preferences']['dashboard'] {
-    if (
-      !dashboardSettings ||
-      typeof dashboardSettings !== 'object' ||
-      Array.isArray(dashboardSettings)
-    ) {
-      return undefined
-    }
-
-    const value = dashboardSettings as Record<string, unknown>
-    return {
-      defaultView: typeof value.defaultView === 'string' ? value.defaultView : undefined,
-      widgets: Array.isArray(value.widgets)
-        ? value.widgets.filter((item): item is string => typeof item === 'string')
-        : undefined
-    }
-  }
-
-  private toMeta(meta?: Prisma.JsonValue | null): Record<string, unknown> | undefined {
-    if (!meta || typeof meta !== 'object' || Array.isArray(meta)) {
-      return undefined
-    }
-
-    return meta as Record<string, unknown>
   }
 }
