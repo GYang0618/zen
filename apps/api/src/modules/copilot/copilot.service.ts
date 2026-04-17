@@ -20,7 +20,7 @@ export class CopilotService {
 
     const stream = await agent.stream(
       { messages: langchainMessages },
-      { streamMode: ['values', 'messages','custom'] }
+      { streamMode: ['values', 'messages', 'custom'] }
     )
 
     return toUIMessageStream(stream, {

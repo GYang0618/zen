@@ -1,4 +1,5 @@
 import { getRouteApi } from '@tanstack/react-router'
+import { useEffect } from 'react'
 
 import { ConfigDrawer } from '@/components/config-drawer'
 import { Header, Main } from '@/components/layouts'
@@ -6,6 +7,7 @@ import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
 
+import { userApi } from './api'
 import { UsersDialogs } from './components/users-dialogs'
 import { UsersPrimaryButtons } from './components/users-primary-buttons'
 import { UsersProvider } from './components/users-provider'
@@ -17,6 +19,15 @@ const route = getRouteApi('/_authenticated/system/users')
 export function Users() {
   const search = route.useSearch()
   const navigate = route.useNavigate()
+
+  useEffect(() => {
+    const loadUsers = async () => {
+      const res = await userApi.getUserList()
+      console.log('🚀 ~ loadUsers ~ res:', res)
+    }
+
+    loadUsers()
+  }, [])
 
   return (
     <UsersProvider>

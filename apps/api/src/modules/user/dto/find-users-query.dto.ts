@@ -5,7 +5,7 @@ const DEFAULT_PAGE_SIZE = 10
 const MAX_PAGE_SIZE = 100
 
 export const findUsersQuerySchema = z.object({
-  keyword: z.string().trim().optional().describe('支持邮箱、用户名、昵称、手机号等关键字搜索'),
+  keyword: z.string().trim().optional().describe('关键字搜索：支持邮箱、用户名、昵称、手机号'),
   page: z.coerce.number().int().min(1).default(DEFAULT_PAGE).describe('页码，默认为1'),
   pageSize: z.coerce
     .number()

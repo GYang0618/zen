@@ -2,7 +2,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 export interface User {
   username: string
-  name: string
+  nickname: string
   email: string
   phoneNumber: string
 }
@@ -22,7 +22,7 @@ export function AITable({ data }: { data: User[] }) {
         {data.map((d) => (
           <TableRow key={d.username}>
             <TableCell className="font-medium">{d.username}</TableCell>
-            <TableCell>{d.name}</TableCell>
+            <TableCell>{d.nickname}</TableCell>
             <TableCell>{d.email}</TableCell>
             <TableCell className="text-right">{d.phoneNumber}</TableCell>
           </TableRow>

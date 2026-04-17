@@ -4,51 +4,95 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+
 }
 
+/// 性别枚举
 enum Gender {
-  MALE
-  FEMALE
-  UNKNOWN
+  /// 男
+  MALE    @map("male")
+  /// 女
+  FEMALE  @map("female")
+  /// 未知
+  UNKNOWN @map("unknown")
 }
 
+/// 多因子认证类型枚举
 enum MfaType {
-  TOTP
-  SMS
-  EMAIL
-  OFF
+  /// TOTP 动态口令
+  TOTP  @map("totp")
+  /// 短信验证码
+  SMS   @map("sms")
+  /// 邮箱验证码
+  EMAIL @map("email")
+  /// 关闭多因子认证
+  OFF   @map("off")
 }
 
+/// 主题模式枚举
 enum Theme {
-  LIGHT
-  DARK
-  SYSTEM
+  /// 浅色模式
+  LIGHT  @map("light")
+  /// 深色模式
+  DARK   @map("dark")
+  /// 跟随系统
+  SYSTEM @map("system")
 }
 
+/// 通用记录状态枚举
 enum RecordStatus {
-  ACTIVE
-  DISABLED
+  /// 启用
+  ACTIVE   @map("active")
+  /// 禁用
+  DISABLED @map("disabled")
 }
 
-model User {
-  id            String    @id @default(cuid())
-  username      String    @unique
-  nickname      String?
-  email         String    @unique
-  phone         String?   @unique
-  password      String
-  status        Int       @default(1) // 1: Active, 0: Disabled
-  loginAttempts Int       @default(0)
-  isLocked      Boolean   @default(false)
-  lockExpireAt  DateTime?
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+/// 用户账号状态枚举
+enum UserStatusCode {
+  /// 启用
+  ACTIVE   @map("active")
+  /// 禁用
+  DISABLED @map("disabled")
+}
 
+/// 用户主表
+model User {
+  /// 用户ID
+  id            String         @id @default(cuid())
+  /// 用户名
+  username      String         @unique
+  /// 昵称
+  nickname      String?
+  /// 邮箱
+  email         String         @unique
+  /// 手机号
+  phone         String?        @unique
+  /// 密码哈希
+  password      String
+  /// 账号状态
+  status        UserStatusCode @default(ACTIVE)
+  /// 登录失败次数
+  loginAttempts Int            @default(0)
+  /// 是否锁定
+  isLocked      Boolean        @default(false)
+  /// 锁定到期时间
+  lockExpireAt  DateTime?
+  /// 创建时间
+  createdAt     DateTime       @default(now()) @map("created_at")
+  /// 更新时间
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  /// 用户资料（一对一）
   profile     UserProfile?
+  /// 用户安全设置（一对一）
   security    UserSecurity?
+  /// 用户偏好设置（一对一）
   preference  UserPreference?
+  /// 用户审计信息（一对一）
   audit       UserAudit?
+  /// 用户角色关联（一对多）
   roles       UserRole[]
+  /// 用户部门关联（一对多）
   departments UserDepartment[]
 
   @@index([email])
@@ -56,34 +100,56 @@ model User {
   @@map("users")
 }
 
+/// 用户资料表
 model UserProfile {
+  /// 资料ID
   id        String   @id @default(cuid())
+  /// 用户ID
   userId    String   @unique @map("user_id")
+  /// 真实姓名
   realName  String?  @map("real_name")
+  /// 头像地址
   avatar    String?
+  /// 性别
   gender    Gender   @default(UNKNOWN)
+  /// 职位名称
   jobTitle  String?  @map("job_title")
+  /// 备注
   remark    String?
+  /// 扩展元数据
   meta      Json?
+  /// 创建时间
   createdAt DateTime @default(now()) @map("created_at")
+  /// 更新时间
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  /// 关联用户
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([gender])
   @@map("user_profiles")
 }
 
+/// 用户安全设置表
 model UserSecurity {
+  /// 安全记录ID
   id                 String    @id @default(cuid())
+  /// 用户ID
   userId             String    @unique @map("user_id")
+  /// 是否开启多因子认证
   mfaEnabled         Boolean   @default(false) @map("mfa_enabled")
+  /// 多因子认证类型
   mfaType            MfaType   @default(OFF) @map("mfa_type")
+  /// 密码到期时间
   passwordExpireAt   DateTime? @map("password_expire_at")
+  /// 上次修改密码时间
   lastPasswordChange DateTime? @map("last_password_change")
+  /// 创建时间
   createdAt          DateTime  @default(now()) @map("created_at")
+  /// 更新时间
   updatedAt          DateTime  @updatedAt @map("updated_at")
 
+  /// 关联用户
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([mfaEnabled])
@@ -91,36 +157,60 @@ model UserSecurity {
   @@map("user_security")
 }
 
+/// 用户偏好设置表
 model UserPreference {
+  /// 偏好记录ID
   id                String   @id @default(cuid())
+  /// 用户ID
   userId            String   @unique @map("user_id")
+  /// 语言区域
   locale            String   @default("zh-CN")
+  /// 时区
   timezone          String   @default("Asia/Shanghai")
+  /// 主题模式
   theme             Theme    @default(SYSTEM)
+  /// 邮件通知开关
   notifyByEmail     Boolean  @default(true) @map("notify_by_email")
+  /// 推送通知开关
   notifyByPush      Boolean  @default(true) @map("notify_by_push")
+  /// 短信通知开关
   notifyBySms       Boolean  @default(false) @map("notify_by_sms")
+  /// 仪表盘配置
   dashboardSettings Json?    @map("dashboard_settings")
+  /// 创建时间
   createdAt         DateTime @default(now()) @map("created_at")
+  /// 更新时间
   updatedAt         DateTime @updatedAt @map("updated_at")
 
+  /// 关联用户
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([theme])
   @@map("user_preferences")
 }
 
+/// 用户审计信息表
 model UserAudit {
+  /// 审计记录ID
   id           String    @id @default(cuid())
+  /// 用户ID
   userId       String    @unique @map("user_id")
+  /// 创建人ID
   createdBy    String?   @map("created_by")
+  /// 更新人ID
   updatedBy    String?   @map("updated_by")
+  /// 最后登录时间
   lastLoginAt  DateTime? @map("last_login_at")
+  /// 最后登录IP
   lastLoginIp  String?   @map("last_login_ip")
+  /// 最后活跃时间
   lastActiveAt DateTime? @map("last_active_at")
+  /// 创建时间
   createdAt    DateTime  @default(now()) @map("created_at")
+  /// 更新时间
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
+  /// 关联用户
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([lastLoginAt])
@@ -128,45 +218,72 @@ model UserAudit {
   @@map("user_audit")
 }
 
+/// 角色表
 model Role {
+  /// 角色ID
   id          String       @id @default(cuid())
+  /// 角色编码
   code        String       @unique
+  /// 角色名称
   name        String
+  /// 角色描述
   description String?
+  /// 是否系统角色
   isSystem    Boolean      @default(false) @map("is_system")
+  /// 角色状态
   status      RecordStatus @default(ACTIVE)
+  /// 排序值
   sort        Int?
+  /// 创建时间
   createdAt   DateTime     @default(now()) @map("created_at")
+  /// 更新时间
   updatedAt   DateTime     @updatedAt @map("updated_at")
 
+  /// 角色下的用户关联
   users       UserRole[]
+  /// 角色下的权限关联
   permissions RolePermission[]
 
   @@index([status])
   @@map("roles")
 }
 
+/// 权限表
 model Permission {
+  /// 权限ID
   id          String   @id @default(cuid())
+  /// 权限编码
   code        String   @unique
+  /// 权限名称
   name        String
+  /// 所属模块
   module      String?
+  /// 权限描述
   description String?
+  /// 创建时间
   createdAt   DateTime @default(now()) @map("created_at")
+  /// 更新时间
   updatedAt   DateTime @updatedAt @map("updated_at")
 
+  /// 权限对应的角色关联
   roles RolePermission[]
 
   @@index([module])
   @@map("permissions")
 }
 
+/// 用户角色关联表
 model UserRole {
+  /// 用户ID
   userId    String   @map("user_id")
+  /// 角色ID
   roleId    String   @map("role_id")
+  /// 创建时间
   createdAt DateTime @default(now()) @map("created_at")
 
+  /// 关联用户
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// 关联角色
   role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@id([userId, roleId])
@@ -174,12 +291,18 @@ model UserRole {
   @@map("user_roles")
 }
 
+/// 角色权限关联表
 model RolePermission {
+  /// 角色ID
   roleId       String   @map("role_id")
+  /// 权限ID
   permissionId String   @map("permission_id")
+  /// 创建时间
   createdAt    DateTime @default(now()) @map("created_at")
 
+  /// 关联角色
   role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  /// 关联权限
   permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@id([roleId, permissionId])
@@ -187,19 +310,32 @@ model RolePermission {
   @@map("role_permissions")
 }
 
+/// 部门表
 model Department {
+  /// 部门ID
   id          String       @id @default(cuid())
+  /// 部门编码
   code        String       @unique
+  /// 部门名称
   name        String
+  /// 父部门ID
   parentId    String?      @map("parent_id")
+  /// 部门描述
   description String?
+  /// 部门状态
   status      RecordStatus @default(ACTIVE)
+  /// 排序值
   sort        Int?
+  /// 创建时间
   createdAt   DateTime     @default(now()) @map("created_at")
+  /// 更新时间
   updatedAt   DateTime     @updatedAt @map("updated_at")
 
+  /// 父级部门
   parent   Department?      @relation("DepartmentHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  /// 子部门集合
   children Department[]     @relation("DepartmentHierarchy")
+  /// 部门下的用户关联
   users    UserDepartment[]
 
   @@index([parentId])
@@ -207,13 +343,20 @@ model Department {
   @@map("departments")
 }
 
+/// 用户部门关联表
 model UserDepartment {
+  /// 用户ID
   userId       String   @map("user_id")
+  /// 部门ID
   departmentId String   @map("department_id")
+  /// 是否主部门
   isPrimary    Boolean  @default(false) @map("is_primary")
+  /// 创建时间
   createdAt    DateTime @default(now()) @map("created_at")
 
+  /// 关联用户
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// 关联部门
   department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
 
   @@id([userId, departmentId])

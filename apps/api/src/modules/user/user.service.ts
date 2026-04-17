@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client'
 import argon2 from 'argon2'
 
 import { findUsersQuerySchema } from './dto/find-users-query.dto'
-import { toUserInfoResponse } from './user.mapper'
+import { toUserInfoResponse, toUserListItemResponse } from './user.mapper'
 import { UserRepository } from './user.repository'
 
 import type { CreateUserDto } from './dto/create-user.dto'
@@ -61,7 +61,7 @@ export class UserService {
     return this.userRepo.update({ id }, data)
   }
 
-  async findAll(query?: FindUsersQueryDto): Promise<UserListResponse> {
+  findAll(query?: FindUsersQueryDto): Promise<UserListResponse> {
     const { keyword, page, pageSize } = findUsersQuerySchema.parse(query ?? {})
     const where = this.buildKeywordWhere(keyword)
     return this.paginateUsers(where, page, pageSize)
@@ -115,7 +115,7 @@ export class UserService {
     ])
 
     return {
-      items: users.map(toUserInfoResponse),
+      items: users.map(toUserListItemResponse),
       pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) }
     }
   }

@@ -5,8 +5,10 @@ import { runPipeline } from './pipeline'
 import type { AxiosInstance, AxiosRequestConfig } from 'axios'
 import type { HttpClientConfig } from './types'
 
-export const createHttpClient = (config: HttpClientConfig): AxiosInstance => {
-  const { middlewares = {}, ...cfg } = config
+export const createHttpClient = (
+  config: HttpClientConfig | (() => HttpClientConfig) = {}
+): AxiosInstance => {
+  const { middlewares = {}, ...cfg } = typeof config === 'function' ? config() : config
 
   const instance = axios.create(cfg)
 

@@ -10,6 +10,8 @@ import { ThemeProvider } from './context/theme-provider'
 
 import type { RouterMeta } from '@/types/router'
 
+import '@/config/env'
+
 export const router = createRouter({
   routeTree,
   scrollRestoration: true,

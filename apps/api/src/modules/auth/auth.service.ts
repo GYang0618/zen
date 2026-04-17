@@ -4,6 +4,7 @@ import {
   Injectable,
   UnauthorizedException
 } from '@nestjs/common'
+import { UserStatusCode } from '@prisma/client'
 import argon2 from 'argon2'
 
 import { UserService } from '../user/user.service'
@@ -12,8 +13,11 @@ import { AuthTokenService } from './auth.token.service'
 import type { User } from '@prisma/client'
 import type { LoginDto } from './dto/login.dto'
 import type { RegisterDto } from './dto/register.dto'
-import type { AuthSessionResponse } from './responses/auth.response'
-import type { LoginResponse, RegisterResponse } from './responses/auth.response'
+import type {
+  AuthSessionResponse,
+  LoginResponse,
+  RegisterResponse
+} from './responses/auth.response'
 
 const MAX_LOGIN_ATTEMPTS = 5
 const LOCK_DURATION_MINUTES = 15
@@ -101,7 +105,11 @@ export class AuthService {
     if (attempts >= MAX_LOGIN_ATTEMPTS) {
       const lockExpireAt = new Date()
       lockExpireAt.setMinutes(lockExpireAt.getMinutes() + LOCK_DURATION_MINUTES)
-      await this.userService.updateSecurityFields(user.id, { isLocked: true, loginAttempts: attempts, lockExpireAt })
+      await this.userService.updateSecurityFields(user.id, {
+        isLocked: true,
+        loginAttempts: attempts,
+        lockExpireAt
+      })
       throw new ForbiddenException('失败次数过多，账号已被锁定')
     }
     await this.userService.updateSecurityFields(user.id, { loginAttempts: attempts })
@@ -110,10 +118,14 @@ export class AuthService {
 
   private async resetLoginAttempts(user: User) {
     if (user.loginAttempts === 0) return
-    await this.userService.updateSecurityFields(user.id, { loginAttempts: 0, isLocked: false, lockExpireAt: null })
+    await this.userService.updateSecurityFields(user.id, {
+      loginAttempts: 0,
+      isLocked: false,
+      lockExpireAt: null
+    })
   }
 
   private assertAccountActive(user: User) {
-    if (user.status !== 1) throw new ForbiddenException('账号已被禁用')
+    if (user.status !== UserStatusCode.ACTIVE) throw new ForbiddenException('账号已被禁用')
   }
 }

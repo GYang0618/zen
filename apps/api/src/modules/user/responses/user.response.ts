@@ -75,6 +75,23 @@ export interface UserInfoResponse {
   meta?: Record<string, unknown>
 }
 
+export interface UserListItemResponse {
+  id: string
+  username: string
+  nickname?: string
+  realName?: string
+  avatar?: string
+  email: string
+  phone?: string
+  phoneNumber?: string
+  status: 'active' | 'disabled' | 'locked' | 'pending'
+  role?: string
+  deptName?: string
+  jobTitle?: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface UserPaginationResponse {
   page: number
   pageSize: number
@@ -83,6 +100,6 @@ export interface UserPaginationResponse {
 }
 
 export interface UserListResponse {
-  items: UserInfoResponse[]
+  items: UserListItemResponse[]
   pagination: UserPaginationResponse
 }

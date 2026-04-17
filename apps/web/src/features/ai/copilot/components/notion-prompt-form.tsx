@@ -9,6 +9,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  cn,
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
@@ -51,7 +52,12 @@ import { data } from '../data/data'
 
 import type { SubmitEvent } from 'react'
 
-export function NotionPromptForm({ onSubmit }: { onSubmit?: (value: string) => void }) {
+interface NotionPromptFormProps {
+  onSubmit?: (value: string) => void
+  className?: string
+}
+
+export function NotionPromptForm({ onSubmit, className }: NotionPromptFormProps) {
   const [inputValue, setInputValue] = useState('')
   const [mentions, setMentions] = useState<string[]>([])
   const [mentionPopoverOpen, setMentionPopoverOpen] = useState(false)
@@ -84,7 +90,7 @@ export function NotionPromptForm({ onSubmit }: { onSubmit?: (value: string) => v
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form className={cn(className)} onSubmit={handleSubmit}>
       <Field>
         <FieldLabel htmlFor="notion-prompt" className="sr-only">
           提示词

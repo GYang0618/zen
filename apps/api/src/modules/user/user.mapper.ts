@@ -1,6 +1,10 @@
-import { Gender, MfaType, Prisma, Theme } from '@prisma/client'
+import { Gender, MfaType, Prisma, Theme, UserStatusCode } from '@prisma/client'
 
-import type { RoleInfoResponse, UserInfoResponse } from './responses/user.response'
+import type {
+  RoleInfoResponse,
+  UserInfoResponse,
+  UserListItemResponse
+} from './responses/user.response'
 import type { UserWithDomain } from './user.repository'
 
 const GENDER_MAP: Record<Gender, UserInfoResponse['profile']['gender']> = {
@@ -22,9 +26,12 @@ const THEME_MAP: Record<Theme, UserInfoResponse['preferences']['theme']> = {
   SYSTEM: 'system'
 }
 
-function toAccountStatus(status: number, isLocked: boolean): UserInfoResponse['account']['status'] {
+function toAccountStatus(
+  status: UserStatusCode,
+  isLocked: boolean
+): UserInfoResponse['account']['status'] {
   if (isLocked) return 'locked'
-  return status === 0 ? 'disabled' : 'active'
+  return status === UserStatusCode.DISABLED ? 'disabled' : 'active'
 }
 
 function toGender(gender?: Gender): UserInfoResponse['profile']['gender'] {
@@ -81,6 +88,10 @@ function collectPermissions(roleDetails: RoleInfoResponse[]): string[] {
     }
   }
   return Array.from(permissionSet)
+}
+
+function getPrimaryRoleCode(roles: UserWithDomain['roles']): string | undefined {
+  return roles[0]?.role.code
 }
 
 export function toUserInfoResponse(user: UserWithDomain): UserInfoResponse {
@@ -147,5 +158,32 @@ export function toUserInfoResponse(user: UserWithDomain): UserInfoResponse {
     },
     remark: profile?.remark ?? undefined,
     meta: toMeta(profile?.meta)
+  }
+}
+
+export function toUserListItemResponse(user: UserWithDomain): UserListItemResponse {
+  const { profile, roles } = user
+  const primaryDept = user.departments.find((d) => d.isPrimary) ?? user.departments[0]
+
+  return {
+    id: user.id,
+    username: user.username,
+    nickname: user.nickname ?? undefined,
+    realName: profile?.realName ?? undefined,
+    avatar: profile?.avatar ?? undefined,
+    email: user.email,
+    phone: user.phone ?? undefined,
+    phoneNumber: user.phone ?? undefined,
+    status:
+      user.isLocked || user.status === UserStatusCode.DISABLED
+        ? user.isLocked
+          ? 'locked'
+          : 'disabled'
+        : 'active',
+    role: getPrimaryRoleCode(roles),
+    deptName: primaryDept?.department.name,
+    jobTitle: profile?.jobTitle ?? undefined,
+    createdAt: user.createdAt.toISOString(),
+    updatedAt: user.updatedAt.toISOString()
   }
 }
