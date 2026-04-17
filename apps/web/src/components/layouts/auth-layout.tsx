@@ -1,8 +1,6 @@
 import { Outlet } from '@tanstack/react-router'
 import { Card, CardContent, cn, FieldDescription } from '@zen/ui'
 
-import bgPng from '@/assets/hero.png'
-
 export function AuthLayout() {
   return (
     <div className="flex min-h-svh flex-col items-center justify-center bg-muted p-6 md:p-10">
@@ -11,12 +9,11 @@ export function AuthLayout() {
           <Card className="overflow-hidden p-0">
             <CardContent className="grid p-0 md:grid-cols-2">
               <Outlet />
-              <div className="relative hidden bg-muted md:block">
-                <img
-                  src={bgPng}
-                  alt="背景图"
-                  className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-                />
+              <div className="relative md:flex items-center  hidden  bg-linear-to-br from-indigo-500 to-purple-600 text-white">
+                <div className="max-w-md space-y-6 p-10">
+                  <h1 className="text-4xl font-bold">Shadcn Admin </h1>
+                  <p className="text-lg opacity-80">构建智能化的AI驱动管理系统。</p>
+                </div>
               </div>
             </CardContent>
           </Card>

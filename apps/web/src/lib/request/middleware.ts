@@ -28,11 +28,8 @@ export const withTokenMiddleware = createRequestMiddleware((config) => {
  * 提取 data 字段，避免调用方每次手动访问 response.data.data
  */
 export const dataTransformMiddleware = createResponseMiddleware((response) => {
-  const body = response.data as RequestResponse<unknown>
-  if (body && typeof body === 'object' && 'data' in body) {
-    return { ...response, data: body.data }
-  }
-  return response
+  // 其他过滤
+  return response.data.data
 })
 
 // ─── 错误中间件 ───────────────────────────────────────────

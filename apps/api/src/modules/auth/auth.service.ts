@@ -40,7 +40,7 @@ export class AuthService {
   }
 
   async login(dto: LoginDto): Promise<LoginResponse> {
-    const user = await this.userService.findOne({ email: dto.email })
+    const user = await this.findUserByIdentifier(dto.identifier)
     if (!user) throw new UnauthorizedException('账号或密码错误')
 
     await this.releaseLockIfExpired(user)
@@ -52,6 +52,18 @@ export class AuthService {
     const userInfo = await this.userService.getUserInfoByUserId(user.id)
 
     return this.buildSession(user.id, user.email, userInfo)
+  }
+
+  private async findUserByIdentifier(identifier: string) {
+    const normalizedIdentifier = identifier.trim()
+
+    const byEmail = await this.userService.findOne({ email: normalizedIdentifier })
+    if (byEmail) return byEmail
+
+    const byUsername = await this.userService.findOne({ username: normalizedIdentifier })
+    if (byUsername) return byUsername
+
+    return this.userService.findOne({ phone: normalizedIdentifier })
   }
 
   private buildSession(
