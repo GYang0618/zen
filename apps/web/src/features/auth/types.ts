@@ -3,7 +3,9 @@ export interface AuthSessionUser {
   username: string
   email: string
   nickname: string | null
-  phone: string | null
+  avatar: string | null
+  roles: string[]
+  permissions: string[]
 }
 
 export interface AuthSession {

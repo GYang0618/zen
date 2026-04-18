@@ -4,10 +4,10 @@ import { useAuthStore } from '@/stores'
 
 import { authApi } from './api'
 
-import type { AuthSessionResponse } from './api'
+import type { AuthSession } from './types'
 
-const persistAuthSession = (session: AuthSessionResponse) => {
-  useAuthStore.getState().setAuth(session.accessToken, session.user)
+const persistAuthSession = (session: AuthSession) => {
+  useAuthStore.getState().setAuth(session)
 }
 
 export function useSignInMutation() {

@@ -1,17 +1,16 @@
-import type { UserInfoResponse } from '@/modules/user/responses/user.response'
-
 export interface AuthSessionUserResponse {
   id: string
   username: string
   email: string
   nickname?: string | null
-  phone?: string | null
+  avatar?: string | null
+  roles: string[]
+  permissions: string[]
 }
 
 export interface AuthSessionResponse {
   accessToken: string
   user: AuthSessionUserResponse
-  userInfo: UserInfoResponse
 }
 
 export type LoginResponse = AuthSessionResponse

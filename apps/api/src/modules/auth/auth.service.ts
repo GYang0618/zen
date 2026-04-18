@@ -95,6 +95,10 @@ export class AuthService {
     userInfo: Awaited<ReturnType<UserService['getUserInfoByUserId']>>
   ): IssueSessionResult {
     const tokens = this.tokenService.generateTokenPair(userId, email)
+
+    const roles = userInfo.auth?.roles ?? []
+    const permissions = userInfo.auth?.permissions ?? []
+
     return {
       refreshToken: tokens.refreshToken,
       session: {
@@ -104,9 +108,10 @@ export class AuthService {
           username: userInfo.profile.username,
           email: userInfo.contact?.email ?? email,
           nickname: userInfo.profile.nickname ?? null,
-          phone: userInfo.contact?.phone ?? null
-        },
-        userInfo
+          avatar: userInfo.profile.avatar ?? null,
+          roles,
+          permissions
+        }
       }
     }
   }
