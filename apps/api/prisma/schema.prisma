@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-
 }
 
 /// 性别枚举
@@ -58,29 +57,33 @@ enum UserStatusCode {
 /// 用户主表
 model User {
   /// 用户ID
-  id            String         @id @default(cuid())
+  id                    String         @id @default(cuid())
   /// 用户名
-  username      String         @unique
+  username              String         @unique
   /// 昵称
-  nickname      String?
+  nickname              String?
   /// 邮箱
-  email         String         @unique
+  email                 String         @unique
   /// 手机号
-  phone         String?        @unique
+  phone                 String?        @unique
   /// 密码哈希
-  password      String
+  password              String
+  /// Refresh Token 哈希（用于服务端撤销/轮换）
+  refreshTokenHash      String?        @map("refresh_token_hash")
+  /// Refresh Token 过期时间（服务端校验）
+  refreshTokenExpiresAt DateTime?      @map("refresh_token_expires_at")
   /// 账号状态
-  status        UserStatusCode @default(ACTIVE)
+  status                UserStatusCode @default(ACTIVE)
   /// 登录失败次数
-  loginAttempts Int            @default(0)
+  loginAttempts         Int            @default(0)
   /// 是否锁定
-  isLocked      Boolean        @default(false)
+  isLocked              Boolean        @default(false)
   /// 锁定到期时间
-  lockExpireAt  DateTime?
+  lockExpireAt          DateTime?
   /// 创建时间
-  createdAt     DateTime       @default(now()) @map("created_at")
+  createdAt             DateTime       @default(now()) @map("created_at")
   /// 更新时间
-  updatedAt     DateTime       @updatedAt @map("updated_at")
+  updatedAt             DateTime       @updatedAt @map("updated_at")
 
   /// 用户资料（一对一）
   profile     UserProfile?

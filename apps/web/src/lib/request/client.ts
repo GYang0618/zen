@@ -2,19 +2,34 @@ import { createHttpClient, createRequest } from '@zen/request'
 
 import { useEnv } from '@/config/env'
 
-import { dataTransformMiddleware, globalErrorMiddleware, withTokenMiddleware } from './middleware'
+import {
+  dataTransformMiddleware,
+  globalErrorMiddleware,
+  tokenRefreshMiddleware,
+  withTokenMiddleware
+} from './middleware'
 
-export const httpClient = createHttpClient(() => {
+export const http = createHttpClient(() => {
   const { baseUrl, apiTimeout } = useEnv()
   return {
     baseURL: baseUrl,
     timeout: apiTimeout,
+    withCredentials: true,
     middlewares: {
       request: [withTokenMiddleware],
       response: [dataTransformMiddleware],
-      error: [globalErrorMiddleware]
+      error: [tokenRefreshMiddleware, globalErrorMiddleware]
     }
   }
 })
 
-export const request = createRequest(httpClient)
+export const anonymousHttp = createHttpClient(() => {
+  const { baseUrl, apiTimeout } = useEnv()
+  return {
+    baseURL: baseUrl,
+    timeout: apiTimeout,
+    withCredentials: true
+  }
+})
+
+export const request = createRequest(http)

@@ -13,11 +13,14 @@ import { AuthTokenService } from './auth.token.service'
 import type { User } from '@prisma/client'
 import type { LoginDto } from './dto/login.dto'
 import type { RegisterDto } from './dto/register.dto'
-import type {
-  AuthSessionResponse,
-  LoginResponse,
-  RegisterResponse
-} from './responses/auth.response'
+import type { AuthSessionResponse } from './responses/auth.response'
+
+const REFRESH_TOKEN_HASH_PREFIX = 'refresh:'
+
+export interface IssueSessionResult {
+  session: AuthSessionResponse
+  refreshToken: string
+}
 
 const MAX_LOGIN_ATTEMPTS = 5
 const LOCK_DURATION_MINUTES = 15
@@ -29,17 +32,17 @@ export class AuthService {
     private readonly tokenService: AuthTokenService
   ) {}
 
-  async register(dto: RegisterDto): Promise<RegisterResponse> {
+  async register(dto: RegisterDto): Promise<IssueSessionResult> {
     await this.assertEmailNotTaken(dto.email)
     await this.assertUsernameNotTaken(dto.username)
 
     const userInfo = await this.userService.create(dto)
     await this.userService.touchLoginAudit(userInfo.id)
 
-    return this.buildSession(userInfo.id, userInfo.contact!.email, userInfo)
+    return this.issueSession(userInfo.id, userInfo.contact!.email, userInfo)
   }
 
-  async login(dto: LoginDto): Promise<LoginResponse> {
+  async login(dto: LoginDto): Promise<IssueSessionResult> {
     const user = await this.findUserByIdentifier(dto.identifier)
     if (!user) throw new UnauthorizedException('账号或密码错误')
 
@@ -51,7 +54,27 @@ export class AuthService {
     await this.userService.touchLoginAudit(user.id)
     const userInfo = await this.userService.getUserInfoByUserId(user.id)
 
-    return this.buildSession(user.id, user.email, userInfo)
+    return this.issueSession(user.id, user.email, userInfo)
+  }
+
+  async refresh(userId: string): Promise<IssueSessionResult> {
+    const user = await this.userService.findOne({ id: userId })
+    if (!user) throw new UnauthorizedException('用户不存在')
+    await this.assertAccountActive(user)
+
+    const userInfo = await this.userService.getUserInfoByUserId(user.id)
+    return this.issueSession(user.id, user.email, userInfo)
+  }
+
+  async logout(userId: string) {
+    await this.userService.updateRefreshTokenState(userId, {
+      refreshTokenHash: null,
+      refreshTokenExpiresAt: null
+    })
+  }
+
+  async getMe(userId: string) {
+    return this.userService.getUserInfoByUserId(userId)
   }
 
   private async findUserByIdentifier(identifier: string) {
@@ -66,22 +89,55 @@ export class AuthService {
     return this.userService.findOne({ phone: normalizedIdentifier })
   }
 
-  private buildSession(
+  private issueSession(
     userId: string,
     email: string,
     userInfo: Awaited<ReturnType<UserService['getUserInfoByUserId']>>
-  ): AuthSessionResponse {
+  ): IssueSessionResult {
     const tokens = this.tokenService.generateTokenPair(userId, email)
     return {
-      ...tokens,
-      user: {
-        id: userInfo.id,
-        username: userInfo.profile.username,
-        email: userInfo.contact?.email ?? email,
-        nickname: userInfo.profile.nickname ?? null,
-        phone: userInfo.contact?.phone ?? null
-      },
-      userInfo
+      refreshToken: tokens.refreshToken,
+      session: {
+        accessToken: tokens.accessToken,
+        user: {
+          id: userInfo.id,
+          username: userInfo.profile.username,
+          email: userInfo.contact?.email ?? email,
+          nickname: userInfo.profile.nickname ?? null,
+          phone: userInfo.contact?.phone ?? null
+        },
+        userInfo
+      }
+    }
+  }
+
+  async rotateRefreshToken(userId: string, refreshToken: string, refreshTokenExpiresAt: Date) {
+    const refreshTokenHash = await argon2.hash(`${REFRESH_TOKEN_HASH_PREFIX}${refreshToken}`)
+    await this.userService.updateRefreshTokenState(userId, {
+      refreshTokenHash,
+      refreshTokenExpiresAt
+    })
+  }
+
+  async assertRefreshTokenValid(userId: string, refreshToken: string) {
+    const user = await this.userService.findOne({ id: userId })
+    if (!user) throw new UnauthorizedException('用户不存在')
+
+    if (!user.refreshTokenHash || !user.refreshTokenExpiresAt) {
+      throw new UnauthorizedException('未登录或已退出')
+    }
+
+    if (user.refreshTokenExpiresAt.getTime() <= Date.now()) {
+      throw new UnauthorizedException('刷新令牌已过期')
+    }
+
+    const ok = await argon2.verify(
+      user.refreshTokenHash,
+      `${REFRESH_TOKEN_HASH_PREFIX}${refreshToken}`
+    )
+
+    if (!ok) {
+      throw new UnauthorizedException('刷新令牌无效')
     }
   }
 

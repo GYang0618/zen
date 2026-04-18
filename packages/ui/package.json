@@ -8,14 +8,14 @@
     "./globals.css": "./src/styles/globals.css"
   },
   "scripts": {
-    "lint": "biome lint . --max-warnings 0",
+    "lint": "biome lint . --error-on-warnings",
     "generate:component": "turbo gen react-component",
     "check-types": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/node": "^22.15.3",
-    "@types/react": "19.2.2",
-    "@types/react-dom": "19.2.2",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
     "tailwindcss": "^4.2.2",
     "typescript": "5.9.2"
   },

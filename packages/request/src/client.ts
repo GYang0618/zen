@@ -1,6 +1,6 @@
-import axios, { isAxiosError } from 'axios'
+import axios from 'axios'
 
-import { runPipeline } from './pipeline'
+import { runErrorPipeline, runPipeline } from './pipeline'
 
 import type { AxiosInstance, AxiosRequestConfig } from 'axios'
 import type { HttpClientConfig } from './types'
@@ -17,10 +17,8 @@ export const createHttpClient = (
   )
 
   instance.interceptors.response.use(runPipeline(middlewares.response ?? []), (error) => {
-    if (isAxiosError(error)) {
-      return runPipeline(middlewares.error ?? [])(error)
-    }
-    return Promise.reject(error)
+    if (!middlewares.error?.length) return Promise.reject(error)
+    return runErrorPipeline(middlewares.error)(error)
   })
 
   return instance

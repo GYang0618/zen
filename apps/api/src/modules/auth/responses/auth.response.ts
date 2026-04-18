@@ -10,7 +10,6 @@ export interface AuthSessionUserResponse {
 
 export interface AuthSessionResponse {
   accessToken: string
-  refreshToken: string
   user: AuthSessionUserResponse
   userInfo: UserInfoResponse
 }
@@ -18,3 +17,5 @@ export interface AuthSessionResponse {
 export type LoginResponse = AuthSessionResponse
 
 export type RegisterResponse = AuthSessionResponse
+
+export type RefreshResponse = AuthSessionResponse

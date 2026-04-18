@@ -43,6 +43,9 @@ export class AuthGuard implements CanActivate {
 
     try {
       const payload = await this.jwtService.verifyAsync<JwtPayload>(token)
+      if (payload.typ && payload.typ !== 'access') {
+        throw new UnauthorizedException('令牌类型无效')
+      }
       request.user = payload
     } catch (error) {
       this.logger.warn(

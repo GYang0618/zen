@@ -37,7 +37,7 @@ export const envSchema = z
     JWT_EXPIRES_IN: z
       .string()
       .regex(/^\d+[dhms]$/, '格式：数字+单位（s秒/m分钟/h小时/d天），如 "7d"')
-      .default('7d')
+      .default('15m')
       .describe('JWT 令牌有效期'),
 
     /** JWT 刷新令牌过期时间 */

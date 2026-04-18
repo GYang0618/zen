@@ -6,9 +6,12 @@ import { CONFIG_NAMESPACES } from '@/config'
 import type { JwtSignOptions } from '@nestjs/jwt'
 import type { AuthConfig } from '@/config'
 
+export type JwtTokenType = 'access' | 'refresh'
+
 export interface JwtTokenPayload {
   sub: string
   email: string
+  typ: JwtTokenType
 }
 
 export interface TokenPair {
@@ -25,11 +28,21 @@ export class AuthTokenService {
   ) {}
 
   generateTokenPair(userId: string, email: string): TokenPair {
-    const payload: JwtTokenPayload = { sub: userId, email }
     return {
-      accessToken: this.signToken(payload, this.authCfg.expiresIn),
-      refreshToken: this.signToken(payload, this.authCfg.refreshExpiresIn)
+      accessToken: this.signToken({ sub: userId, email, typ: 'access' }, this.authCfg.expiresIn),
+      refreshToken: this.signToken(
+        { sub: userId, email, typ: 'refresh' },
+        this.authCfg.refreshExpiresIn
+      )
     }
+  }
+
+  async verifyRefreshToken(token: string): Promise<JwtTokenPayload> {
+    const payload = await this.jwtService.verifyAsync<JwtTokenPayload>(token)
+    if (payload.typ !== 'refresh') {
+      throw new Error('Invalid token type')
+    }
+    return payload
   }
 
   private signToken(payload: JwtTokenPayload, expiresIn: string): string {

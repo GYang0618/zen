@@ -61,6 +61,14 @@ export class UserService {
     return this.userRepo.update({ id }, data)
   }
 
+  /** 供内部（AuthService）使用，写入 refresh token 哈希与过期时间 */
+  updateRefreshTokenState(
+    id: string,
+    data: Pick<Prisma.UserUpdateInput, 'refreshTokenHash' | 'refreshTokenExpiresAt'>
+  ) {
+    return this.userRepo.update({ id }, data)
+  }
+
   findAll(query?: FindUsersQueryDto): Promise<UserListResponse> {
     const { keyword, page, pageSize } = findUsersQuerySchema.parse(query ?? {})
     const where = this.buildKeywordWhere(keyword)

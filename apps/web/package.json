@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "biome lint . --max-warnings 0",
+    "lint": "biome lint . --error-on-warnings",
     "preview": "vite preview",
     "check-types": "tsc --noEmit"
   },
@@ -32,7 +32,8 @@
     "recharts": "^3.8.1",
     "sonner": "^2.0.7",
     "streamdown": "^2.5.0",
-    "zod": "^4.3.6"
+    "zod": "^4.3.6",
+    "zustand": "^5.0.12"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",

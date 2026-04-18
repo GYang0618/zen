@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import {
   Button,
   Field,
@@ -13,6 +13,7 @@ import {
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
+import { useSignUpMutation } from '../mutations'
 import { ThirdPartyLogin } from '../third-party-login'
 
 const formSchema = z
@@ -45,6 +46,8 @@ const formSchema = z
 type FormValues = z.infer<typeof formSchema>
 
 export function SignUpForm() {
+  const { mutate: signUp } = useSignUpMutation()
+  const navigate = useNavigate()
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -55,8 +58,12 @@ export function SignUpForm() {
     }
   })
 
-  const onSubmit = (data: FormValues) => {
-    console.log('Form submitted:', data)
+  const onSubmit = ({ confirmPassword: _, ...data }: FormValues) => {
+    signUp(data, {
+      onSuccess: () => {
+        navigate({ to: '/' })
+      }
+    })
   }
 
   return (

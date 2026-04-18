@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import {
   Button,
   Field,
@@ -33,6 +33,8 @@ type FormValues = z.infer<typeof formSchema>
 
 export function SignInForm() {
   const { mutate: signIn } = useSignInMutation()
+  const navigate = useNavigate()
+  const search = useSearch({ from: '/(auth)/sign-in' })
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -44,7 +46,12 @@ export function SignInForm() {
   const onSubmit = (data: FormValues) => {
     signIn(data, {
       onSuccess: () => {
-        console.log('登录成功')
+        if (search.redirect) {
+          window.location.assign(search.redirect)
+          return
+        }
+
+        navigate({ to: '/' })
       }
     })
   }

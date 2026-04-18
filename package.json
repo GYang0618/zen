@@ -24,6 +24,11 @@
     "node": ">=18"
   },
   "packageManager": "pnpm@10.33.0",
+  "pnpm": {
+    "overrides": {
+      "fastify": "5.8.5"
+    }
+  },
   "volta": {
     "node": "24.14.1",
     "pnpm": "10.33.0"

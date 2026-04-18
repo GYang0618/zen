@@ -49,16 +49,6 @@ export const usersColumns: ColumnDef<User>[] = [
     enableHiding: false
   },
   {
-    id: 'fullName',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
-    cell: ({ row }) => {
-      const { firstName, lastName } = row.original
-      const fullName = `${firstName} ${lastName}`
-      return <LongText className="max-w-36">{fullName}</LongText>
-    },
-    meta: { className: 'w-36' }
-  },
-  {
     accessorKey: 'email',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Email" />,
     cell: ({ row }) => <div className="w-fit ps-2 text-nowrap">{row.getValue('email')}</div>

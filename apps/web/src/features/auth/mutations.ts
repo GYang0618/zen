@@ -1,19 +1,13 @@
 import { useMutation } from '@tanstack/react-query'
 
+import { useAuthStore } from '@/stores'
+
 import { authApi } from './api'
 
 import type { AuthSessionResponse } from './api'
 
-const ACCESS_TOKEN_STORAGE_KEY = 'token'
-const REFRESH_TOKEN_STORAGE_KEY = 'refreshToken'
-const AUTH_USER_STORAGE_KEY = 'authUser'
-
-function persistAuthSession(session: AuthSessionResponse) {
-  console.log('🚀 ~ persistAuthSession ~ session:', session)
-
-  localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, session.accessToken)
-  localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, session.refreshToken)
-  localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(session.user))
+const persistAuthSession = (session: AuthSessionResponse) => {
+  useAuthStore.getState().setAuth(session.accessToken, session.user)
 }
 
 export function useSignInMutation() {
@@ -29,5 +23,26 @@ export function useSignUpMutation() {
     mutationKey: ['auth', 'sign-up'],
     mutationFn: authApi.signUp,
     onSuccess: persistAuthSession
+  })
+}
+
+export function useRefreshSessionMutation() {
+  return useMutation({
+    mutationKey: ['auth', 'refresh'],
+    mutationFn: authApi.refresh,
+    onSuccess: persistAuthSession
+  })
+}
+
+export function useSignOutMutation() {
+  return useMutation({
+    mutationKey: ['auth', 'sign-out'],
+    mutationFn: authApi.signOut,
+    onSuccess: () => {
+      useAuthStore.getState().clearAuth()
+    },
+    onError: () => {
+      useAuthStore.getState().clearAuth()
+    }
   })
 }

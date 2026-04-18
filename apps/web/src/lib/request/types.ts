@@ -1,3 +1,5 @@
+import type { InternalAxiosRequestConfig } from '@zen/request/types'
+
 export interface RequestResponse<T> {
   code: number
   message: string
@@ -31,4 +33,8 @@ export class ApiClientError extends Error {
     this.fieldErrors = response.fieldErrors
     this.formErrors = response.formErrors
   }
+}
+
+export type RetryableRequestConfig = InternalAxiosRequestConfig & {
+  _retry?: boolean
 }
