@@ -8,9 +8,12 @@ import {
   FieldGroup,
   FieldLabel,
   FieldSeparator,
-  Input
+  Input,
+  sleep
 } from '@zen/ui'
+import { Loader2 } from 'lucide-react'
 import { Controller, useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { useSignUpMutation } from '../mutations'
@@ -46,7 +49,7 @@ const formSchema = z
 type FormValues = z.infer<typeof formSchema>
 
 export function SignUpForm() {
-  const { mutate: signUp } = useSignUpMutation()
+  const { mutate: signUp, error, isPending } = useSignUpMutation()
   const navigate = useNavigate()
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -61,7 +64,14 @@ export function SignUpForm() {
   const onSubmit = ({ confirmPassword: _, ...data }: FormValues) => {
     signUp(data, {
       onSuccess: () => {
-        navigate({ to: '/' })
+        toast.promise(sleep(1000), {
+          loading: '账户创建成功！自动登录中...',
+          position: 'top-center',
+          success: () => {
+            navigate({ to: '/' })
+            return '登录成功，欢迎加入我们👏'
+          }
+        })
       }
     })
   }
@@ -71,7 +81,13 @@ export function SignUpForm() {
       <FieldGroup>
         <div className="flex flex-col items-center gap-2 text-center">
           <h1 className="text-2xl font-bold">创建你的账户</h1>
-          <p className="text-sm text-balance text-muted-foreground">在下方输入信息来创建账户</p>
+          <div className="text-sm text-balance text-muted-foreground">
+            {error?.message ? (
+              <FieldError errors={[{ message: error.message }]} />
+            ) : (
+              '在下方输入信息来创建账户'
+            )}
+          </div>
         </div>
 
         <Controller
@@ -111,7 +127,13 @@ export function SignUpForm() {
               render={({ field, fieldState }) => (
                 <Field>
                   <FieldLabel htmlFor="password">密码</FieldLabel>
-                  <Input {...field} id="password" type="password" placeholder="••••••••" />
+                  <Input
+                    {...field}
+                    id="password"
+                    type="password"
+                    autoComplete="true"
+                    placeholder="••••••••"
+                  />
                   {fieldState.error && <FieldError errors={[fieldState.error]} />}
                 </Field>
               )}
@@ -122,7 +144,13 @@ export function SignUpForm() {
               render={({ field, fieldState }) => (
                 <Field>
                   <FieldLabel htmlFor="confirm-password">确认密码</FieldLabel>
-                  <Input {...field} id="confirm-password" type="password" placeholder="••••••••" />
+                  <Input
+                    {...field}
+                    id="confirm-password"
+                    type="password"
+                    autoComplete="true"
+                    placeholder="••••••••"
+                  />
                   {fieldState.error && <FieldError errors={[fieldState.error]} />}
                 </Field>
               )}
@@ -131,12 +159,15 @@ export function SignUpForm() {
         </Field>
 
         <Field>
-          <Button type="submit">创建账户</Button>
+          <Button type="submit" disabled={isPending}>
+            {isPending && <Loader2 className="animate-spin" />}
+            创建账户
+          </Button>
         </Field>
         <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
           或使用以下方式继续
         </FieldSeparator>
-        <ThirdPartyLogin />
+        <ThirdPartyLogin disabled={isPending} />
         <FieldDescription className="text-center">
           已有账户？<Link to="/sign-in">登录</Link>
         </FieldDescription>

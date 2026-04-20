@@ -3,7 +3,7 @@ import { createRouter, RouterProvider } from '@tanstack/react-router'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({})
 
 import { routeTree } from './routeTree.gen'
 

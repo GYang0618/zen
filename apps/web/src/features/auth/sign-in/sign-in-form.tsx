@@ -10,7 +10,9 @@ import {
   FieldSeparator,
   Input
 } from '@zen/ui'
+import { Loader2, LogIn } from 'lucide-react'
 import { Controller, useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import z from 'zod'
 
 import { useSignInMutation } from '../mutations'
@@ -32,7 +34,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>
 
 export function SignInForm() {
-  const { mutate: signIn } = useSignInMutation()
+  const { mutate: signIn, isPending, error } = useSignInMutation()
   const navigate = useNavigate()
   const search = useSearch({ from: '/(auth)/sign-in' })
   const form = useForm<FormValues>({
@@ -45,7 +47,11 @@ export function SignInForm() {
 
   const onSubmit = (data: FormValues) => {
     signIn(data, {
-      onSuccess: () => {
+      onSuccess: ({ user }) => {
+        toast.success(`欢迎回来，${user.nickname}👋🎉`, {
+          duration: 0,
+          position: 'top-center'
+        })
         if (search.redirect) {
           window.location.assign(search.redirect)
           return
@@ -61,7 +67,13 @@ export function SignInForm() {
       <FieldGroup>
         <div className="flex flex-col items-center gap-2 text-center">
           <h1 className="text-2xl font-bold">欢迎回来👏</h1>
-          <p className="text-balance text-muted-foreground">登录你的 Acme Inc 账户</p>
+          <div className="text-balance text-muted-foreground">
+            {error?.message ? (
+              <FieldError errors={[{ message: error.message }]}></FieldError>
+            ) : (
+              '登录你的 Acme Inc 账户'
+            )}
+          </div>
         </div>
 
         <Controller
@@ -82,19 +94,28 @@ export function SignInForm() {
           render={({ field, fieldState }) => (
             <Field>
               <FieldLabel htmlFor="password">密码</FieldLabel>
-              <Input {...field} id="password" type="password" placeholder="••••••••" />
+              <Input
+                autoComplete="true"
+                {...field}
+                id="password"
+                type="password"
+                placeholder="••••••••"
+              />
               {fieldState.error && <FieldError errors={[fieldState.error]}></FieldError>}
             </Field>
           )}
         />
 
         <Field>
-          <Button type="submit">登录</Button>
+          <Button type="submit" disabled={isPending}>
+            {isPending ? <Loader2 className="animate-spin" /> : <LogIn />}
+            登录
+          </Button>
         </Field>
         <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
-          其他方式
+          或使用以下方式继续
         </FieldSeparator>
-        <ThirdPartyLogin />
+        <ThirdPartyLogin disabled={isPending} />
         <FieldDescription className="text-center">
           还没有账户？<Link to="/sign-up">注册</Link>
         </FieldDescription>
