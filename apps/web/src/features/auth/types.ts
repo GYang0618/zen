@@ -1,14 +1,6 @@
-export interface AuthSessionUser {
-  id: string
-  username: string
-  email: string
-  nickname: string | null
-  avatar: string | null
-  roles: string[]
-  permissions: string[]
-}
+import type { User } from '@/features/system/users'
 
 export interface AuthSession {
   accessToken: string
-  user: AuthSessionUser
+  user: User
 }

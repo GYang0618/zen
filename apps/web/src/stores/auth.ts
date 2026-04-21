@@ -2,20 +2,10 @@ import { create } from 'zustand'
 
 import type { AuthSession } from '@/features/auth'
 
-export interface AuthUser {
-  id: string
-  username: string
-  email: string
-  nickname: string | null
-  avatar: string | null
-  roles: string[]
-  permissions: string[]
-}
-
 export interface AuthState {
   accessToken: string | null
   isAuthenticated: boolean
-  user: AuthUser | null
+  user: AuthSession['user'] | null
 
   setAuth: (session: AuthSession) => void
   setToken: (accessToken: string | null) => void

@@ -8,7 +8,7 @@ import { DataTableBulkActions as BulkActionsToolbar } from '@/components/data-ta
 import { UsersMultiDeleteDialog } from './users-multi-delete-dialog'
 
 import type { Table } from '@tanstack/react-table'
-import type { User } from '../data/schema'
+import type { User } from '../../users/data/schema'
 
 type DataTableBulkActionsProps<TData> = {
   table: Table<TData>
@@ -46,7 +46,7 @@ export function DataTableBulkActions<TData>({ table }: DataTableBulkActionsProps
 
   return (
     <>
-      <BulkActionsToolbar table={table} entityName="user">
+      <BulkActionsToolbar table={table} entityName="用户">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -54,15 +54,14 @@ export function DataTableBulkActions<TData>({ table }: DataTableBulkActionsProps
               size="icon"
               onClick={handleBulkInvite}
               className="size-8"
-              aria-label="Invite selected users"
-              title="Invite selected users"
+              aria-label="邀请已选择的用户"
             >
               <Mail />
-              <span className="sr-only">Invite selected users</span>
+              <span className="sr-only">邀请已选择的用户</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Invite selected users</p>
+            <p>邀请已选择的用户</p>
           </TooltipContent>
         </Tooltip>
 
@@ -73,15 +72,14 @@ export function DataTableBulkActions<TData>({ table }: DataTableBulkActionsProps
               size="icon"
               onClick={() => handleBulkStatusChange('active')}
               className="size-8"
-              aria-label="Activate selected users"
-              title="Activate selected users"
+              aria-label="激活已选择的用户"
             >
               <UserCheck />
-              <span className="sr-only">Activate selected users</span>
+              <span className="sr-only">激活已选择的用户</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Activate selected users</p>
+            <p>激活已选择的用户</p>
           </TooltipContent>
         </Tooltip>
 
@@ -92,15 +90,14 @@ export function DataTableBulkActions<TData>({ table }: DataTableBulkActionsProps
               size="icon"
               onClick={() => handleBulkStatusChange('inactive')}
               className="size-8"
-              aria-label="Deactivate selected users"
-              title="Deactivate selected users"
+              aria-label="禁用已选择的用户"
             >
               <UserX />
-              <span className="sr-only">Deactivate selected users</span>
+              <span className="sr-only">禁用已选择的用户</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Deactivate selected users</p>
+            <p>禁用已选择的用户</p>
           </TooltipContent>
         </Tooltip>
 
@@ -111,15 +108,14 @@ export function DataTableBulkActions<TData>({ table }: DataTableBulkActionsProps
               size="icon"
               onClick={() => setShowDeleteConfirm(true)}
               className="size-8"
-              aria-label="Delete selected users"
-              title="Delete selected users"
+              aria-label="删除已选择的用户"
             >
               <Trash2 />
-              <span className="sr-only">Delete selected users</span>
+              <span className="sr-only">删除已选择的用户</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Delete selected users</p>
+            <p>删除已选择的用户</p>
           </TooltipContent>
         </Tooltip>
       </BulkActionsToolbar>

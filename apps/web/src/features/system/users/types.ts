@@ -1,4 +1,1 @@
-export interface User {
-  id: string
-  name: string
-}
+export type { User } from './data/schema'

@@ -3,7 +3,7 @@ import { cn, SidebarInset, SidebarProvider } from '@zen/ui'
 
 import { LayoutProvider } from '@/context/layout-provider'
 import { SearchProvider } from '@/context/search-provider'
-import { getCookie } from '@/lib'
+import { getCookie } from '@/lib/cookies'
 
 import { AppSidebar } from './app-sidebar'
 

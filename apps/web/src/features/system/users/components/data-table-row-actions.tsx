@@ -10,7 +10,7 @@ import {
 } from '@zen/ui'
 import { Trash2, UserPen } from 'lucide-react'
 
-import { useUsers } from './users-provider'
+import { useUsers } from '../users-provider'
 
 import type { Row } from '@tanstack/react-table'
 import type { User } from '../data/schema'
@@ -36,7 +36,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
             setOpen('edit')
           }}
         >
-          Edit
+          编辑
           <DropdownMenuShortcut>
             <UserPen size={16} />
           </DropdownMenuShortcut>
@@ -49,7 +49,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           }}
           className="text-red-500!"
         >
-          Delete
+          删除
           <DropdownMenuShortcut>
             <Trash2 size={16} />
           </DropdownMenuShortcut>

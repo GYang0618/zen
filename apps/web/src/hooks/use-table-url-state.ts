@@ -1,15 +1,36 @@
 import { useMemo, useState } from 'react'
 
-import type { ColumnFiltersState, OnChangeFn, PaginationState } from '@tanstack/react-table'
+import type {
+  ColumnFiltersState,
+  OnChangeFn,
+  PaginationState
+} from '@tanstack/react-table'
 
 type SearchRecord = Record<string, unknown>
+
+type ColumnFilterConfig<TData extends SearchRecord> =
+  | {
+      columnId: Extract<keyof TData, string>
+      searchKey: string
+      type?: 'string'
+      // 可选的转换器用于自定义类型
+      serialize?: (value: unknown) => unknown
+      deserialize?: (value: unknown) => unknown
+    }
+  | {
+      columnId: Extract<keyof TData, string>
+      searchKey: string
+      type: 'array'
+      serialize?: (value: unknown) => unknown
+      deserialize?: (value: unknown) => unknown
+    }
 
 export type NavigateFn = (opts: {
   search: true | SearchRecord | ((prev: SearchRecord) => Partial<SearchRecord> | SearchRecord)
   replace?: boolean
 }) => void
 
-type UseTableUrlStateParams = {
+type UseTableUrlStateParams<TData extends SearchRecord = SearchRecord> = {
   search: SearchRecord
   navigate: NavigateFn
   pagination?: {
@@ -23,58 +44,57 @@ type UseTableUrlStateParams = {
     key?: string
     trim?: boolean
   }
-  columnFilters?: Array<
-    | {
-        columnId: string
-        searchKey: string
-        type?: 'string'
-        // Optional transformers for custom types
-        serialize?: (value: unknown) => unknown
-        deserialize?: (value: unknown) => unknown
-      }
-    | {
-        columnId: string
-        searchKey: string
-        type: 'array'
-        serialize?: (value: unknown) => unknown
-        deserialize?: (value: unknown) => unknown
-      }
-  >
+  columnFilters?: Array<ColumnFilterConfig<TData>>
 }
 
 type UseTableUrlStateReturn = {
-  // Global filter
+  // 全局过滤器
   globalFilter?: string
   onGlobalFilterChange?: OnChangeFn<string>
-  // Column filters
+  // 列过滤器
   columnFilters: ColumnFiltersState
   onColumnFiltersChange: OnChangeFn<ColumnFiltersState>
-  // Pagination
+  // 分页
   pagination: PaginationState
   onPaginationChange: OnChangeFn<PaginationState>
-  // Helpers
+  // 辅助函数
   ensurePageInRange: (pageCount: number, opts?: { resetTo?: 'first' | 'last' }) => void
 }
 
-export function useTableUrlState(params: UseTableUrlStateParams): UseTableUrlStateReturn {
+export function useTableUrlState<TData extends SearchRecord = SearchRecord>(
+  params: UseTableUrlStateParams<TData>
+): UseTableUrlStateReturn {
   const {
     search,
     navigate,
-    pagination: paginationCfg,
-    globalFilter: globalFilterCfg,
+    pagination: paginationCfg = {},
+    globalFilter: globalFilterCfg = {},
     columnFilters: columnFiltersCfg = []
   } = params
 
-  const pageKey = paginationCfg?.pageKey ?? ('page' as string)
-  const pageSizeKey = paginationCfg?.pageSizeKey ?? ('pageSize' as string)
-  const defaultPage = paginationCfg?.defaultPage ?? 1
-  const defaultPageSize = paginationCfg?.defaultPageSize ?? 10
+  const {
+    pageKey = 'page',
+    pageSizeKey = 'pageSize',
+    defaultPage = 1,
+    defaultPageSize = 10
+  } = paginationCfg
 
-  const globalFilterKey = globalFilterCfg?.key ?? ('filter' as string)
-  const globalFilterEnabled = globalFilterCfg?.enabled ?? true
-  const trimGlobal = globalFilterCfg?.trim ?? true
+  const {
+    key: globalFilterKey = 'filter',
+    enabled: globalFilterEnabled = true,
+    trim: trimGlobal = true
+  } = globalFilterCfg
 
-  // Build initial column filters from the current search params
+  // const pageKey = paginationCfg?.pageKey ?? ('page' as string)
+  // const pageSizeKey = paginationCfg?.pageSizeKey ?? ('pageSize' as string)
+  // const defaultPage = paginationCfg?.defaultPage ?? 1
+  // const defaultPageSize = paginationCfg?.defaultPageSize ?? 10
+
+  // const globalFilterKey = globalFilterCfg?.key ?? ('filter' as string)
+  // const globalFilterEnabled = globalFilterCfg?.enabled ?? true
+  // const trimGlobal = globalFilterCfg?.trim ?? true
+
+  // 构建初始列过滤器
   const initialColumnFilters: ColumnFiltersState = useMemo(() => {
     const collected: ColumnFiltersState = []
     for (const cfg of columnFiltersCfg) {
@@ -86,7 +106,7 @@ export function useTableUrlState(params: UseTableUrlStateParams): UseTableUrlSta
           collected.push({ id: cfg.columnId, value })
         }
       } else {
-        // default to array type
+        // 默认使用数组类型
         const value = (deserialize(raw) as unknown[]) ?? []
         if (Array.isArray(value) && value.length > 0) {
           collected.push({ id: cfg.columnId, value })
@@ -99,8 +119,8 @@ export function useTableUrlState(params: UseTableUrlStateParams): UseTableUrlSta
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(initialColumnFilters)
 
   const pagination: PaginationState = useMemo(() => {
-    const rawPage = (search as SearchRecord)[pageKey]
-    const rawPageSize = (search as SearchRecord)[pageSizeKey]
+    const rawPage = search[pageKey]
+    const rawPageSize = search[pageSizeKey]
     const pageNum = typeof rawPage === 'number' ? rawPage : defaultPage
     const pageSizeNum = typeof rawPageSize === 'number' ? rawPageSize : defaultPageSize
     return { pageIndex: Math.max(0, pageNum - 1), pageSize: pageSizeNum }
@@ -112,7 +132,7 @@ export function useTableUrlState(params: UseTableUrlStateParams): UseTableUrlSta
     const nextPageSize = next.pageSize
     navigate({
       search: (prev) => ({
-        ...(prev as SearchRecord),
+        ...prev,
         [pageKey]: nextPage <= defaultPage ? undefined : nextPage,
         [pageSizeKey]: nextPageSize === defaultPageSize ? undefined : nextPageSize
       })
@@ -121,7 +141,7 @@ export function useTableUrlState(params: UseTableUrlStateParams): UseTableUrlSta
 
   const [globalFilter, setGlobalFilter] = useState<string | undefined>(() => {
     if (!globalFilterEnabled) return undefined
-    const raw = (search as SearchRecord)[globalFilterKey]
+    const raw = search[globalFilterKey]
     return typeof raw === 'string' ? raw : ''
   })
 
@@ -132,7 +152,7 @@ export function useTableUrlState(params: UseTableUrlStateParams): UseTableUrlSta
         setGlobalFilter(value)
         navigate({
           search: (prev) => ({
-            ...(prev as SearchRecord),
+            ...prev,
             [pageKey]: undefined,
             [globalFilterKey]: value ? value : undefined
           })
@@ -160,7 +180,7 @@ export function useTableUrlState(params: UseTableUrlStateParams): UseTableUrlSta
 
     navigate({
       search: (prev) => ({
-        ...(prev as SearchRecord),
+        ...prev,
         [pageKey]: undefined,
         ...patch
       })
@@ -171,13 +191,13 @@ export function useTableUrlState(params: UseTableUrlStateParams): UseTableUrlSta
     pageCount: number,
     opts: { resetTo?: 'first' | 'last' } = { resetTo: 'first' }
   ) => {
-    const currentPage = (search as SearchRecord)[pageKey]
+    const currentPage = search[pageKey]
     const pageNum = typeof currentPage === 'number' ? currentPage : defaultPage
     if (pageCount > 0 && pageNum > pageCount) {
       navigate({
         replace: true,
         search: (prev) => ({
-          ...(prev as SearchRecord),
+          ...prev,
           [pageKey]: opts.resetTo === 'last' ? pageCount : undefined
         })
       })
@@ -186,10 +206,10 @@ export function useTableUrlState(params: UseTableUrlStateParams): UseTableUrlSta
 
   return {
     globalFilter: globalFilterEnabled ? (globalFilter ?? '') : undefined,
-    onGlobalFilterChange,
     columnFilters,
-    onColumnFiltersChange,
     pagination,
+    onGlobalFilterChange,
+    onColumnFiltersChange,
     onPaginationChange,
     ensurePageInRange
   }

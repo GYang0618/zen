@@ -1,16 +1,19 @@
+import { createColumnHelper } from '@tanstack/react-table'
 import { Badge, Checkbox, cn } from '@zen/ui'
 
+import { LongText } from '@/components'
 import { DataTableColumnHeader } from '@/components/data-table'
-import { LongText } from '@/components/long-text'
+import { getConfig } from '@/lib/config-utils'
 
-import { callTypes, roles } from '../data/data'
+import { roleConfig, statusConfig } from '../data/data'
 import { DataTableRowActions } from './data-table-row-actions'
 
-import type { ColumnDef } from '@tanstack/react-table'
 import type { User } from '../data/schema'
 
-export const usersColumns: ColumnDef<User>[] = [
-  {
+const columnHelper = createColumnHelper<User>()
+
+export const usersColumns = [
+  columnHelper.display({
     id: 'select',
     header: ({ table }) => (
       <Checkbox
@@ -18,8 +21,8 @@ export const usersColumns: ColumnDef<User>[] = [
           table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')
         }
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-        className="translate-y-[2px]"
+        aria-label="全选"
+        className="translate-y-0.5"
       />
     ),
     meta: {
@@ -29,46 +32,53 @@ export const usersColumns: ColumnDef<User>[] = [
       <Checkbox
         checked={row.getIsSelected()}
         onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-        className="translate-y-[2px]"
+        aria-label="选择行"
+        className="translate-y-0.5"
       />
     ),
     enableSorting: false,
     enableHiding: false
-  },
-  {
-    accessorKey: 'username',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Username" />,
-    cell: ({ row }) => <LongText className="max-w-36 ps-3">{row.getValue('username')}</LongText>,
+  }),
+
+  columnHelper.accessor('username', {
+    header: ({ column }) => <DataTableColumnHeader column={column} title="用户名" />,
+    cell: (info) => <LongText className="max-w-36 ps-3">{info.getValue()}</LongText>,
     meta: {
+      title: '用户名',
       className: cn(
         'drop-shadow-[0_1px_2px_rgb(0_0_0_/_0.1)] dark:drop-shadow-[0_1px_2px_rgb(255_255_255_/_0.1)]',
         'ps-0.5 max-md:sticky start-6 @4xl/content:table-cell @4xl/content:drop-shadow-none'
       )
     },
     enableHiding: false
-  },
-  {
-    accessorKey: 'email',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Email" />,
-    cell: ({ row }) => <div className="w-fit ps-2 text-nowrap">{row.getValue('email')}</div>
-  },
-  {
-    accessorKey: 'phoneNumber',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Phone Number" />,
-    cell: ({ row }) => <div>{row.getValue('phoneNumber')}</div>,
-    enableSorting: false
-  },
-  {
-    accessorKey: 'status',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
-    cell: ({ row }) => {
-      const { status } = row.original
-      const badgeColor = callTypes.get(status)
+  }),
+
+  columnHelper.accessor('email', {
+    header: ({ column }) => <DataTableColumnHeader column={column} title="邮箱" />,
+    cell: (info) => <div className="w-fit ps-2 text-nowrap">{info.getValue()}</div>,
+    meta: {
+      title: '邮箱'
+    }
+  }),
+
+  columnHelper.accessor('phone', {
+    header: ({ column }) => <DataTableColumnHeader column={column} title="手机号" />,
+    cell: (info) => <div>{info.getValue()}</div>,
+    enableSorting: false,
+    meta: {
+      title: '手机号'
+    }
+  }),
+
+  columnHelper.accessor('status', {
+    header: ({ column }) => <DataTableColumnHeader column={column} title="状态" />,
+    cell: (info) => {
+      const status = info.getValue()
+      const { label, color } = getConfig(statusConfig, status)
       return (
         <div className="flex space-x-2">
-          <Badge variant="outline" className={cn('capitalize', badgeColor)}>
-            {row.getValue('status')}
+          <Badge variant="outline" className={cn('capitalize', color)}>
+            {label}
           </Badge>
         </div>
       )
@@ -76,35 +86,36 @@ export const usersColumns: ColumnDef<User>[] = [
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id))
     },
-    enableHiding: false,
-    enableSorting: false
-  },
-  {
-    accessorKey: 'role',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Role" />,
-    cell: ({ row }) => {
-      const { role } = row.original
-      const userType = roles.find(({ value }) => value === role)
+    meta: {
+      title: '状态'
+    }
+  }),
 
-      if (!userType) {
-        return null
-      }
+  columnHelper.accessor('role', {
+    header: ({ column }) => <DataTableColumnHeader column={column} title="角色" />,
+    cell: (info) => {
+      const role = info.getValue()
+      const { label, icon: Icon } = getConfig(roleConfig, role)
 
       return (
         <div className="flex items-center gap-x-2">
-          {userType.icon && <userType.icon size={16} className="text-muted-foreground" />}
-          <span className="text-sm capitalize">{row.getValue('role')}</span>
+          {Icon && <Icon size={16} className="text-muted-foreground" />}
+          <span className="text-sm capitalize">{label}</span>
         </div>
       )
     },
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id))
     },
+    meta: {
+      title: '角色'
+    },
     enableSorting: false,
     enableHiding: false
-  },
-  {
+  }),
+
+  columnHelper.display({
     id: 'actions',
     cell: DataTableRowActions
-  }
+  })
 ]

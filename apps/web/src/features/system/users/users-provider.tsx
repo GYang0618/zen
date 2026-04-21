@@ -1,9 +1,9 @@
 import { useDialogState } from '@zen/ui'
 import React, { useState } from 'react'
 
-import type { User } from '../data/schema'
+import type { User } from './data/schema'
 
-type UsersDialogType = 'invite' | 'add' | 'edit' | 'delete'
+type UsersDialogType = 'add' | 'edit' | 'delete'
 
 type UsersContextType = {
   open: UsersDialogType | null
@@ -23,7 +23,6 @@ export function UsersProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useUsers = () => {
   const usersContext = React.useContext(UsersContext)
 

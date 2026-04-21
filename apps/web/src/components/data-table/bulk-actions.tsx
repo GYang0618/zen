@@ -11,14 +11,14 @@ type DataTableBulkActionsProps<TData> = {
 }
 
 /**
- * A modular toolbar for displaying bulk actions when table rows are selected.
+ * 一个模块化的工具栏，用于显示当表格行被选中时的批量操作。
  *
- * @template TData The type of data in the table.
- * @param {object} props The component props.
- * @param {Table<TData>} props.table The react-table instance.
- * @param {string} props.entityName The name of the entity being acted upon (e.g., "task", "user").
- * @param {React.ReactNode} props.children The action buttons to be rendered inside the toolbar.
- * @returns {React.ReactNode | null} The rendered component or null if no rows are selected.
+ * @template TData 表格中的数据类型。
+ * @param {object} props 组件属性。
+ * @param {Table<TData>} props.table react-table 实例。
+ * @param {string} props.entityName 被操作的实体的名称 (例如 "任务", "用户")。
+ * @param {React.ReactNode} props.children 要在工具栏中渲染的操作按钮。
+ * @returns {React.ReactNode | null} 渲染的组件或 null 如果没有选中任何行。
  */
 export function DataTableBulkActions<TData>({
   table,
@@ -30,17 +30,17 @@ export function DataTableBulkActions<TData>({
   const toolbarRef = useRef<HTMLDivElement>(null)
   const [announcement, setAnnouncement] = useState('')
 
-  // Announce selection changes to screen readers
+  //  向屏幕阅读器宣布选择的变化。
   useEffect(() => {
     if (selectedCount > 0) {
       const message = `${selectedCount} ${entityName}${selectedCount > 1 ? 's' : ''} selected. Bulk actions toolbar is available.`
 
-      // Use queueMicrotask to defer state update and avoid cascading renders
+      //  使用 queueMicrotask 延迟状态更新并避免级联渲染。
       queueMicrotask(() => {
         setAnnouncement(message)
       })
 
-      // Clear announcement after a delay
+      // 延迟后清除公告。
       const timer = setTimeout(() => setAnnouncement(''), 3000)
       return () => clearTimeout(timer)
     }
@@ -54,9 +54,7 @@ export function DataTableBulkActions<TData>({
     const buttons = toolbarRef.current?.querySelectorAll('button')
     if (!buttons) return
 
-    const currentIndex = Array.from(buttons).findIndex(
-      (button) => button === document.activeElement
-    )
+    const currentIndex = Array.from(buttons).indexOf(document.activeElement as HTMLButtonElement)
 
     switch (event.key) {
       case 'ArrowRight': {
@@ -80,29 +78,29 @@ export function DataTableBulkActions<TData>({
         buttons[buttons.length - 1]?.focus()
         break
       case 'Escape': {
-        // Check if the Escape key came from a dropdown trigger or content
-        // We can't check dropdown state because Radix UI closes it before our handler runs
+        // 检查 Escape 键是否来自下拉菜单触发器或内容
+        // 我们不能检查下拉菜单状态，因为 Radix UI 在我们处理程序运行之前关闭它
         const target = event.target as HTMLElement
         const activeElement = document.activeElement as HTMLElement
 
-        // Check if the event target or currently focused element is a dropdown trigger
+        // 检查事件目标或当前聚焦元素是否为下拉触发器
         const isFromDropdownTrigger =
           target?.getAttribute('data-slot') === 'dropdown-menu-trigger' ||
           activeElement?.getAttribute('data-slot') === 'dropdown-menu-trigger' ||
           target?.closest('[data-slot="dropdown-menu-trigger"]') ||
           activeElement?.closest('[data-slot="dropdown-menu-trigger"]')
 
-        // Check if the focused element is inside dropdown content (which is portaled)
+        // 检查聚焦元素是否在下拉内容中 (这是 portaled 的)
         const isFromDropdownContent =
           activeElement?.closest('[data-slot="dropdown-menu-content"]') ||
           target?.closest('[data-slot="dropdown-menu-content"]')
 
         if (isFromDropdownTrigger || isFromDropdownContent) {
-          // Escape was meant for the dropdown - don't clear selection
+          // Escape 键用于下拉菜单 - 不清除选择
           return
         }
 
-        // Escape was meant for the toolbar - clear selection
+        // Escape 键用于工具栏 - 清除选择
         event.preventDefault()
         handleClearSelection()
         break
@@ -116,7 +114,7 @@ export function DataTableBulkActions<TData>({
 
   return (
     <>
-      {/* Live region for screen reader announcements */}
+      {/* 屏幕阅读器公告区域 */}
       <div aria-live="polite" aria-atomic="true" className="sr-only" role="status">
         {announcement}
       </div>
@@ -124,7 +122,7 @@ export function DataTableBulkActions<TData>({
       <div
         ref={toolbarRef}
         role="toolbar"
-        aria-label={`Bulk actions for ${selectedCount} selected ${entityName}${selectedCount > 1 ? 's' : ''}`}
+        aria-label={`批量操作 for ${selectedCount} 已选择 ${entityName}${selectedCount > 1 ? 's' : ''}`}
         aria-describedby="bulk-actions-description"
         tabIndex={-1}
         onKeyDown={handleKeyDown}
@@ -153,11 +151,11 @@ export function DataTableBulkActions<TData>({
                 title="Clear selection (Escape)"
               >
                 <X />
-                <span className="sr-only">Clear selection</span>
+                <span className="sr-only">清空选择</span>
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Clear selection (Escape)</p>
+              <p>清空选择 ( Escape 键)</p>
             </TooltipContent>
           </Tooltip>
 
@@ -171,14 +169,12 @@ export function DataTableBulkActions<TData>({
             >
               {selectedCount}
             </Badge>{' '}
-            <span className="hidden sm:inline">
-              {entityName}
-              {selectedCount > 1 ? 's' : ''}
-            </span>{' '}
-            selected
+            <span className="hidden sm:inline">{entityName}</span> 已选择
           </div>
 
-          <Separator className="h-5" orientation="vertical" aria-hidden="true" />
+          <div>
+            <Separator className="h-5" orientation="vertical" aria-hidden="true" />
+          </div>
 
           {children}
         </div>
