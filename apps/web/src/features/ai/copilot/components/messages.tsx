@@ -1,23 +1,16 @@
-import { AITable } from '@/components/ai'
+import { getRouteApi } from '@tanstack/react-router'
+
+import { UsersTable } from '@/features/system/users/components/users-table'
+import { UsersProvider } from '@/features/system/users/users-provider'
 
 import AIMessage from './ai-message'
 import { HumanMessage } from './human-message'
 
 import type { ChatStatus, UIMessage } from 'ai'
+import type { User } from '@/features/system/users'
+import type { PaginationResponse } from '@/lib/request'
 
-interface ToolOutputItem {
-  profile: {
-    username: string
-    nickname: string
-  }
-  contact: {
-    email: string
-  }
-}
-
-interface ToolOutput {
-  items: ToolOutputItem[]
-}
+type ToolOutput = PaginationResponse<User>
 
 const isToolOutput = (value: unknown): value is ToolOutput => {
   if (!value || typeof value !== 'object') return false
@@ -42,8 +35,10 @@ interface MessagesProps {
   role: UIMessage['role']
   status?: ChatStatus
 }
-
+const route = getRouteApi('/_authenticated/ai/copilot')
 export function Messages({ parts, role, status }: MessagesProps) {
+  const search = route.useSearch()
+  const navigate = route.useNavigate()
   const isUserRole = role === 'user'
   const isAssistantRole = role === 'assistant'
 
@@ -64,14 +59,18 @@ export function Messages({ parts, role, status }: MessagesProps) {
           const output = parseToolOutput(part.output)
           if (!output) return <p>'数据格式错误'</p>
 
-          const data = output.items.map((item) => ({
-            username: item.profile.username,
-            nickname: item.profile.nickname,
-            email: item.contact.email,
-            phoneNumber: 'unknown'
-          }))
+          const { items, pagination } = output
 
-          return <AITable key={i} data={data} />
+          return (
+            <UsersProvider key={i}>
+              <UsersTable
+                data={items}
+                total={pagination.total}
+                search={search}
+                navigate={navigate}
+              />
+            </UsersProvider>
+          )
         }
 
         return null
