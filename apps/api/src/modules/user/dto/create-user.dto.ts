@@ -16,7 +16,7 @@ export const createUserSchema = z.object({
     .regex(/[\W_]/, '密码必须包含至少一个特殊字符')
     .describe('密码'),
   nickname: z.string().max(50, '昵称不能超过50个字符').describe('昵称').optional(),
-  phone: z.string().max(20, '手机号不能超过20个字符').describe('手机号').optional()
+  phoneNumber: z.string().max(20, '手机号码不能超过20个字符').describe('手机号码').optional()
 })
 
 export type CreateUserDto = z.infer<typeof createUserSchema>

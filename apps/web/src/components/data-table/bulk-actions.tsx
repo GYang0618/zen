@@ -1,3 +1,5 @@
+'use no memo'
+
 import { Badge, Button, cn, Separator, Tooltip, TooltipContent, TooltipTrigger } from '@zen/ui'
 import { X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'

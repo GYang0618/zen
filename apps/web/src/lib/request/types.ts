@@ -8,6 +8,16 @@ export interface RequestResponse<T> {
   timestamp: string
 }
 
+export interface PaginationResponse<T> {
+  items: T[]
+  pagination: {
+    total: number
+    totalPages: number
+    page: number
+    pageSize: number
+  }
+}
+
 export interface RequestErrorResponse {
   code: number
   message: string

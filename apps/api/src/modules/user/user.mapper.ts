@@ -2,40 +2,47 @@ import { Gender, MfaType, Prisma, Theme, UserStatusCode } from '@prisma/client'
 
 import type {
   RoleInfoResponse,
+  UserGender,
   UserInfoResponse,
-  UserListItemResponse
+  UserListItemResponse,
+  UserMfaType,
+  UserStatus,
+  UserTheme
 } from './responses/user.response'
 import type { UserWithDomain } from './user.repository'
 
-const GENDER_MAP: Record<Gender, UserInfoResponse['profile']['gender']> = {
+const GENDER_MAP: Record<Gender, UserGender> = {
   MALE: 'male',
   FEMALE: 'female',
   UNKNOWN: 'unknown'
 }
 
-const MFA_TYPE_MAP: Record<MfaType, NonNullable<UserInfoResponse['security']>['mfaType']> = {
+const MFA_TYPE_MAP: Record<MfaType, UserMfaType> = {
   TOTP: 'totp',
   SMS: 'sms',
   EMAIL: 'email',
   OFF: 'off'
 }
 
-const THEME_MAP: Record<Theme, UserInfoResponse['preferences']['theme']> = {
+const THEME_MAP: Record<Theme, UserTheme> = {
   LIGHT: 'light',
   DARK: 'dark',
   SYSTEM: 'system'
 }
 
-function toAccountStatus(
-  status: UserStatusCode,
-  isLocked: boolean
-): UserInfoResponse['account']['status'] {
-  if (isLocked) return 'locked'
-  return status === UserStatusCode.DISABLED ? 'disabled' : 'active'
+const USER_STATUS_MAP: Record<UserStatusCode, UserStatus> = {
+  ACTIVE: 'active',
+  INACTIVE: 'inactive',
+  PENDING: 'pending',
+  SUSPENDED: 'suspended'
+}
+
+function toUserStatus(status: UserStatusCode): UserStatus {
+  return USER_STATUS_MAP[status]
 }
 
 function toGender(gender?: Gender): UserInfoResponse['profile']['gender'] {
-  return gender ? GENDER_MAP[gender] : undefined
+  return gender ? GENDER_MAP[gender] : null
 }
 
 function toMfaType(mfaType?: MfaType): NonNullable<UserInfoResponse['security']>['mfaType'] {
@@ -49,19 +56,19 @@ function toTheme(theme?: Theme): UserInfoResponse['preferences']['theme'] {
 function toDashboardSettings(
   raw?: Prisma.JsonValue | null
 ): UserInfoResponse['preferences']['dashboard'] {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
 
   const value = raw as Record<string, unknown>
   return {
-    defaultView: typeof value.defaultView === 'string' ? value.defaultView : undefined,
+    defaultView: typeof value.defaultView === 'string' ? value.defaultView : null,
     widgets: Array.isArray(value.widgets)
       ? value.widgets.filter((item): item is string => typeof item === 'string')
-      : undefined
+      : null
   }
 }
 
-function toMeta(raw?: Prisma.JsonValue | null): Record<string, unknown> | undefined {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+function toMeta(raw?: Prisma.JsonValue | null): Record<string, unknown> | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
   return raw as Record<string, unknown>
 }
 
@@ -70,11 +77,11 @@ function toRoleDetails(roles: UserWithDomain['roles']): RoleInfoResponse[] {
     id: role.id,
     code: role.code,
     name: role.name,
-    description: role.description ?? undefined,
+    description: role.description ?? null,
     permissions: role.permissions.map((item) => item.permission.code),
     isSystem: role.isSystem,
     status: role.status === 'ACTIVE' ? 'active' : ('disabled' as const),
-    sort: role.sort ?? undefined,
+    sort: role.sort ?? null,
     createdAt: role.createdAt.toISOString(),
     updatedAt: role.updatedAt.toISOString()
   }))
@@ -90,8 +97,8 @@ function collectPermissions(roleDetails: RoleInfoResponse[]): string[] {
   return Array.from(permissionSet)
 }
 
-function getPrimaryRoleCode(roles: UserWithDomain['roles']): string | undefined {
-  return roles[0]?.role.code
+function getPrimaryRoleCode(roles: UserWithDomain['roles']): string | null {
+  return roles[0]?.role.code ?? null
 }
 
 export function toUserInfoResponse(user: UserWithDomain): UserInfoResponse {
@@ -104,14 +111,14 @@ export function toUserInfoResponse(user: UserWithDomain): UserInfoResponse {
     id: user.id,
     profile: {
       username: user.username,
-      nickname: user.nickname ?? undefined,
-      realName: profile?.realName ?? undefined,
-      avatar: profile?.avatar ?? undefined,
+      nickname: user.nickname ?? null,
+      realName: profile?.realName ?? null,
+      avatar: profile?.avatar ?? null,
       gender: toGender(profile?.gender)
     },
     contact: {
       email: user.email,
-      phone: user.phone ?? undefined
+      phoneNumber: user.phoneNumber ?? null
     },
     auth: {
       roles: roleDetails.map((r) => r.code),
@@ -119,21 +126,22 @@ export function toUserInfoResponse(user: UserWithDomain): UserInfoResponse {
       roleDetails
     },
     org: {
-      deptId: primaryDept?.departmentId,
-      deptName: primaryDept?.department.name,
-      jobTitle: profile?.jobTitle ?? undefined
+      deptId: primaryDept?.departmentId ?? null,
+      deptName: primaryDept?.department.name ?? null,
+      jobTitle: profile?.jobTitle ?? null
     },
     account: {
-      status: toAccountStatus(user.status, user.isLocked),
+      status: toUserStatus(user.status),
       isVerified: true,
       isLocked: user.isLocked,
-      lockExpireAt: user.lockExpireAt?.toISOString()
+      lockReason: null,
+      lockExpireAt: user.lockExpireAt?.toISOString() ?? null
     },
     security: {
       mfaEnabled: security?.mfaEnabled ?? false,
       mfaType: toMfaType(security?.mfaType),
-      passwordExpireAt: security?.passwordExpireAt?.toISOString(),
-      lastPasswordChange: security?.lastPasswordChange?.toISOString(),
+      passwordExpireAt: security?.passwordExpireAt?.toISOString() ?? null,
+      lastPasswordChange: security?.lastPasswordChange?.toISOString() ?? null,
       loginAttempts: user.loginAttempts
     },
     preferences: {
@@ -149,14 +157,14 @@ export function toUserInfoResponse(user: UserWithDomain): UserInfoResponse {
     },
     audit: {
       createdAt: user.createdAt.toISOString(),
-      createdBy: audit?.createdBy ?? undefined,
+      createdBy: audit?.createdBy ?? null,
       updatedAt: user.updatedAt.toISOString(),
-      updatedBy: audit?.updatedBy ?? undefined,
-      lastLoginAt: audit?.lastLoginAt?.toISOString(),
-      lastLoginIp: audit?.lastLoginIp ?? undefined,
-      lastActiveAt: audit?.lastActiveAt?.toISOString()
+      updatedBy: audit?.updatedBy ?? null,
+      lastLoginAt: audit?.lastLoginAt?.toISOString() ?? null,
+      lastLoginIp: audit?.lastLoginIp ?? null,
+      lastActiveAt: audit?.lastActiveAt?.toISOString() ?? null
     },
-    remark: profile?.remark ?? undefined,
+    remark: profile?.remark ?? null,
     meta: toMeta(profile?.meta)
   }
 }
@@ -168,21 +176,15 @@ export function toUserListItemResponse(user: UserWithDomain): UserListItemRespon
   return {
     id: user.id,
     username: user.username,
-    nickname: user.nickname ?? undefined,
-    realName: profile?.realName ?? undefined,
-    avatar: profile?.avatar ?? undefined,
+    nickname: user.nickname ?? null,
+    realName: profile?.realName ?? null,
+    avatar: profile?.avatar ?? null,
     email: user.email,
-    phone: user.phone ?? undefined,
-    phoneNumber: user.phone ?? undefined,
-    status:
-      user.isLocked || user.status === UserStatusCode.DISABLED
-        ? user.isLocked
-          ? 'locked'
-          : 'disabled'
-        : 'active',
+    phoneNumber: user.phoneNumber ?? null,
+    status: toUserStatus(user.status),
     role: getPrimaryRoleCode(roles),
-    deptName: primaryDept?.department.name,
-    jobTitle: profile?.jobTitle ?? undefined,
+    deptName: primaryDept?.department.name ?? null,
+    jobTitle: profile?.jobTitle ?? null,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString()
   }

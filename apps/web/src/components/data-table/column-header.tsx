@@ -1,3 +1,5 @@
+'use no memo'
+
 import { ArrowDownIcon, ArrowUpIcon, CaretSortIcon, EyeNoneIcon } from '@radix-ui/react-icons'
 import {
   Button,

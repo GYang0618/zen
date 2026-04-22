@@ -39,7 +39,7 @@ export class AuthService {
     const userInfo = await this.userService.create(dto)
     await this.userService.touchLoginAudit(userInfo.id)
 
-    return this.issueSession(userInfo.id, userInfo.contact!.email, userInfo)
+    return this.issueSession(userInfo.id, userInfo)
   }
 
   async login(dto: LoginDto): Promise<IssueSessionResult> {
@@ -54,7 +54,7 @@ export class AuthService {
     await this.userService.touchLoginAudit(user.id)
     const userInfo = await this.userService.getUserInfoByUserId(user.id)
 
-    return this.issueSession(user.id, user.email, userInfo)
+    return this.issueSession(user.id, userInfo)
   }
 
   async refresh(userId: string): Promise<IssueSessionResult> {
@@ -63,7 +63,7 @@ export class AuthService {
     await this.assertAccountActive(user)
 
     const userInfo = await this.userService.getUserInfoByUserId(user.id)
-    return this.issueSession(user.id, user.email, userInfo)
+    return this.issueSession(user.id, userInfo)
   }
 
   async logout(userId: string) {
@@ -86,18 +86,17 @@ export class AuthService {
     const byUsername = await this.userService.findOne({ username: normalizedIdentifier })
     if (byUsername) return byUsername
 
-    return this.userService.findOne({ phone: normalizedIdentifier })
+    return this.userService.findOne({ phoneNumber: normalizedIdentifier })
   }
 
   private issueSession(
     userId: string,
-    email: string,
     userInfo: Awaited<ReturnType<UserService['getUserInfoByUserId']>>
   ): IssueSessionResult {
-    const tokens = this.tokenService.generateTokenPair(userId, email)
+    const tokens = this.tokenService.generateTokenPair(userId, userInfo.contact.email)
 
-    const roles = userInfo.auth?.roles ?? []
-    const permissions = userInfo.auth?.permissions ?? []
+    const roles = userInfo.auth.roles
+    const permissions = userInfo.auth.permissions
 
     return {
       refreshToken: tokens.refreshToken,
@@ -106,7 +105,7 @@ export class AuthService {
         user: {
           id: userInfo.id,
           username: userInfo.profile.username,
-          email: userInfo.contact?.email ?? email,
+          email: userInfo.contact.email,
           nickname: userInfo.profile.nickname ?? null,
           avatar: userInfo.profile.avatar ?? null,
           roles,

@@ -1,3 +1,5 @@
+'use no memo'
+
 import { Button, sleep, Tooltip, TooltipContent, TooltipTrigger } from '@zen/ui'
 import { Mail, Trash2, UserCheck, UserX } from 'lucide-react'
 import { useState } from 'react'

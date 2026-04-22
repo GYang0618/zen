@@ -1,8 +1,10 @@
 import { getRouteApi } from '@tanstack/react-router'
+import { useEffect } from 'react'
 
 import { ConfigDrawer, ProfileDropdown, Search, ThemeSwitch } from '@/components'
 import { Header, Main } from '@/components/layouts'
 
+import { userApi } from './api'
 import { UsersPrimaryButtons } from './components/users-primary-buttons'
 import { UsersTable } from './components/users-table'
 import { users } from './data/mock'
@@ -12,6 +14,15 @@ const route = getRouteApi('/_authenticated/system/users')
 export function Users() {
   const search = route.useSearch()
   const navigate = route.useNavigate()
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const response = await userApi.getUserList()
+
+      console.log(response)
+    }
+    fetchUsers()
+  }, [])
 
   return (
     <UsersProvider>

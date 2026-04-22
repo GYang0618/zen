@@ -1,5 +1,11 @@
 ---
-trigger: always_on
+description: 
+alwaysApply: true
+---
+
+---
+description: 当进行开发任务时，必须遵循以下 AI 开发指令规范，以确保代码质量、可维护性和一致性。
+applyTo: 当进行开发任务时加载使用该指令
 ---
 
 # AI 开发指令规范 (Custom Instructions)
@@ -37,6 +43,9 @@ trigger: always_on
   - 公共接口、函数添加标准 JSDoc / Docstring。
 - **现代语法:** 优先使用 ESNext 现代化语法（如解构赋值、箭头函数、可选链）。
 - **风格指南:** 严格遵守 Biome设定的风格指南，biome.json配置文件在工作区根目录下
+- **类型规范**:
+  - 关于undefined和null的定义：前端优先使用 undefined，仅在“明确表达空值”时使用 null，后端以 null 为主语义，undefined 只作为“未传参/未处理”的内部状态，不进入接口协议
+
 
 ## 4. 架构与设计模式 (Architecture & Patterns)
 - **文件结构**: 遵循项目现有结构，按职责划分目录。
@@ -58,11 +67,11 @@ trigger: always_on
 ## 7. UI 组件开发规范 (Component Development Guidelines)
 
 ### 7.1 组件分类与职责 (Classification & Responsibility)
-- **展示型组件 (Presentational Components)**: 
+- **展示型组件 (Presentational Components)**:
   - 负责“UI 长什么样”。
   - 必须是无状态的（Stateless），仅通过 `props` 接收数据和回调函数。
   - 内部不包含任何业务侧的网络请求或全局状态读取。
-- **容器型组件 (Container Components)**: 
+- **容器型组件 (Container Components)**:
   - 负责“逻辑怎么运作”。
   - 负责获取数据、与全局状态（如 Zustand）交互，并将数据向下传递给展示型组件。
 
@@ -75,7 +84,7 @@ trigger: always_on
 ### 7.3 状态与生命周期 (State & Side Effects)
 - **状态最小化**: 坚决避免定义可通过其他 State 或 Props 计算得出的“冗余状态”（Derived State）。
 - **状态下放**: 尽量将状态保持在需要使用它的最小层级组件中，避免不必要的全局状态。
-- **副作用隔离**: 
+- **副作用隔离**:
   - `useEffect` 的职责必须单一，不要在一个 Effect 中处理多件不相干的事情。
   - 必须精确声明依赖数组（Dependency Array），避免遗漏导致闭包陷阱，或过多导致死循环。
   - 涉及定时器、事件监听的副作用，必须在 `return` 中执行清理操作（Cleanup）。
@@ -97,20 +106,20 @@ trigger: always_on
 
 ### 8.1 核心拆分原则 (Core Splitting Principles)
 - **单一职责原则 (SRP)**: 一个组件只负责做一件事情。如果一个组件既负责复杂表单的校验，又负责展示大量数据列表，必须将其拆分为不同的子组件。
-- **体积与复杂度控制**: 
+- **体积与复杂度控制**:
   - 单个组件文件的代码行数原则上**不应超过 300 行**。
   - 超过该阈值时，强制要求提取子组件（抽离 UI 渲染块）或自定义 Hook（抽离复杂业务逻辑）。
 - **发现而非预设**: 不要过度设计。在第一次编写时可以放在一起，当代码变得臃肿或同一段逻辑/UI需要在第二处使用时，再进行重构和拆分（Rule of Three 原则）。
 
 ### 8.2 纵向拆分：按职责分层 (Vertical Splitting: By Responsibility)
 严格区分组件的层级与职责，禁止跨层级污染：
-- **页面层 (Pages/Views)**: 
+- **页面层 (Pages/Views)**:
   - 职责：路由参数解析、页面级数据预获取、组装各个业务模块。
   - 约束：极其轻量，绝对不包含具体的 DOM 绘制和复杂的判断逻辑。
-- **业务容器组件 (Business Containers / Blocks)**: 
+- **业务容器组件 (Business Containers / Blocks)**:
   - 职责：对应特定的业务区块（如“商品详情面板”、“用户侧边栏”）。负责发起 API 请求、连接全局 Store、处理复杂的业务状态（Loading/Error）。
   - 约束：组合基础 UI 组件来完成呈现，将业务数据映射为 UI 组件的 Props。
-- **基础 UI 组件 (Base UI Components)**: 
+- **基础 UI 组件 (Base UI Components)**:
   - 职责：完全无副作用的“哑组件”（Dumb Components）。
   - 约束：见第 7 节规范。
 
@@ -120,7 +129,7 @@ trigger: always_on
 - **公共业务提升**: 如果某个业务组件（如“带有公司权限校验的员工选择器”）需要在多个独立业务域中复用，必须将其提升至全局的 `src/components/business/` 目录下。
 
 ### 8.4 状态流转与边界 (State Boundaries & Data Flow)
-- **拒绝 Props 钻取 (Prop Drilling)**: 
+- **拒绝 Props 钻取 (Prop Drilling)**:
   - 如果数据需要向下传递超过 **3 层**，必须停止通过 Props 层层传递。
   - 解决方案：优先使用 `children` 插槽（组件组合模式）来展平层级；如果数据高度共享，则使用 Context API 或轻量级状态管理（如 Zustand/Jotai）。
 - **局部状态闭环**: 组件自身的 UI 交互状态（如弹窗的开关、Tab的切换、手风琴的展开状态），**必须**保留在组件内部使用 `useState` 管理，严禁将这些非共享状态塞入全局 Redux/Store 中造成污染和性能浪费。

@@ -22,7 +22,7 @@ export class UserService {
     const created = await this.userRepo.create({
       username: data.username,
       email: data.email,
-      phone: data.phone,
+      phoneNumber: data.phoneNumber,
       nickname: data.nickname,
       password: hashedPassword
     })
@@ -106,7 +106,7 @@ export class UserService {
         { email: { contains: keyword, mode } },
         { username: { contains: keyword, mode } },
         { nickname: { contains: keyword, mode } },
-        { phone: { contains: keyword, mode } }
+        { phoneNumber: { contains: keyword, mode } }
       ]
     }
   }

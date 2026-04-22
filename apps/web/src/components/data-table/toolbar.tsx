@@ -1,3 +1,5 @@
+'use no memo'
+
 import { Cross2Icon } from '@radix-ui/react-icons'
 import { Button, Input } from '@zen/ui'
 

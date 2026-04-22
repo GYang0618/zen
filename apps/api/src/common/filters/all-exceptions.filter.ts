@@ -43,12 +43,20 @@ function normalizeHttpExceptionMessage(exception: HttpException): string {
 
 function serializeError(
   exception: unknown
-): { name?: string; message?: string; stack?: string } | undefined {
+): { name: string | null; message: string | null; stack: string | null } | null {
   if (exception instanceof Error) {
-    return { name: exception.name, message: exception.message, stack: exception.stack }
+    return {
+      name: exception.name,
+      message: exception.message,
+      stack: exception.stack ?? null
+    }
   }
 
-  return { message: String(exception) }
+  return {
+    name: null,
+    message: String(exception),
+    stack: null
+  }
 }
 
 function extractValidationErrors(
@@ -105,8 +113,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
       path: request.url,
       requestId,
       timestamp: new Date().toISOString(),
-      error: this.appCfg.isDev && !isHttpException ? serializeError(exception) : undefined,
-      ...validationErrors
+      error: this.appCfg.isDev && !isHttpException ? serializeError(exception) : null,
+      fieldErrors: validationErrors?.fieldErrors ?? null,
+      formErrors: validationErrors?.formErrors ?? null
     }
 
     const logLine = `${request.method} ${request.url} -> ${statusCode} ${message} [${requestId}]`

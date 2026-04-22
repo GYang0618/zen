@@ -2,8 +2,8 @@ export interface AuthSessionUserResponse {
   id: string
   username: string
   email: string
-  nickname?: string | null
-  avatar?: string | null
+  nickname: string | null
+  avatar: string | null
   roles: string[]
   permissions: string[]
 }

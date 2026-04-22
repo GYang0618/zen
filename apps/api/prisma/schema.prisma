@@ -48,10 +48,14 @@ enum RecordStatus {
 
 /// 用户账号状态枚举
 enum UserStatusCode {
-  /// 启用
+  /// 激活
   ACTIVE   @map("active")
-  /// 禁用
-  DISABLED @map("disabled")
+  /// 未激活
+  INACTIVE @map("inactive")
+  /// 待审核
+  PENDING  @map("pending")
+  /// 已停用
+  SUSPENDED @map("suspended")
 }
 
 /// 用户主表
@@ -64,8 +68,8 @@ model User {
   nickname              String?
   /// 邮箱
   email                 String         @unique
-  /// 手机号
-  phone                 String?        @unique
+  /// 手机号码
+  phoneNumber           String?        @unique @map("phone_number")
   /// 密码哈希
   password              String
   /// Refresh Token 哈希（用于服务端撤销/轮换）

@@ -1,3 +1,5 @@
+'use no memo'
+
 import { createColumnHelper } from '@tanstack/react-table'
 import { Badge, Checkbox, cn } from '@zen/ui'
 
@@ -61,7 +63,7 @@ export const usersColumns = [
     }
   }),
 
-  columnHelper.accessor('phone', {
+  columnHelper.accessor('phoneNumber', {
     header: ({ column }) => <DataTableColumnHeader column={column} title="手机号" />,
     cell: (info) => <div>{info.getValue()}</div>,
     enableSorting: false,

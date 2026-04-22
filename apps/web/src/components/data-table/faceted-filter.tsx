@@ -1,3 +1,5 @@
+'use no memo'
+
 import { CheckIcon, PlusCircledIcon } from '@radix-ui/react-icons'
 import {
   Badge,

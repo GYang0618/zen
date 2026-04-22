@@ -19,7 +19,7 @@ const userSchema = z.object({
   email: z.string().describe('邮箱'),
   avatar: z.string().optional().describe('头像'),
   nickname: z.string().optional().describe('昵称'),
-  phone: z.string().optional().describe('手机号'),
+  phoneNumber: z.string().optional().describe('手机号码'),
   status: userStatusSchema.describe('状态'),
   role: userRoleSchema.describe('角色'),
   permissions: z.array(z.string()).describe('权限'),

@@ -1,5 +1,6 @@
 import { request } from '@/lib/request'
 
+import type { PaginationResponse } from '@/lib/request'
 import type { User } from './types'
 
 interface GetUserListParams {
@@ -9,5 +10,6 @@ interface GetUserListParams {
 }
 
 export const userApi = {
-  getUserList: (params?: GetUserListParams) => request.get<User[]>('/user', { params })
+  getUserList: (params?: GetUserListParams) =>
+    request.get<PaginationResponse<User>>('/user', { params })
 }

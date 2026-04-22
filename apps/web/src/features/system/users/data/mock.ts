@@ -13,7 +13,7 @@ export const users = Array.from({ length: 500 }, () => {
     nickname: faker.person.fullName(),
     email: faker.internet.email({ firstName }).toLocaleLowerCase(),
     avatar: faker.image.avatar(),
-    phone: faker.phone.number({ style: 'international' }),
+    phoneNumber: faker.phone.number({ style: 'international' }),
     status: faker.helpers.arrayElement(['active', 'inactive', 'pending', 'suspended']),
     role: faker.helpers.arrayElement(['super_admin', 'admin', 'guest']),
     permissions: faker.helpers.arrayElements(['read', 'write', 'delete']),
