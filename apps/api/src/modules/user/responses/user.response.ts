@@ -1,4 +1,7 @@
-export type UserStatus = 'active' | 'inactive' | 'pending' | 'suspended'
+import { UserStatus } from '../dto/find-users-query.dto'
+
+import type { Paginated } from '@/common/pagination'
+
 export type UserMfaType = 'totp' | 'sms' | 'email' | 'off'
 export type UserTheme = 'light' | 'dark' | 'system'
 export type UserGender = 'male' | 'female' | 'unknown'
@@ -96,14 +99,4 @@ export interface UserListItemResponse {
   updatedAt: string
 }
 
-export interface UserPaginationResponse {
-  page: number
-  pageSize: number
-  total: number
-  totalPages: number
-}
-
-export interface UserListResponse {
-  items: UserListItemResponse[]
-  pagination: UserPaginationResponse
-}
+export type UserListResponse = Paginated<UserListItemResponse>

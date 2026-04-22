@@ -1,13 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
-import { Prisma } from '@prisma/client'
+import { Prisma, UserStatusCode } from '@prisma/client'
 import argon2 from 'argon2'
+
+import { paginate } from '@/common/pagination'
 
 import { findUsersQuerySchema } from './dto/find-users-query.dto'
 import { toUserInfoResponse, toUserListItemResponse } from './user.mapper'
 import { UserRepository } from './user.repository'
 
 import type { CreateUserDto } from './dto/create-user.dto'
-import type { FindUsersQueryDto } from './dto/find-users-query.dto'
+import type { FindUsersQueryDto, UserStatus } from './dto/find-users-query.dto'
 import type { UpdateUserDto } from './dto/update-user.dto'
 import type { UserInfoResponse, UserListResponse } from './responses/user.response'
 
@@ -69,10 +71,18 @@ export class UserService {
     return this.userRepo.update({ id }, data)
   }
 
-  findAll(query?: FindUsersQueryDto): Promise<UserListResponse> {
-    const { keyword, page, pageSize } = findUsersQuerySchema.parse(query ?? {})
-    const where = this.buildKeywordWhere(keyword)
-    return this.paginateUsers(where, page, pageSize)
+  async findAll(query?: FindUsersQueryDto): Promise<UserListResponse> {
+    const { keyword, status, role, page, pageSize } = findUsersQuerySchema.parse(query ?? {})
+    const where = this.buildFindUsersWhere({ keyword, status, role })
+
+    const { items, pagination } = await paginate({
+      page,
+      pageSize,
+      count: () => this.userRepo.count(where),
+      findMany: ({ skip, take }) => this.userRepo.findManyWithDomain(where, skip, take)
+    })
+
+    return { items: items.map(toUserListItemResponse), pagination }
   }
 
   async remove(id: string): Promise<UserInfoResponse> {
@@ -98,33 +108,47 @@ export class UserService {
     await this.userRepo.upsertUserRole(userId, role.id)
   }
 
-  private buildKeywordWhere(keyword?: string): Prisma.UserWhereInput {
-    if (!keyword) return {}
-    const mode = 'insensitive' as const
-    return {
-      OR: [
-        { email: { contains: keyword, mode } },
-        { username: { contains: keyword, mode } },
-        { nickname: { contains: keyword, mode } },
-        { phoneNumber: { contains: keyword, mode } }
-      ]
-    }
-  }
+  private buildFindUsersWhere(params: {
+    keyword?: string
+    status?: UserStatus[]
+    role?: string[]
+  }): Prisma.UserWhereInput {
+    const { keyword, status, role } = params
+    const conditions: Prisma.UserWhereInput[] = []
 
-  private async paginateUsers(
-    where: Prisma.UserWhereInput,
-    page: number,
-    pageSize: number
-  ): Promise<UserListResponse> {
-    const skip = (page - 1) * pageSize
-    const [total, users] = await Promise.all([
-      this.userRepo.count(where),
-      this.userRepo.findManyWithDomain(where, skip, pageSize)
-    ])
-
-    return {
-      items: users.map(toUserListItemResponse),
-      pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) }
+    if (keyword) {
+      const mode = 'insensitive' as const
+      conditions.push({
+        OR: [
+          { email: { contains: keyword, mode } },
+          { username: { contains: keyword, mode } },
+          { nickname: { contains: keyword, mode } },
+          { phoneNumber: { contains: keyword, mode } }
+        ]
+      })
     }
+
+    if (status && status.length > 0) {
+      conditions.push({ status: { in: status.map(toUserStatusCode) } })
+    }
+
+    if (role && role.length > 0) {
+      conditions.push({ roles: { some: { role: { code: { in: role } } } } })
+    }
+
+    if (conditions.length === 0) return {}
+    if (conditions.length === 1) return conditions[0]
+    return { AND: conditions }
   }
+}
+
+const USER_STATUS_CODE_MAP: Record<UserStatus, UserStatusCode> = {
+  active: UserStatusCode.ACTIVE,
+  inactive: UserStatusCode.INACTIVE,
+  pending: UserStatusCode.PENDING,
+  suspended: UserStatusCode.SUSPENDED
+}
+
+function toUserStatusCode(status: UserStatus): UserStatusCode {
+  return USER_STATUS_CODE_MAP[status]
 }

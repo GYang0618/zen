@@ -1,28 +1,29 @@
 import { getRouteApi } from '@tanstack/react-router'
-import { useEffect } from 'react'
 
 import { ConfigDrawer, ProfileDropdown, Search, ThemeSwitch } from '@/components'
 import { Header, Main } from '@/components/layouts'
 
-import { userApi } from './api'
 import { UsersPrimaryButtons } from './components/users-primary-buttons'
 import { UsersTable } from './components/users-table'
-import { users } from './data/mock'
+import { useUsersQuery } from './queries'
 import { UsersProvider } from './users-provider'
 
 const route = getRouteApi('/_authenticated/system/users')
+
 export function Users() {
   const search = route.useSearch()
   const navigate = route.useNavigate()
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      const response = await userApi.getUserList()
+  const { data, isLoading, isFetching } = useUsersQuery({
+    keyword: search.keyword,
+    page: search.page,
+    pageSize: search.pageSize,
+    status: search.status,
+    role: search.role
+  })
 
-      console.log(response)
-    }
-    fetchUsers()
-  }, [])
+  const users = data?.items ?? []
+  const total = data?.pagination.total ?? 0
 
   return (
     <UsersProvider>
@@ -43,7 +44,14 @@ export function Users() {
           </div>
           <UsersPrimaryButtons />
         </div>
-        <UsersTable data={users} search={search} navigate={navigate} />
+        <UsersTable
+          data={users}
+          total={total}
+          isLoading={isLoading}
+          isFetching={isFetching}
+          search={search}
+          navigate={navigate}
+        />
       </Main>
     </UsersProvider>
   )

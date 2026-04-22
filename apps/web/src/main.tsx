@@ -1,34 +1,15 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { createRouter, RouterProvider } from '@tanstack/react-router'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { RouterProvider } from '@tanstack/react-router'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
-const queryClient = new QueryClient({})
-
-import { routeTree } from './routeTree.gen'
-
-import '@/styles/index.css'
+import { queryClient } from '@/lib/query-client'
 
 import { ThemeProvider } from './context/theme-provider'
-
-import type { RouterMeta } from '@/types/router'
+import { router } from './router'
 
 import '@/config/env'
-
-export const router = createRouter({
-  routeTree,
-  scrollRestoration: true,
-  defaultPreload: 'intent',
-  defaultPreloadStaleTime: 0
-})
-
-declare module '@tanstack/react-router' {
-  interface Register {
-    router: typeof router
-  }
-
-  interface StaticDataRouteOption extends RouterMeta {}
-}
+import '@/styles/index.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -1,12 +1,13 @@
 import { Gender, MfaType, Prisma, Theme, UserStatusCode } from '@prisma/client'
 
+import { UserStatus } from './dto/find-users-query.dto'
+
 import type {
   RoleInfoResponse,
   UserGender,
   UserInfoResponse,
   UserListItemResponse,
   UserMfaType,
-  UserStatus,
   UserTheme
 } from './responses/user.response'
 import type { UserWithDomain } from './user.repository'

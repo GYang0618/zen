@@ -65,7 +65,7 @@ export const usersColumns = [
 
   columnHelper.accessor('phoneNumber', {
     header: ({ column }) => <DataTableColumnHeader column={column} title="手机号" />,
-    cell: (info) => <div>{info.getValue()}</div>,
+    cell: (info) => <div>{info.getValue() ?? '未绑定'}</div>,
     enableSorting: false,
     meta: {
       title: '手机号'

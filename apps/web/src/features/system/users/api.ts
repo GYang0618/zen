@@ -7,6 +7,8 @@ interface GetUserListParams {
   keyword?: string
   page?: number
   pageSize?: number
+  status?: string[]
+  role?: string[]
 }
 
 export const userApi = {

@@ -4,12 +4,11 @@ import {
   getFacetedRowModel,
   getFacetedUniqueValues,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable
 } from '@tanstack/react-table'
-import { cn, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@zen/ui'
-import { useEffect, useState } from 'react'
+import { cn, Skeleton, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@zen/ui'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
 import { useTableUrlState } from '@/hooks'
@@ -23,13 +22,31 @@ import type { SortingState, VisibilityState } from '@tanstack/react-table'
 import type { NavigateFn } from '@/hooks'
 import type { User } from '../types'
 
+type UsersSearch = {
+  keyword?: string
+  page?: number
+  pageSize?: number
+  status?: string[]
+  role?: string[]
+}
+
 type DataTableProps = {
   data: User[]
-  search: Record<string, unknown>
+  total: number
+  isLoading?: boolean
+  isFetching?: boolean
+  search: UsersSearch
   navigate: NavigateFn
 }
 
-export function UsersTable({ data, search, navigate }: DataTableProps) {
+export function UsersTable({
+  data,
+  total,
+  isLoading = false,
+  isFetching = false,
+  search,
+  navigate
+}: DataTableProps) {
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [sorting, setSorting] = useState<SortingState>([])
@@ -46,11 +63,31 @@ export function UsersTable({ data, search, navigate }: DataTableProps) {
     pagination: { defaultPage: 1, defaultPageSize: 10 },
     globalFilter: { enabled: false },
     columnFilters: [
-      { columnId: 'username', searchKey: 'username', type: 'string' },
       { columnId: 'status', searchKey: 'status', type: 'array' },
       { columnId: 'role', searchKey: 'role', type: 'array' }
     ]
   })
+
+  const keyword = typeof search.keyword === 'string' ? search.keyword : ''
+
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      const trimmed = value.trim()
+      navigate({
+        search: (prev) => ({
+          ...prev,
+          page: undefined,
+          keyword: trimmed ? trimmed : undefined
+        })
+      })
+    },
+    [navigate]
+  )
+
+  const pageCount = useMemo(() => {
+    if (total <= 0) return 0
+    return Math.max(1, Math.ceil(total / pagination.pageSize))
+  }, [total, pagination.pageSize])
 
   const table = useReactTable({
     data,
@@ -62,13 +99,15 @@ export function UsersTable({ data, search, navigate }: DataTableProps) {
       columnFilters,
       columnVisibility
     },
+    manualPagination: true,
+    rowCount: total,
+    pageCount: pageCount || 1,
     enableRowSelection: true,
     onPaginationChange,
     onColumnFiltersChange,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
-    getPaginationRowModel: getPaginationRowModel(),
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -77,15 +116,19 @@ export function UsersTable({ data, search, navigate }: DataTableProps) {
   })
 
   useEffect(() => {
-    ensurePageInRange(table.getPageCount())
-  }, [table, ensurePageInRange])
+    if (!isLoading) ensurePageInRange(pageCount)
+  }, [pageCount, ensurePageInRange, isLoading])
+
+  const rows = table.getRowModel().rows
+  const showSkeleton = isLoading && data.length === 0
 
   return (
     <div className={cn('max-sm:has-[div[role="toolbar"]]:mb-16', 'flex flex-1 flex-col gap-4')}>
       <DataTableToolbar
         table={table}
-        searchPlaceholder="筛选用户..."
-        searchKey="username"
+        searchPlaceholder="搜索用户名 / 昵称 / 邮箱 / 手机号"
+        searchValue={keyword}
+        onSearchChange={handleSearchChange}
         filters={[
           {
             columnId: 'status',
@@ -99,7 +142,12 @@ export function UsersTable({ data, search, navigate }: DataTableProps) {
           }
         ]}
       />
-      <div className="overflow-hidden rounded-md border">
+      <div
+        className={cn(
+          'overflow-hidden rounded-md border transition-opacity',
+          isFetching && !showSkeleton && 'opacity-70'
+        )}
+      >
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -125,8 +173,18 @@ export function UsersTable({ data, search, navigate }: DataTableProps) {
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
+            {showSkeleton ? (
+              Array.from({ length: pagination.pageSize }).map((_, rowIndex) => (
+                <TableRow key={`skeleton-${rowIndex}`}>
+                  {table.getVisibleLeafColumns().map((column) => (
+                    <TableCell key={column.id} className={column.columnDef.meta?.className}>
+                      <Skeleton className="h-5 w-full" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : rows.length ? (
+              rows.map((row) => (
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}

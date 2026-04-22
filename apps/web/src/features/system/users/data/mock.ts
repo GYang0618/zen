@@ -2,7 +2,7 @@ import { faker } from '@faker-js/faker'
 
 import type { User } from './schema'
 
-// Set a fixed seed for consistent data generation
+// 设置固定的随机种子，保证数据一致性
 faker.seed(67890)
 
 export const users = Array.from({ length: 500 }, () => {
