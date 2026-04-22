@@ -11,7 +11,7 @@ const userIdSchema = z.object({
   id: z.string().min(1, 'User id is required')
 })
 
-const updateUserToolSchema = userIdSchema.merge(updateUserSchema)
+const updateUserToolSchema = userIdSchema.extend(updateUserSchema.shape)
 
 @Injectable()
 export class UserTool {

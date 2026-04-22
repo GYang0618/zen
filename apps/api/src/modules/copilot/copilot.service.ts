@@ -25,7 +25,7 @@ export class CopilotService {
 
     return toUIMessageStream(stream, {
       onError: (error) => {
-        this.logger.error(`Graph execution error: ${error.message}`)
+        this.logger.error(`Agent 执行错误: ${error.message}`)
       }
     })
   }

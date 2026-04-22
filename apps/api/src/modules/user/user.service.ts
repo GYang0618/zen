@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common'
 import { Prisma, UserStatusCode } from '@prisma/client'
 import argon2 from 'argon2'
 
+import { toArray } from '@/common'
 import { paginate } from '@/common/pagination'
 
 import { findUsersQuerySchema } from './dto/find-users-query.dto'
@@ -73,7 +74,11 @@ export class UserService {
 
   async findAll(query?: FindUsersQueryDto): Promise<UserListResponse> {
     const { keyword, status, role, page, pageSize } = findUsersQuerySchema.parse(query ?? {})
-    const where = this.buildFindUsersWhere({ keyword, status, role })
+    const where = this.buildFindUsersWhere({
+      keyword,
+      status: toArray(status),
+      role: toArray(role)
+    })
 
     const { items, pagination } = await paginate({
       page,
