@@ -13,10 +13,10 @@ export function Main({ fixed, className, fluid, ...props }: MainProps) {
       className={cn(
         'px-4 py-6',
 
-        // If layout is fixed, make the main container flex and grow
+        // 如果布局是 fixed，则让主容器成为弹性布局且可扩展
         fixed && 'flex grow flex-col overflow-hidden',
 
-        // If layout is not fluid, set the max-width
+        // 如果布局不是 fluid，则设置最大宽度
         !fluid && '@7xl/content:mx-auto @7xl/content:w-full @7xl/content:max-w-7xl',
         className
       )}

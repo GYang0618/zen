@@ -1,32 +1,60 @@
+import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@zen/ui'
 
-export interface User {
-  username: string
-  nickname: string
-  email: string
-  phoneNumber: string
+import type { ColumnDef, RowData } from '@tanstack/react-table'
+
+export interface AITableProps<TData extends RowData> {
+  data: TData[]
+  columns: ColumnDef<TData, unknown>[]
+  emptyMessage?: string
 }
 
-export function AITable({ data }: { data: User[] }) {
+export function AITable<TData extends RowData>({
+  data,
+  columns,
+  emptyMessage = '暂无数据'
+}: AITableProps<TData>) {
+  const table = useReactTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel()
+  })
+
+  const rows = table.getRowModel().rows
+
   return (
     <Table>
       <TableHeader>
-        <TableRow>
-          <TableHead className="w-[100px]">用户名</TableHead>
-          <TableHead>名称</TableHead>
-          <TableHead>邮箱</TableHead>
-          <TableHead className="text-right">手机号</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {data.map((d) => (
-          <TableRow key={d.username}>
-            <TableCell className="font-medium">{d.username}</TableCell>
-            <TableCell>{d.nickname}</TableCell>
-            <TableCell>{d.email}</TableCell>
-            <TableCell className="text-right">{d.phoneNumber}</TableCell>
+        {table.getHeaderGroups().map((headerGroup) => (
+          <TableRow key={headerGroup.id}>
+            {headerGroup.headers.map((header) => (
+              <TableHead key={header.id} colSpan={header.colSpan}>
+                {header.isPlaceholder
+                  ? null
+                  : flexRender(header.column.columnDef.header, header.getContext())}
+              </TableHead>
+            ))}
           </TableRow>
         ))}
+      </TableHeader>
+      <TableBody>
+        {rows.length ? (
+          rows.map((row) => (
+            <TableRow key={row.id}>
+              {row.getVisibleCells().map((cell) => (
+                <TableCell key={cell.id}>
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))
+        ) : (
+          <TableRow>
+            <TableCell colSpan={columns.length} className="h-24 text-center">
+              {emptyMessage}
+            </TableCell>
+          </TableRow>
+        )}
       </TableBody>
     </Table>
   )
