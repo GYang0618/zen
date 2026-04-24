@@ -10,6 +10,7 @@ import { getConfig } from '@/lib/config-utils'
 import { roleConfig, statusConfig } from '../data/data'
 import { DataTableRowActions } from './data-table-row-actions'
 
+import type { ColumnDef } from '@tanstack/react-table'
 import type { User } from '../data/schema'
 
 const columnHelper = createColumnHelper<User>()
@@ -120,4 +121,4 @@ export const usersColumns = [
     id: 'actions',
     cell: DataTableRowActions
   })
-]
+] as ColumnDef<User>[]

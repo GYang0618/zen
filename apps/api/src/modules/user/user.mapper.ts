@@ -186,6 +186,7 @@ export function toUserListItemResponse(user: UserWithDomain): UserListItemRespon
     role: getPrimaryRoleCode(roles),
     deptName: primaryDept?.department.name ?? null,
     jobTitle: profile?.jobTitle ?? null,
+    permissions: collectPermissions(toRoleDetails(roles)),
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString()
   }

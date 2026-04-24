@@ -97,6 +97,7 @@ export interface UserListItemResponse {
   jobTitle: string | null
   createdAt: string
   updatedAt: string
+  permissions: string[]
 }
 
 export type UserListResponse = Paginated<UserListItemResponse>
