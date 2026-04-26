@@ -6,8 +6,8 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "predev": "pnpm run prisma:generate",
-    "prebuild": "pnpm run prisma:generate",
+    "predev": "pnpm -F @zen/shared build && pnpm run prisma:generate",
+    "prebuild": "pnpm -F @zen/shared build && pnpm run prisma:generate",
     "dev": "nest start --watch",
     "debug": "nest start --debug --watch",
     "build": "nest build",
@@ -25,6 +25,7 @@
     "prisma:migrate:dev": "prisma migrate dev"
   },
   "dependencies": {
+    "@zen/shared": "workspace:*",
     "@ai-sdk/langchain": "^2.0.159",
     "@fastify/cookie": "^11.0.2",
     "@langchain/community": "^1.1.27",

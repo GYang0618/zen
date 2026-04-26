@@ -1,7 +1,7 @@
 import { Shield, UserCheck, Users } from 'lucide-react'
 
+import type { UserStatus } from '@zen/shared'
 import type { LucideIcon } from 'lucide-react'
-import type { UserRole, UserStatus } from './schema'
 
 interface StatusConfig {
   label: string
@@ -33,7 +33,9 @@ export const statusConfig: Record<UserStatus, StatusConfig> = {
   }
 } as const
 
-export const roleConfig: Record<UserRole, RoleConfig> = {
+const fallbackRole: RoleConfig = { label: '—', icon: Users }
+
+export const roleConfig: Record<string, RoleConfig> = {
   super_admin: {
     label: '超级管理员',
     icon: Shield
@@ -46,4 +48,9 @@ export const roleConfig: Record<UserRole, RoleConfig> = {
     label: '访客',
     icon: Users
   }
-} as const
+}
+
+export function getRoleDisplay(role: string | null): RoleConfig {
+  if (!role) return fallbackRole
+  return roleConfig[role] ?? { label: role, icon: Users }
+}

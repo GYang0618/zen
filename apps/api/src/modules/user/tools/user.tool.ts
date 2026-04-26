@@ -19,8 +19,7 @@ export class UserTool {
 
   getUsersTool = tool(async (input) => await this.userService.findAll(input), {
     name: 'get_users',
-    description:
-      '查询用户信息，如果是查询所有用户，提示用户列表过长，默认分页返回前10条数据，同时提示用户可以通过分页参数查看更多数据',
+    description: '查询用户，可以通过关键字、用户状态、角色等条件进行查询',
     schema: findUsersQuerySchema
   })
 

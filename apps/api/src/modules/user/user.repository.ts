@@ -52,13 +52,18 @@ export class UserRepository {
     return this.prisma.user.count({ where })
   }
 
-  findManyWithDomain(where: Prisma.UserWhereInput, skip: number, take: number) {
+  findManyWithDomain(
+    where: Prisma.UserWhereInput,
+    skip: number,
+    take: number,
+    orderBy: Prisma.UserOrderByWithRelationInput
+  ) {
     return this.prisma.user.findMany({
       where,
       include: USER_INCLUDE,
       skip,
       take,
-      orderBy: { createdAt: 'desc' }
+      orderBy
     })
   }
 

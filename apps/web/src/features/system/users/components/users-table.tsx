@@ -3,11 +3,18 @@ import {
   getCoreRowModel,
   getFacetedRowModel,
   getFacetedUniqueValues,
-  getFilteredRowModel,
-  getSortedRowModel,
   useReactTable
 } from '@tanstack/react-table'
-import { cn, Skeleton, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@zen/ui'
+import {
+  cn,
+  Skeleton,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@zen/ui'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
@@ -18,9 +25,21 @@ import { roleConfig, statusConfig } from '../data/data'
 import { DataTableBulkActions } from './data-table-bulk-actions'
 import { usersColumns as columns } from './users-columns'
 
-import type { SortingState, VisibilityState } from '@tanstack/react-table'
+import type { OnChangeFn, SortingState, VisibilityState } from '@tanstack/react-table'
 import type { NavigateFn } from '@/hooks'
-import type { User } from '../types'
+import type { User, UsersSortBy, UsersSortOrder } from '../types'
+
+const USERS_SORTABLE_COLUMNS: Record<UsersSortBy, true> = {
+  username: true,
+  email: true,
+  jobTitle: true,
+  createdAt: true
+}
+
+function toUsersSortBy(columnId?: string): UsersSortBy | undefined {
+  if (!columnId) return undefined
+  return columnId in USERS_SORTABLE_COLUMNS ? (columnId as UsersSortBy) : undefined
+}
 
 type UsersSearch = {
   keyword?: string
@@ -28,6 +47,8 @@ type UsersSearch = {
   pageSize?: number
   status?: string[]
   role?: string[]
+  sortBy?: UsersSortBy
+  sortOrder?: UsersSortOrder
 }
 
 type DataTableProps = {
@@ -49,7 +70,11 @@ export function UsersTable({
 }: DataTableProps) {
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
-  const [sorting, setSorting] = useState<SortingState>([])
+
+  const sorting = useMemo<SortingState>(() => {
+    if (!search.sortBy) return []
+    return [{ id: search.sortBy, desc: search.sortOrder !== 'asc' }]
+  }, [search.sortBy, search.sortOrder])
 
   const {
     columnFilters,
@@ -69,6 +94,27 @@ export function UsersTable({
   })
 
   const keyword = typeof search.keyword === 'string' ? search.keyword : ''
+  const handleSortingChange = useCallback<OnChangeFn<SortingState>>(
+    (updater) => {
+      const nextSorting = typeof updater === 'function' ? updater(sorting) : updater
+      const nextSort = nextSorting[0]
+      const sortBy = toUsersSortBy(nextSort?.id)
+      const sortOrder: UsersSortOrder | undefined = sortBy
+        ? nextSort?.desc
+          ? 'desc'
+          : 'asc'
+        : undefined
+      navigate({
+        search: (prev) => ({
+          ...prev,
+          page: undefined,
+          sortBy,
+          sortOrder
+        })
+      })
+    },
+    [navigate, sorting]
+  )
 
   const handleSearchChange = useCallback(
     (value: string) => {
@@ -100,17 +146,17 @@ export function UsersTable({
       columnVisibility
     },
     manualPagination: true,
+    manualSorting: true,
+    manualFiltering: true,
     rowCount: total,
     pageCount: pageCount || 1,
     enableRowSelection: true,
     onPaginationChange,
     onColumnFiltersChange,
     onRowSelectionChange: setRowSelection,
-    onSortingChange: setSorting,
+    onSortingChange: handleSortingChange,
     onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues()
   })
@@ -126,7 +172,7 @@ export function UsersTable({
     <div className={cn('max-sm:has-[div[role="toolbar"]]:mb-16', 'flex flex-1 flex-col gap-4')}>
       <DataTableToolbar
         table={table}
-        searchPlaceholder="搜索用户名 / 昵称 / 邮箱 / 手机号"
+        searchPlaceholder="搜索用户名、昵称、邮箱、手机号"
         searchValue={keyword}
         onSearchChange={handleSearchChange}
         filters={[

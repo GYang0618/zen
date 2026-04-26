@@ -1,13 +1,13 @@
 'use no memo'
 
 import { createColumnHelper } from '@tanstack/react-table'
-import { Badge, Checkbox, cn } from '@zen/ui'
+import { Avatar, AvatarBadge, AvatarFallback, AvatarImage, Badge, Checkbox, cn } from '@zen/ui'
+import { Mail, Phone } from 'lucide-react'
 
-import { LongText } from '@/components'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { getConfig } from '@/lib/config-utils'
 
-import { roleConfig, statusConfig } from '../data/data'
+import { getRoleDisplay, statusConfig } from '../data/data'
 import { DataTableRowActions } from './data-table-row-actions'
 
 import type { ColumnDef } from '@tanstack/react-table'
@@ -44,33 +44,47 @@ export const usersColumns = [
   }),
 
   columnHelper.accessor('username', {
-    header: ({ column }) => <DataTableColumnHeader column={column} title="用户名" />,
-    cell: (info) => <LongText className="max-w-36 ps-3">{info.getValue()}</LongText>,
-    meta: {
-      title: '用户名',
-      className: cn(
-        'drop-shadow-[0_1px_2px_rgb(0_0_0_/_0.1)] dark:drop-shadow-[0_1px_2px_rgb(255_255_255_/_0.1)]',
-        'ps-0.5 max-md:sticky start-6 @4xl/content:table-cell @4xl/content:drop-shadow-none'
+    header: ({ column }) => <DataTableColumnHeader column={column} title="用户" />,
+    cell: ({ row }) => {
+      const { avatar, username, nickname } = row.original
+      return (
+        <div className="flex items-center gap-3">
+          <Avatar>
+            <AvatarImage src={avatar ?? ''} alt={username} />
+            <AvatarFallback>{(nickname ?? username).charAt(0).toUpperCase()}</AvatarFallback>
+            <AvatarBadge className="bg-green-600 dark:bg-green-800" />
+          </Avatar>
+          <div className="flex flex-col">
+            <span className="font-medium text-foreground">{username}</span>
+            <span className="text-xs text-muted-foreground">{nickname}</span>
+          </div>
+        </div>
       )
     },
+    meta: { title: '用户' },
     enableHiding: false
   }),
 
   columnHelper.accessor('email', {
-    header: ({ column }) => <DataTableColumnHeader column={column} title="邮箱" />,
-    cell: (info) => <div className="w-fit ps-2 text-nowrap">{info.getValue()}</div>,
-    meta: {
-      title: '邮箱'
-    }
-  }),
-
-  columnHelper.accessor('phoneNumber', {
-    header: ({ column }) => <DataTableColumnHeader column={column} title="手机号" />,
-    cell: (info) => <div>{info.getValue() ?? '未绑定'}</div>,
-    enableSorting: false,
-    meta: {
-      title: '手机号'
-    }
+    header: ({ column }) => <DataTableColumnHeader column={column} title="联系方式" />,
+    cell: ({ row }) => {
+      const { email, phoneNumber } = row.original
+      return (
+        <div className="w-fit ps-2 text-nowrap flex flex-col gap-0.5">
+          <div className="flex items-center gap-x-2 text-sm">
+            <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+            <span>{email}</span>
+          </div>
+          {phoneNumber && (
+            <div className="flex items-center gap-x-2 text-sm text-muted-foreground">
+              <Phone className="h-3.5 w-3.5" />
+              <span>{phoneNumber ?? '未绑定'}</span>
+            </div>
+          )}
+        </div>
+      )
+    },
+    meta: { title: '联系方式' }
   }),
 
   columnHelper.accessor('status', {
@@ -79,26 +93,23 @@ export const usersColumns = [
       const status = info.getValue()
       const { label, color } = getConfig(statusConfig, status)
       return (
-        <div className="flex space-x-2">
-          <Badge variant="outline" className={cn('capitalize', color)}>
-            {label}
-          </Badge>
-        </div>
+        <Badge variant="outline" className={cn('capitalize', color)}>
+          {label}
+        </Badge>
       )
     },
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id))
     },
-    meta: {
-      title: '状态'
-    }
+    meta: { title: '状态' },
+    enableSorting: false
   }),
 
   columnHelper.accessor('role', {
     header: ({ column }) => <DataTableColumnHeader column={column} title="角色" />,
     cell: (info) => {
       const role = info.getValue()
-      const { label, icon: Icon } = getConfig(roleConfig, role)
+      const { label, icon: Icon } = getRoleDisplay(role)
 
       return (
         <div className="flex items-center gap-x-2">
@@ -110,11 +121,22 @@ export const usersColumns = [
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id))
     },
-    meta: {
-      title: '角色'
-    },
+    meta: { title: '角色' },
     enableSorting: false,
     enableHiding: false
+  }),
+
+  columnHelper.accessor('jobTitle', {
+    header: ({ column }) => <DataTableColumnHeader column={column} title="岗位" />,
+    cell: (info) => <div className="ps-2 text-nowrap">{info.getValue() ?? '未设置'}</div>,
+    meta: { title: '岗位' }
+  }),
+  columnHelper.accessor('createdAt', {
+    header: ({ column }) => <DataTableColumnHeader column={column} title="创建时间" />,
+    cell: (info) => (
+      <div className="w-fit ps-2 text-nowrap">{new Date(info.getValue()).toLocaleDateString()}</div>
+    ),
+    meta: { title: '创建时间' }
   }),
 
   columnHelper.display({

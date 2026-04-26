@@ -1,12 +1,12 @@
 import { AITable } from '@/components/ai'
 import { makeAssistantToolUI, ToolDenied, ToolError, ToolPending } from '@/components/tool-ui'
-import { columns, userSchemaWithPagination } from '@/features/system/users'
+import { columns, usersPageSchema } from '@/features/system/users'
 
 const tableColumns = columns.filter((col) => col.id !== 'select' && col.id !== 'actions')
 
 export const GetUsersToolUI = makeAssistantToolUI({
   toolName: 'get_users',
-  outputSchema: userSchemaWithPagination,
+  outputSchema: usersPageSchema,
   render: (state) => {
     switch (state.phase) {
       case 'pending':
@@ -19,14 +19,14 @@ export const GetUsersToolUI = makeAssistantToolUI({
         return <ToolDenied reason={state.reason} />
 
       case 'ready':
-        return (
+        return state.data.items.length ? (
           <div
             className="rounded-md border transition-opacity data-preliminary:opacity-60"
             data-preliminary={state.isPreliminary || undefined}
           >
             <AITable data={state.data.items} columns={tableColumns} />
           </div>
-        )
+        ) : null
     }
   }
 })

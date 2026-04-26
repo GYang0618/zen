@@ -7,7 +7,8 @@
     "paths": {
       "@/*": ["src/*"],
       "@zen/ui/*": ["../../packages/ui/src/*"],
-      "@zen/request/*": ["../../packages/request/src/*"]
+      "@zen/request/*": ["../../packages/request/src/*"],
+      "@zen/shared": ["../../packages/shared/src/index.ts"]
     }
   }
 }

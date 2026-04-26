@@ -1,1 +1,1 @@
-export type { User } from './data/schema'
+export type { CreateUser, UpdateUser, User, UsersSortBy, UsersSortOrder } from '@zen/shared'

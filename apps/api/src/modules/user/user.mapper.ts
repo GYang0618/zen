@@ -1,7 +1,6 @@
 import { Gender, MfaType, Prisma, Theme, UserStatusCode } from '@prisma/client'
 
-import { UserStatus } from './dto/find-users-query.dto'
-
+import type { UserStatus } from '@zen/shared'
 import type {
   RoleInfoResponse,
   UserGender,

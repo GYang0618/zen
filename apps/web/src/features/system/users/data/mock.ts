@@ -11,13 +11,16 @@ export const users = Array.from({ length: 500 }, () => {
     id: faker.string.uuid(),
     username: faker.internet.username(),
     nickname: faker.person.fullName(),
+    realName: null,
     email: faker.internet.email({ firstName }).toLocaleLowerCase(),
     avatar: faker.image.avatar(),
     phoneNumber: faker.phone.number({ style: 'international' }),
-    status: faker.helpers.arrayElement(['active', 'inactive', 'pending', 'suspended']),
-    role: faker.helpers.arrayElement(['super_admin', 'admin', 'guest']),
+    status: faker.helpers.arrayElement(['active', 'inactive', 'pending', 'suspended'] as const),
+    role: faker.helpers.arrayElement(['super_admin', 'admin', 'guest'] as const),
+    deptName: null,
+    jobTitle: null,
     permissions: faker.helpers.arrayElements(['read', 'write', 'delete']),
-    createdAt: faker.date.past(),
-    updatedAt: faker.date.recent()
-  } as User
+    createdAt: faker.date.past().toISOString(),
+    updatedAt: faker.date.recent().toISOString()
+  } satisfies User
 })

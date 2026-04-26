@@ -1,12 +1,4 @@
-import {
-  cn,
-  FormControl,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@zen/ui'
+import { cn, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@zen/ui'
 import { Loader } from 'lucide-react'
 
 type SelectDropdownProps = {

@@ -16,14 +16,14 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
     api: chatApi
   })
   const chat = useChat({
-    transport
+    transport,
     // onData: (message) => {
     //   console.log('Received message:', message)
     // },
 
-    // onFinish: (options) => {
-    //   console.log('Chat finished', options)
-    // }
+    onFinish: (options) => {
+      console.log('Chat finished', options)
+    }
   })
 
   return <ChatContext value={{ ...chat }}>{children}</ChatContext>

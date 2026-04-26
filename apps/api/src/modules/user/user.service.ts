@@ -10,7 +10,12 @@ import { toUserInfoResponse, toUserListItemResponse } from './user.mapper'
 import { UserRepository } from './user.repository'
 
 import type { CreateUserDto } from './dto/create-user.dto'
-import type { FindUsersQueryDto, UserStatus } from './dto/find-users-query.dto'
+import type {
+  FindUsersQueryDto,
+  UserStatus,
+  UsersSortBy,
+  UsersSortOrder
+} from './dto/find-users-query.dto'
 import type { UpdateUserDto } from './dto/update-user.dto'
 import type { UserInfoResponse, UserListResponse } from './responses/user.response'
 
@@ -73,18 +78,21 @@ export class UserService {
   }
 
   async findAll(query?: FindUsersQueryDto): Promise<UserListResponse> {
-    const { keyword, status, role, page, pageSize } = findUsersQuerySchema.parse(query ?? {})
+    const { keyword, status, role, page, pageSize, sortBy, sortOrder } = findUsersQuerySchema.parse(
+      query ?? {}
+    )
     const where = this.buildFindUsersWhere({
       keyword,
       status: toArray(status),
       role: toArray(role)
     })
+    const orderBy = buildUsersOrderBy(sortBy, sortOrder)
 
     const { items, pagination } = await paginate({
       page,
       pageSize,
       count: () => this.userRepo.count(where),
-      findMany: ({ skip, take }) => this.userRepo.findManyWithDomain(where, skip, take)
+      findMany: ({ skip, take }) => this.userRepo.findManyWithDomain(where, skip, take, orderBy)
     })
 
     return { items: items.map(toUserListItemResponse), pagination }
@@ -156,4 +164,34 @@ const USER_STATUS_CODE_MAP: Record<UserStatus, UserStatusCode> = {
 
 function toUserStatusCode(status: UserStatus): UserStatusCode {
   return USER_STATUS_CODE_MAP[status]
+}
+
+const USERS_SORT_FIELD_MAP: Record<UsersSortBy, Prisma.UserOrderByWithRelationInput> = {
+  username: { username: 'asc' },
+  email: { email: 'asc' },
+  jobTitle: { profile: { jobTitle: 'asc' } },
+  createdAt: { createdAt: 'asc' }
+}
+
+function buildUsersOrderBy(
+  sortBy?: UsersSortBy,
+  sortOrder?: UsersSortOrder
+): Prisma.UserOrderByWithRelationInput {
+  if (!sortBy) return { createdAt: 'desc' }
+  const direction = sortOrder ?? 'asc'
+  const base = USERS_SORT_FIELD_MAP[sortBy]
+
+  if ('profile' in base) {
+    return { profile: { jobTitle: direction } }
+  }
+
+  if ('username' in base) {
+    return { username: direction }
+  }
+
+  if ('email' in base) {
+    return { email: direction }
+  }
+
+  return { createdAt: direction }
 }

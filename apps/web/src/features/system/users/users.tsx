@@ -3,6 +3,7 @@ import { getRouteApi } from '@tanstack/react-router'
 import { ConfigDrawer, ProfileDropdown, Search, ThemeSwitch } from '@/components'
 import { Header, Main } from '@/components/layouts'
 
+import { UsersDialogs } from './components/users-dialogs'
 import { UsersPrimaryButtons } from './components/users-primary-buttons'
 import { UsersTable } from './components/users-table'
 import { useUsersQuery } from './queries'
@@ -19,7 +20,9 @@ export function Users() {
     page: search.page,
     pageSize: search.pageSize,
     status: search.status,
-    role: search.role
+    role: search.role,
+    sortBy: search.sortBy,
+    sortOrder: search.sortOrder
   })
 
   const users = data?.items ?? []
@@ -53,6 +56,8 @@ export function Users() {
           navigate={navigate}
         />
       </Main>
+
+      <UsersDialogs />
     </UsersProvider>
   )
 }

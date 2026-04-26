@@ -8,7 +8,9 @@ const usersSearchSchema = z.object({
   page: z.coerce.number().int().positive().optional().catch(undefined),
   pageSize: z.coerce.number().int().positive().max(100).optional().catch(undefined),
   status: z.array(z.string()).optional().catch(undefined),
-  role: z.array(z.string()).optional().catch(undefined)
+  role: z.array(z.string()).optional().catch(undefined),
+  sortBy: z.enum(['username', 'email', 'jobTitle', 'createdAt']).optional().catch(undefined),
+  sortOrder: z.enum(['asc', 'desc']).optional().catch(undefined)
 })
 
 export const Route = createFileRoute('/_authenticated/system/users')({

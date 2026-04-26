@@ -1,6 +1,7 @@
-import { UserStatus } from '../dto/find-users-query.dto'
+import type { Paged, User, UserStatus } from '@zen/shared'
 
-import type { Paginated } from '@/common/pagination'
+export type UserListItemResponse = User
+export type UserListResponse = Paged<UserListItemResponse>
 
 export type UserMfaType = 'totp' | 'sms' | 'email' | 'off'
 export type UserTheme = 'light' | 'dark' | 'system'
@@ -82,22 +83,3 @@ export interface UserInfoResponse {
   remark: string | null
   meta: Record<string, unknown> | null
 }
-
-export interface UserListItemResponse {
-  id: string
-  username: string
-  nickname: string | null
-  realName: string | null
-  avatar: string | null
-  email: string
-  phoneNumber: string | null
-  status: UserStatus
-  role: string | null
-  deptName: string | null
-  jobTitle: string | null
-  createdAt: string
-  updatedAt: string
-  permissions: string[]
-}
-
-export type UserListResponse = Paginated<UserListItemResponse>

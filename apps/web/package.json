@@ -23,6 +23,7 @@
     "@tanstack/react-router-devtools": "^1.166.11",
     "@tanstack/react-table": "^8.21.3",
     "@zen/request": "workspace:*",
+    "@zen/shared": "workspace:*",
     "@zen/ui": "workspace:*",
     "ai": "^6.0.153",
     "lucide-react": "^1.7.0",

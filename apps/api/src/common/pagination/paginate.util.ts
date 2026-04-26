@@ -1,4 +1,4 @@
-import type { Paginated, PaginationMeta } from './pagination.types'
+import type { Paged, PageMeta } from './pagination.types'
 
 export interface PaginateParams<T> {
   page: number
@@ -19,7 +19,7 @@ export async function paginate<T>({
   pageSize,
   count,
   findMany
-}: PaginateParams<T>): Promise<Paginated<T>> {
+}: PaginateParams<T>): Promise<Paged<T>> {
   const skip = (page - 1) * pageSize
   const [total, items] = await Promise.all([count(), findMany({ skip, take: pageSize })])
   return {
@@ -28,11 +28,7 @@ export async function paginate<T>({
   }
 }
 
-export function buildPaginationMeta(
-  page: number,
-  pageSize: number,
-  total: number
-): PaginationMeta {
+export function buildPaginationMeta(page: number, pageSize: number, total: number): PageMeta {
   return {
     page,
     pageSize,
