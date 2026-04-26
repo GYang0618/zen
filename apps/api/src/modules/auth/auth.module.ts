@@ -5,8 +5,8 @@ import { authConfig } from '@/config'
 
 import { UserModule } from '../user/user.module'
 import { AuthController } from './auth.controller'
-import { AuthTokenService } from './auth.token.service'
 import { AuthService } from './auth.service'
+import { AuthTokenService } from './auth.token.service'
 
 import type { ConfigType } from '@nestjs/config'
 

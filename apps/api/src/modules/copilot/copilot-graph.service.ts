@@ -1,7 +1,7 @@
 import { END, MessagesAnnotation, START, StateGraph } from '@langchain/langgraph'
 import { ToolNode } from '@langchain/langgraph/prebuilt'
 import { ChatOpenAI } from '@langchain/openai'
-import { Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import { AIMessage } from 'langchain'
 
 import { UserTool } from '@/modules/user'
@@ -15,7 +15,7 @@ type MessagesState = typeof MessagesAnnotation.State
  */
 @Injectable()
 export class CopilotGraphService {
-  constructor(private readonly userTool: UserTool) {}
+  constructor(@Inject(UserTool) private readonly userTool: UserTool) {}
 
   private llm = new ChatOpenAI({
     model: 'qwen3.5-flash',

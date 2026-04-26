@@ -1,6 +1,6 @@
 import { Database, FolderTree, ShieldCheck, UserRound } from 'lucide-react'
 
-import type { RoleDataScope, UserStatus } from './schema'
+import type { RoleDataScope, UserStatus } from '@zen/shared'
 import type { LucideIcon } from 'lucide-react'
 
 interface StatusConfig {

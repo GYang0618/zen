@@ -1,7 +1,7 @@
 import { useDialogState } from '@zen/ui'
 import React, { useState } from 'react'
 
-import type { User } from './data/schema'
+import type { User } from '@zen/shared'
 
 type UsersDialogType = 'add' | 'edit' | 'delete'
 

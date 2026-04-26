@@ -11,7 +11,7 @@ import { getRoleDisplay, statusConfig } from '../data/data'
 import { DataTableRowActions } from './data-table-row-actions'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import type { User } from '../data/schema'
+import type { User } from '@zen/shared'
 
 const columnHelper = createColumnHelper<User>()
 

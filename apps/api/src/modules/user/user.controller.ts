@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UsePipes } from '@nestjs/common'
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Inject,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UsePipes
+} from '@nestjs/common'
 
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
 
@@ -14,7 +25,7 @@ import type { UserInfoResponse, UserListResponse } from './responses/user.respon
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(@Inject(UserService) private readonly userService: UserService) {}
 
   @Post()
   @UsePipes(new ZodValidationPipe(createUserSchema))

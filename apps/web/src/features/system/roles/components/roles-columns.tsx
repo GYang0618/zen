@@ -11,7 +11,7 @@ import { dataScopeConfig, roleStatusConfig } from '../data/data'
 import { DataTableRowActions } from './data-table-row-actions'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import type { Role } from '../data/schema'
+import type { Role } from '@zen/shared'
 
 const columnHelper = createColumnHelper<Role>()
 

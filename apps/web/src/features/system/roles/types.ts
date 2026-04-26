@@ -1,1 +1,1 @@
-export type { Role } from './data/schema'
+export type { Role } from '@zen/shared'

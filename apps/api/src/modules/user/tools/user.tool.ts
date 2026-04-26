@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import { tool } from 'langchain'
 import { z } from 'zod'
 
@@ -15,7 +15,7 @@ const updateUserToolSchema = userIdSchema.extend(updateUserSchema.shape)
 
 @Injectable()
 export class UserTool {
-  constructor(private userService: UserService) {}
+  constructor(@Inject(UserService) private readonly userService: UserService) {}
 
   getUsersTool = tool(async (input) => await this.userService.findAll(input), {
     name: 'get_users',

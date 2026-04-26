@@ -7,7 +7,7 @@ import { useState } from 'react'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { showSubmittedData } from '@/lib/show-submitted-data'
 
-import type { Role } from '../data/schema'
+import type { Role } from '@zen/shared'
 
 type RoleDeleteDialogProps = {
   open: boolean

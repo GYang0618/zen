@@ -1,7 +1,7 @@
 import { useDialogState } from '@zen/ui'
 import React, { useState } from 'react'
 
-import type { Role } from './data/schema'
+import type { Role } from '@zen/shared'
 
 type RolesDialogType = 'add' | 'edit' | 'delete'
 

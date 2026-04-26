@@ -1,14 +1,14 @@
 import type { z } from 'zod'
 import type {
   createUserSchema,
-  usersSortBySchema,
-  usersSortOrderSchema,
   updateUserSchema,
   userSchema,
   userStatusSchema,
   usersPageSchema,
-  usersQuerySchema
-} from '../schemas/users'
+  usersQuerySchema,
+  usersSortBySchema,
+  usersSortOrderSchema
+} from './user.schema'
 
 export type UserStatus = z.infer<typeof userStatusSchema>
 export type User = z.infer<typeof userSchema>

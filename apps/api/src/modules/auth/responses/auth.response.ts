@@ -1,17 +1,6 @@
-export interface AuthSessionUserResponse {
-  id: string
-  username: string
-  email: string
-  nickname: string | null
-  avatar: string | null
-  roles: string[]
-  permissions: string[]
-}
+import type { AuthSession } from '@zen/shared'
 
-export interface AuthSessionResponse {
-  accessToken: string
-  user: AuthSessionUserResponse
-}
+export type AuthSessionResponse = AuthSession
 
 export type LoginResponse = AuthSessionResponse
 

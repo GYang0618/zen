@@ -27,8 +27,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@zen/ui/*": ["../../packages/ui/src/*"],
-      "@zen/request/*": ["../../packages/request/src/*"],
+      "@zen/ui": ["../../packages/ui/src/index.ts"],
+      "@zen/request": ["../../packages/request/src/index.ts"],
       "@zen/shared": ["../../packages/shared/src/index.ts"]
     }
   },

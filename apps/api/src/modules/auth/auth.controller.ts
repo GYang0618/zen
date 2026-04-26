@@ -14,17 +14,19 @@ import {
 
 import { Public } from '@/common/decorators/public.decorator'
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
-import { type AppConfig, type AuthConfig, CONFIG_NAMESPACES } from '@/config'
+import { CONFIG_NAMESPACES } from '@/config'
 
 import { AuthService } from './auth.service'
-import { AuthTokenService, type JwtTokenPayload } from './auth.token.service'
+import { AuthTokenService } from './auth.token.service'
 import { durationToSeconds, REFRESH_TOKEN_COOKIE_NAME } from './auth-cookie'
 import { loginSchema } from './dto/login.dto'
 import { registerSchema } from './dto/register.dto'
 
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import type { JwtPayload } from '@/common/interfaces/jwt-payload.interface'
+import type { AppConfig, AuthConfig } from '@/config'
 import type { UserInfoResponse } from '@/modules/user/responses/user.response'
+import type { JwtTokenPayload } from './auth.token.service'
 import type { LoginDto } from './dto/login.dto'
 import type { RegisterDto } from './dto/register.dto'
 import type { LoginResponse, RefreshResponse, RegisterResponse } from './responses/auth.response'
@@ -32,8 +34,8 @@ import type { LoginResponse, RefreshResponse, RegisterResponse } from './respons
 @Controller('auth')
 export class AuthController {
   constructor(
-    private readonly authService: AuthService,
-    private readonly tokenService: AuthTokenService,
+    @Inject(AuthService) private readonly authService: AuthService,
+    @Inject(AuthTokenService) private readonly tokenService: AuthTokenService,
     @Inject(CONFIG_NAMESPACES.APP)
     private readonly appCfg: AppConfig,
     @Inject(CONFIG_NAMESPACES.AUTH)

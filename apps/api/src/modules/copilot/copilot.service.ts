@@ -1,5 +1,5 @@
 import { toBaseMessages, toUIMessageStream } from '@ai-sdk/langchain'
-import { Injectable, Logger } from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 
 import { CopilotAgentService } from './copilot-agent.service'
 
@@ -12,7 +12,7 @@ import type { CallDto } from './dto/call.dto'
 export class CopilotService {
   private readonly logger = new Logger(CopilotService.name)
 
-  constructor(private readonly agentService: CopilotAgentService) {}
+  constructor(@Inject(CopilotAgentService) private readonly agentService: CopilotAgentService) {}
 
   async call({ messages }: CallDto) {
     const langchainMessages = await toBaseMessages(messages)

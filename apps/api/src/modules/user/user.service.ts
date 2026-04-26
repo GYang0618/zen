@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
-import { Prisma, UserStatusCode } from '@prisma/client'
+import { Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { UserStatusCode } from '@prisma/client'
 import argon2 from 'argon2'
 
 import { toArray } from '@/common'
@@ -9,6 +9,7 @@ import { findUsersQuerySchema } from './dto/find-users-query.dto'
 import { toUserInfoResponse, toUserListItemResponse } from './user.mapper'
 import { UserRepository } from './user.repository'
 
+import type { Prisma } from '@prisma/client'
 import type { CreateUserDto } from './dto/create-user.dto'
 import type {
   FindUsersQueryDto,
@@ -23,7 +24,7 @@ const DEFAULT_ROLE_CODE = 'guest'
 
 @Injectable()
 export class UserService {
-  constructor(private readonly userRepo: UserRepository) {}
+  constructor(@Inject(UserRepository) private readonly userRepo: UserRepository) {}
 
   async create(data: CreateUserDto): Promise<UserInfoResponse> {
     const hashedPassword = await argon2.hash(data.password)

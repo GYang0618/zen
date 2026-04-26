@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker'
 
-import type { User } from './schema'
+import type { User } from '@zen/shared'
 
 // 设置固定的随机种子，保证数据一致性
 faker.seed(67890)

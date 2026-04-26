@@ -22,7 +22,7 @@ export interface TokenPair {
 @Injectable()
 export class AuthTokenService {
   constructor(
-    private readonly jwtService: JwtService,
+    @Inject(JwtService) private readonly jwtService: JwtService,
     @Inject(CONFIG_NAMESPACES.AUTH)
     private readonly authCfg: AuthConfig
   ) {}

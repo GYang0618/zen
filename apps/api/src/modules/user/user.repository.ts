@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common'
-import { Prisma } from '@prisma/client'
+import { Inject, Injectable } from '@nestjs/common'
 
 import { PrismaService } from '@/infra/prisma/prisma.service'
+
+import type { Prisma } from '@prisma/client'
 
 export const USER_INCLUDE = {
   profile: true,
@@ -26,7 +27,7 @@ export type UserWithDomain = Prisma.UserGetPayload<{ include: typeof USER_INCLUD
 
 @Injectable()
 export class UserRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   findUnique(where: Prisma.UserWhereUniqueInput) {
     return this.prisma.user.findUnique({ where })

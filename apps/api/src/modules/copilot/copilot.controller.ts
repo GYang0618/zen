@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UsePipes } from '@nestjs/common'
+import { Body, Controller, Inject, Post, UsePipes } from '@nestjs/common'
 import { createUIMessageStreamResponse } from 'ai'
 
 import { BypassTransform, Public, ZodValidationPipe } from '@/common'
@@ -10,7 +10,7 @@ import type { CallDto } from './dto/call.dto'
 
 @Controller('copilot')
 export class CopilotController {
-  constructor(private readonly copilotService: CopilotService) {}
+  constructor(@Inject(CopilotService) private readonly copilotService: CopilotService) {}
 
   @Public()
   @BypassTransform()

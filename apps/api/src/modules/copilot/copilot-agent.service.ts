@@ -1,5 +1,5 @@
 import { ChatOpenAI } from '@langchain/openai'
-import { Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import { createAgent } from 'langchain'
 
 import { UserTool } from '@/modules/user'
@@ -9,7 +9,7 @@ import { UserTool } from '@/modules/user'
  */
 @Injectable()
 export class CopilotAgentService {
-  constructor(private readonly userTool: UserTool) {}
+  constructor(@Inject(UserTool) private readonly userTool: UserTool) {}
 
   private llm = new ChatOpenAI({
     model: 'qwen3.5-flash',

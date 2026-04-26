@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-import type { AuthSession } from '@/features/auth'
+import type { AuthSession } from '@zen/shared'
 
 export interface AuthState {
   accessToken: string | null

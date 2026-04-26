@@ -13,7 +13,7 @@ import { Trash2, UserPen } from 'lucide-react'
 import { useUsers } from '../users-provider'
 
 import type { Row } from '@tanstack/react-table'
-import type { User } from '../data/schema'
+import type { User } from '@zen/shared'
 
 type DataTableRowActionsProps = {
   row: Row<User>

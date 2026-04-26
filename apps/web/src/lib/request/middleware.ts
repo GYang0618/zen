@@ -15,7 +15,7 @@ import { ApiClientError } from './types'
 import { buildFallback, fallbackMessage, isRequestErrorResponse } from './utils'
 
 import type { AxiosError, AxiosResponse } from '@zen/request'
-import type { AuthSession } from '@/features/auth'
+import type { AuthSession } from '@zen/shared'
 import type { RequestErrorResponse, RequestResponse, RetryableRequestConfig } from './types'
 
 type RefreshQueueEntry = {

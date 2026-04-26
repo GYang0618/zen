@@ -1,4 +1,4 @@
-import { Button } from '@zen/ui/index'
+import { Button } from '@zen/ui'
 import { Copy, Pencil } from 'lucide-react'
 
 export function HumanMessage({ message }: { message: string }) {

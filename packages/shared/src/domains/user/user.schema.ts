@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { paged, pageQuerySchema } from './pagination'
+import { paged, pageQuerySchema } from '../pagination'
 
 export const userStatusSchema = z.union([
   z.literal('active').describe('激活'),

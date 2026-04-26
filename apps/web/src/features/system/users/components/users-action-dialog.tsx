@@ -24,7 +24,7 @@ import { PasswordInput } from '@/components'
 
 import { useCreateUserMutation, useUpdateUserMutation } from '../mutations'
 
-import type { User } from '../data/schema'
+import type { User } from '@zen/shared'
 
 type UserActionDialogProps = {
   currentRow?: User

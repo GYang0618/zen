@@ -10,7 +10,7 @@ import { DataTableBulkActions as BulkActionsToolbar } from '@/components/data-ta
 import { UsersMultiDeleteDialog } from './users-multi-delete-dialog'
 
 import type { Table } from '@tanstack/react-table'
-import type { User } from '../../users/data/schema'
+import type { User } from '@zen/shared'
 
 type DataTableBulkActionsProps<TData> = {
   table: Table<TData>

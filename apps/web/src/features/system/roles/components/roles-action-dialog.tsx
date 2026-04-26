@@ -8,7 +8,7 @@ import {
   DialogTitle
 } from '@zen/ui'
 
-import type { Role } from '../data/schema'
+import type { Role } from '@zen/shared'
 
 type RoleActionDialogProps = {
   currentRow?: Role

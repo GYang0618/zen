@@ -1,6 +1,8 @@
+import { usersPageSchema } from '@zen/shared'
+
 import { AITable } from '@/components/ai'
 import { makeAssistantToolUI, ToolDenied, ToolError, ToolPending } from '@/components/tool-ui'
-import { columns, usersPageSchema } from '@/features/system/users'
+import { columns } from '@/features/system/users'
 
 const tableColumns = columns.filter((col) => col.id !== 'select' && col.id !== 'actions')
 

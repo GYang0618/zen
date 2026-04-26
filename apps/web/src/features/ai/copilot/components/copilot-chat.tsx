@@ -1,4 +1,4 @@
-import { GradientText } from '@zen/ui/index'
+import { GradientText } from '@zen/ui'
 import { useLayoutEffect, useRef } from 'react'
 
 import { useAuthStore } from '@/stores'

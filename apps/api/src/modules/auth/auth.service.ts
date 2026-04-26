@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   UnauthorizedException
 } from '@nestjs/common'
@@ -28,8 +29,8 @@ const LOCK_DURATION_MINUTES = 15
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly userService: UserService,
-    private readonly tokenService: AuthTokenService
+    @Inject(UserService) private readonly userService: UserService,
+    @Inject(AuthTokenService) private readonly tokenService: AuthTokenService
   ) {}
 
   async register(dto: RegisterDto): Promise<IssueSessionResult> {
@@ -108,9 +109,10 @@ export class AuthService {
           email: userInfo.contact.email,
           nickname: userInfo.profile.nickname ?? null,
           avatar: userInfo.profile.avatar ?? null,
-          roles,
+          phoneNumber: userInfo.contact.phoneNumber ?? null,
+          role: roles[0] ?? null,
           permissions
-        }
+        } satisfies AuthSessionResponse['user']
       }
     }
   }

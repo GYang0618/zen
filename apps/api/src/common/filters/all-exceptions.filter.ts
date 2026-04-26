@@ -79,7 +79,9 @@ function extractValidationErrors(
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   constructor(
+    @Inject(HttpAdapterHost)
     private readonly httpAdapterHost: HttpAdapterHost,
+    @Inject(Logger)
     private readonly logger: Logger,
     @Inject(appConfig.KEY)
     private readonly appCfg: AppConfig

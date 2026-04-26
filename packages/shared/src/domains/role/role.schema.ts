@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
-import { paged, pageQuerySchema } from './pagination'
-import { userStatusSchema } from './users'
+import { paged, pageQuerySchema } from '../pagination'
+import { userStatusSchema } from '../user'
 
 export const roleDataScopeSchema = z.union([
   z.literal('all').describe('全部数据权限'),

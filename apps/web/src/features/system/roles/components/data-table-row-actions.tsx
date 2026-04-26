@@ -13,7 +13,7 @@ import { Shield, ShieldAlert } from 'lucide-react'
 import { useRoles } from '../roles-provider'
 
 import type { Row } from '@tanstack/react-table'
-import type { Role } from '../data/schema'
+import type { Role } from '@zen/shared'
 
 type DataTableRowActionsProps = {
   row: Row<Role>

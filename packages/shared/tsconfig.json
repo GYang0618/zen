@@ -10,7 +10,11 @@
     "skipLibCheck": true,
     "declaration": true,
     "declarationMap": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "baseUrl": ".",
+    "paths": {
+      "@zen/shared/*": ["./src/*"]
+    }
   },
   "include": ["src"]
 }

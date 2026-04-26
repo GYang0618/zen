@@ -4,7 +4,7 @@ import { useAuthStore } from '@/stores'
 
 import { authApi } from './api'
 
-import type { AuthSession } from './types'
+import type { AuthSession } from '@zen/shared'
 
 const persistAuthSession = (session: AuthSession) => {
   useAuthStore.getState().setAuth(session)

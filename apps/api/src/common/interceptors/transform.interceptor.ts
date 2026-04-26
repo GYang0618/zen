@@ -1,19 +1,22 @@
 import { randomUUID } from 'node:crypto'
 
-import {
+import type {
   CallHandler,
   ExecutionContext,
-  HttpStatus,
-  Injectable,
   NestInterceptor
 } from '@nestjs/common'
+import {
+  HttpStatus,
+  Inject,
+  Injectable
+} from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { Observable } from 'rxjs'
 import { map } from 'rxjs/operators'
 
 import { BYPASS_TRANSFORM_KEY } from '../decorators/bypass-transform.decorator'
 
 import type { ApiResponse } from '../interfaces/api-response.interface'
+import type { Observable } from 'rxjs'
 
 type HttpRequest = {
   id?: string
@@ -26,7 +29,7 @@ type HttpResponse = {
 
 @Injectable()
 export class TransformInterceptor<T> implements NestInterceptor<T, ApiResponse<T>> {
-  constructor(private readonly reflector: Reflector) {}
+  constructor(@Inject(Reflector) private readonly reflector: Reflector) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<ApiResponse<T>> {
     const bypass = this.reflector.getAllAndOverride<boolean>(BYPASS_TRANSFORM_KEY, [

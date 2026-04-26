@@ -1,6 +1,6 @@
 import { request } from '@/lib/request'
 
-import type { AuthSession } from './types'
+import type { AuthSession } from '@zen/shared'
 
 export interface SignInData {
   identifier: string
