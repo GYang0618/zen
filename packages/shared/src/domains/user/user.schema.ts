@@ -30,6 +30,26 @@ export const createUserSchema = z.object({
 
 export const updateUserSchema = createUserSchema.partial()
 
+export const deleteUsersSchema = z.object({
+  ids: z
+    .array(z.string().trim().min(1, '用户 ID 不能为空'))
+    .min(1, '至少需要一个用户 ID')
+    .describe('要删除的用户 ID 列表')
+})
+
+export const userActivationStatusSchema = z.union([
+  z.literal('active').describe('激活'),
+  z.literal('suspended').describe('停用')
+])
+
+export const updateUsersStatusSchema = z.object({
+  ids: z
+    .array(z.string().trim().min(1, '用户 ID 不能为空'))
+    .min(1, '至少需要一个用户 ID')
+    .describe('要更新状态的用户 ID 列表'),
+  status: userActivationStatusSchema.describe('目标状态')
+})
+
 export const usersSortBySchema = z.enum(['username', 'email', 'jobTitle', 'createdAt'])
 export const usersSortOrderSchema = z.enum(['asc', 'desc'])
 

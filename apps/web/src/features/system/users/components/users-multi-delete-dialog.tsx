@@ -1,13 +1,16 @@
-'use client'
+'use no memo'
 
-import { Alert, AlertDescription, AlertTitle, Input, Label, sleep } from '@zen/ui'
+import { Alert, AlertDescription, AlertTitle, Input, Label } from '@zen/ui'
 import { AlertTriangle } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 
+import { useDeleteUsersMutation } from '../mutations'
+
 import type { Table } from '@tanstack/react-table'
+import type { User } from '@zen/shared'
 
 type UserMultiDeleteDialogProps<TData> = {
   open: boolean
@@ -23,6 +26,7 @@ export function UsersMultiDeleteDialog<TData>({
   table
 }: UserMultiDeleteDialogProps<TData>) {
   const [value, setValue] = useState('')
+  const { mutate: deleteUsers, isPending } = useDeleteUsersMutation()
 
   const selectedRows = table.getFilteredSelectedRowModel().rows
 
@@ -32,16 +36,14 @@ export function UsersMultiDeleteDialog<TData>({
       return
     }
 
-    onOpenChange(false)
-
-    toast.promise(sleep(2000), {
-      loading: 'Deleting users...',
-      success: () => {
+    const ids = selectedRows.map((row) => (row.original as User).id)
+    deleteUsers(ids, {
+      onSuccess: () => {
         setValue('')
+        onOpenChange(false)
         table.resetRowSelection()
-        return `Deleted ${selectedRows.length} ${selectedRows.length > 1 ? 'users' : 'user'}`
-      },
-      error: 'Error'
+        toast.success(`已删除 ${selectedRows.length} 个用户`)
+      }
     })
   }
 
@@ -51,37 +53,37 @@ export function UsersMultiDeleteDialog<TData>({
       onOpenChange={onOpenChange}
       handleConfirm={handleDelete}
       disabled={value.trim() !== CONFIRM_WORD}
+      isLoading={isPending}
       title={
         <span className="text-destructive">
-          <AlertTriangle className="me-1 inline-block stroke-destructive" size={18} /> Delete{' '}
-          {selectedRows.length} {selectedRows.length > 1 ? 'users' : 'user'}
+          <AlertTriangle className="me-1 inline-block stroke-destructive" size={18} /> 删除{' '}
+          {selectedRows.length} 个用户
         </span>
       }
       desc={
         <div className="space-y-4">
           <p className="mb-2">
-            Are you sure you want to delete the selected users? <br />
-            This action cannot be undone.
+            您确定要删除所选用户吗？ <br />
+            删除后可在后台通过恢复接口找回。
           </p>
 
           <Label className="my-4 flex flex-col items-start gap-1.5">
-            <span className="">Confirm by typing "{CONFIRM_WORD}":</span>
+            <span className="">输入“{CONFIRM_WORD}”进行确认:</span>
             <Input
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              placeholder={`Type "${CONFIRM_WORD}" to confirm.`}
+              placeholder={`输入 "${CONFIRM_WORD}" 以确认`}
             />
           </Label>
 
           <Alert variant="destructive">
-            <AlertTitle>Warning!</AlertTitle>
-            <AlertDescription>
-              Please be careful, this operation can not be rolled back.
-            </AlertDescription>
+            <AlertTitle>警告!</AlertTitle>
+            <AlertDescription>请确认删除操作。</AlertDescription>
           </Alert>
         </div>
       }
-      confirmText="Delete"
+      confirmText="删除"
+      cancelBtnText="取消"
       destructive
     />
   )

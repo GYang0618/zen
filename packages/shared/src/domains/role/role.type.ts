@@ -1,12 +1,26 @@
-import type { z } from 'zod'
-import type {
-  roleDataScopeSchema,
-  roleSchema,
-  rolesPageSchema,
-  rolesQuerySchema
-} from './role.schema'
+import type { Paged, PageQueryInput } from '../pagination'
+import type { UserStatus } from '../user'
 
-export type RoleDataScope = z.infer<typeof roleDataScopeSchema>
-export type Role = z.infer<typeof roleSchema>
-export type RolesQuery = z.input<typeof rolesQuerySchema>
-export type RolesPage = z.infer<typeof rolesPageSchema>
+export type RoleDataScope = 'all' | 'department' | 'self' | 'custom'
+
+export type Role = {
+  id: string
+  name: string
+  code: string
+  status: UserStatus
+  dataScope: RoleDataScope
+  sort: number
+  description: string | null
+  memberCount: number
+  permissions: string[]
+  createdAt: string
+  updatedAt: string
+}
+
+export type RolesQuery = PageQueryInput & {
+  keyword?: string
+  status?: UserStatus | UserStatus[]
+  dataScope?: RoleDataScope | RoleDataScope[]
+}
+
+export type RolesPage = Paged<Role>

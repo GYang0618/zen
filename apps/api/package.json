@@ -6,7 +6,6 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "predev": "pnpm -F @zen/shared build && pnpm run prisma:generate",
     "prebuild": "pnpm -F @zen/shared build && pnpm run prisma:generate",
     "dev": "nest start --watch",
     "debug": "nest start --debug --watch",

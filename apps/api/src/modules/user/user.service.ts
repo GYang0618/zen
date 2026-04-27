@@ -1,9 +1,9 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { UserStatusCode } from '@prisma/client'
 import argon2 from 'argon2'
 
 import { toArray } from '@/common'
-import { paginate } from '@/common/pagination'
+import { buildPaginationMeta, paginate } from '@/common/pagination'
 
 import { findUsersQuerySchema } from './dto/find-users-query.dto'
 import { toUserInfoResponse, toUserListItemResponse } from './user.mapper'
@@ -18,6 +18,7 @@ import type {
   UsersSortOrder
 } from './dto/find-users-query.dto'
 import type { UpdateUserDto } from './dto/update-user.dto'
+import type { UpdateUsersStatusDto } from './dto/update-users-status.dto'
 import type { UserInfoResponse, UserListResponse } from './responses/user.response'
 
 const DEFAULT_ROLE_CODE = 'guest'
@@ -48,16 +49,28 @@ export class UserService {
   async getUserInfoByUserId(userId: string): Promise<UserInfoResponse> {
     await this.userRepo.ensureDomainData(userId)
 
-    const user = await this.userRepo.findUniqueWithDomain({ id: userId })
+    const user = await this.userRepo.findActiveWithDomainById(userId)
     if (!user) throw new NotFoundException('用户不存在')
 
     return toUserInfoResponse(user)
   }
 
   async update(id: string, data: UpdateUserDto): Promise<UserInfoResponse> {
-    const nextData: Prisma.UserUpdateInput = { ...data }
-    if (typeof data.password === 'string') {
-      nextData.password = await argon2.hash(data.password)
+    const existingUser = await this.userRepo.findActiveWithDomainById(id)
+    if (!existingUser) {
+      throw new NotFoundException('用户不存在')
+    }
+
+    const { password, ...rest } = data
+    const nextData: Prisma.UserUpdateInput = { ...rest }
+
+    const maybeStatus = (data as { status?: UserStatus }).status
+    if (typeof maybeStatus === 'string') {
+      nextData.status = toUserStatusCode(maybeStatus)
+    }
+
+    if (typeof password === 'string') {
+      nextData.password = await argon2.hash(password)
     }
 
     const updated = await this.userRepo.update({ id }, nextData)
@@ -79,6 +92,12 @@ export class UserService {
   }
 
   async findAll(query?: FindUsersQueryDto): Promise<UserListResponse> {
+    const hasPage = query?.page !== undefined
+    const hasPageSize = query?.pageSize !== undefined
+    if (hasPage !== hasPageSize) {
+      throw new BadRequestException('page 和 pageSize 必须同时传入')
+    }
+
     const { keyword, status, role, page, pageSize, sortBy, sortOrder } = findUsersQuerySchema.parse(
       query ?? {}
     )
@@ -89,22 +108,125 @@ export class UserService {
     })
     const orderBy = buildUsersOrderBy(sortBy, sortOrder)
 
-    const { items, pagination } = await paginate({
-      page,
-      pageSize,
-      count: () => this.userRepo.count(where),
-      findMany: ({ skip, take }) => this.userRepo.findManyWithDomain(where, skip, take, orderBy)
-    })
+    if (hasPage && hasPageSize) {
+      const { items, pagination } = await paginate({
+        page: page!,
+        pageSize: pageSize!,
+        count: () => this.userRepo.count(where),
+        findMany: ({ skip, take }) => this.userRepo.findManyWithDomain(where, skip, take, orderBy)
+      })
 
-    return { items: items.map(toUserListItemResponse), pagination }
+      return { items: items.map(toUserListItemResponse), pagination }
+    }
+
+    const items = await this.userRepo.findManyWithDomain(where, undefined, undefined, orderBy)
+    const total = items.length
+    return {
+      items: items.map(toUserListItemResponse),
+      pagination: buildPaginationMeta(1, total, total)
+    }
   }
 
-  async remove(id: string): Promise<UserInfoResponse> {
-    const user = await this.userRepo.findUniqueWithDomain({ id })
-    if (!user) throw new NotFoundException('用户不存在')
+  async remove(idsInput: string[], currentUserId?: string): Promise<UserInfoResponse[]> {
+    const rawIds = Array.isArray(idsInput) ? idsInput : []
+    const ids = [
+      ...new Set(
+        rawIds
+          .filter((item): item is string => typeof item === 'string')
+          .map((item) => item.trim())
+          .filter(Boolean)
+      )
+    ]
+    if (ids.length === 0) {
+      throw new BadRequestException('至少需要一个有效的用户 ID')
+    }
+    if (currentUserId && ids.includes(currentUserId)) {
+      throw new BadRequestException('不能删除当前登录用户')
+    }
 
-    await this.userRepo.delete({ id })
-    return toUserInfoResponse(user)
+    const users = await this.userRepo.findManyWithDomainByIds(ids)
+    if (users.length !== ids.length) {
+      throw new NotFoundException('部分用户不存在')
+    }
+
+    await this.userRepo.softDeleteByIds(ids)
+    return users.map(toUserInfoResponse)
+  }
+
+  async hardRemove(ids: string[], currentUserId?: string): Promise<UserInfoResponse[]> {
+    const normalizedIds = [
+      ...new Set(
+        ids
+          .filter((item): item is string => typeof item === 'string')
+          .map((item) => item.trim())
+          .filter(Boolean)
+      )
+    ]
+    if (normalizedIds.length === 0) {
+      throw new BadRequestException('至少需要一个有效的用户 ID')
+    }
+    if (currentUserId && normalizedIds.includes(currentUserId)) {
+      throw new BadRequestException('不能删除当前登录用户')
+    }
+
+    const users = await this.userRepo.findManyWithDomainByIdsAny(normalizedIds)
+    if (users.length !== normalizedIds.length) {
+      throw new NotFoundException('部分用户不存在')
+    }
+
+    await this.userRepo.deleteManyByIds(normalizedIds)
+    return users.map(toUserInfoResponse)
+  }
+
+  async restore(ids: string[]): Promise<UserInfoResponse[]> {
+    const normalizedIds = [
+      ...new Set(
+        ids
+          .filter((item): item is string => typeof item === 'string')
+          .map((item) => item.trim())
+          .filter(Boolean)
+      )
+    ]
+    if (normalizedIds.length === 0) {
+      throw new BadRequestException('至少需要一个有效的用户 ID')
+    }
+
+    const users = await this.userRepo.findManyWithDomainByIdsAny(normalizedIds)
+    if (users.length !== normalizedIds.length) {
+      throw new NotFoundException('部分用户不存在')
+    }
+
+    const deletedUsers = users.filter((user) => user.deletedAt !== null)
+    if (deletedUsers.length === 0) {
+      throw new BadRequestException('未找到可恢复的已删除用户')
+    }
+
+    await this.userRepo.restoreByIds(normalizedIds)
+    return deletedUsers.map(toUserInfoResponse)
+  }
+
+  async updateStatus(payload: UpdateUsersStatusDto): Promise<UserInfoResponse[]> {
+    const rawIds = Array.isArray(payload.ids) ? payload.ids : []
+    const normalizedIds = [
+      ...new Set(
+        rawIds
+          .filter((item): item is string => typeof item === 'string')
+          .map((item) => item.trim())
+          .filter(Boolean)
+      )
+    ]
+    if (normalizedIds.length === 0) {
+      throw new BadRequestException('至少需要一个有效的用户 ID')
+    }
+
+    const users = await this.userRepo.findManyWithDomainByIds(normalizedIds)
+    if (users.length !== normalizedIds.length) {
+      throw new NotFoundException('部分用户不存在')
+    }
+
+    await this.userRepo.updateStatusByIds(normalizedIds, toUserStatusCode(payload.status))
+    const updatedUsers = await this.userRepo.findManyWithDomainByIds(normalizedIds)
+    return updatedUsers.map(toUserInfoResponse)
   }
 
   async ensureUserDomainData(userId: string) {
@@ -149,6 +271,8 @@ export class UserService {
     if (role && role.length > 0) {
       conditions.push({ roles: { some: { role: { code: { in: role } } } } })
     }
+
+    conditions.push({ deletedAt: null })
 
     if (conditions.length === 0) return {}
     if (conditions.length === 1) return conditions[0]

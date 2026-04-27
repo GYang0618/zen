@@ -13,7 +13,11 @@ export const securityConfig = registerConfig('security', (env) => ({
     /** 允许的源 */
     origin: env.CORS_ORIGIN === '*' ? true : env.CORS_ORIGIN,
     /** 允许携带凭证 */
-    credentials: true
+    credentials: true,
+    /** 允许的请求方法（包含预检请求） */
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    /** 允许的请求头 */
+    allowedHeaders: ['Content-Type', 'Authorization']
   },
   /** 限流配置 */
   throttle: {

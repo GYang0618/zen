@@ -8,8 +8,10 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger
 } from '@zen/ui'
-import { Trash2, UserPen } from 'lucide-react'
+import { Power, Trash2, UserCheck, UserPen } from 'lucide-react'
+import { toast } from 'sonner'
 
+import { useUpdateUsersStatusMutation } from '../mutations'
 import { useUsers } from '../users-provider'
 
 import type { Row } from '@tanstack/react-table'
@@ -21,6 +23,22 @@ type DataTableRowActionsProps = {
 
 export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const { setOpen, setCurrentRow } = useUsers()
+  const { mutate: updateUsersStatus, isPending } = useUpdateUsersStatusMutation()
+  const user = row.original
+  const isSuspended = user.status === 'suspended'
+
+  const handleStatusChange = () => {
+    const nextStatus = isSuspended ? 'active' : 'suspended'
+    updateUsersStatus(
+      { ids: [user.id], status: nextStatus },
+      {
+        onSuccess: () => {
+          toast.success(nextStatus === 'active' ? '用户已激活' : '用户已停用')
+        }
+      }
+    )
+  }
+
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
@@ -39,6 +57,13 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           编辑
           <DropdownMenuShortcut>
             <UserPen size={16} />
+          </DropdownMenuShortcut>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleStatusChange} disabled={isPending}>
+          {isSuspended ? '激活' : '停用'}
+          <DropdownMenuShortcut>
+            {isSuspended ? <UserCheck size={16} /> : <Power size={16} />}
           </DropdownMenuShortcut>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

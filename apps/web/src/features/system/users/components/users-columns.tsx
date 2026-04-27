@@ -126,11 +126,6 @@ export const usersColumns = [
     enableHiding: false
   }),
 
-  columnHelper.accessor('jobTitle', {
-    header: ({ column }) => <DataTableColumnHeader column={column} title="岗位" />,
-    cell: (info) => <div className="ps-2 text-nowrap">{info.getValue() ?? '未设置'}</div>,
-    meta: { title: '岗位' }
-  }),
   columnHelper.accessor('createdAt', {
     header: ({ column }) => <DataTableColumnHeader column={column} title="创建时间" />,
     cell: (info) => (

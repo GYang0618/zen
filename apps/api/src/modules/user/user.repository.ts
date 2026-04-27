@@ -3,6 +3,7 @@ import { Inject, Injectable } from '@nestjs/common'
 import { PrismaService } from '@/infra/prisma/prisma.service'
 
 import type { Prisma } from '@prisma/client'
+import type { UserStatusCode } from '@prisma/client'
 
 export const USER_INCLUDE = {
   profile: true,
@@ -33,8 +34,26 @@ export class UserRepository {
     return this.prisma.user.findUnique({ where })
   }
 
+  findActiveWithDomainById(id: string) {
+    return this.prisma.user.findFirst({ where: { id, deletedAt: null }, include: USER_INCLUDE })
+  }
+
   findUniqueWithDomain(where: Prisma.UserWhereUniqueInput) {
     return this.prisma.user.findUnique({ where, include: USER_INCLUDE })
+  }
+
+  findManyWithDomainByIds(ids: string[]) {
+    return this.prisma.user.findMany({
+      where: { id: { in: ids }, deletedAt: null },
+      include: USER_INCLUDE
+    })
+  }
+
+  findManyWithDomainByIdsAny(ids: string[]) {
+    return this.prisma.user.findMany({
+      where: { id: { in: ids } },
+      include: USER_INCLUDE
+    })
   }
 
   create(data: Prisma.UserCreateInput) {
@@ -49,14 +68,41 @@ export class UserRepository {
     return this.prisma.user.delete({ where })
   }
 
+  deleteManyByIds(ids: string[]) {
+    return this.prisma.user.deleteMany({
+      where: { id: { in: ids } }
+    })
+  }
+
+  softDeleteByIds(ids: string[]) {
+    return this.prisma.user.updateMany({
+      where: { id: { in: ids }, deletedAt: null },
+      data: { deletedAt: new Date() }
+    })
+  }
+
+  restoreByIds(ids: string[]) {
+    return this.prisma.user.updateMany({
+      where: { id: { in: ids }, NOT: { deletedAt: null } },
+      data: { deletedAt: null }
+    })
+  }
+
+  updateStatusByIds(ids: string[], status: UserStatusCode) {
+    return this.prisma.user.updateMany({
+      where: { id: { in: ids }, deletedAt: null },
+      data: { status }
+    })
+  }
+
   count(where: Prisma.UserWhereInput) {
     return this.prisma.user.count({ where })
   }
 
   findManyWithDomain(
     where: Prisma.UserWhereInput,
-    skip: number,
-    take: number,
+    skip: number | undefined,
+    take: number | undefined,
     orderBy: Prisma.UserOrderByWithRelationInput
   ) {
     return this.prisma.user.findMany({

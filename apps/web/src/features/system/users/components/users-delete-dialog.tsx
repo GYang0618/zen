@@ -3,9 +3,11 @@
 import { Alert, AlertDescription, AlertTitle, Input, Label } from '@zen/ui'
 import { AlertTriangle } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { showSubmittedData } from '@/lib/show-submitted-data'
+
+import { useDeleteUsersMutation } from '../mutations'
 
 import type { User } from '@zen/shared'
 
@@ -17,12 +19,17 @@ type UserDeleteDialogProps = {
 
 export function UsersDeleteDialog({ open, onOpenChange, currentRow }: UserDeleteDialogProps) {
   const [value, setValue] = useState('')
+  const { mutate: deleteUsers, isPending } = useDeleteUsersMutation()
 
   const handleDelete = () => {
     if (value.trim() !== currentRow.username) return
-
-    onOpenChange(false)
-    showSubmittedData(currentRow, 'The following user has been deleted:')
+    deleteUsers([currentRow.id], {
+      onSuccess: () => {
+        toast.success('用户删除成功')
+        setValue('')
+        onOpenChange(false)
+      }
+    })
   }
 
   return (
@@ -31,6 +38,7 @@ export function UsersDeleteDialog({ open, onOpenChange, currentRow }: UserDelete
       onOpenChange={onOpenChange}
       handleConfirm={handleDelete}
       disabled={value.trim() !== currentRow.username}
+      isLoading={isPending}
       title={
         <span className="text-destructive">
           <AlertTriangle className="me-1 inline-block stroke-destructive" size={18} /> 删除用户
@@ -41,9 +49,9 @@ export function UsersDeleteDialog({ open, onOpenChange, currentRow }: UserDelete
           <p className="mb-2">
             您确定要删除 <span className="font-bold">{currentRow.username}</span> 吗 ?
             <br />
-            此操作将从系统中永久移除具有{' '}
+            此操作将把具有{' '}
             <span className="font-bold">{currentRow?.role?.toUpperCase()}</span> 角色的用户。
-            此操作无法撤销。
+            删除后可在后台通过恢复接口找回。
           </p>
 
           <Label className="my-2 text-nowrap">
@@ -57,7 +65,7 @@ export function UsersDeleteDialog({ open, onOpenChange, currentRow }: UserDelete
 
           <Alert variant="destructive">
             <AlertTitle>警告！</AlertTitle>
-            <AlertDescription>请注意，此操作无法撤销。</AlertDescription>
+            <AlertDescription>请确认删除目标用户。</AlertDescription>
           </Alert>
         </div>
       }

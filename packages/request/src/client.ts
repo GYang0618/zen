@@ -48,7 +48,7 @@ export const createRequest = (instance: AxiosInstance) => {
     config?: AxiosRequestConfig<D>
   ): Promise<T> => request<T>({ ...config, data, method: 'PATCH', url })
 
-  const del = <T>(url: string, config?: AxiosRequestConfig): Promise<T> =>
+  const del = <T, D = unknown>(url: string, config?: AxiosRequestConfig<D>): Promise<T> =>
     request<T>({ ...config, method: 'DELETE', url })
 
   return {

@@ -1,8 +1,12 @@
+'use no memo'
 import {
   flexRender,
   getCoreRowModel,
   getFacetedRowModel,
   getFacetedUniqueValues,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
   useReactTable
 } from '@tanstack/react-table'
 import {
@@ -26,8 +30,8 @@ import { DataTableBulkActions } from './data-table-bulk-actions'
 import { usersColumns as columns } from './users-columns'
 
 import type { OnChangeFn, SortingState, VisibilityState } from '@tanstack/react-table'
+import type { User, UsersQuery as UsersSearch, UsersSortBy, UsersSortOrder } from '@zen/shared'
 import type { NavigateFn } from '@/hooks'
-import type { User, UsersSortBy, UsersSortOrder } from '../types'
 
 const USERS_SORTABLE_COLUMNS: Record<UsersSortBy, true> = {
   username: true,
@@ -41,19 +45,8 @@ function toUsersSortBy(columnId?: string): UsersSortBy | undefined {
   return columnId in USERS_SORTABLE_COLUMNS ? (columnId as UsersSortBy) : undefined
 }
 
-type UsersSearch = {
-  keyword?: string
-  page?: number
-  pageSize?: number
-  status?: string[]
-  role?: string[]
-  sortBy?: UsersSortBy
-  sortOrder?: UsersSortOrder
-}
-
 type DataTableProps = {
   data: User[]
-  total: number
   isLoading?: boolean
   isFetching?: boolean
   search: UsersSearch
@@ -62,7 +55,6 @@ type DataTableProps = {
 
 export function UsersTable({
   data,
-  total,
   isLoading = false,
   isFetching = false,
   search,
@@ -70,13 +62,14 @@ export function UsersTable({
 }: DataTableProps) {
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
-
   const sorting = useMemo<SortingState>(() => {
     if (!search.sortBy) return []
     return [{ id: search.sortBy, desc: search.sortOrder !== 'asc' }]
   }, [search.sortBy, search.sortOrder])
 
   const {
+    globalFilter,
+    onGlobalFilterChange,
     columnFilters,
     onColumnFiltersChange,
     pagination,
@@ -86,14 +79,13 @@ export function UsersTable({
     search,
     navigate,
     pagination: { defaultPage: 1, defaultPageSize: 10 },
-    globalFilter: { enabled: false },
+    globalFilter: { enabled: true, key: 'keyword', trim: true },
     columnFilters: [
       { columnId: 'status', searchKey: 'status', type: 'array' },
       { columnId: 'role', searchKey: 'role', type: 'array' }
     ]
   })
 
-  const keyword = typeof search.keyword === 'string' ? search.keyword : ''
   const handleSortingChange = useCallback<OnChangeFn<SortingState>>(
     (updater) => {
       const nextSorting = typeof updater === 'function' ? updater(sorting) : updater
@@ -118,48 +110,51 @@ export function UsersTable({
 
   const handleSearchChange = useCallback(
     (value: string) => {
-      const trimmed = value.trim()
-      navigate({
-        search: (prev) => ({
-          ...prev,
-          page: undefined,
-          keyword: trimmed ? trimmed : undefined
-        })
-      })
+      onGlobalFilterChange?.(value)
     },
-    [navigate]
+    [onGlobalFilterChange]
   )
-
-  const pageCount = useMemo(() => {
-    if (total <= 0) return 0
-    return Math.max(1, Math.ceil(total / pagination.pageSize))
-  }, [total, pagination.pageSize])
 
   const table = useReactTable({
     data,
     columns,
     state: {
+      globalFilter,
       sorting,
       pagination,
       rowSelection,
       columnFilters,
       columnVisibility
     },
-    manualPagination: true,
-    manualSorting: true,
-    manualFiltering: true,
-    rowCount: total,
-    pageCount: pageCount || 1,
     enableRowSelection: true,
     onPaginationChange,
+    onGlobalFilterChange,
     onColumnFiltersChange,
     onRowSelectionChange: setRowSelection,
     onSortingChange: handleSortingChange,
     onColumnVisibilityChange: setColumnVisibility,
+    globalFilterFn: (row, _columnId, filterValue) => {
+      const normalizedKeyword = String(filterValue ?? '')
+        .trim()
+        .toLowerCase()
+      if (!normalizedKeyword) return true
+
+      const searchFields = [
+        row.original.username,
+        row.original.nickname,
+        row.original.email,
+        row.original.phoneNumber
+      ]
+      return searchFields.some((field) => field?.toLowerCase().includes(normalizedKeyword))
+    },
     getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues()
   })
+  const pageCount = table.getPageCount()
 
   useEffect(() => {
     if (!isLoading) ensurePageInRange(pageCount)
@@ -173,7 +168,7 @@ export function UsersTable({
       <DataTableToolbar
         table={table}
         searchPlaceholder="搜索用户名、昵称、邮箱、手机号"
-        searchValue={keyword}
+        searchValue={globalFilter ?? undefined}
         onSearchChange={handleSearchChange}
         filters={[
           {

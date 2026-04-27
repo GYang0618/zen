@@ -184,7 +184,7 @@ export function UsersActionDialog({ currentRow, open, onOpenChange }: UserAction
           </DialogDescription>
         </DialogHeader>
 
-        <div className="h-105 w-[calc(100%+0.75rem)] overflow-y-auto py-1 pe-3">
+        <div className="h-60 w-[calc(100%+0.75rem)] overflow-y-auto py-1 px-3">
           <form
             id="user-form"
             className="space-y-4"
@@ -195,111 +195,114 @@ export function UsersActionDialog({ currentRow, open, onOpenChange }: UserAction
                 <FieldError errors={[{ message: actionError.message }]} />
               ) : null}
 
-              <Controller
-                name="username"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field orientation="horizontal">
-                    <FieldLabel htmlFor="user-username" className="w-28 shrink-0">
-                      用户名
-                    </FieldLabel>
-                    <FieldContent>
-                      <Input {...field} id="user-username" placeholder="请输入用户名" />
-                      {fieldState.error ? <FieldError errors={[fieldState.error]} /> : null}
-                    </FieldContent>
-                  </Field>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <Controller
+                  name="username"
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field>
+                      <FieldLabel htmlFor="user-username" className="w-28 shrink-0">
+                        用户名
+                      </FieldLabel>
+                      <FieldContent>
+                        <Input {...field} id="user-username" placeholder="请输入用户名" />
+                        {fieldState.error ? <FieldError errors={[fieldState.error]} /> : null}
+                      </FieldContent>
+                    </Field>
+                  )}
+                />
+                <Controller
+                  name="email"
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field>
+                      <FieldLabel htmlFor="user-email" className="w-28 shrink-0">
+                        邮箱
+                      </FieldLabel>
+                      <FieldContent>
+                        <Input {...field} id="user-email" placeholder="请输入邮箱" />
+                        {fieldState.error ? <FieldError errors={[fieldState.error]} /> : null}
+                      </FieldContent>
+                    </Field>
+                  )}
+                />
+              </div>
 
-              <Controller
-                name="email"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field orientation="horizontal">
-                    <FieldLabel htmlFor="user-email" className="w-28 shrink-0">
-                      邮箱
-                    </FieldLabel>
-                    <FieldContent>
-                      <Input {...field} id="user-email" placeholder="请输入邮箱" />
-                      {fieldState.error ? <FieldError errors={[fieldState.error]} /> : null}
-                    </FieldContent>
-                  </Field>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <Controller
+                  name="nickname"
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field>
+                      <FieldLabel htmlFor="user-nickname" className="w-28 shrink-0">
+                        昵称
+                      </FieldLabel>
+                      <FieldContent>
+                        <Input {...field} id="user-nickname" placeholder="请输入昵称（可选）" />
+                        {fieldState.error ? <FieldError errors={[fieldState.error]} /> : null}
+                      </FieldContent>
+                    </Field>
+                  )}
+                />
+                <Controller
+                  name="phoneNumber"
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field>
+                      <FieldLabel htmlFor="user-phone" className="w-28 shrink-0">
+                        手机号
+                      </FieldLabel>
+                      <FieldContent>
+                        <Input {...field} id="user-phone" placeholder="请输入手机号（可选）" />
+                        {fieldState.error ? <FieldError errors={[fieldState.error]} /> : null}
+                      </FieldContent>
+                    </Field>
+                  )}
+                />
+              </div>
 
-              <Controller
-                name="nickname"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field orientation="horizontal">
-                    <FieldLabel htmlFor="user-nickname" className="w-28 shrink-0">
-                      昵称
-                    </FieldLabel>
-                    <FieldContent>
-                      <Input {...field} id="user-nickname" placeholder="请输入昵称（可选）" />
-                      {fieldState.error ? <FieldError errors={[fieldState.error]} /> : null}
-                    </FieldContent>
-                  </Field>
-                )}
-              />
-
-              <Controller
-                name="phoneNumber"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field orientation="horizontal">
-                    <FieldLabel htmlFor="user-phone" className="w-28 shrink-0">
-                      手机号
-                    </FieldLabel>
-                    <FieldContent>
-                      <Input {...field} id="user-phone" placeholder="请输入手机号（可选）" />
-                      {fieldState.error ? <FieldError errors={[fieldState.error]} /> : null}
-                    </FieldContent>
-                  </Field>
-                )}
-              />
-
-              <Controller
-                name="password"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field orientation="horizontal">
-                    <FieldLabel htmlFor="user-password" className="w-28 shrink-0">
-                      {isEdit ? '新密码（留空则不修改）' : '密码'}
-                    </FieldLabel>
-                    <FieldContent>
-                      <PasswordInput
-                        {...field}
-                        id="user-password"
-                        autoComplete="new-password"
-                        placeholder={isEdit ? '如需修改密码请填写' : '请输入密码'}
-                      />
-                      {fieldState.error ? <FieldError errors={[fieldState.error]} /> : null}
-                    </FieldContent>
-                  </Field>
-                )}
-              />
-
-              <Controller
-                name="confirmPassword"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field orientation="horizontal">
-                    <FieldLabel htmlFor="user-confirm-password" className="w-28 shrink-0">
-                      确认密码
-                    </FieldLabel>
-                    <FieldContent>
-                      <PasswordInput
-                        {...field}
-                        id="user-confirm-password"
-                        autoComplete="new-password"
-                        placeholder={isEdit ? '填写以确认新密码' : '请再次输入密码'}
-                      />
-                      {fieldState.error ? <FieldError errors={[fieldState.error]} /> : null}
-                    </FieldContent>
-                  </Field>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <Controller
+                  name="password"
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field>
+                      <FieldLabel htmlFor="user-password" className="w-28 shrink-0">
+                        {isEdit ? '新密码（留空则不修改）' : '密码'}
+                      </FieldLabel>
+                      <FieldContent>
+                        <PasswordInput
+                          {...field}
+                          id="user-password"
+                          autoComplete="new-password"
+                          placeholder={isEdit ? '如需修改密码请填写' : '请输入密码'}
+                        />
+                        {fieldState.error ? <FieldError errors={[fieldState.error]} /> : null}
+                      </FieldContent>
+                    </Field>
+                  )}
+                />
+                <Controller
+                  name="confirmPassword"
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field>
+                      <FieldLabel htmlFor="user-confirm-password" className="w-28 shrink-0">
+                        确认密码
+                      </FieldLabel>
+                      <FieldContent>
+                        <PasswordInput
+                          {...field}
+                          id="user-confirm-password"
+                          autoComplete="new-password"
+                          placeholder={isEdit ? '填写以确认新密码' : '请再次输入密码'}
+                        />
+                        {fieldState.error ? <FieldError errors={[fieldState.error]} /> : null}
+                      </FieldContent>
+                    </Field>
+                  )}
+                />
+              </div>
             </FieldGroup>
           </form>
         </div>

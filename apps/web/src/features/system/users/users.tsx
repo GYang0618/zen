@@ -14,19 +14,9 @@ const route = getRouteApi('/_authenticated/system/users')
 export function Users() {
   const search = route.useSearch()
   const navigate = route.useNavigate()
-
-  const { data, isLoading, isFetching } = useUsersQuery({
-    keyword: search.keyword,
-    page: search.page,
-    pageSize: search.pageSize,
-    status: search.status,
-    role: search.role,
-    sortBy: search.sortBy,
-    sortOrder: search.sortOrder
-  })
+  const { data, isLoading, isFetching } = useUsersQuery()
 
   const users = data?.items ?? []
-  const total = data?.pagination.total ?? 0
 
   return (
     <UsersProvider>
@@ -49,7 +39,6 @@ export function Users() {
         </div>
         <UsersTable
           data={users}
-          total={total}
           isLoading={isLoading}
           isFetching={isFetching}
           search={search}

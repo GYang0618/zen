@@ -46,6 +46,18 @@ enum RecordStatus {
   DISABLED @map("disabled")
 }
 
+/// 角色数据范围枚举
+enum RoleDataScope {
+  /// 全部数据
+  ALL          @map("all")
+  /// 组织及下级
+  ORGANIZATION @map("organization")
+  /// 仅本人数据
+  SELF         @map("self")
+  /// 自定义数据范围
+  CUSTOM       @map("custom")
+}
+
 /// 用户账号状态枚举
 enum UserStatusCode {
   /// 激活
@@ -56,6 +68,18 @@ enum UserStatusCode {
   PENDING  @map("pending")
   /// 已停用
   SUSPENDED @map("suspended")
+}
+
+/// 组织类型枚举
+enum OrganizationType {
+  /// 公司
+  COMPANY    @map("company")
+  /// 分支机构
+  BRANCH     @map("branch")
+  /// 部门
+  DEPARTMENT @map("department")
+  /// 小组
+  TEAM       @map("team")
 }
 
 /// 用户主表
@@ -88,6 +112,8 @@ model User {
   createdAt             DateTime       @default(now()) @map("created_at")
   /// 更新时间
   updatedAt             DateTime       @updatedAt @map("updated_at")
+  /// 软删除时间（null 表示未删除）
+  deletedAt             DateTime?      @map("deleted_at")
 
   /// 用户资料（一对一）
   profile     UserProfile?
@@ -101,9 +127,14 @@ model User {
   roles       UserRole[]
   /// 用户部门关联（一对多）
   departments UserDepartment[]
+  /// 用户组织岗位关联（一对多）
+  organizations UserOrganization[]
+  /// 负责的组织集合（一对多）
+  ledOrganizations Organization[] @relation("OrganizationLeader")
 
   @@index([email])
   @@index([username])
+  @@index([deletedAt])
   @@map("users")
 }
 
@@ -239,6 +270,8 @@ model Role {
   isSystem    Boolean      @default(false) @map("is_system")
   /// 角色状态
   status      RecordStatus @default(ACTIVE)
+  /// 数据范围
+  dataScope   RoleDataScope @default(SELF) @map("data_scope")
   /// 排序值
   sort        Int?
   /// 创建时间
@@ -253,6 +286,119 @@ model Role {
 
   @@index([status])
   @@map("roles")
+}
+
+/// 组织表
+model Organization {
+  /// 组织ID
+  id          String           @id @default(cuid())
+  /// 组织编码
+  code        String           @unique
+  /// 组织名称
+  name        String
+  /// 组织类型
+  type        OrganizationType @default(DEPARTMENT)
+  /// 父组织ID
+  parentId    String?          @map("parent_id")
+  /// 负责人用户ID
+  leaderId    String?          @map("leader_id")
+  /// 组织描述
+  description String?
+  /// 状态
+  status      RecordStatus     @default(ACTIVE)
+  /// 排序值
+  sort        Int?
+  /// 层级路径（例如 /company/rd/backend）
+  path        String?
+  /// 层级深度
+  level       Int              @default(1)
+  /// 创建时间
+  createdAt   DateTime         @default(now()) @map("created_at")
+  /// 更新时间
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  /// 父级组织
+  parent   Organization?   @relation("OrganizationHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  /// 子级组织
+  children Organization[]  @relation("OrganizationHierarchy")
+  /// 负责人
+  leader   User?           @relation("OrganizationLeader", fields: [leaderId], references: [id], onDelete: SetNull)
+  /// 组织岗位集合
+  posts    Post[]
+  /// 组织成员关联
+  users    UserOrganization[]
+
+  @@index([parentId])
+  @@index([leaderId])
+  @@index([type])
+  @@index([status])
+  @@index([path])
+  @@map("organizations")
+}
+
+/// 岗位表
+model Post {
+  /// 岗位ID
+  id             String       @id @default(cuid())
+  /// 岗位编码
+  code           String       @unique
+  /// 岗位名称
+  name           String
+  /// 所属组织ID
+  organizationId String       @map("organization_id")
+  /// 岗位描述
+  description    String?
+  /// 状态
+  status         RecordStatus @default(ACTIVE)
+  /// 排序值
+  sort           Int?
+  /// 创建时间
+  createdAt      DateTime     @default(now()) @map("created_at")
+  /// 更新时间
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  /// 所属组织
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// 岗位任职用户
+  users        UserOrganization[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@map("posts")
+}
+
+/// 用户组织岗位关联表
+model UserOrganization {
+  /// 用户ID
+  userId         String    @map("user_id")
+  /// 组织ID
+  organizationId String    @map("organization_id")
+  /// 岗位ID
+  postId         String?   @map("post_id")
+  /// 是否主任职
+  isPrimary      Boolean   @default(false) @map("is_primary")
+  /// 任职开始时间
+  joinedAt       DateTime? @map("joined_at")
+  /// 任职结束时间
+  leftAt         DateTime? @map("left_at")
+  /// 创建时间
+  createdAt      DateTime  @default(now()) @map("created_at")
+  /// 更新时间
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  /// 关联用户
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// 关联组织
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// 关联岗位
+  post         Post?        @relation(fields: [postId], references: [id], onDelete: SetNull)
+
+  @@id([userId, organizationId])
+  @@index([organizationId])
+  @@index([postId])
+  @@index([isPrimary])
+  @@index([joinedAt])
+  @@map("user_organizations")
 }
 
 /// 权限表
