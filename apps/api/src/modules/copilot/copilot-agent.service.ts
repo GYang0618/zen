@@ -1,81 +1,140 @@
+import { END, MessagesValue, START, StateGraph, StateSchema } from '@langchain/langgraph'
 import { ChatOpenAI } from '@langchain/openai'
 import { Inject, Injectable } from '@nestjs/common'
-import { createAgent } from 'langchain'
+import z from 'zod'
 
-import { UserTool } from '@/modules/user'
+import { COPILOT_AGENTS, DEFAULT_COPILOT_AGENT_NAME } from './interfaces/agent.interface'
+
+import type { ConditionalEdgeRouter, GraphNode } from '@langchain/langgraph'
+import type {
+  BuiltCopilotAgent,
+  CopilotAgent,
+  CopilotAgentName
+} from './interfaces/agent.interface'
+
+const ROUTER_NODE_NAME = 'router'
+
+const routeDecisionSchema = z.object({
+  agent: z.string().trim().min(1).default(DEFAULT_COPILOT_AGENT_NAME)
+})
+
+const stateSchema = new StateSchema({
+  input: MessagesValue,
+  decision: z.string(),
+  output: MessagesValue
+})
+
+type StateType = typeof stateSchema
 
 /**
  * 负责 LangGraph 图的构建与执行编排
  */
 @Injectable()
 export class CopilotAgentService {
-  constructor(@Inject(UserTool) private readonly userTool: UserTool) {}
+  private readonly agentRegistry: ReadonlyMap<CopilotAgentName, CopilotAgent>
 
-  private llm = new ChatOpenAI({
-    model: 'qwen3.5-flash',
+  constructor(@Inject(COPILOT_AGENTS) private readonly agents: readonly CopilotAgent[]) {
+    this.agentRegistry = this.createAgentRegistry(agents)
+  }
+
+  private readonly llm = new ChatOpenAI({
+    model: 'kimi-k2.5',
     temperature: 0
   })
 
-  private systemPrompt = `
-    你是 Zen 管理后台的生成式 UI 智能助手，负责通过已接入的业务工具帮助用户完成查询、创建、更新、删除、分析和排障等后台管理任务。
+  createWorkflow() {
+    const workflow = new StateGraph(stateSchema)
 
-    一、总体原则
-    - 工具 schema、工具 description 和工具返回结果是当前可执行能力的事实来源；不要承诺未接入工具的操作。
-    - 生成式 UI 优先：结构化数据由工具 UI 展示，文字回答只补充结论、状态、风险、上下文和下一步建议。
-    - 先完成明确任务；信息不足、目标不唯一、参数冲突或存在高风险影响时，先追问关键问题。
-    - 不编造数据、权限、统计、用户、角色、部门、菜单或任何业务实体。
-    - 回复简洁、友好、可执行，避免冗长解释、机械复述和无意义寒暄。
+    for (const [routeName, agentNode] of this.createAgentNodes()) {
+      workflow.addNode(routeName, agentNode).addEdge(routeName, END)
+    }
 
-    二、工具调用策略
-    - 查询类工具：用户意图明确时可直接调用。若未指定分页、排序或筛选条件，使用工具默认值，并在结果后提示可继续筛选、翻页或排序。
-    - 创建类工具：必须收集工具 schema 要求的必填字段；缺失时只询问最少必要字段。
-    - 更新类工具：必须明确目标实体标识和要更新的字段；目标不唯一时先查询或追问。
-    - 删除、禁用、重置、授权、撤权等高风险操作：必须明确目标和影响范围；用户表达含糊时先确认。
-    - 批量操作：必须说明筛选条件、预计影响范围和风险；范围不清晰时不得执行。
-
-    三、结构化结果呈现
-    - 不直接输出原始 JSON、raw payload、完整对象、完整数组、数据库记录或表格单元格明细。
-    - 分页列表：只总结命中数量、当前页/总页数、是否为空、关键筛选条件；具体数据交给 UI 展示。
-    - 单条记录：只提取用户理解任务所需的少量标识和状态，避免逐字段展开。
-    - 写操作结果：说明成功/失败、影响对象、关键状态变化和可继续执行的动作。
-    - 空结果：明确说明没有匹配数据，并给出 1-2 个更具体的查询建议。
-    - 工具失败：用用户可理解语言说明失败原因和修复动作，不暴露堆栈、内部异常、SQL、原始错误对象或服务实现细节。
-
-    四、安全与隐私边界
-    - 不输出密码、密码哈希、token、secret、验证码、会话、内部权限原始明细或其他敏感字段。
-    - 不帮助绕过权限、审计、安全校验或业务审批流程。
-    - 涉及账号、角色、权限、组织架构、菜单、系统配置等管理操作时，优先说明影响范围。
-    - 如果用户请求超出当前工具能力，说明当前还不能直接操作，并建议可接入的工具或需要的参数。
-
-    五、回复格式
-    - 首句给出结果、状态或缺失信息。
-    - 如存在工具 UI，不重复 UI 中已经展示的列表、表格或卡片内容。
-    - 仅在有帮助时给出“接下来我可以帮你：”，最多 3 条，每条都是具体可执行动作。
-    - 对简单成功结果，使用 1-3 句话即可；对复杂任务，用短段落或简短列表。
-
-    六、当前已接入业务能力
-    - 用户管理：查询用户、创建用户、更新用户、删除用户。
-    - 用户创建需要满足工具 schema 中的必填字段；任何回复都不得回显密码。
-    - 用户删除属于高风险操作，目标不明确时必须先确认。
-
-    七、后续业务扩展规则
-    - 新增业务模块时，优先通过工具 schema 和 description 描述字段、筛选项、必填项和风险边界。
-    - 只有当模块存在特殊安全约束、特殊审批流程或容易误操作的业务规则时，才在“当前已接入业务能力”中追加简短说明。
-    - 不要把每个模块的完整字段说明、接口文档或数据库结构写进系统提示词。
-
-    八、当前已注册前端UI的工具名称列表
-    - 用户管理：get_users
-  `
-
-  buildAgent() {
-    return createAgent({
-      model: this.llm,
-      tools: this.getTools(),
-      systemPrompt: this.systemPrompt
-    })
+    return workflow
+      .addNode(ROUTER_NODE_NAME, this.createRouterNode())
+      .addEdge(START, ROUTER_NODE_NAME)
+      .addConditionalEdges(ROUTER_NODE_NAME, this.createRouteDecision())
   }
 
-  private getTools() {
-    return [...this.userTool.getTools()]
+  buildAgent() {
+    return this.createWorkflow().compile()
+  }
+
+  private createRouterNode(): GraphNode<typeof stateSchema> {
+    const router = this.llm.withStructuredOutput(routeDecisionSchema)
+
+    return async (state) => {
+      const lastMessage = state.input.at(-1)?.content
+      const result = await router.invoke([
+        { role: 'system', content: this.createRouterPrompt() },
+        { role: 'user', content: lastMessage ?? '' }
+      ])
+
+      const decision = routeDecisionSchema.parse(result)
+
+      return { decision: this.resolveRouteName(decision.agent) }
+    }
+  }
+
+  private createAgentNodes(): Array<readonly [CopilotAgentName, GraphNode<StateType>]> {
+    return this.agents.map((agent) => [agent.name, this.createAgentNode(agent.build())] as const)
+  }
+
+  private createAgentNode(agent: BuiltCopilotAgent): GraphNode<StateType> {
+    return async (state) => {
+      const result = await agent.invoke({ messages: state.input })
+      return { output: result.messages }
+    }
+  }
+
+  private createRouteDecision(): ConditionalEdgeRouter<
+    StateType,
+    Record<string, unknown>,
+    CopilotAgentName
+  > {
+    return (state) => this.resolveRouteName(state.decision)
+  }
+
+  private createRouterPrompt(): string {
+    const routeOptions = [...this.agentRegistry.values()]
+      .map((agent) => `- ${agent.name}: ${agent.description}`)
+      .join('\n')
+
+    return `
+      你是 Zen Admin Copilot 的路由器，只负责根据用户输入选择最合适的 Agent。
+      可选 Agent:
+      ${routeOptions}
+      如果没有明确匹配的 Agent，必须选择 ${DEFAULT_COPILOT_AGENT_NAME}。
+      只返回结构化路由结果，不要处理用户任务本身。
+    `
+  }
+
+  private createAgentRegistry(
+    agents: readonly CopilotAgent[]
+  ): ReadonlyMap<CopilotAgentName, CopilotAgent> {
+    const registry = new Map<CopilotAgentName, CopilotAgent>()
+
+    for (const agent of agents) {
+      if (registry.has(agent.name)) {
+        throw new Error(`Duplicate copilot agent name: ${agent.name}`)
+      }
+
+      registry.set(agent.name, agent)
+    }
+
+    if (!registry.has(DEFAULT_COPILOT_AGENT_NAME)) {
+      throw new Error(`Missing default copilot agent: ${DEFAULT_COPILOT_AGENT_NAME}`)
+    }
+
+    return registry
+  }
+
+  private resolveRouteName(routeName: string): CopilotAgentName {
+    if (this.isRegisteredRoute(routeName)) return routeName
+
+    return DEFAULT_COPILOT_AGENT_NAME
+  }
+
+  private isRegisteredRoute(routeName: string): routeName is CopilotAgentName {
+    return this.agentRegistry.has(routeName as CopilotAgentName)
   }
 }

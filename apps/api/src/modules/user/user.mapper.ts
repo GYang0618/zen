@@ -1,5 +1,4 @@
-import { Gender, MfaType, Prisma, Theme, UserStatusCode } from '@prisma/client'
-
+import type { Gender, MfaType, Prisma, Theme, UserStatusCode } from '@prisma/client'
 import type { UserStatus } from '@zen/shared'
 import type {
   RoleInfoResponse,

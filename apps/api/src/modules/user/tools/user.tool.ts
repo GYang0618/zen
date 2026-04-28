@@ -14,9 +14,6 @@ const userIdSchema = z.object({
 })
 
 const updateUserToolSchema = userIdSchema.extend(updateUserSchema.shape)
-const removeUsersToolSchema = deleteUsersSchema.extend({
-  currentUserId: z.string().trim().min(1, '当前用户 ID 不能为空').optional()
-})
 
 @Injectable()
 export class UserTool {
@@ -54,27 +51,22 @@ export class UserTool {
 
   updateUsersStatusTool = tool(async (payload) => await this.userService.updateStatus(payload), {
     name: 'update_users_status',
-    description: '批量更新用户状态（激活/停用）',
+    description: '更新用户状态（激活/停用）',
     schema: updateUsersStatusSchema
   })
 
-  deleteUsersTool = tool(
-    async ({ ids, currentUserId }) => await this.userService.remove(ids, currentUserId),
-    {
-      name: 'delete_users',
-      description: '批量软删除用户，可选传入 currentUserId 防止误删当前用户',
-      schema: removeUsersToolSchema
-    }
-  )
+  deleteUsersTool = tool(async ({ ids }) => await this.userService.remove(ids), {
+    name: 'delete_users',
+    description: '删除用户，可选传入 currentUserId 防止误删当前用户',
+    schema: deleteUsersSchema
+  })
 
-  hardDeleteUsersTool = tool(
-    async ({ ids, currentUserId }) => await this.userService.hardRemove(ids, currentUserId),
-    {
-      name: 'hard_delete_users',
-      description: '批量硬删除用户，可选传入 currentUserId 防止误删当前用户',
-      schema: removeUsersToolSchema
-    }
-  )
+  hardDeleteUsersTool = tool(async ({ ids }) => await this.userService.hardRemove(ids), {
+    name: 'hard_delete_users',
+    description:
+      '彻底删除用户，并从数据库中彻底删除，请谨慎使用，可选传入 currentUserId 防止误删当前用户',
+    schema: deleteUsersSchema
+  })
 
   getTools() {
     return [

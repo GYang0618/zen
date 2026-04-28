@@ -19,16 +19,8 @@ import { useSignInMutation } from '../mutations'
 import { ThirdPartyLogin } from '../third-party-login'
 
 const formSchema = z.object({
-  identifier: z.string().trim().min(1, '请输入您的账号').max(30, '账号长度不能超过 30 位'),
-  password: z
-    .string()
-    .min(1, '请输入您的密码')
-    .min(8, '密码长度至少 8 位')
-    .max(64, '密码长度不能超过 64 位')
-    .regex(/[A-Z]/, '必须包含至少一个大写字母')
-    .regex(/[a-z]/, '必须包含至少一个小写字母')
-    .regex(/[0-9]/, '必须包含至少一个数字')
-    .regex(/[^A-Za-z0-9]/, '必须包含至少一个特殊字符')
+  identifier: z.string().trim(),
+  password: z.string()
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -71,7 +63,7 @@ export function SignInForm() {
             {error?.message ? (
               <FieldError errors={[{ message: error.message }]}></FieldError>
             ) : (
-              '登录你的 Acme Inc 账户'
+              '登录你的 Zen Admin 账户'
             )}
           </div>
         </div>

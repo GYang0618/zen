@@ -16,10 +16,11 @@ export class CopilotService {
 
   async call({ messages }: CallDto) {
     const langchainMessages = await toBaseMessages(messages)
+
     const agent = this.agentService.buildAgent()
 
     const stream = await agent.stream(
-      { messages: langchainMessages },
+      { input: langchainMessages },
       { streamMode: ['values', 'messages', 'custom'] }
     )
 

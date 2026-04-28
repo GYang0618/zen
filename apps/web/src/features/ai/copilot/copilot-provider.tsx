@@ -23,6 +23,9 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
 
     onFinish: (options) => {
       console.log('Chat finished', options)
+    },
+    onError: (error) => {
+      console.error('Chat error', error)
     }
   })
 

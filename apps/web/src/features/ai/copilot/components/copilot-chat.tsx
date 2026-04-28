@@ -9,11 +9,8 @@ import { NotionPromptForm } from './notion-prompt-form'
 
 export function CopilotChat() {
   const user = useAuthStore((state) => state.user)
-  const { messages, sendMessage, status } = useCopilot()
+  const { messages, status } = useCopilot()
   const chatRef = useRef<HTMLDivElement>(null)
-  const handleSendMessage = async (value: string) => {
-    await sendMessage({ text: value })
-  }
 
   useLayoutEffect(() => {
     if (!messages.length) return
@@ -44,7 +41,7 @@ export function CopilotChat() {
         </div>
 
         <div className={'sticky w-full bottom-0 pb-6 bg-background rounded-tl-xl rounded-tr-xl'}>
-          <NotionPromptForm onSubmit={handleSendMessage} />
+          <NotionPromptForm />
         </div>
       </div>
     </div>

@@ -212,24 +212,6 @@ export function UsersActionDialog({ currentRow, open, onOpenChange }: UserAction
                   )}
                 />
                 <Controller
-                  name="email"
-                  control={form.control}
-                  render={({ field, fieldState }) => (
-                    <Field>
-                      <FieldLabel htmlFor="user-email" className="w-28 shrink-0">
-                        邮箱
-                      </FieldLabel>
-                      <FieldContent>
-                        <Input {...field} id="user-email" placeholder="请输入邮箱" />
-                        {fieldState.error ? <FieldError errors={[fieldState.error]} /> : null}
-                      </FieldContent>
-                    </Field>
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <Controller
                   name="nickname"
                   control={form.control}
                   render={({ field, fieldState }) => (
@@ -239,6 +221,24 @@ export function UsersActionDialog({ currentRow, open, onOpenChange }: UserAction
                       </FieldLabel>
                       <FieldContent>
                         <Input {...field} id="user-nickname" placeholder="请输入昵称（可选）" />
+                        {fieldState.error ? <FieldError errors={[fieldState.error]} /> : null}
+                      </FieldContent>
+                    </Field>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Controller
+                  name="email"
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field>
+                      <FieldLabel htmlFor="user-email" className="w-28 shrink-0">
+                        邮箱
+                      </FieldLabel>
+                      <FieldContent>
+                        <Input {...field} id="user-email" placeholder="请输入邮箱" />
                         {fieldState.error ? <FieldError errors={[fieldState.error]} /> : null}
                       </FieldContent>
                     </Field>

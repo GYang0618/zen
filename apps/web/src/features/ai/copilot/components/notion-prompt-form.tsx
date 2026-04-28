@@ -42,28 +42,34 @@ import {
   CircleDashed,
   Globe,
   LayoutGrid,
+  Mic,
   Paperclip,
   Plus,
+  Square,
   X
 } from 'lucide-react'
 import { useState } from 'react'
 
+import { useCopilot } from '../copilot-provider'
 import { data } from '../data/data'
 
 import type { SubmitEvent } from 'react'
 
 interface NotionPromptFormProps {
-  onSubmit?: (value: string) => void
   className?: string
 }
 
-export function NotionPromptForm({ onSubmit, className }: NotionPromptFormProps) {
+export function NotionPromptForm({ className }: NotionPromptFormProps) {
   const [inputValue, setInputValue] = useState('')
   const [mentions, setMentions] = useState<string[]>([])
   const [mentionPopoverOpen, setMentionPopoverOpen] = useState(false)
   const [modelPopoverOpen, setModelPopoverOpen] = useState(false)
   const [selectedModel, setSelectedModel] = useState<(typeof data.models)[0]>(data.models[0])
   const [scopeMenuOpen, setScopeMenuOpen] = useState(false)
+
+  const { status, sendMessage, stop } = useCopilot()
+
+  const isLoading = status === 'streaming'
 
   const grouped = data.mentionable.reduce(
     (acc, item) => {
@@ -84,7 +90,12 @@ export function NotionPromptForm({ onSubmit, className }: NotionPromptFormProps)
 
   const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault()
-    onSubmit?.(inputValue)
+    if (!inputValue) return
+    if (isLoading) {
+      stop()
+      return
+    }
+    sendMessage({ text: inputValue })
     setInputValue('')
     setMentions([])
   }
@@ -99,7 +110,7 @@ export function NotionPromptForm({ onSubmit, className }: NotionPromptFormProps)
         <InputGroup className="rounded-xl">
           <InputGroupTextarea
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={(e) => setInputValue(e.target.value.trim())}
             id="notion-prompt"
             placeholder="提问、搜索或做任何事..."
             onKeyDown={(e) => {
@@ -312,6 +323,7 @@ export function NotionPromptForm({ onSubmit, className }: NotionPromptFormProps)
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
+
             <InputGroupButton
               type="submit"
               aria-label="发送"
@@ -319,7 +331,15 @@ export function NotionPromptForm({ onSubmit, className }: NotionPromptFormProps)
               variant="default"
               size="icon-sm"
             >
-              <ArrowUp />
+              {inputValue ? (
+                isLoading ? (
+                  <Square className="size-3.5" fill="white" />
+                ) : (
+                  <ArrowUp />
+                )
+              ) : (
+                <Mic />
+              )}
             </InputGroupButton>
           </InputGroupAddon>
         </InputGroup>
