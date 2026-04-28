@@ -3,10 +3,10 @@ import { z } from 'zod'
 import { paged, pageQuerySchema } from '../pagination'
 
 export const userStatusSchema = z.union([
-  z.literal('active').describe('激活'),
-  z.literal('inactive').describe('未激活'),
-  z.literal('pending').describe('待审核'),
-  z.literal('suspended').describe('已停用')
+  z.literal('active').describe('激活，账号正常可用'),
+  z.literal('inactive').describe('未激活，仅用于账号尚未完成激活流程，不表示管理员禁用'),
+  z.literal('pending').describe('待审核，账号等待审批'),
+  z.literal('suspended').describe('已停用/已禁用/已封禁，用于管理员禁用账户')
 ])
 
 export const createUserSchema = z.object({
@@ -42,7 +42,9 @@ export const updateUsersStatusSchema = z.object({
     .array(z.string().trim().min(1, '用户 ID 不能为空'))
     .min(1, '至少需要一个用户 ID')
     .describe('要更新状态的用户 ID 列表'),
-  status: userStatusSchema.describe('目标状态')
+  status: userStatusSchema.describe(
+    '目标状态。用户要求禁用、停用、封禁、冻结账户时必须使用 suspended；inactive 只表示账号未完成激活流程'
+  )
 })
 
 export const usersSortBySchema = z.enum(['username', 'email', 'jobTitle', 'createdAt'])

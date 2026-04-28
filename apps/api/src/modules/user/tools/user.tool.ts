@@ -43,30 +43,37 @@ export class UserTool {
     schema: updateUserToolSchema
   })
 
-  restoreUsersTool = tool(async ({ ids }) => await this.userService.restore(ids), {
+  restoreUsersTool = tool(async ({ ids }) => JSON.stringify(await this.userService.restore(ids)), {
     name: 'restore_users',
     description: '批量恢复已删除用户',
     schema: deleteUsersSchema
   })
 
-  updateUsersStatusTool = tool(async (payload) => await this.userService.updateStatus(payload), {
-    name: 'update_users_status',
-    description: '更新用户状态（激活/停用）',
-    schema: updateUsersStatusSchema
-  })
+  updateUsersStatusTool = tool(
+    async (payload) => JSON.stringify(await this.userService.updateStatus(payload)),
+    {
+      name: 'update_users_status',
+      description:
+        '批量更新用户状态。状态规则：启用/激活账户时使用 active；禁用、停用、封禁、冻结账户时必须使用 suspended；inactive 仅表示账号未完成激活流程，不要用于管理员禁用账户；pending 表示待审核。',
+      schema: updateUsersStatusSchema
+    }
+  )
 
-  deleteUsersTool = tool(async ({ ids }) => await this.userService.remove(ids), {
+  deleteUsersTool = tool(async ({ ids }) => JSON.stringify(await this.userService.remove(ids)), {
     name: 'delete_users',
     description: '删除用户，可选传入 currentUserId 防止误删当前用户',
     schema: deleteUsersSchema
   })
 
-  hardDeleteUsersTool = tool(async ({ ids }) => await this.userService.hardRemove(ids), {
-    name: 'hard_delete_users',
-    description:
-      '彻底删除用户，并从数据库中彻底删除，请谨慎使用，可选传入 currentUserId 防止误删当前用户',
-    schema: deleteUsersSchema
-  })
+  hardDeleteUsersTool = tool(
+    async ({ ids }) => JSON.stringify(await this.userService.hardRemove(ids)),
+    {
+      name: 'hard_delete_users',
+      description:
+        '彻底删除用户，并从数据库中彻底删除，请谨慎使用，可选传入 currentUserId 防止误删当前用户',
+      schema: deleteUsersSchema
+    }
+  )
 
   getTools() {
     return [

@@ -5,14 +5,14 @@ export const DEFAULT_PAGE_SIZE = 10
 export const MAX_PAGE_SIZE = 100
 
 export const pageQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(DEFAULT_PAGE).describe('页码，默认为1'),
+  page: z.coerce.number().int().min(1).optional().describe('页码，可选，需与 pageSize 同时传入'),
   pageSize: z.coerce
     .number()
     .int()
     .min(1)
     .max(MAX_PAGE_SIZE)
-    .default(DEFAULT_PAGE_SIZE)
-    .describe(`每页数量，默认为${DEFAULT_PAGE_SIZE}，最大为${MAX_PAGE_SIZE}`)
+    .optional()
+    .describe(`每页数量，可选，需与 page 同时传入，最大为${MAX_PAGE_SIZE}`)
 })
 
 export const pageMetaSchema = z.object({
