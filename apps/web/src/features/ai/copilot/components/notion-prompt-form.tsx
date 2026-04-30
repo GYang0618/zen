@@ -110,7 +110,7 @@ export function NotionPromptForm({ className }: NotionPromptFormProps) {
         <InputGroup className="rounded-xl">
           <InputGroupTextarea
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value.trim())}
+            onChange={(e) => setInputValue(e.target.value)}
             id="notion-prompt"
             className="max-h-[200px] overflow-y-auto resize-none"
             placeholder="提问、搜索或做任何事..."
