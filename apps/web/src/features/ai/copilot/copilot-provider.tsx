@@ -1,5 +1,5 @@
 import { useChat } from '@ai-sdk/react'
-import { DefaultChatTransport } from 'ai'
+import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from 'ai'
 import { createContext, useContext } from 'react'
 
 import { useEnv } from '@/config/env'
@@ -26,7 +26,8 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
     },
     onError: (error) => {
       console.error('Chat error', error)
-    }
+    },
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses
   })
 
   return <ChatContext value={{ ...chat }}>{children}</ChatContext>

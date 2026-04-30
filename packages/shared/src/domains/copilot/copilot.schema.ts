@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { UIMessage } from 'ai'
 
 export const copilotCallSchema = z.object({
+  id: z.string().optional(),
   messages: z.custom<UIMessage[]>(),
   /**
    * 是否开启模型的“思考/推理”模式。

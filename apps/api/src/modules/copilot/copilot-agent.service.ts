@@ -1,6 +1,14 @@
-import { END, MessagesValue, START, StateGraph, StateSchema } from '@langchain/langgraph'
+import {
+  END,
+  MemorySaver,
+  MessagesValue,
+  START,
+  StateGraph,
+  StateSchema
+} from '@langchain/langgraph'
 import { ChatOpenAI } from '@langchain/openai'
 import { Inject, Injectable } from '@nestjs/common'
+import { createAgent } from 'langchain'
 import z from 'zod'
 
 import { COPILOT_AGENTS, DEFAULT_COPILOT_AGENT_NAME } from './interfaces/agent.interface'
@@ -26,6 +34,7 @@ type AgentNameTuple = readonly [CopilotAgentName, ...CopilotAgentName[]]
 @Injectable()
 export class CopilotAgentService {
   private readonly agentRegistry: ReadonlyMap<CopilotAgentName, CopilotAgent>
+  private readonly checkpointer = new MemorySaver()
 
   constructor(@Inject(COPILOT_AGENTS) private readonly agents: readonly CopilotAgent[]) {
     this.agentRegistry = this.createAgentRegistry(agents)
@@ -53,26 +62,40 @@ export class CopilotAgentService {
   }
 
   buildAgent() {
-    return this.createWorkflow().compile()
+    return this.createWorkflow().compile({ checkpointer: this.checkpointer })
   }
 
   private createRouterNode(): GraphNode<typeof stateSchema> {
     const routeDecisionSchema = this.createRouteDecisionSchema()
 
     return async (state) => {
-      const lastMessage = state.input.at(-1)?.content
-      const router = this.createCopilotChatModel(state.enableThinking).withStructuredOutput(
-        routeDecisionSchema
-      )
-      const result = await router.invoke([
-        { role: 'system', content: this.createRouterPrompt() },
-        { role: 'user', content: lastMessage ?? '' }
-      ])
+      const lastMessageContent = state.input.at(-1)?.content
+      const router = createAgent({
+        model: this.createCopilotChatModel(state.enableThinking),
+        systemPrompt: this.createRouterPrompt(),
+        responseFormat: routeDecisionSchema
+      })
 
-      const decision = routeDecisionSchema.parse(result)
+      const result = await router.invoke({
+        messages: [
+          {
+            role: 'user',
+            content: this.stringifyMessageContent(lastMessageContent)
+          }
+        ]
+      })
+
+      const decision = routeDecisionSchema.parse(result.structuredResponse)
 
       return { decision: decision.agent }
     }
+  }
+
+  private stringifyMessageContent(content: unknown): string {
+    if (typeof content === 'string') return content
+    if (content == null) return ''
+
+    return JSON.stringify(content)
   }
 
   private createAgentNodes(): Array<readonly [CopilotAgentName, GraphNode<StateType>]> {
@@ -80,9 +103,9 @@ export class CopilotAgentService {
   }
 
   private createAgentNode(agent: CopilotAgent): GraphNode<StateType> {
-    return async (state) => {
+    return async (state, config) => {
       const builtAgent = agent.build({ enableThinking: state.enableThinking })
-      const result = await builtAgent.invoke({ messages: state.input })
+      const result = await builtAgent.invoke({ messages: state.input }, config)
       return { output: result.messages }
     }
   }

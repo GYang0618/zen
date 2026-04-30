@@ -19,7 +19,11 @@ import type {
 } from './dto/find-users-query.dto'
 import type { UpdateUserDto } from './dto/update-user.dto'
 import type { UpdateUsersStatusDto } from './dto/update-users-status.dto'
-import type { UserInfoResponse, UserListResponse } from './responses/user.response'
+import type {
+  UserInfoResponse,
+  UserListItemResponse,
+  UserListResponse
+} from './responses/user.response'
 
 const DEFAULT_ROLE_CODE = 'guest'
 
@@ -27,7 +31,7 @@ const DEFAULT_ROLE_CODE = 'guest'
 export class UserService {
   constructor(@Inject(UserRepository) private readonly userRepo: UserRepository) {}
 
-  async create(data: CreateUserDto): Promise<UserInfoResponse> {
+  async create(data: CreateUserDto): Promise<UserListItemResponse> {
     const hashedPassword = await argon2.hash(data.password)
     const created = await this.userRepo.create({
       username: data.username,
@@ -39,7 +43,7 @@ export class UserService {
 
     await this.userRepo.ensureDomainData(created.id)
     await this.assignRoleByCode(created.id, DEFAULT_ROLE_CODE)
-    return this.getUserInfoByUserId(created.id)
+    return this.getUserListItemByUserId(created.id)
   }
 
   findOne(where: Prisma.UserWhereUniqueInput) {
@@ -55,7 +59,16 @@ export class UserService {
     return toUserInfoResponse(user)
   }
 
-  async update(id: string, data: UpdateUserDto): Promise<UserInfoResponse> {
+  private async getUserListItemByUserId(userId: string): Promise<UserListItemResponse> {
+    await this.userRepo.ensureDomainData(userId)
+
+    const user = await this.userRepo.findActiveWithDomainById(userId)
+    if (!user) throw new NotFoundException('用户不存在')
+
+    return toUserListItemResponse(user)
+  }
+
+  async update(id: string, data: UpdateUserDto): Promise<UserListItemResponse> {
     const existingUser = await this.userRepo.findActiveWithDomainById(id)
     if (!existingUser) {
       throw new NotFoundException('用户不存在')
@@ -75,7 +88,7 @@ export class UserService {
 
     const updated = await this.userRepo.update({ id }, nextData)
     await this.userRepo.ensureDomainData(updated.id)
-    return this.getUserInfoByUserId(updated.id)
+    return this.getUserListItemByUserId(updated.id)
   }
 
   /** 供内部（AuthService）使用，更新登录安全相关字段 */
@@ -127,7 +140,7 @@ export class UserService {
     }
   }
 
-  async remove(idsInput: string[], currentUserId?: string): Promise<UserInfoResponse[]> {
+  async remove(idsInput: string[], currentUserId?: string): Promise<UserListItemResponse[]> {
     const rawIds = Array.isArray(idsInput) ? idsInput : []
     const ids = [
       ...new Set(
@@ -150,10 +163,10 @@ export class UserService {
     }
 
     await this.userRepo.softDeleteByIds(ids)
-    return users.map(toUserInfoResponse)
+    return users.map(toUserListItemResponse)
   }
 
-  async hardRemove(ids: string[], currentUserId?: string): Promise<UserInfoResponse[]> {
+  async hardRemove(ids: string[], currentUserId?: string): Promise<UserListItemResponse[]> {
     const normalizedIds = [
       ...new Set(
         ids
@@ -175,10 +188,10 @@ export class UserService {
     }
 
     await this.userRepo.deleteManyByIds(normalizedIds)
-    return users.map(toUserInfoResponse)
+    return users.map(toUserListItemResponse)
   }
 
-  async restore(ids: string[]): Promise<UserInfoResponse[]> {
+  async restore(ids: string[]): Promise<UserListItemResponse[]> {
     const normalizedIds = [
       ...new Set(
         ids
@@ -202,10 +215,10 @@ export class UserService {
     }
 
     await this.userRepo.restoreByIds(normalizedIds)
-    return deletedUsers.map(toUserInfoResponse)
+    return deletedUsers.map(toUserListItemResponse)
   }
 
-  async updateStatus(payload: UpdateUsersStatusDto): Promise<UserInfoResponse[]> {
+  async updateStatus(payload: UpdateUsersStatusDto): Promise<UserListItemResponse[]> {
     const rawIds = Array.isArray(payload.ids) ? payload.ids : []
     const normalizedIds = [
       ...new Set(
@@ -226,7 +239,7 @@ export class UserService {
 
     await this.userRepo.updateStatusByIds(normalizedIds, toUserStatusCode(payload.status))
     const updatedUsers = await this.userRepo.findManyWithDomainByIds(normalizedIds)
-    return updatedUsers.map(toUserInfoResponse)
+    return updatedUsers.map(toUserListItemResponse)
   }
 
   async ensureUserDomainData(userId: string) {

@@ -1,7 +1,9 @@
-import { GetUsersToolUI } from './tools'
+import { DeleteUsersToolUI, GetUsersToolUI, HardDeleteUsersToolUI } from './tools'
 
 export const copilotToolUIRegistry = {
-  get_users: GetUsersToolUI
+  get_users: GetUsersToolUI,
+  delete_users: DeleteUsersToolUI,
+  hard_delete_users: HardDeleteUsersToolUI
 } as const
 
 export type CopilotToolUIName = keyof typeof copilotToolUIRegistry

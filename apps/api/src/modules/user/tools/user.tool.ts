@@ -61,7 +61,7 @@ export class UserTool {
 
   deleteUsersTool = tool(async ({ ids }) => JSON.stringify(await this.userService.remove(ids)), {
     name: 'delete_users',
-    description: '删除用户，可选传入 currentUserId 防止误删当前用户',
+    description: '软删除用户。该操作需要管理员审批通过后才能执行。',
     schema: deleteUsersSchema
   })
 
@@ -69,8 +69,7 @@ export class UserTool {
     async ({ ids }) => JSON.stringify(await this.userService.hardRemove(ids)),
     {
       name: 'hard_delete_users',
-      description:
-        '彻底删除用户，并从数据库中彻底删除，请谨慎使用，可选传入 currentUserId 防止误删当前用户',
+      description: '彻底删除用户，并从数据库中永久删除。该高危操作需要管理员审批通过后才能执行。',
       schema: deleteUsersSchema
     }
   )

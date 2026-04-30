@@ -12,6 +12,7 @@ import { UserService } from '../user/user.service'
 import { AuthTokenService } from './auth.token.service'
 
 import type { User } from '@prisma/client'
+import type { UserListItemResponse } from '../user/responses/user.response'
 import type { LoginDto } from './dto/login.dto'
 import type { RegisterDto } from './dto/register.dto'
 import type { AuthSessionResponse } from './responses/auth.response'
@@ -37,10 +38,10 @@ export class AuthService {
     await this.assertEmailNotTaken(dto.email)
     await this.assertUsernameNotTaken(dto.username)
 
-    const userInfo = await this.userService.create(dto)
-    await this.userService.touchLoginAudit(userInfo.id)
+    const createdUser = await this.userService.create(dto)
+    await this.userService.touchLoginAudit(createdUser.id)
 
-    return this.issueSession(userInfo.id, userInfo)
+    return this.issueSessionFromListItem(createdUser)
   }
 
   async login(dto: LoginDto): Promise<IssueSessionResult> {
@@ -112,6 +113,27 @@ export class AuthService {
           phoneNumber: userInfo.contact.phoneNumber ?? null,
           role: roles[0] ?? null,
           permissions
+        } satisfies AuthSessionResponse['user']
+      }
+    }
+  }
+
+  private issueSessionFromListItem(user: UserListItemResponse): IssueSessionResult {
+    const tokens = this.tokenService.generateTokenPair(user.id, user.email)
+
+    return {
+      refreshToken: tokens.refreshToken,
+      session: {
+        accessToken: tokens.accessToken,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          nickname: user.nickname ?? null,
+          avatar: user.avatar ?? null,
+          phoneNumber: user.phoneNumber ?? null,
+          role: user.role,
+          permissions: user.permissions
         } satisfies AuthSessionResponse['user']
       }
     }
