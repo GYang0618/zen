@@ -14,13 +14,13 @@ export class CopilotService {
 
   constructor(@Inject(CopilotAgentService) private readonly agentService: CopilotAgentService) {}
 
-  async call({ messages }: CallDto) {
+  async call({ messages, enableThinking = false }: CallDto) {
     const langchainMessages = await toBaseMessages(messages)
 
     const agent = this.agentService.buildAgent()
 
     const stream = await agent.stream(
-      { input: langchainMessages },
+      { input: langchainMessages, enableThinking: true },
       { streamMode: ['values', 'messages', 'custom'] }
     )
 

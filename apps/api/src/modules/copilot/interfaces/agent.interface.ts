@@ -1,4 +1,3 @@
-import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import type { createAgent } from 'langchain'
 
 export const COPILOT_AGENTS = Symbol('COPILOT_AGENTS')
@@ -12,7 +11,6 @@ export type BuiltCopilotAgent = ReturnType<typeof createAgent>
 export interface CopilotAgent<Name extends CopilotAgentName = CopilotAgentName> {
   readonly name: Name
   readonly description: string
-  readonly llm: BaseChatModel
   readonly systemPrompt: string
-  build(): BuiltCopilotAgent
+  build(options?: { enableThinking?: boolean }): BuiltCopilotAgent
 }

@@ -6,25 +6,19 @@ import z from 'zod'
 import { COPILOT_AGENTS, DEFAULT_COPILOT_AGENT_NAME } from './interfaces/agent.interface'
 
 import type { ConditionalEdgeRouter, GraphNode } from '@langchain/langgraph'
-import type {
-  BuiltCopilotAgent,
-  CopilotAgent,
-  CopilotAgentName
-} from './interfaces/agent.interface'
+import type { CopilotAgent, CopilotAgentName } from './interfaces/agent.interface'
 
 const ROUTER_NODE_NAME = 'router'
 
-const routeDecisionSchema = z.object({
-  agent: z.string().trim().min(1).default(DEFAULT_COPILOT_AGENT_NAME)
-})
-
 const stateSchema = new StateSchema({
   input: MessagesValue,
+  enableThinking: z.boolean().default(false),
   decision: z.string(),
   output: MessagesValue
 })
 
 type StateType = typeof stateSchema
+type AgentNameTuple = readonly [CopilotAgentName, ...CopilotAgentName[]]
 
 /**
  * 负责 LangGraph 图的构建与执行编排
@@ -37,10 +31,13 @@ export class CopilotAgentService {
     this.agentRegistry = this.createAgentRegistry(agents)
   }
 
-  private readonly llm = new ChatOpenAI({
-    model: 'kimi-k2.5',
-    temperature: 0
-  })
+  private createCopilotChatModel(enableThinking: boolean) {
+    return new ChatOpenAI({
+      model: 'kimi-k2.5',
+      temperature: 0,
+      ...(enableThinking ? { reasoning: { effort: 'medium' } } : {})
+    })
+  }
 
   createWorkflow() {
     const workflow = new StateGraph(stateSchema)
@@ -60,10 +57,13 @@ export class CopilotAgentService {
   }
 
   private createRouterNode(): GraphNode<typeof stateSchema> {
-    const router = this.llm.withStructuredOutput(routeDecisionSchema)
+    const routeDecisionSchema = this.createRouteDecisionSchema()
 
     return async (state) => {
       const lastMessage = state.input.at(-1)?.content
+      const router = this.createCopilotChatModel(state.enableThinking).withStructuredOutput(
+        routeDecisionSchema
+      )
       const result = await router.invoke([
         { role: 'system', content: this.createRouterPrompt() },
         { role: 'user', content: lastMessage ?? '' }
@@ -71,17 +71,18 @@ export class CopilotAgentService {
 
       const decision = routeDecisionSchema.parse(result)
 
-      return { decision: this.resolveRouteName(decision.agent) }
+      return { decision: decision.agent }
     }
   }
 
   private createAgentNodes(): Array<readonly [CopilotAgentName, GraphNode<StateType>]> {
-    return this.agents.map((agent) => [agent.name, this.createAgentNode(agent.build())] as const)
+    return this.agents.map((agent) => [agent.name, this.createAgentNode(agent)] as const)
   }
 
-  private createAgentNode(agent: BuiltCopilotAgent): GraphNode<StateType> {
+  private createAgentNode(agent: CopilotAgent): GraphNode<StateType> {
     return async (state) => {
-      const result = await agent.invoke({ messages: state.input })
+      const builtAgent = agent.build({ enableThinking: state.enableThinking })
+      const result = await builtAgent.invoke({ messages: state.input })
       return { output: result.messages }
     }
   }
@@ -103,9 +104,30 @@ export class CopilotAgentService {
       你是 Zen Admin Copilot 的路由器，只负责根据用户输入选择最合适的 Agent。
       可选 Agent:
       ${routeOptions}
-      如果没有明确匹配的 Agent，必须选择 ${DEFAULT_COPILOT_AGENT_NAME}。
+      如果没有明确匹配的 Agent，必须选择 ${DEFAULT_COPILOT_AGENT_NAME}, 不能为空。
       只返回结构化路由结果，不要处理用户任务本身。
     `
+  }
+
+  private createRouteDecisionSchema() {
+    return z
+      .object({
+        agent: z
+          .enum(this.getRegisteredAgentNames())
+          .default(DEFAULT_COPILOT_AGENT_NAME)
+          .describe('必须是一个已注册的 Agent 名称。')
+      })
+      .strict()
+  }
+
+  private getRegisteredAgentNames(): AgentNameTuple {
+    const [firstAgentName, ...remainingAgentNames] = this.agentRegistry.keys()
+
+    if (!firstAgentName) {
+      throw new Error('At least one copilot agent is required')
+    }
+
+    return [firstAgentName, ...remainingAgentNames]
   }
 
   private createAgentRegistry(

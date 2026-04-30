@@ -1,7 +1,6 @@
 import { ChatOpenAI } from '@langchain/openai'
 import { createAgent } from 'langchain'
 
-import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import type {
   BuiltCopilotAgent,
   CopilotAgent,
@@ -22,13 +21,16 @@ export abstract class BaseCopilotAgent<Name extends CopilotAgentName>
   abstract readonly description: string
   abstract readonly systemPrompt: string
 
-  readonly llm: BaseChatModel = new ChatOpenAI(COPILOT_AGENT_MODEL_CONFIG)
+  build({ enableThinking = false }: { enableThinking?: boolean } = {}): BuiltCopilotAgent {
+    const model = new ChatOpenAI({
+      ...COPILOT_AGENT_MODEL_CONFIG,
+      ...(enableThinking ? { reasoning: { effort: 'medium' } } : {})
+    })
 
-  build(): BuiltCopilotAgent {
     const tools = this.getTools()
 
     return createAgent({
-      model: this.llm,
+      model,
       systemPrompt: this.systemPrompt,
       ...(tools ? { tools } : {})
     })

@@ -1,10 +1,15 @@
 // Components
 
+export * from './components/ai-elements/conversation'
+export * from './components/ai-elements/message'
+export * from './components/ai-elements/reasoning'
+export * from './components/ai-elements/shimmer'
 export * from './components/alert'
 export * from './components/alert-dialog'
 export * from './components/avatar'
 export * from './components/badge'
 export * from './components/button'
+export * from './components/button-group'
 export * from './components/card'
 export * from './components/checkbox'
 export * from './components/collapsible'
@@ -32,8 +37,12 @@ export * from './components/text-effect/gradient-text'
 export * from './components/text-effect/typing-text'
 export * from './components/textarea'
 export * from './components/tooltip'
+
 // Hooks
+
 export * from './hooks/use-dialog-state'
 export * from './hooks/use-mobile'
+
 // Lib
+
 export * from './lib/utils'

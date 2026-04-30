@@ -10,6 +10,7 @@
     "cssVariables": true,
     "prefix": ""
   },
+  "iconLibrary": "lucide",
   "aliases": {
     "components": "@zen/ui/components",
     "utils": "@zen/ui/lib/utils",
@@ -17,5 +18,7 @@
     "lib": "@zen/ui/lib",
     "hooks": "@zen/ui/hooks"
   },
-  "iconLibrary": "lucide"
+  "registries": {
+    "@ai-elements": "https://ai-sdk.dev/elements/api/registry/{name}.json"
+  }
 }

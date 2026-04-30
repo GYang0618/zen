@@ -112,6 +112,7 @@ export function NotionPromptForm({ className }: NotionPromptFormProps) {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value.trim())}
             id="notion-prompt"
+            className="max-h-[200px] overflow-y-auto resize-none"
             placeholder="提问、搜索或做任何事..."
             onKeyDown={(e) => {
               if (!inputValue) return
@@ -121,6 +122,7 @@ export function NotionPromptForm({ className }: NotionPromptFormProps) {
               }
             }}
           />
+
           <InputGroupAddon align="block-start" className="pt-3">
             <Popover open={mentionPopoverOpen} onOpenChange={setMentionPopoverOpen}>
               <Tooltip>
