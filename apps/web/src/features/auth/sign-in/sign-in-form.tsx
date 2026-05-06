@@ -19,8 +19,8 @@ import { useSignInMutation } from '../mutations'
 import { ThirdPartyLogin } from '../third-party-login'
 
 const formSchema = z.object({
-  identifier: z.string().trim(),
-  password: z.string()
+  identifier: z.string().trim().min(1, '输入您的账号'),
+  password: z.string().min(1, '密码不能为空')
 })
 
 type FormValues = z.infer<typeof formSchema>

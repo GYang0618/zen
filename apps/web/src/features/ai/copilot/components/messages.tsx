@@ -1,4 +1,6 @@
 import {
+  Alert,
+  AlertTitle,
   cn,
   GradientText,
   Message,
@@ -8,6 +10,7 @@ import {
   ReasoningContent,
   ReasoningTrigger
 } from '@zen/ui'
+import { AlertCircle } from 'lucide-react'
 import { Fragment } from 'react'
 
 import { ToolFallback } from '@/components/tool-ui'
@@ -19,8 +22,9 @@ import { MessageActions } from './message-actions'
 
 export function Messages() {
   const user = useAuthStore((state) => state.user)
-  const { messages, status } = useCopilot()
+  const { messages, status, error } = useCopilot()
   const isStreaming = status === 'streaming'
+
   return (
     <>
       {messages.length ? (
@@ -41,6 +45,7 @@ export function Messages() {
                                 <MessageResponse>{part.text}</MessageResponse>
                               </MessageContent>
                             </Message>
+
                             {isLastPart && (
                               <div
                                 className={cn(
@@ -76,6 +81,16 @@ export function Messages() {
                   })()}
                 </Fragment>
               ))}
+              {error && (
+                <Message from="assistant">
+                  <MessageContent>
+                    <Alert variant="destructive" className="max-w-max">
+                      <AlertCircle />
+                      <AlertTitle>发生了错误，请稍后重试</AlertTitle>
+                    </Alert>
+                  </MessageContent>
+                </Message>
+              )}
             </Fragment>
           )
         })
