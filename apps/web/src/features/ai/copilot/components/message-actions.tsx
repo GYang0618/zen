@@ -1,5 +1,6 @@
 import { cn, MessageAction, MessageActions as MessageActionsPrimitive } from '@zen/ui'
-import { Copy, Pencil, RefreshCw, ThumbsDown, ThumbsUp } from 'lucide-react'
+import { Check, Copy, Pencil, RefreshCw, ThumbsDown, ThumbsUp } from 'lucide-react'
+import { useRef, useState } from 'react'
 
 import { useCopilot } from '../copilot-provider'
 
@@ -12,8 +13,24 @@ interface MessageActionsProps {
 
 export function MessageActions({ part, from }: MessageActionsProps) {
   const { regenerate } = useCopilot()
+  const [copied, setCopied] = useState(false)
+  const copyTimer = useRef<number | null>(null)
   const isUser = from === 'user'
   const isAssistant = from === 'assistant'
+
+  const handleCopy = async () => {
+    try {
+      if (copyTimer.current) {
+        clearTimeout(copyTimer.current)
+        copyTimer.current = null
+      }
+      await navigator.clipboard.writeText(part.text)
+      setCopied(true)
+      copyTimer.current = setTimeout(() => setCopied(false), 1500)
+    } catch (error) {
+      console.error('复制失败: ', error)
+    }
+  }
   return (
     <MessageActionsPrimitive className={cn('h-9', isUser && 'justify-end')}>
       {isUser && (
@@ -21,8 +38,8 @@ export function MessageActions({ part, from }: MessageActionsProps) {
           <Pencil />
         </MessageAction>
       )}
-      <MessageAction onClick={() => navigator.clipboard.writeText(part.text)} label="复制">
-        <Copy />
+      <MessageAction onClick={handleCopy} label="复制">
+        {copied ? <Check className="stroke-emerald-500" /> : <Copy />}
       </MessageAction>
       {isAssistant && (
         <>

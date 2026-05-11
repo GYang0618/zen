@@ -1,16 +1,14 @@
 import cookie from '@fastify/cookie'
 import { NestFactory } from '@nestjs/core'
-import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify'
+import { FastifyAdapter } from '@nestjs/platform-fastify'
 import { Logger } from 'nestjs-pino'
 
-import {
-  type AppConfig,
-  CONFIG_NAMESPACES,
-  type SecurityConfig,
-  type SwaggerConfig
-} from '@/config'
+import { CONFIG_NAMESPACES } from '@/config'
 
 import { AppModule } from './app.module'
+
+import type { NestFastifyApplication } from '@nestjs/platform-fastify'
+import type { AppConfig, SecurityConfig, SwaggerConfig } from '@/config'
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter(), {

@@ -6,11 +6,11 @@ import {
   StateGraph,
   StateSchema
 } from '@langchain/langgraph'
-import { ChatOpenAI } from '@langchain/openai'
 import { Inject, Injectable } from '@nestjs/common'
 import { createAgent } from 'langchain'
 import z from 'zod'
 
+import { createCopilotChatOpenAI } from './copilot-chat-model'
 import { COPILOT_AGENTS, DEFAULT_COPILOT_AGENT_NAME } from './interfaces/agent.interface'
 
 import type { ConditionalEdgeRouter, GraphNode } from '@langchain/langgraph'
@@ -40,12 +40,8 @@ export class CopilotAgentService {
     this.agentRegistry = this.createAgentRegistry(agents)
   }
 
-  private createCopilotChatModel(enableThinking: boolean) {
-    return new ChatOpenAI({
-      model: 'kimi-k2.5',
-      temperature: 0,
-      ...(enableThinking ? { reasoning: { effort: 'medium' } } : {})
-    })
+  private createCopilotChatModel(/*enableThinking: boolean*/) {
+    return createCopilotChatOpenAI()
   }
 
   createWorkflow() {
@@ -71,7 +67,7 @@ export class CopilotAgentService {
     return async (state) => {
       const lastMessageContent = state.input.at(-1)?.content
       const router = createAgent({
-        model: this.createCopilotChatModel(state.enableThinking),
+        model: this.createCopilotChatModel(/*state.enableThinking*/),
         systemPrompt: this.createRouterPrompt(),
         responseFormat: routeDecisionSchema
       })

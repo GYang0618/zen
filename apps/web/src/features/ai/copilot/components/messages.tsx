@@ -71,8 +71,12 @@ export function Messages() {
 
                       case 'dynamic-tool': {
                         const Component = getCopilotToolUI(part.toolName)
-                        if (!Component) return <ToolFallback part={part} />
-                        return <Component part={part} />
+                        if (!Component) return <ToolFallback className="mb-2" part={part} />
+                        return (
+                          <div className="my-2">
+                            <Component part={part} />
+                          </div>
+                        )
                       }
 
                       default:

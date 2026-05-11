@@ -1,17 +1,13 @@
 import { MemorySaver } from '@langchain/langgraph'
-import { ChatOpenAI } from '@langchain/openai'
 import { createAgent, humanInTheLoopMiddleware } from 'langchain'
+
+import { createCopilotChatOpenAI } from '../copilot-chat-model'
 
 import type {
   BuiltCopilotAgent,
   CopilotAgent,
   CopilotAgentName
 } from '../interfaces/agent.interface'
-
-const COPILOT_AGENT_MODEL_CONFIG = {
-  model: 'kimi-k2.5',
-  temperature: 0
-} as const
 
 type CreateAgentOptions = Parameters<typeof createAgent>[0]
 
@@ -24,11 +20,8 @@ export abstract class BaseCopilotAgent<Name extends CopilotAgentName>
 
   private readonly checkpointer = new MemorySaver()
 
-  build({ enableThinking = false }: { enableThinking?: boolean } = {}): BuiltCopilotAgent {
-    const model = new ChatOpenAI({
-      ...COPILOT_AGENT_MODEL_CONFIG,
-      ...(enableThinking ? { reasoning: { effort: 'medium' } } : {})
-    })
+  build(/*{ enableThinking = false }: { enableThinking?: boolean } = {}*/): BuiltCopilotAgent {
+    const model = createCopilotChatOpenAI()
 
     const tools = this.getTools()
 

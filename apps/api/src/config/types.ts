@@ -1,7 +1,7 @@
-import { ConfigType } from '@nestjs/config'
-
 import { CONFIG_NAMESPACES } from './constants'
-import {
+
+import type { ConfigType } from '@nestjs/config'
+import type {
   appConfig,
   authConfig,
   databaseConfig,
