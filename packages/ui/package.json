@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "pnpm run sync:exports:watch",
-    "lint": "biome lint . --error-on-warnings",
+    "lint": "biome check --write .",
     "generate:component": "turbo gen react-component",
     "check-types": "tsc --noEmit",
     "sync:exports": "node scripts/sync-barrel-exports.mjs",

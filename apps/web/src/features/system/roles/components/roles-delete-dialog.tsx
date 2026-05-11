@@ -41,7 +41,8 @@ export function RolesDeleteDialog({ open, onOpenChange, currentRow }: RoleDelete
           <p className="mb-2">
             您确定要删除 <span className="font-bold">{currentRow.name}</span> 吗 ?
             <br />
-            角色编码 <span className="font-bold">{currentRow.code}</span> 将无法继续使用。此操作无法撤销。
+            角色编码 <span className="font-bold">{currentRow.code}</span>{' '}
+            将无法继续使用。此操作无法撤销。
           </p>
 
           <Label className="my-2 text-nowrap">

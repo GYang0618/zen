@@ -1,18 +1,10 @@
-import type {
-  CanActivate,
-  ExecutionContext,
-} from '@nestjs/common'
-import {
-  Inject,
-  Injectable,
-  Logger,
-  UnauthorizedException
-} from '@nestjs/common'
+import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { JwtService } from '@nestjs/jwt'
 
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator'
 
+import type { CanActivate, ExecutionContext } from '@nestjs/common'
 import type { JwtPayload } from '../interfaces/jwt-payload.interface'
 
 type HttpRequest = {

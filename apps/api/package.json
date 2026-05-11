@@ -24,8 +24,8 @@
     "prisma:migrate:dev": "prisma migrate dev"
   },
   "dependencies": {
-    "@zen/shared": "workspace:*",
     "@ai-sdk/langchain": "^2.0.159",
+    "@copilotkit/runtime": "^1.57.1",
     "@fastify/cookie": "^11.0.2",
     "@langchain/community": "^1.1.27",
     "@langchain/core": "^1.1.39",
@@ -38,6 +38,7 @@
     "@nestjs/platform-fastify": "^11.1.17",
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
+    "@zen/shared": "workspace:*",
     "ai": "^6.0.153",
     "argon2": "^0.44.0",
     "fastify": "^5.8.5",

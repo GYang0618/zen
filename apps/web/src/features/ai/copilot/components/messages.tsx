@@ -13,7 +13,7 @@ import {
 import { AlertCircle } from 'lucide-react'
 import { Fragment } from 'react'
 
-import { ToolFallback } from '@/components/tool-ui'
+// import { ToolFallback } from '@/components/tool-ui'
 import { useAuthStore } from '@/stores'
 
 import { useCopilot } from '../copilot-provider'
@@ -71,7 +71,8 @@ export function Messages() {
 
                       case 'dynamic-tool': {
                         const Component = getCopilotToolUI(part.toolName)
-                        if (!Component) return <ToolFallback className="mb-2" part={part} />
+                        // if (!Component) return <ToolFallback className="mb-2" part={part} />
+                        if (!Component) return null
                         return (
                           <div className="my-2">
                             <Component part={part} />

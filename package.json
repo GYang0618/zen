@@ -7,8 +7,6 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "format": "biome format --write .",
-    "check": "biome check .",
     "check-types": "turbo run check-types",
     "clean": "pnpm run clean:dist && pnpm run clean:modules",
     "clean:dist": "pnpm -r --parallel exec rimraf -rf dist",

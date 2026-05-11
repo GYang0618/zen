@@ -2,12 +2,14 @@ import { Global, Module } from '@nestjs/common'
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
 import { JwtModule } from '@nestjs/jwt'
 
-import { type AuthConfig, authConfig } from '@/config'
+import { authConfig } from '@/config'
 import { LoggerModule } from '@/infra/logger'
 
 import { AllExceptionsFilter } from './filters/all-exceptions.filter'
 import { AuthGuard } from './guards/auth.guard'
 import { TransformInterceptor } from './interceptors/transform.interceptor'
+
+import type { AuthConfig } from '@/config'
 
 @Global()
 @Module({

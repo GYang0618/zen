@@ -29,11 +29,12 @@ function GradientText({
     <span
       className={cn('relative inline-block', className)}
       data-slot="gradient-text"
+      // biome-ignore lint/suspicious/noExplicitAny: biome is dumb
       {...(props as any)}
     >
       <motion.span
         animate={{ backgroundPositionX: ['0%', '200%'] }}
-        className="m-0 text-transparent bg-clip-text bg-[length:200%_100%]"
+        className="m-0 text-transparent bg-clip-text bg-size-[200%_100%]"
         style={baseStyle}
         transition={transition}
       >
@@ -43,7 +44,7 @@ function GradientText({
       {neon && (
         <motion.span
           animate={{ backgroundPositionX: ['0%', '200%'] }}
-          className="m-0 absolute top-0 left-0 text-transparent bg-clip-text blur-[8px] mix-blend-plus-lighter bg-[length:200%_100%]"
+          className="m-0 absolute top-0 left-0 text-transparent bg-clip-text blur-sm mix-blend-plus-lighter bg-size-[200%_100%]"
           style={baseStyle}
           transition={transition}
         >

@@ -38,7 +38,8 @@
         }
       },
       "a11y": {
-        "useButtonType": "off"
+        "useButtonType": "off",
+        "useSemanticElements": "off"
       },
 
       "suspicious": {

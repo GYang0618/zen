@@ -2,8 +2,7 @@ import { Inject, Injectable } from '@nestjs/common'
 
 import { PrismaService } from '@/infra/prisma/prisma.service'
 
-import type { Prisma } from '@prisma/client'
-import type { UserStatusCode } from '@prisma/client'
+import type { Prisma, UserStatusCode } from '@prisma/client'
 
 export const USER_INCLUDE = {
   profile: true,

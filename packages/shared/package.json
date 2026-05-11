@@ -16,6 +16,7 @@
   "scripts": {
     "dev": "tsc --watch",
     "build": "tsc",
+    "lint": "biome check --write .",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {

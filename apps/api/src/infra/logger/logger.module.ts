@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common'
 import { LoggerModule as Logger } from 'nestjs-pino'
 
-import { type AppConfig, CONFIG_NAMESPACES, type LoggerConfig } from '@/config'
+import { CONFIG_NAMESPACES } from '@/config'
+
+import type { AppConfig, LoggerConfig } from '@/config'
 
 @Module({
   imports: [

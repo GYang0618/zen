@@ -20,7 +20,6 @@ export function AICopilot() {
       </Header>
 
       <Main fixed fluid className="flex flex-1 flex-col gap-4 sm:gap-6 p-0">
-        {/* <CopilotChat /> */}
         <AIChat />
       </Main>
     </CopilotProvider>

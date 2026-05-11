@@ -49,9 +49,8 @@ export function UsersDeleteDialog({ open, onOpenChange, currentRow }: UserDelete
           <p className="mb-2">
             您确定要删除 <span className="font-bold">{currentRow.username}</span> 吗 ?
             <br />
-            此操作将把具有{' '}
-            <span className="font-bold">{currentRow?.role?.toUpperCase()}</span> 角色的用户。
-            删除后可在后台通过恢复接口找回。
+            此操作将把具有 <span className="font-bold">{currentRow?.role?.toUpperCase()}</span>{' '}
+            角色的用户。 删除后可在后台通过恢复接口找回。
           </p>
 
           <Label className="my-2 text-nowrap">
