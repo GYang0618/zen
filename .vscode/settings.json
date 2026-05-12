@@ -15,5 +15,6 @@
   },
   "search.exclude": {
     "**/routeTree.gen.ts": true
-  }
+  },
+  "cSpell.words": ["copilotkit"]
 }

@@ -1,27 +1,21 @@
 import { MemorySaver } from '@langchain/langgraph'
 import { createAgent, humanInTheLoopMiddleware } from 'langchain'
 
-import { createCopilotChatOpenAI } from '../copilot-chat-model'
+import { createChatOpenAI } from '../chat-chat-model'
 
-import type {
-  BuiltCopilotAgent,
-  CopilotAgent,
-  CopilotAgentName
-} from '../interfaces/agent.interface'
+import type { BuiltChatAgent, ChatAgent, ChatAgentName } from '../interfaces/agent.interface'
 
 type CreateAgentOptions = Parameters<typeof createAgent>[0]
 
-export abstract class BaseCopilotAgent<Name extends CopilotAgentName>
-  implements CopilotAgent<Name>
-{
+export abstract class BaseChatAgent<Name extends ChatAgentName> implements ChatAgent<Name> {
   abstract readonly name: Name
   abstract readonly description: string
   abstract readonly systemPrompt: string
 
   private readonly checkpointer = new MemorySaver()
 
-  build(/*{ enableThinking = false }: { enableThinking?: boolean } = {}*/): BuiltCopilotAgent {
-    const model = createCopilotChatOpenAI()
+  build(/*{ enableThinking = false }: { enableThinking?: boolean } = {}*/): BuiltChatAgent {
+    const model = createChatOpenAI()
 
     const tools = this.getTools()
 

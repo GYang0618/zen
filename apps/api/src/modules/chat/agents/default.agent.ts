@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common'
 
-import { DEFAULT_COPILOT_AGENT_NAME } from '../interfaces/agent.interface'
-import { BaseCopilotAgent } from './base.agent'
+import { DEFAULT_CHAT_AGENT_NAME } from '../interfaces/agent.interface'
+import { BaseChatAgent } from './base.agent'
 
 @Injectable()
-export class DefaultAgent extends BaseCopilotAgent<typeof DEFAULT_COPILOT_AGENT_NAME> {
-  readonly name = DEFAULT_COPILOT_AGENT_NAME
+export class DefaultAgent extends BaseChatAgent<typeof DEFAULT_CHAT_AGENT_NAME> {
+  readonly name = DEFAULT_CHAT_AGENT_NAME
 
   readonly description = '处理通用咨询、兜底问答，以及没有明确业务 Agent 匹配的请求。'
 

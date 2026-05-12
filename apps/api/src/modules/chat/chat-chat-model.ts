@@ -9,13 +9,13 @@ const QWEN_DASHSCOPE_MODEL_KWARGS = {
   enable_thinking: false
 } as const
 
-const COPILOT_CHAT_MODEL_FIELDS = {
+const CHAT_MODEL_FIELDS = {
   model: 'qwen3.5-plus',
   temperature: 0,
   modelKwargs: QWEN_DASHSCOPE_MODEL_KWARGS
 } satisfies ConstructorParameters<typeof ChatOpenAI>[0]
 
-/** Copilot 使用的对话模型（当前链路假设经由 DashScope OpenAI 兼容端点）。 */
-export function createCopilotChatOpenAI(): ChatOpenAI {
-  return new ChatOpenAI(COPILOT_CHAT_MODEL_FIELDS)
+/** Chat 使用的对话模型（当前链路假设经由 DashScope OpenAI 兼容端点）。 */
+export function createChatOpenAI(): ChatOpenAI {
+  return new ChatOpenAI(CHAT_MODEL_FIELDS)
 }

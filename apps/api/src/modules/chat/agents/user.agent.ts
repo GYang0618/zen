@@ -2,10 +2,10 @@ import { Inject, Injectable } from '@nestjs/common'
 
 import { UserTool } from '@/modules/user'
 
-import { BaseCopilotAgent } from './base.agent'
+import { BaseChatAgent } from './base.agent'
 
 @Injectable()
-export class UserAgent extends BaseCopilotAgent<'user_agent'> {
+export class UserAgent extends BaseChatAgent<'user_agent'> {
   readonly name = 'user_agent'
 
   readonly description = '处理用户查询、创建、更新、删除、恢复、状态变更等用户管理请求。'

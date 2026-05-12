@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common'
 
-import { BaseCopilotAgent } from './base.agent'
+import { BaseChatAgent } from './base.agent'
 
 @Injectable()
-export class RoleAgent extends BaseCopilotAgent<'role_agent'> {
+export class RoleAgent extends BaseChatAgent<'role_agent'> {
   readonly name = 'role_agent'
 
   readonly description = '处理角色、权限、授权范围等角色管理相关请求。'

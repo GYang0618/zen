@@ -4,7 +4,7 @@ import { toBaseMessages, toUIMessageStream } from '@ai-sdk/langchain'
 import { Command } from '@langchain/langgraph'
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 
-import { CopilotAgentService } from './copilot-agent.service'
+import { ChatAgentService } from './chat-agent.service'
 
 import type { HITLResponse } from 'langchain'
 import type { CallDto } from './dto/call.dto'
@@ -33,13 +33,13 @@ function isApprovalRespondedToolPart(part: unknown): part is ApprovalRespondedTo
 }
 
 /**
- * Copilot 核心服务，负责请求处理与流式响应编排
+ * Chat 核心服务，负责请求处理与流式响应编排
  */
 @Injectable()
-export class CopilotService {
-  private readonly logger = new Logger(CopilotService.name)
+export class ChatService {
+  private readonly logger = new Logger(ChatService.name)
 
-  constructor(@Inject(CopilotAgentService) private readonly agentService: CopilotAgentService) {}
+  constructor(@Inject(ChatAgentService) private readonly agentService: ChatAgentService) {}
 
   async call({ id, messages, enableThinking = false }: CallDto) {
     const approvalResume = this.createApprovalResume(messages)

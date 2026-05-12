@@ -3,21 +3,21 @@ import { createUIMessageStreamResponse } from 'ai'
 
 import { BypassTransform, Public, ZodValidationPipe } from '@/common'
 
-import { CopilotService } from './copilot.service'
+import { ChatService } from './chat.service'
 import { callSchema } from './dto/call.dto'
 
 import type { CallDto } from './dto/call.dto'
 
-@Controller('copilot')
-export class CopilotController {
-  constructor(@Inject(CopilotService) private readonly copilotService: CopilotService) {}
+@Controller('chat')
+export class ChatController {
+  constructor(@Inject(ChatService) private readonly chatService: ChatService) {}
 
   @Public()
   @BypassTransform()
   @Post()
   @UsePipes(new ZodValidationPipe(callSchema))
   async call(@Body() callDto: CallDto) {
-    const stream = await this.copilotService.call(callDto)
+    const stream = await this.chatService.call(callDto)
 
     return createUIMessageStreamResponse({ stream })
   }

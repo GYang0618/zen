@@ -21,7 +21,8 @@ export const env = loadEnv()
 export const configs = {
   baseUrl: env.VITE_APP_BASE_URL,
   apiTimeout: env.VITE_APP_API_TIMEOUT,
-  chatApi: env.VITE_APP_CHAT_API
+  chatApi: env.VITE_APP_CHAT_API,
+  copilotKitApi: env.VITE_APP_COPILOT_KIT_API
 }
 
 export const useEnv = () => configs

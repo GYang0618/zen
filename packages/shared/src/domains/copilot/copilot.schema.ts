@@ -11,3 +11,6 @@ export const copilotCallSchema = z.object({
    */
   enableThinking: z.boolean().optional().default(false)
 })
+
+/** 与 {@link copilotCallSchema} 相同，供 Chat 命名空间使用 */
+export const chatCallSchema = copilotCallSchema
