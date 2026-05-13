@@ -2,7 +2,6 @@ import { ConfigDrawer, ProfileDropdown, Search, ThemeSwitch } from '@/components
 import { Header, Main } from '@/components/layouts'
 
 import { AIChat } from './components/ai-chat'
-// import { CopilotChat } from './components/copilot-chat'
 import { CopilotProvider, useCopilot } from './copilot-provider'
 
 export { CopilotProvider, useCopilot }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import type { ColumnFiltersState, OnChangeFn, PaginationState } from '@tanstack/react-table'
 
@@ -57,6 +57,29 @@ type UseTableUrlStateReturn = {
   ensurePageInRange: (pageCount: number, opts?: { resetTo?: 'first' | 'last' }) => void
 }
 
+function buildColumnFiltersFromSearch<TData extends SearchRecord>(
+  search: SearchRecord,
+  columnFiltersCfg: Array<ColumnFilterConfig<TData>>
+): ColumnFiltersState {
+  const collected: ColumnFiltersState = []
+  for (const cfg of columnFiltersCfg) {
+    const raw = search[cfg.searchKey]
+    const deserialize = cfg.deserialize ?? ((v: unknown) => v)
+    if (cfg.type === 'string') {
+      const value = (deserialize(raw) as string) ?? ''
+      if (typeof value === 'string' && value.trim() !== '') {
+        collected.push({ id: cfg.columnId, value })
+      }
+    } else {
+      const value = (deserialize(raw) as unknown[]) ?? []
+      if (Array.isArray(value) && value.length > 0) {
+        collected.push({ id: cfg.columnId, value })
+      }
+    }
+  }
+  return collected
+}
+
 export function useTableUrlState<TData extends SearchRecord = SearchRecord>(
   params: UseTableUrlStateParams<TData>
 ): UseTableUrlStateReturn {
@@ -90,29 +113,50 @@ export function useTableUrlState<TData extends SearchRecord = SearchRecord>(
   // const globalFilterEnabled = globalFilterCfg?.enabled ?? true
   // const trimGlobal = globalFilterCfg?.trim ?? true
 
-  // 构建初始列过滤器
-  const initialColumnFilters: ColumnFiltersState = useMemo(() => {
-    const collected: ColumnFiltersState = []
-    for (const cfg of columnFiltersCfg) {
-      const raw = (search as SearchRecord)[cfg.searchKey]
-      const deserialize = cfg.deserialize ?? ((v: unknown) => v)
-      if (cfg.type === 'string') {
-        const value = (deserialize(raw) as string) ?? ''
-        if (typeof value === 'string' && value.trim() !== '') {
-          collected.push({ id: cfg.columnId, value })
-        }
-      } else {
-        // 默认使用数组类型
-        const value = (deserialize(raw) as unknown[]) ?? []
-        if (Array.isArray(value) && value.length > 0) {
-          collected.push({ id: cfg.columnId, value })
-        }
-      }
-    }
-    return collected
-  }, [columnFiltersCfg, search])
+  // 用内容序列化做依赖：router 的 search 常是每帧新对象，若用引用作 effect 依赖会死循环
+  const urlTableSyncKey = JSON.stringify({
+    columnRaw: columnFiltersCfg.map((cfg) => (search as SearchRecord)[cfg.searchKey]),
+    globalRaw: globalFilterEnabled ? (search as SearchRecord)[globalFilterKey] : undefined
+  })
 
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(initialColumnFilters)
+  const urlSyncRef = useRef({
+    search: search as SearchRecord,
+    columnFiltersCfg,
+    globalFilterEnabled,
+    globalFilterKey
+  })
+  urlSyncRef.current = {
+    search: search as SearchRecord,
+    columnFiltersCfg,
+    globalFilterEnabled,
+    globalFilterKey
+  }
+
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(() =>
+    buildColumnFiltersFromSearch(search as SearchRecord, columnFiltersCfg)
+  )
+
+  const [globalFilter, setGlobalFilter] = useState<string | undefined>(() => {
+    if (!globalFilterEnabled) return undefined
+    const raw = search[globalFilterKey]
+    return typeof raw === 'string' ? raw : ''
+  })
+
+  useEffect(() => {
+    // 依赖 urlTableSyncKey：router 的 search 引用不稳定，用序列化键触发同步
+    void urlTableSyncKey
+    const {
+      search: s,
+      columnFiltersCfg: cfg,
+      globalFilterEnabled: gfOn,
+      globalFilterKey: gfKey
+    } = urlSyncRef.current
+    setColumnFilters(buildColumnFiltersFromSearch(s, cfg))
+    if (!gfOn) return
+    const raw = s[gfKey]
+    const next = typeof raw === 'string' ? raw : ''
+    setGlobalFilter((prev) => (prev === next ? prev : next))
+  }, [urlTableSyncKey])
 
   const pagination: PaginationState = useMemo(() => {
     const rawPage = search[pageKey]
@@ -134,12 +178,6 @@ export function useTableUrlState<TData extends SearchRecord = SearchRecord>(
       })
     })
   }
-
-  const [globalFilter, setGlobalFilter] = useState<string | undefined>(() => {
-    if (!globalFilterEnabled) return undefined
-    const raw = search[globalFilterKey]
-    return typeof raw === 'string' ? raw : ''
-  })
 
   const onGlobalFilterChange: OnChangeFn<string> | undefined = globalFilterEnabled
     ? (updater) => {

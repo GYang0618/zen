@@ -55,8 +55,11 @@ export const usersQuerySchema = pageQuerySchema.extend({
   status: z
     .union([userStatusSchema, userStatusSchema.array()])
     .optional()
-    .describe('状态,支持单个或多个'),
-  role: z.union([z.string(), z.string().array()]).optional().describe('角色,支持单个或多个'),
+    .describe('状态,支持单个或多个,如: `active` 或者 [`active`, `inactive`]'),
+  role: z
+    .union([z.string(), z.string().array()])
+    .optional()
+    .describe('角色,支持单个或多个,例如: `admin` 或者 [`admin`, `guest`]'),
   sortBy: usersSortBySchema.optional().describe('排序字段'),
   sortOrder: usersSortOrderSchema.optional().describe('排序方向')
 })
