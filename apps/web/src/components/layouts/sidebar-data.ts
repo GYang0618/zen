@@ -19,6 +19,7 @@ import {
   Library,
   Lock,
   Logs,
+  MessageCircleMore,
   Monitor,
   Palette,
   Radar,
@@ -64,7 +65,12 @@ export const sidebarData: SidebarData = {
           icon: LayoutDashboard
         },
         {
-          title: 'Copilot',
+          title: 'chat',
+          url: '/ai/chat',
+          icon: MessageCircleMore
+        },
+        {
+          title: 'copilot',
           url: '/ai/copilot',
           icon: BotMessageSquare
         },

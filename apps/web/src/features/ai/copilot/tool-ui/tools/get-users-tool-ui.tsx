@@ -23,7 +23,7 @@ export const GetUsersToolUI = makeAssistantToolUI({
       case 'ready':
         return state.data.items.length ? (
           <div
-            className="rounded-md border transition-opacity data-preliminary:opacity-60"
+            className="transition-opacity data-preliminary:opacity-60"
             data-preliminary={state.isPreliminary || undefined}
           >
             <AITable data={state.data.items} columns={tableColumns} />

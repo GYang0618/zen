@@ -1,7 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { AICopilot } from '@/features/ai/copilot'
-
+import { CopilotChat } from '@/features/ai/copilotkit'
 export const Route = createFileRoute('/_authenticated/ai/copilot')({
-  component: AICopilot
+  component: CopilotChat
 })

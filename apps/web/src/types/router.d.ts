@@ -1,5 +1,5 @@
+import type { LinkProps } from '@tanstack/react-router'
 import type { LucideIcon } from 'lucide-react'
-
 export interface RouterMeta {
   title?: string
   /** 菜单图标 */
@@ -23,3 +23,5 @@ export interface RouterMeta {
   /** 菜单分组 */
   group?: string
 }
+
+export type AppPath = LinkProps['to']

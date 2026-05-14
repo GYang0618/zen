@@ -1,7 +1,5 @@
 import { BuiltInAgent, CopilotRuntime, createCopilotHonoHandler } from '@copilotkit/runtime/v2'
 
-import type { Hono } from 'hono'
-
 const builtInAgent = new BuiltInAgent({
   model: 'openai/qwen3.5-plus',
   maxSteps: 5,
@@ -17,6 +15,6 @@ const runtime = new CopilotRuntime({
 const app = createCopilotHonoHandler({
   runtime,
   basePath: '/'
-}) as unknown as Hono
+})
 
 export default app

@@ -1,7 +1,6 @@
 import { createRootRoute, Outlet } from '@tanstack/react-router'
 import { Toaster } from '@zen/ui'
 
-import { CopilotKitSidebar } from '@/features/ai/copilotkit'
 import { NotFoundError } from '@/features/errors/not-found-error'
 
 export const Route = createRootRoute({
@@ -15,7 +14,7 @@ function RootComponent() {
     <>
       <Outlet />
       <Toaster />
-      <CopilotKitSidebar />
+
       {/* <TanStackDevtools
           config={{ position: 'bottom-right' }}
           plugins={[

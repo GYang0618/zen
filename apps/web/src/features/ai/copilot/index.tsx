@@ -18,7 +18,7 @@ export function AICopilot() {
         </div>
       </Header>
 
-      <Main fixed fluid className="flex flex-1 flex-col gap-4 sm:gap-6 p-0">
+      <Main fixed fluid className="flex flex-1 flex-col gap-4 sm:gap-6 p-0 ">
         <AIChat />
       </Main>
     </CopilotProvider>

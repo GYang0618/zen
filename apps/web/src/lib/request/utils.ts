@@ -1,5 +1,7 @@
 // ─── 内部工具函数 ─────────────────────────────────────────
 
+import { isAxiosError } from '@zen/request'
+
 import type { RequestErrorResponse } from './types'
 
 export function isRequestErrorResponse(data: unknown): data is RequestErrorResponse {
@@ -37,4 +39,20 @@ export function fallbackMessage(status: number | undefined): string {
     default:
       return status ? `请求失败（${status}）` : '网络连接异常，请检查网络'
   }
+}
+
+export function isSessionExpired(error: unknown): boolean {
+  if (isAxiosError(error)) {
+    const status = error.response?.status
+    return status === 401
+  }
+  return false
+}
+
+export function isForbidden(error: unknown): boolean {
+  if (isAxiosError(error)) {
+    const status = error.response?.status
+    return status === 403
+  }
+  return false
 }
