@@ -18,6 +18,7 @@ export function useWeatherCard() {
         city: z.string().describe('城市名称'),
         unit: z.enum(['c', 'f']).default('c')
       }),
+
       render: ({ city, unit }) => <WeatherCard city={city} unit={unit} />
     },
     []
