@@ -14,18 +14,18 @@ import {
   ReasoningContent,
   ReasoningTrigger
 } from '@zen/ui'
-import { Fragment, useMemo } from 'react'
+import { Fragment, useEffect, useMemo } from 'react'
 
 import { useAuthStore } from '@/stores'
 
 import type {
-  Message as AgMessage,
-  AssistantMessage,
-  ReasoningMessage,
-  UserMessage
+  AssistantMessage as CopilotkitAssistantMessage,
+  Message as CopilotkitMessage,
+  ReasoningMessage as CopilotkitReasoningMessage,
+  UserMessage as CopilotkitUserMessage
 } from '@copilotkit/react-core/v2'
 
-function flattenUserMessageContent(content: UserMessage['content']): string {
+function flattenUserMessageContent(content: CopilotkitUserMessage['content']): string {
   if (!content) return ''
   if (typeof content === 'string') return content
 
@@ -35,11 +35,11 @@ function flattenUserMessageContent(content: UserMessage['content']): string {
     .join('\n')
 }
 
-interface ZenUserMessageProps {
-  message: UserMessage
+interface UserMessageProps {
+  message: CopilotkitUserMessage
 }
 
-function ZenUserMessage({ message }: ZenUserMessageProps) {
+function UserMessage({ message }: UserMessageProps) {
   const text = useMemo(() => flattenUserMessageContent(message.content), [message.content])
 
   if (!text) return null
@@ -53,13 +53,13 @@ function ZenUserMessage({ message }: ZenUserMessageProps) {
   )
 }
 
-interface ZenAssistantMessageProps {
-  message: AssistantMessage
-  messages: AgMessage[]
+interface AssistantMessageProps {
+  message: CopilotkitAssistantMessage
+  messages: CopilotkitMessage[]
   isRunning: boolean
 }
 
-function ZenAssistantMessage({ message, messages, isRunning }: ZenAssistantMessageProps) {
+function AssistantMessage({ message, messages, isRunning }: AssistantMessageProps) {
   const hasContent = Boolean(message.content?.trim())
   const isLatestAssistant = messages[messages.length - 1]?.id === message.id
   const isStreaming = Boolean(isRunning && isLatestAssistant)
@@ -80,13 +80,13 @@ function ZenAssistantMessage({ message, messages, isRunning }: ZenAssistantMessa
   )
 }
 
-interface ZenReasoningMessageProps {
-  message: ReasoningMessage
-  messages: AgMessage[]
+interface ReasoningMessageProps {
+  message: CopilotkitReasoningMessage
+  messages: CopilotkitMessage[]
   isRunning: boolean
 }
 
-function ZenReasoningMessage({ message, messages, isRunning }: ZenReasoningMessageProps) {
+function ReasoningMessage({ message, messages, isRunning }: ReasoningMessageProps) {
   const isLatest = messages[messages.length - 1]?.id === message.id
   const isStreaming = Boolean(isRunning && isLatest)
   const hasContent = Boolean(message.content?.length)
@@ -101,8 +101,8 @@ function ZenReasoningMessage({ message, messages, isRunning }: ZenReasoningMessa
   )
 }
 
-function deduplicateMessages(messages: AgMessage[]): AgMessage[] {
-  const merged = new Map<string, AgMessage>()
+function deduplicateMessages(messages: CopilotkitMessage[]): CopilotkitMessage[] {
+  const merged = new Map<string, CopilotkitMessage>()
 
   for (const message of messages) {
     const existing = merged.get(message.id)
@@ -121,17 +121,21 @@ function deduplicateMessages(messages: AgMessage[]): AgMessage[] {
   return [...merged.values()]
 }
 
-export default function ChatMessages() {
+export function ChatMessages() {
   const { agent } = useAgent()
   const { renderActivityMessage } = useRenderActivityMessage()
   const user = useAuthStore((state) => state.user)
   const { messages, isRunning } = agent
 
+  useEffect(() => {
+    console.log(messages)
+  }, [messages])
+
   const displayMessages = useMemo(() => deduplicateMessages(messages), [messages])
 
   if (displayMessages.length === 0) {
     return (
-      <div className="absolute inset-0 flex items-center justify-center px-4">
+      <div className="size-full flex items-end justify-center px-4">
         <span className="text-center text-4xl font-bold leading-normal">
           <GradientText text={`${user?.nickname || user?.username}，你好！`} />
           <br />
@@ -148,16 +152,16 @@ export default function ChatMessages() {
 
         return (
           <Fragment key={message.id}>
-            {message.role === 'user' && <ZenUserMessage message={message} />}
+            {message.role === 'user' && <UserMessage message={message} />}
             {message.role === 'assistant' && (
-              <ZenAssistantMessage
+              <AssistantMessage
                 message={message}
                 messages={displayMessages}
                 isRunning={isRunning}
               />
             )}
             {message.role === 'reasoning' && (
-              <ZenReasoningMessage
+              <ReasoningMessage
                 message={message}
                 messages={displayMessages}
                 isRunning={isRunning}

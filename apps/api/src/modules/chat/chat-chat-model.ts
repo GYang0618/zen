@@ -10,7 +10,7 @@ const QWEN_DASHSCOPE_MODEL_KWARGS = {
 } as const
 
 const CHAT_MODEL_FIELDS = {
-  model: 'qwen3.5-plus',
+  model: 'qwen3.5-27b',
   temperature: 0,
   modelKwargs: QWEN_DASHSCOPE_MODEL_KWARGS
 } satisfies ConstructorParameters<typeof ChatOpenAI>[0]

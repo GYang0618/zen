@@ -1,14 +1,22 @@
+import { LangGraphAgent } from '@copilotkit/runtime/langgraph'
 import { BuiltInAgent, CopilotRuntime, createCopilotHonoHandler } from '@copilotkit/runtime/v2'
 
+const agent = new LangGraphAgent({
+  deploymentUrl: 'http://localhost:2024',
+  graphId: 'my_agent'
+})
+
 const builtInAgent = new BuiltInAgent({
-  model: 'openai/qwen3.5-plus',
+  model: 'openai/qwen3.5-27b',
   maxSteps: 5,
   prompt: '你是一个智能助手，请根据用户的问题给出回答（使用中文回答）。'
 })
 
 const runtime = new CopilotRuntime({
   agents: {
-    default: builtInAgent
+    // default: agent,
+    default: builtInAgent,
+    langchainAgent: agent
   }
 })
 

@@ -1,6 +1,5 @@
 // ─── 内部工具函数 ─────────────────────────────────────────
-
-import { isAxiosError } from '@zen/request'
+import { ApiClientError } from './types'
 
 import type { RequestErrorResponse } from './types'
 
@@ -41,18 +40,20 @@ export function fallbackMessage(status: number | undefined): string {
   }
 }
 
+export function isApiClientError(error: unknown): error is ApiClientError {
+  return error instanceof ApiClientError
+}
+
 export function isSessionExpired(error: unknown): boolean {
-  if (isAxiosError(error)) {
-    const status = error.response?.status
-    return status === 401
+  if (isApiClientError(error)) {
+    return error.code === 401
   }
   return false
 }
 
 export function isForbidden(error: unknown): boolean {
-  if (isAxiosError(error)) {
-    const status = error.response?.status
-    return status === 403
+  if (isApiClientError(error)) {
+    return error.code === 403
   }
   return false
 }

@@ -1,10 +1,13 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 
 import { userApi } from './api'
 
-export function useUsersQuery() {
+import type { UsersQuery } from '@zen/shared'
+
+export function useUsersQuery(params: UsersQuery = {}) {
   return useQuery({
-    queryKey: ['system', 'users', 'list'],
-    queryFn: () => userApi.getUserList()
+    queryKey: ['system', 'users', 'list', params],
+    queryFn: () => userApi.getUserList(params),
+    placeholderData: keepPreviousData
   })
 }

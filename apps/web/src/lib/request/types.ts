@@ -1,4 +1,4 @@
-import type { InternalAxiosRequestConfig } from '@zen/request/types'
+import type { InternalAxiosRequestConfig } from '@zen/request'
 
 export interface RequestResponse<T> {
   code: number

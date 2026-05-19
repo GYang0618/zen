@@ -1,4 +1,4 @@
-import { CopilotChat as CopilotkitChat } from '@copilotkit/react-core/v2'
+// import { CopilotChat as CopilotkitChat } from '@copilotkit/react-core/v2'
 
 import { ConfigDrawer, ProfileDropdown, Search, ThemeSwitch } from '@/components'
 import { Header, Main } from '@/components/layouts'

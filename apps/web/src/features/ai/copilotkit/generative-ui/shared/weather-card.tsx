@@ -13,7 +13,7 @@ export function useWeatherCard() {
   useComponent(
     {
       name: 'showWeather',
-      description: '渲染对应城市的天气信息卡片',
+      description: '渲染对应城市的天气信息卡片, 成功后不必再思考了',
       parameters: z.object({
         city: z.string().describe('城市名称'),
         unit: z.enum(['c', 'f']).default('c')
@@ -29,7 +29,7 @@ function WeatherCard({ city, unit }: WeatherCardProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{city}</CardTitle>
+        <CardTitle>{city}天气</CardTitle>
         <CardDescription>关于天气信息的描述</CardDescription>
       </CardHeader>
       <CardContent>
