@@ -2,11 +2,10 @@ import { copilotkitMiddleware } from '@copilotkit/sdk-js/langgraph'
 import { ChatOpenAI } from '@langchain/openai'
 import { createAgent } from 'langchain'
 
-/** DashScope Qwen 需关闭 thinking，否则 tool calling 会 400 */
 const model = new ChatOpenAI({
   model: 'qwen3.5-27b',
   temperature: 0,
-  modelKwargs: { enable_thinking: false }
+  streaming: true
 })
 
 const agent = createAgent({
@@ -15,5 +14,4 @@ const agent = createAgent({
   middleware: [copilotkitMiddleware]
 })
 
-/** LangGraph CLI 从 langgraph.json 的 `:graph` 符号加载 */
 export { agent }

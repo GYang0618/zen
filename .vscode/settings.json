@@ -16,5 +16,5 @@
   "search.exclude": {
     "**/routeTree.gen.ts": true
   },
-  "cSpell.words": ["copilotkit"]
+  "cSpell.words": ["copilotkit", "kwargs"]
 }

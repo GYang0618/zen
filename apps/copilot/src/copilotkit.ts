@@ -1,9 +1,10 @@
-import { LangGraphAgent } from '@copilotkit/runtime/langgraph'
 import { BuiltInAgent, CopilotRuntime, createCopilotHonoHandler } from '@copilotkit/runtime/v2'
 
+import { LangGraphAgent } from './langgraph/agent'
+
 const agent = new LangGraphAgent({
-  deploymentUrl: 'http://localhost:2024',
-  graphId: 'my_agent'
+  deploymentUrl: process.env.LANGGRAPH_DEPLOYMENT_URL ?? 'http://localhost:2024',
+  graphId: process.env.LANGGRAPH_GRAPH_ID ?? 'langchain_agent'
 })
 
 const builtInAgent = new BuiltInAgent({
@@ -14,9 +15,8 @@ const builtInAgent = new BuiltInAgent({
 
 const runtime = new CopilotRuntime({
   agents: {
-    // default: agent,
-    default: builtInAgent,
-    langchainAgent: agent
+    default: agent,
+    builtInAgent
   }
 })
 

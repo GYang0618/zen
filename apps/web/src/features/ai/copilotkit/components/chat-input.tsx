@@ -107,6 +107,12 @@ export function ChatInput() {
                 className="flex-1 border-0 outline-0 rounded-md py-2 text-base bg-transparent w-full font-normal"
                 style={{ position: 'relative', zIndex: 1 }}
                 onFocus={handleActivate}
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter' || e.nativeEvent.isComposing) return
+                  e.preventDefault()
+                  e.stopPropagation()
+                  void sendMessage()
+                }}
               />
               <div className="absolute left-0 top-0 w-full h-full pointer-events-none flex items-center  py-2">
                 <DynamicTexts active={dynamicPlaceholderActive} activeIndex={placeholderIndex} />

@@ -16,7 +16,7 @@ function useUsersTable() {
   useComponent(
     {
       name: 'query-users-table',
-      description: '查询用户，可以通过关键字、用户状态、角色等条件进行查询',
+      description: '渲染用户列表表格，渲染的数据已经在表格内部进行获取，你无法接受到真实数据',
       parameters: usersQuerySchema,
       render: (params) => <UsersTable query={params} />
     },
