@@ -9,7 +9,7 @@ import { Hono } from 'hono'
 
 const app = new Hono()
 
-app.route('/api/copilotkit', copilotkitApp)
+app.route('/copilotkit', copilotkitApp)
 
 app.get('/', (c) => {
   return c.text('Hello Hono!')

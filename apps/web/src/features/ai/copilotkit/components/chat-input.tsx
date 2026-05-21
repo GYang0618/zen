@@ -73,7 +73,11 @@ export function ChatInput() {
       content: inputValue
     })
     setInputValue('')
-    await copilotkit.runAgent({ agent })
+    try {
+      await copilotkit.runAgent({ agent })
+    } catch (error) {
+      console.error('CopilotChat: runAgent failed', error)
+    }
   }
 
   return (

@@ -22,7 +22,7 @@ import { durationToSeconds, REFRESH_TOKEN_COOKIE_NAME } from './auth-cookie'
 import { loginSchema } from './dto/login.dto'
 import { registerSchema } from './dto/register.dto'
 
-import type { FastifyReply, FastifyRequest } from 'fastify'
+import type { Request, Response } from 'express'
 import type { JwtPayload } from '@/common/interfaces/jwt-payload.interface'
 import type { AppConfig, AuthConfig } from '@/config'
 import type { UserInfoResponse } from '@/modules/user/responses/user.response'
@@ -48,7 +48,7 @@ export class AuthController {
   @UsePipes(new ZodValidationPipe(registerSchema))
   async register(
     @Body() registerDto: RegisterDto,
-    @Res({ passthrough: true }) reply: FastifyReply
+    @Res({ passthrough: true }) reply: Response
   ): Promise<RegisterResponse> {
     const { session, refreshToken } = await this.authService.register(registerDto)
     await this.persistRefreshToken(reply, session.user.id, refreshToken)
@@ -61,7 +61,7 @@ export class AuthController {
   @UsePipes(new ZodValidationPipe(loginSchema))
   async login(
     @Body() loginDto: LoginDto,
-    @Res({ passthrough: true }) reply: FastifyReply
+    @Res({ passthrough: true }) reply: Response
   ): Promise<LoginResponse> {
     const { session, refreshToken } = await this.authService.login(loginDto)
     await this.persistRefreshToken(reply, session.user.id, refreshToken)
@@ -72,8 +72,8 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refresh(
-    @Req() request: FastifyRequest,
-    @Res({ passthrough: true }) reply: FastifyReply
+    @Req() request: Request,
+    @Res({ passthrough: true }) reply: Response
   ): Promise<RefreshResponse> {
     const refreshToken = request.cookies?.[REFRESH_TOKEN_COOKIE_NAME]
     if (!refreshToken) throw new UnauthorizedException('缺少刷新令牌')
@@ -96,8 +96,8 @@ export class AuthController {
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
   async logout(
-    @Req() request: FastifyRequest,
-    @Res({ passthrough: true }) reply: FastifyReply
+    @Req() request: Request,
+    @Res({ passthrough: true }) reply: Response
   ): Promise<void> {
     const refreshToken = request.cookies?.[REFRESH_TOKEN_COOKIE_NAME]
     if (refreshToken) {
@@ -114,13 +114,13 @@ export class AuthController {
 
   @Get('me')
   @HttpCode(HttpStatus.OK)
-  async me(@Req() request: FastifyRequest): Promise<UserInfoResponse> {
+  async me(@Req() request: Request): Promise<UserInfoResponse> {
     const user = (request as unknown as { user?: JwtPayload }).user
     if (!user?.sub) throw new UnauthorizedException('缺少认证信息')
     return this.authService.getMe(user.sub)
   }
 
-  private clearRefreshToken(reply: FastifyReply) {
+  private clearRefreshToken(reply: Response) {
     reply.clearCookie(REFRESH_TOKEN_COOKIE_NAME, {
       path: this.cookiePath,
       sameSite: 'strict',
@@ -129,17 +129,17 @@ export class AuthController {
     })
   }
 
-  private async persistRefreshToken(reply: FastifyReply, userId: string, refreshToken: string) {
+  private async persistRefreshToken(reply: Response, userId: string, refreshToken: string) {
     const maxAgeSeconds = durationToSeconds(this.authCfg.refreshExpiresIn)
     const refreshTokenExpiresAt = new Date(Date.now() + maxAgeSeconds * 1000)
     await this.authService.rotateRefreshToken(userId, refreshToken, refreshTokenExpiresAt)
 
-    reply.setCookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken, {
+    reply.cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken, {
       path: this.cookiePath,
       httpOnly: true,
       secure: this.appCfg.isProd,
       sameSite: 'strict',
-      maxAge: maxAgeSeconds
+      expires: refreshTokenExpiresAt
     })
   }
 

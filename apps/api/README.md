@@ -2,7 +2,7 @@
 
 ## 技术栈
 
-- NestJS + Fastify Adapter
+- NestJS + Express Adapter
 - PostgreSQL + Prisma
 - @nestjs/config + zod 配置校验
 - pino + nestjs-pino 日志

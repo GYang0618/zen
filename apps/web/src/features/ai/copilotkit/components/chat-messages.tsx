@@ -6,6 +6,8 @@ import {
   useRenderActivityMessage
 } from '@copilotkit/react-core/v2'
 import {
+  Alert,
+  AlertTitle,
   GradientText,
   Message,
   MessageContent,
@@ -14,7 +16,8 @@ import {
   ReasoningContent,
   ReasoningTrigger
 } from '@zen/ui'
-import { Fragment, useEffect, useMemo } from 'react'
+import { AlertCircle } from 'lucide-react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useAuthStore } from '@/stores'
 
@@ -70,7 +73,7 @@ function AssistantMessage({ message, messages, isRunning }: AssistantMessageProp
     <>
       {hasContent && (
         <Message from="assistant">
-          <MessageContent>
+          <MessageContent className="transition-all duration-300">
             <MessageResponse isAnimating={isStreaming}>{message.content ?? ''}</MessageResponse>
           </MessageContent>
         </Message>
@@ -121,21 +124,84 @@ function deduplicateMessages(messages: CopilotkitMessage[]): CopilotkitMessage[]
   return [...merged.values()]
 }
 
+/**
+ * Agent 在 RUN_ERROR / 空 MESSAGES_SNAPSHOT 时可能清掉乐观添加的用户消息；
+ * 本地缓存已展示过的 user 消息，并在 agent 状态中缺失时合并回列表。
+ */
+function useDisplayMessages(messages: CopilotkitMessage[]): CopilotkitMessage[] {
+  const orderRef = useRef<string[]>([])
+  const persistedUsersRef = useRef<Map<string, CopilotkitUserMessage>>(new Map())
+
+  return useMemo(() => {
+    const deduped = deduplicateMessages(messages)
+    const byId = new Map<string, CopilotkitMessage>()
+
+    for (const message of deduped) {
+      byId.set(message.id, message)
+      if (!orderRef.current.includes(message.id)) {
+        orderRef.current.push(message.id)
+      }
+      if (message.role === 'user') {
+        persistedUsersRef.current.set(message.id, message)
+      }
+    }
+
+    for (const [id, userMessage] of persistedUsersRef.current) {
+      if (!byId.has(id)) {
+        byId.set(id, userMessage)
+        if (!orderRef.current.includes(id)) {
+          orderRef.current.push(id)
+        }
+      }
+    }
+
+    return orderRef.current
+      .map((id) => byId.get(id))
+      .filter((message): message is CopilotkitMessage => message !== undefined)
+  }, [messages])
+}
+
 export function ChatMessages() {
   const { agent } = useAgent()
   const { renderActivityMessage } = useRenderActivityMessage()
   const user = useAuthStore((state) => state.user)
   const { messages, isRunning } = agent
+  const [runError, setRunError] = useState<string | null>(null)
+
+  const displayMessages = useDisplayMessages(messages)
 
   useEffect(() => {
-    console.log(messages)
-  }, [messages])
+    const subscription = agent.subscribe({
+      onRunInitialized: () => setRunError(null),
+      onRunFailed: () => {
+        setRunError('请求失败，请稍后重试')
+      },
+      onRunErrorEvent: () => {
+        setRunError('请求失败，请稍后重试')
+      }
+    })
 
-  const displayMessages = useMemo(() => deduplicateMessages(messages), [messages])
+    return () => subscription.unsubscribe()
+  }, [agent])
 
   if (displayMessages.length === 0) {
+    if (runError) {
+      return (
+        <div className="flex flex-col gap-4">
+          <Message from="assistant">
+            <MessageContent>
+              <Alert variant="destructive" className="max-w-max">
+                <AlertCircle />
+                <AlertTitle>{runError}</AlertTitle>
+              </Alert>
+            </MessageContent>
+          </Message>
+        </div>
+      )
+    }
+
     return (
-      <div className="size-full flex items-end justify-center px-4">
+      <div className="flex min-h-full items-end justify-center px-4">
         <span className="text-center text-4xl font-bold leading-normal">
           <GradientText text={`${user?.nickname || user?.username}，你好！`} />
           <br />
@@ -171,6 +237,16 @@ export function ChatMessages() {
           </Fragment>
         )
       })}
+      {runError && (
+        <Message from="assistant">
+          <MessageContent>
+            <Alert variant="destructive" className="max-w-max">
+              <AlertCircle />
+              <AlertTitle>{runError}</AlertTitle>
+            </Alert>
+          </MessageContent>
+        </Message>
+      )}
     </div>
   )
 }

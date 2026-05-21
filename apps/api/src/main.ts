@@ -1,17 +1,15 @@
-import cookie from '@fastify/cookie'
+import cookieParser from 'cookie-parser'
 import { NestFactory } from '@nestjs/core'
-import { FastifyAdapter } from '@nestjs/platform-fastify'
 import { Logger } from 'nestjs-pino'
 
 import { CONFIG_NAMESPACES } from '@/config'
 
 import { AppModule } from './app.module'
 
-import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import type { AppConfig, SecurityConfig, SwaggerConfig } from '@/config'
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter(), {
+  const app = await NestFactory.create(AppModule, {
     bufferLogs: true
   })
 
@@ -22,7 +20,7 @@ async function bootstrap() {
   const securityCfg = app.get<SecurityConfig>(CONFIG_NAMESPACES.SECURITY)
   const swaggerCfg = app.get<SwaggerConfig>(CONFIG_NAMESPACES.SWAGGER)
 
-  await app.register(cookie)
+  app.use(cookieParser())
 
   const normalizedPrefix = appCfg.apiPrefix.startsWith('/')
     ? appCfg.apiPrefix.slice(1)

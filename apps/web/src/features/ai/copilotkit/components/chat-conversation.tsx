@@ -18,7 +18,7 @@ export default function ChatConversation() {
 
         <div
           className={cn(
-            'sticky bottom-0 pb-6 bg-background rounded-tl-xl rounded-tr-xl z-10',
+            'sticky bottom-0 pb-6 bg-background rounded-tl-xl rounded-tr-xl z-10 transition-all duration-300',
             !hasMessages && 'flex-3'
           )}
         >

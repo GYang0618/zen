@@ -1,10 +1,10 @@
 {
-  "name": "copilot",
+  "name": "agent",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "langgraphjs dev --port 3600",
+    "service": "tsx watch src/index.ts",
     "build": "tsc",
-    "agent:dev": "langgraphjs dev",
     "start": "node dist/index.js"
   },
   "dependencies": {

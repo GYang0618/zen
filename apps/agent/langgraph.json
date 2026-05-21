@@ -1,7 +1,7 @@
 {
   "dependencies": ["."],
   "graphs": {
-    "langchain_agent": "./src/agent.ts:agent"
+    "default_agent": "./src/default.ts:agent"
   },
   "env": ".env"
 }

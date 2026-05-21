@@ -22,7 +22,7 @@ import { updateUserSchema } from './dto/update-user.dto'
 import { updateUsersStatusSchema } from './dto/update-users-status.dto'
 import { UserService } from './user.service'
 
-import type { FastifyRequest } from 'fastify'
+import type { Request } from 'express'
 import type { JwtPayload } from '@/common/interfaces/jwt-payload.interface'
 import type { CreateUserDto } from './dto/create-user.dto'
 import type { DeleteUsersDto } from './dto/delete-users.dto'
@@ -80,7 +80,7 @@ export class UserController {
   @Delete()
   @UsePipes(new ZodValidationPipe(deleteUsersSchema))
   removeMany(
-    @Req() request: FastifyRequest,
+    @Req() request: Request,
     @Body() payload: DeleteUsersDto
   ): Promise<UserListItemResponse[]> {
     return this.userService.remove(payload.ids, this.getCurrentUserId(request))
@@ -89,13 +89,13 @@ export class UserController {
   @Delete('hard')
   @UsePipes(new ZodValidationPipe(deleteUsersSchema))
   hardRemoveMany(
-    @Req() request: FastifyRequest,
+    @Req() request: Request,
     @Body() payload: DeleteUsersDto
   ): Promise<UserListItemResponse[]> {
     return this.userService.hardRemove(payload.ids, this.getCurrentUserId(request))
   }
 
-  private getCurrentUserId(request: FastifyRequest): string {
+  private getCurrentUserId(request: Request): string {
     const user = (request as unknown as { user?: JwtPayload }).user
     if (!user?.sub) throw new UnauthorizedException('缺少认证信息')
     return user.sub
