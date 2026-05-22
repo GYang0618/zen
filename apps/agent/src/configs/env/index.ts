@@ -19,6 +19,7 @@ export function loadEnv() {
 export const env = loadEnv()
 
 export const configs = {
+  apiBaseUrl: env.API_BASE_URL,
   openaiApiKey: env.OPENAI_API_KEY,
   openaiBaseUrl: env.OPENAI_BASE_URL,
   langsmithApiKey: env.LANGSMITH_API_KEY,

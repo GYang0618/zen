@@ -1,14 +1,26 @@
 import { CopilotRuntime, createCopilotExpressHandler } from '@copilotkit/runtime/v2'
 import { Injectable } from '@nestjs/common'
+import { ACCESS_TOKEN_CONFIGURABLE_KEY } from '@zen/shared'
 
 import { LangGraphAgent } from './langgraph-runtime-agent'
 
+const agents = {
+  default: { url: 'http://localhost:3600', graphId: 'default_agent' }
+}
+
 @Injectable()
 export class CopilotService {
-  getHandler() {
+  getHandler(accessToken?: string) {
     const defaultAgent = new LangGraphAgent({
-      deploymentUrl: 'http://localhost:2024',
-      graphId: 'langchain_agent'
+      deploymentUrl: agents.default.url,
+      graphId: agents.default.graphId,
+      assistantConfig: accessToken
+        ? {
+            configurable: {
+              [ACCESS_TOKEN_CONFIGURABLE_KEY]: accessToken
+            }
+          }
+        : undefined
     })
 
     const runtime = new CopilotRuntime({
@@ -17,12 +29,10 @@ export class CopilotService {
       }
     })
 
-    const handler = createCopilotExpressHandler({
+    return createCopilotExpressHandler({
       runtime,
       basePath: '/',
       cors: false
     })
-
-    return handler
   }
 }

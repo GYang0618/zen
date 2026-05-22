@@ -2,6 +2,9 @@
   "name": "agent",
   "type": "module",
   "scripts": {
+    "openapi:generate": "openapi-ts -f openapi-ts.config.ts",
+    "prebuild": "pnpm run openapi:generate",
+    "predev": "pnpm run openapi:generate",
     "dev": "langgraphjs dev --port 3600",
     "service": "tsx watch src/index.ts",
     "build": "tsc",
@@ -10,17 +13,20 @@
   "dependencies": {
     "@copilotkit/runtime": "^1.57.1",
     "@copilotkit/sdk-js": "^1.57.1",
+    "@hey-api/client-fetch": "^0.13.1",
     "@hono/node-server": "^1.19.14",
     "@langchain/core": "^1.1.47",
     "@langchain/langgraph": "^1.3.1",
     "@langchain/langgraph-checkpoint": "^1.0.2",
     "@langchain/openai": "^1.4.4",
+    "@zen/shared": "workspace:*",
     "dotenv": "^17.4.2",
     "hono": "^4.12.18",
     "langchain": "^1.3.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@hey-api/openapi-ts": "^0.97.2",
     "@langchain/langgraph-cli": "^1.2.2",
     "@types/node": "^25.7.0",
     "tsx": "^4.7.1",

@@ -3,8 +3,8 @@ import { BuiltInAgent, CopilotRuntime, createCopilotHonoHandler } from '@copilot
 import { LangGraphAgent } from './langgraph-runtime-agent'
 
 const agent = new LangGraphAgent({
-  deploymentUrl: 'http://localhost:2024',
-  graphId: 'langchain_agent'
+  deploymentUrl: 'http://localhost:2024', // 运行时部署地址
+  graphId: 'langchain_agent' // 运行时图谱 ID
 })
 
 const builtInAgent = new BuiltInAgent({

@@ -80,7 +80,12 @@ export const envSchema = z
     /** 是否启用 Swagger */
     SWAGGER_ENABLED: z.coerce.boolean().default(true).describe('是否启用 Swagger API 文档'),
     /** Swagger 访问路径 */
-    SWAGGER_PATH: z.string().default('docs').describe('Swagger 文档访问路径')
+    SWAGGER_PATH: z.string().default('docs').describe('Swagger 文档访问路径'),
+    /** 启动时导出的 OpenAPI JSON 文件路径（相对路径基于进程 cwd，通常为 apps/api） */
+    SWAGGER_JSON_OUTPUT: z
+      .string()
+      .default('swagger.json')
+      .describe('启动时写入的 OpenAPI JSON 文件路径')
   })
   .strict()
 

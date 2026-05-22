@@ -1,8 +1,7 @@
 import { All, Controller, Inject, Next, Req, Res } from '@nestjs/common'
 
-import { BypassTransform, Public } from '@/common'
-
 import { CopilotService } from './copilot.service'
+import { extractBearerToken } from './copilot-token.util'
 
 import type { NextFunction, Request, Response } from 'express'
 
@@ -10,11 +9,10 @@ import type { NextFunction, Request, Response } from 'express'
 export class CopilotController {
   constructor(@Inject(CopilotService) private readonly copilotService: CopilotService) {}
 
-  @Public()
-  @BypassTransform()
   @All('*path')
   call(@Req() req: Request, @Res() res: Response, @Next() next: NextFunction) {
-    const handler = this.copilotService.getHandler()
+    const accessToken = extractBearerToken(req.headers)
+    const handler = this.copilotService.getHandler(accessToken)
 
     return handler(req, res, next)
   }

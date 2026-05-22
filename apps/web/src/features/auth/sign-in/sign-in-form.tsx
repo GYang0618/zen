@@ -15,6 +15,8 @@ import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import z from 'zod'
 
+import { PasswordInput } from '@/components'
+
 import { useSignInMutation } from '../mutations'
 import { ThirdPartyLogin } from '../third-party-login'
 
@@ -44,8 +46,9 @@ export function SignInForm() {
           duration: 0,
           position: 'top-center'
         })
+
         if (search.redirect) {
-          window.location.assign(search.redirect)
+          navigate({ to: search.redirect })
           return
         }
 
@@ -86,11 +89,10 @@ export function SignInForm() {
           render={({ field, fieldState }) => (
             <Field>
               <FieldLabel htmlFor="password">密码</FieldLabel>
-              <Input
-                autoComplete="true"
+              <PasswordInput
                 {...field}
                 id="password"
-                type="password"
+                autoComplete="current-password"
                 placeholder="••••••••"
               />
               {fieldState.error && <FieldError errors={[fieldState.error]}></FieldError>}

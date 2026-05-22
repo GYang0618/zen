@@ -11,7 +11,6 @@ import {
 
 /**
  * 将数组序列化为重复键（status=a&status=b），而非默认的 status[]=a&status[]=b。
- * 后端使用 Fastify，默认 querystring 解析器不支持方括号语法。
  */
 const paramsSerializer = (params: Record<string, unknown>) => {
   const search = new URLSearchParams()

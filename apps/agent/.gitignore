@@ -11,6 +11,9 @@
 # deps
 node_modules/
 
+# OpenAPI codegen（build / dev 前由 openapi:generate 生成）
+src/api-client/
+
 # env
 .env
 .env.production

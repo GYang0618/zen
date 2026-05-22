@@ -11,13 +11,9 @@ const app = new Hono()
 
 app.route('/copilotkit', copilotkitApp)
 
-app.get('/', (c) => {
-  return c.text('Hello Hono!')
-})
-
 serve(
   {
-    fetch: app.fetch,
+    fetch: app.fetch, // 或者直接使用copilotkitApp.fetch
     port: 3200
   },
   (info) => {

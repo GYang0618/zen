@@ -1,10 +1,11 @@
-import cookieParser from 'cookie-parser'
 import { NestFactory } from '@nestjs/core'
+import cookieParser from 'cookie-parser'
 import { Logger } from 'nestjs-pino'
 
 import { CONFIG_NAMESPACES } from '@/config'
 
 import { AppModule } from './app.module'
+import { setupSwagger } from './swagger/setup-swagger'
 
 import type { AppConfig, SecurityConfig, SwaggerConfig } from '@/config'
 
@@ -32,12 +33,20 @@ async function bootstrap() {
 
   app.enableCors(securityCfg.cors)
 
-  if (!swaggerCfg.enabled) {
+  const { port, nodeEnv } = appCfg
+  const baseUrl = `http://127.0.0.1:${port}`
+
+  if (swaggerCfg.enabled) {
+    const swaggerJsonPath = await setupSwagger(app, swaggerCfg)
+    const docsPath = normalizedPrefix
+      ? `/${normalizedPrefix}/${swaggerCfg.path}`
+      : `/${swaggerCfg.path}`
+    logger.log(`Swagger enabled at ${baseUrl}${docsPath}`)
+    logger.log(`Swagger spec written to ${swaggerJsonPath}`)
+  } else {
     logger.log('Swagger is disabled by configuration')
   }
 
-  const { port, nodeEnv } = appCfg
-  const baseUrl = `http://127.0.0.1:${port}`
   logger.log(`Environment: ${nodeEnv} Starting server on ${baseUrl}/${normalizedPrefix}`)
   await app.listen(port, '0.0.0.0')
 }
