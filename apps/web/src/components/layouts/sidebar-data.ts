@@ -8,6 +8,7 @@ import {
   ChartColumn,
   ClipboardList,
   Command,
+  Cuboid,
   FolderKanban,
   GalleryVerticalEnd,
   GitBranch,
@@ -73,6 +74,11 @@ export const sidebarData: SidebarData = {
           title: 'copilot',
           url: '/ai/copilot',
           icon: BotMessageSquare
+        },
+        {
+          title: '三维场景（BIM）',
+          url: '/bim',
+          icon: Cuboid
         },
         {
           title: '我的待办',

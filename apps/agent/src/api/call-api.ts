@@ -1,7 +1,7 @@
-import type { ApiErrorResponseSwaggerDto } from '../api-client/types.gen'
 import { getAccessTokenFromConfig, runWithAccessToken } from './request-context'
 
 import type { RunnableConfig } from '@langchain/core/runnables'
+import type { ApiErrorResponseSwaggerDto } from '../api-client/types.gen'
 
 interface ApiSuccessEnvelope<T> {
   code: number
@@ -27,15 +27,30 @@ export function unwrapApiSuccessData<T>(body: unknown): T {
 }
 
 function formatApiError(error: unknown): string {
-  if (typeof error === 'object' && error !== null && 'message' in error) {
-    const apiError = error as ApiErrorResponseSwaggerDto
-    if (typeof apiError.message === 'string') {
-      return apiError.message
+  if (typeof error === 'object' && error !== null) {
+    const record = error as Record<string, unknown>
+
+    if (typeof record.message === 'string' && record.message.trim() !== '') {
+      return record.message
+    }
+
+    const nested = record.error
+    if (typeof nested === 'object' && nested !== null && 'message' in nested) {
+      const apiError = nested as ApiErrorResponseSwaggerDto
+      if (typeof apiError.message === 'string') {
+        return apiError.message
+      }
+    }
+
+    if (typeof record.code === 'number' && typeof record.message === 'string') {
+      return record.message
     }
   }
+
   if (error instanceof Error) {
     return error.message
   }
+
   return String(error)
 }
 

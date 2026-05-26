@@ -13,7 +13,7 @@ import {
 import { Loader2, LogIn } from 'lucide-react'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-import z from 'zod'
+import { z } from 'zod'
 
 import { PasswordInput } from '@/components'
 
@@ -43,15 +43,13 @@ export function SignInForm() {
     signIn(data, {
       onSuccess: ({ user }) => {
         toast.success(`欢迎回来，${user.nickname}👋🎉`, {
-          duration: 0,
+          duration: 2000,
           position: 'top-center'
         })
-
         if (search.redirect) {
           navigate({ to: search.redirect })
           return
         }
-
         navigate({ to: '/' })
       }
     })

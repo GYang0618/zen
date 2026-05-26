@@ -16,5 +16,15 @@
   "search.exclude": {
     "**/routeTree.gen.ts": true
   },
-  "cSpell.words": ["copilotkit", "kwargs", "langgraphjs"]
+  "cSpell.words": [
+    "copilotkit",
+    "deepagents",
+    "drei",
+    "GLTF",
+    "kwargs",
+    "langgraphjs",
+    "metalness",
+    "threejs",
+    "TILESET"
+  ]
 }

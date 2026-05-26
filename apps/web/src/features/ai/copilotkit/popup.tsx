@@ -22,6 +22,7 @@ function PopupRegistry() {
 function PopupChat() {
   return (
     <CopilotkitPopup
+      agentId="plan"
       defaultOpen={false}
       labels={{
         modalHeaderTitle: 'AI 助手',

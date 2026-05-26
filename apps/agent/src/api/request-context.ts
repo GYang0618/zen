@@ -6,11 +6,35 @@ import type { RunnableConfig } from '@langchain/core/runnables'
 
 const accessTokenStorage = new AsyncLocalStorage<string>()
 
-/** 从 LangGraph RunnableConfig 读取当前请求的 access token */
-export function getAccessTokenFromConfig(config?: RunnableConfig): string {
-  const token = config?.configurable?.[ACCESS_TOKEN_CONFIGURABLE_KEY]
+/** LangGraph / ToolNode 注入的运行时 config（含 context） */
+type AgentRunnableConfig = RunnableConfig & {
+  context?: unknown
+  config?: RunnableConfig & { context?: unknown }
+}
 
-  if (typeof token !== 'string' || token.trim() === '') {
+function readAccessTokenFromRecord(record: unknown): string | undefined {
+  if (typeof record !== 'object' || record === null) {
+    return undefined
+  }
+
+  const token = (record as Record<string, unknown>)[ACCESS_TOKEN_CONFIGURABLE_KEY]
+  return typeof token === 'string' && token.trim() !== '' ? token : undefined
+}
+
+/**
+ * 从 LangGraph RunnableConfig 读取当前请求的 access token。
+ * CopilotKit 通过 assistantConfig.configurable 注入；LangGraph 运行时常将其合并到 context。
+ */
+export function getAccessTokenFromConfig(config?: RunnableConfig): string {
+  const toolConfig = config as AgentRunnableConfig | undefined
+
+  const token =
+    readAccessTokenFromRecord(toolConfig?.configurable) ??
+    readAccessTokenFromRecord(toolConfig?.context) ??
+    readAccessTokenFromRecord(toolConfig?.config?.configurable) ??
+    readAccessTokenFromRecord(toolConfig?.config?.context)
+
+  if (!token) {
     throw new Error('缺少用户 access token，无法调用后端用户 API')
   }
 

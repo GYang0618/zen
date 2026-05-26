@@ -1,7 +1,8 @@
 {
   "dependencies": ["."],
   "graphs": {
-    "default_agent": "./src/default.ts:agent"
+    "default_agent": "./src/default.ts:agent",
+    "plan_agent": "./src/plan.ts:agent"
   },
   "env": ".env"
 }

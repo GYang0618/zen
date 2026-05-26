@@ -1,0 +1,64 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+overrides:
+  fastify: 5.8.5
+  hono: ^4.12.18
+
+importers:
+
+  .:
+    dependencies:
+      3d-tiles-renderer:
+        specifier: ^0.4.27
+        version: 0.4.27
+      '@zen/request':
+        specifier: workspace:*
+        version: link:../../packages/request
+      '@zen/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@zen/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+
+packages:
+
+  3d-tiles-renderer@0.4.27:
+    resolution: {integrity: sha512-6LjbyYvwyJSfHSuX4t3rvZh6LW67LNmXzIY83zrEPYQv1nra2UQ9rV/ibYlj7OAO1Fy49WYX7gp5RyaJNSzdAA==}
+    peerDependencies:
+      '@babylonjs/core': '>=8.0.0'
+      '@babylonjs/loaders': '>=8.0.0'
+      '@mapbox/vector-tile': ^2.0.3
+      '@react-three/fiber': ^8.17.9 || ^9.0.0
+      pbf: ^4.0.1
+      pmtiles: ^4.3.2
+      react: ^18.3.1 || ^19.0.0
+      react-dom: ^18.3.1 || ^19.0.0
+      three: '>=0.167.0'
+    peerDependenciesMeta:
+      '@babylonjs/core':
+        optional: true
+      '@babylonjs/loaders':
+        optional: true
+      '@mapbox/vector-tile':
+        optional: true
+      '@react-three/fiber':
+        optional: true
+      pbf:
+        optional: true
+      pmtiles:
+        optional: true
+      react:
+        optional: true
+      react-dom:
+        optional: true
+      three:
+        optional: true
+
+snapshots:
+
+  3d-tiles-renderer@0.4.27: {}

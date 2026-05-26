@@ -17,6 +17,7 @@ import { Route as Errors500RouteImport } from './routes/errors/500'
 import { Route as Errors404RouteImport } from './routes/errors/404'
 import { Route as Errors403RouteImport } from './routes/errors/403'
 import { Route as Errors401RouteImport } from './routes/errors/401'
+import { Route as AuthenticatedBimRouteImport } from './routes/_authenticated/bim'
 import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
 import { Route as authSignInRouteImport } from './routes/(auth)/sign-in'
 import { Route as AuthenticatedSystemUsersRouteImport } from './routes/_authenticated/system/users'
@@ -62,6 +63,11 @@ const Errors401Route = Errors401RouteImport.update({
   path: '/errors/401',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedBimRoute = AuthenticatedBimRouteImport.update({
+  id: '/bim',
+  path: '/bim',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const authSignUpRoute = authSignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/sign-in': typeof authSignInRoute
   '/sign-up': typeof authSignUpRoute
+  '/bim': typeof AuthenticatedBimRoute
   '/errors/401': typeof Errors401Route
   '/errors/403': typeof Errors403Route
   '/errors/404': typeof Errors404Route
@@ -112,6 +119,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/sign-in': typeof authSignInRoute
   '/sign-up': typeof authSignUpRoute
+  '/bim': typeof AuthenticatedBimRoute
   '/errors/401': typeof Errors401Route
   '/errors/403': typeof Errors403Route
   '/errors/404': typeof Errors404Route
@@ -129,6 +137,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/(auth)/sign-in': typeof authSignInRoute
   '/(auth)/sign-up': typeof authSignUpRoute
+  '/_authenticated/bim': typeof AuthenticatedBimRoute
   '/errors/401': typeof Errors401Route
   '/errors/403': typeof Errors403Route
   '/errors/404': typeof Errors404Route
@@ -146,6 +155,7 @@ export interface FileRouteTypes {
     | '/'
     | '/sign-in'
     | '/sign-up'
+    | '/bim'
     | '/errors/401'
     | '/errors/403'
     | '/errors/404'
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
   to:
     | '/sign-in'
     | '/sign-up'
+    | '/bim'
     | '/errors/401'
     | '/errors/403'
     | '/errors/404'
@@ -175,6 +186,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/(auth)/sign-in'
     | '/(auth)/sign-up'
+    | '/_authenticated/bim'
     | '/errors/401'
     | '/errors/403'
     | '/errors/404'
@@ -255,6 +267,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Errors401RouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/bim': {
+      id: '/_authenticated/bim'
+      path: '/bim'
+      fullPath: '/bim'
+      preLoaderRoute: typeof AuthenticatedBimRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/(auth)/sign-up': {
       id: '/(auth)/sign-up'
       path: '/sign-up'
@@ -315,6 +334,7 @@ const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
 )
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedBimRoute: typeof AuthenticatedBimRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAiChatRoute: typeof AuthenticatedAiChatRoute
   AuthenticatedAiCopilotRoute: typeof AuthenticatedAiCopilotRoute
@@ -323,6 +343,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedBimRoute: AuthenticatedBimRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAiChatRoute: AuthenticatedAiChatRoute,
   AuthenticatedAiCopilotRoute: AuthenticatedAiCopilotRoute,
