@@ -2,7 +2,8 @@ import { createFileRoute, Outlet, redirect, useLocation } from '@tanstack/react-
 import { cn } from '@zen/ui'
 
 import { AuthenticatedLayout } from '@/components/layouts'
-import { CopilotPopup } from '@/features/ai/copilotkit'
+import { CopilotProvider } from '@/context/copilot-provider'
+import { CopilotPopup } from '@/features/ai/copilot'
 import { authApi } from '@/features/auth/api'
 import { isForbidden, isSessionExpired } from '@/lib/request/utils'
 import { useAuthStore } from '@/stores'
@@ -44,10 +45,12 @@ function AuthenticatedLayoutComponent() {
 
   return (
     <AuthenticatedLayout>
-      <Outlet />
-      <div className={cn(!shouldShowCopilotPopup && 'hidden')}>
-        <CopilotPopup />
-      </div>
+      <CopilotProvider>
+        <Outlet />
+        <div className={cn(!shouldShowCopilotPopup && 'hidden')}>
+          <CopilotPopup />
+        </div>
+      </CopilotProvider>
     </AuthenticatedLayout>
   )
 }

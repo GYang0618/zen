@@ -1,24 +1,34 @@
 import { Bounds, Center, useGLTF } from '@react-three/drei'
+import { useMemo } from 'react'
 
-const MODEL_URL = '/models/12F.glb'
+import type { BimModelInstance } from '../stores/bim-store'
 
-interface BimModelProps {
-  url?: string
-}
-
-useGLTF.preload(MODEL_URL)
+type BimModelProps = Pick<BimModelInstance, 'id' | 'url' | 'position'>
 
 const FRAME_MARGIN = 1.35
 const FRAME_DURATION_SEC = 0.9
 
-export function BimModel({ url = MODEL_URL }: BimModelProps) {
+function modelNameFromUrl(url: string) {
+  const segment = url.split('/').pop() ?? url
+  return segment.split('?')[0].split('#')[0]
+}
+
+export function BimModel({ id, url, position }: BimModelProps) {
   const { scene } = useGLTF(url)
+  const model = useMemo(() => {
+    const clone = scene.clone(true)
+    clone.name = modelNameFromUrl(url)
+    clone.userData = { id, url, position }
+    return clone
+  }, [scene, id, url, position])
 
   return (
-    <Bounds fit clip observe margin={FRAME_MARGIN} maxDuration={FRAME_DURATION_SEC}>
-      <Center>
-        <primitive object={scene} />
-      </Center>
-    </Bounds>
+    <group position={position}>
+      <Bounds fit clip observe margin={FRAME_MARGIN} maxDuration={FRAME_DURATION_SEC}>
+        <Center top>
+          <primitive object={model} />
+        </Center>
+      </Bounds>
+    </group>
   )
 }
