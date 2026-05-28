@@ -2,28 +2,25 @@ import { Suspense } from 'react'
 
 import { Main } from '@/components/layouts'
 
-import { BimModel } from './components/bim-model'
-import { BimScene } from './components/bim-scene'
-import { BimSceneTools } from './components/bim-scene-tools'
-import { useBimAgentContext } from './hooks/use-bim-agent-context'
-import { useBimStore } from './stores/bim-store'
+import { BIMModel } from './components/model'
+import { Scene } from './components/scene'
+import { Copilot } from './copilot'
+import { useBimStore } from './stores/bim'
 
 export function BIMScreen() {
-  useBimAgentContext()
-
   const modelInstances = useBimStore((state) => state.modelInstances)
 
   return (
     <Main fixed fluid className="flex flex-1 flex-col p-0 rounded-xl">
       <div className="relative size-full">
-        <BimScene>
-          <BimSceneTools />
+        <Scene>
+          <Copilot />
           {modelInstances.map((instance) => (
             <Suspense key={instance.id} fallback={null}>
-              <BimModel {...instance} />
+              <BIMModel {...instance} />
             </Suspense>
           ))}
-        </BimScene>
+        </Scene>
       </div>
     </Main>
   )

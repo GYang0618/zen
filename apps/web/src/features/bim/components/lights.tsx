@@ -4,7 +4,7 @@ const RIM_LIGHT_INTENSITY = 0.4
 const HEMISPHERE_INTENSITY = 0.65
 const AMBIENT_INTENSITY = 0.35
 
-export function BimLights() {
+export function Lights() {
   return (
     <>
       <hemisphereLight args={['#e2e8f0', '#1e293b', HEMISPHERE_INTENSITY]} position={[0, 50, 0]} />

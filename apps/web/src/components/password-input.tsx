@@ -1,9 +1,4 @@
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput
-} from '@zen/ui'
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@zen/ui'
 import { Eye, EyeOff } from 'lucide-react'
 import { useState } from 'react'
 

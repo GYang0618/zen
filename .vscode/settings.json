@@ -20,9 +20,12 @@
     "copilotkit",
     "deepagents",
     "drei",
+    "frameloop",
     "GLTF",
+    "hdri",
     "kwargs",
     "langgraphjs",
+    "lebombo",
     "metalness",
     "threejs",
     "TILESET"
