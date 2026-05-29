@@ -5,7 +5,7 @@ import { useEffect, useMemo } from 'react'
 import { AdditiveBlending, DoubleSide } from 'three'
 
 import { bimMeshRegistry } from '../lib/mesh-registry'
-import { useBimStore } from '../stores/bim'
+import { useModelStore } from '../stores/model'
 
 const OUTLINE = {
   blendFunction: BlendFunction.ADD,
@@ -23,7 +23,7 @@ const FILL = {
 
 /** 受控高亮：Outline 描边 + 半透明填充 */
 export function Highlight() {
-  const selectedElementIds = useBimStore((state) => state.selectedElementIds)
+  const selectedElementIds = useModelStore((state) => state.selectedElementIds)
   const invalidate = useThree((state) => state.invalidate)
 
   const selection = useMemo(
@@ -32,7 +32,7 @@ export function Highlight() {
   )
 
   useEffect(() => {
-    return useBimStore.subscribe((state, prevState) => {
+    return useModelStore.subscribe((state, prevState) => {
       if (state.selectedElementIds !== prevState.selectedElementIds) {
         invalidate()
       }

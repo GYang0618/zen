@@ -2,7 +2,7 @@ import { Environment, Grid, OrbitControls } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
 import { ACESFilmicToneMapping, SRGBColorSpace } from 'three'
 
-import { useBimStore } from '../stores/bim'
+import { useModelStore } from '../stores/model'
 import { Highlight } from './highlight'
 import { Lights } from './lights'
 
@@ -11,7 +11,7 @@ interface SceneProps {
 }
 
 export function Scene({ children }: SceneProps) {
-  const clearSelection = useBimStore((state) => state.clearSelection)
+  const clearSelection = useModelStore((state) => state.clearSelection)
 
   return (
     <Canvas

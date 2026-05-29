@@ -2,7 +2,7 @@ import { useFrontendTool } from '@copilotkit/react-core/v2'
 import { z } from 'zod'
 
 import { bimMeshRegistry } from '../../lib/mesh-registry'
-import { useBimStore } from '../../stores/bim'
+import { useModelStore } from '../../stores/model'
 
 const highlightElementsSchema = z.object({
   elementIds: z.array(z.string()).describe('构件id，gltfExtensions.id > userData.id > uuid'),
@@ -15,11 +15,10 @@ const highlightElementsSchema = z.object({
 export function useHighlightElementsTool() {
   useFrontendTool({
     name: 'highlight_elements',
-    description:
-      '高亮 BIM 构件（通过 elementId）。构件 id 来自导出模型的 userData.elementId，未设置时使用 mesh uuid。',
+    description: '高亮 BIM 构件',
     parameters: highlightElementsSchema,
     handler: async ({ elementIds, mode }) => {
-      const { setSelection, selectElement, clearSelection } = useBimStore.getState()
+      const { setSelection, selectElement, clearSelection } = useModelStore.getState()
 
       if (mode === 'clear') {
         clearSelection()
@@ -37,7 +36,7 @@ export function useHighlightElementsTool() {
       if (found.length === 0) {
         return {
           status: 'error',
-          message: '未找到可高亮的构件，请确认模型已加载且 elementId 正确',
+          message: '未找到构件，请确认构件id是否正确',
           missing
         }
       }

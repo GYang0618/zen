@@ -5,10 +5,10 @@ import { Main } from '@/components/layouts'
 import { BIMModel } from './components/model'
 import { Scene } from './components/scene'
 import { Copilot } from './copilot'
-import { useBimStore } from './stores/bim'
+import { useModelStore } from './stores/model'
 
 export function BIMScreen() {
-  const modelInstances = useBimStore((state) => state.modelInstances)
+  const modelInstances = useModelStore((state) => state.modelInstances)
 
   return (
     <Main fixed fluid className="flex flex-1 flex-col p-0 rounded-xl">

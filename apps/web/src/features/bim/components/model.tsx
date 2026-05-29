@@ -2,17 +2,12 @@ import { Bounds, Bvh, Center, useGLTF } from '@react-three/drei'
 import { useCallback, useEffect, useMemo } from 'react'
 
 import { bimMeshRegistry } from '../lib/mesh-registry'
-import {
-  getObjectId,
-  getObjectKind,
-  getObjectUserData,
-  isObjectSelectable
-} from '../lib/object'
-import { useBimStore } from '../stores/bim'
+import { getObjectId, getObjectKind, getObjectUserData, isObjectSelectable } from '../lib/object'
+import { useModelStore } from '../stores/model'
 
 import type { ThreeEvent } from '@react-three/fiber'
 import type { Object3D } from 'three'
-import type { BimModelInstance } from '../stores/bim'
+import type { BimModelInstance } from '../stores/model'
 
 type BimModelProps = Pick<BimModelInstance, 'id' | 'url' | 'position'>
 
@@ -26,7 +21,7 @@ function modelNameFromUrl(url: string) {
 
 export function BIMModel({ id, url, position }: BimModelProps) {
   const { scene } = useGLTF(url)
-  const selectElement = useBimStore((state) => state.selectElement)
+  const selectElement = useModelStore((state) => state.selectElement)
 
   const model = useMemo(() => {
     const clone = scene.clone(true)
@@ -54,7 +49,6 @@ export function BIMModel({ id, url, position }: BimModelProps) {
       if (event.button !== 0) return
       if (event.delta > 5) return
       const target = pickTargetObject(event)
-      console.log('🚀 ~ BimModel ~ target:', target)
       if (!target) return
       event.stopPropagation()
       const elementId = getObjectId(target)

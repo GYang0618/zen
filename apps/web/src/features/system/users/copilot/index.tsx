@@ -1,10 +1,8 @@
 import { useCopilotAgentContext } from './agent-context'
 import { useCopilotTools } from './copilot-tools'
-// import { useCopilotGenerativeUI } from './generative-ui'
 
 export function Copilot() {
   useCopilotAgentContext()
   useCopilotTools()
-  // useCopilotGenerativeUI()
   return null
 }

@@ -2,7 +2,7 @@ import { useFrontendTool } from '@copilotkit/react-core/v2'
 import { useGLTF } from '@react-three/drei'
 import { z } from 'zod'
 
-import { useBimStore } from '../../stores/bim'
+import { useModelStore } from '../../stores/model'
 
 const positionSchema = z
   .object({
@@ -24,7 +24,7 @@ function toPositionTuple(
 }
 
 export function useLoadModelTool() {
-  const addModelInstance = useBimStore((state) => state.addModelInstance)
+  const addModelInstance = useModelStore((state) => state.addModelInstance)
 
   useFrontendTool({
     name: 'load_model',

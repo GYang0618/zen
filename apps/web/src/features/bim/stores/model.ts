@@ -28,7 +28,7 @@ function clampSelection(ids: string[]): string[] {
   return ids.slice(0, MAX_BIM_SELECTION)
 }
 
-export const useBimStore = create<BimState>((set, get) => ({
+export const useModelStore = create<BimState>((set, get) => ({
   modelInstances: [
     {
       id: 'demo',

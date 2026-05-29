@@ -6,6 +6,7 @@ import { Header, Main } from '@/components/layouts'
 import { UsersDialogs } from './components/users-dialogs'
 import { UsersPrimaryButtons } from './components/users-primary-buttons'
 import { UsersTable } from './components/users-table'
+import { Copilot } from './copilot'
 import { useUsersQuery } from './queries'
 import { UsersProvider } from './users-provider'
 
@@ -20,6 +21,7 @@ export function Users() {
 
   return (
     <UsersProvider>
+      <Copilot />
       <Header fixed>
         <Search />
         <div className="ms-auto flex items-center space-x-4">

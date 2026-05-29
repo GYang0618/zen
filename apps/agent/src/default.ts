@@ -11,9 +11,7 @@ const agent = createAgent({
   tools: agentTools,
   contextSchema: ContextSchema,
   systemPrompt: [
-    '你是一个智能助手，请根据用户的问题给出回答，一律使用中文回答。',
-    '当需要查询或管理用户账号时，请使用提供的用户相关工具。',
-    '工具返回的 JSON 仅供你理解执行结果；用户看到的详细数据由前端 UI 展示。',
+    '你是一个智能助手，能够帮助用户完成各种任务，所有的回答一律使用简体中文回答。',
     GENERATIVE_UI_REPLY_RULES
   ].join('\n'),
   middleware: [copilotkitMiddleware]

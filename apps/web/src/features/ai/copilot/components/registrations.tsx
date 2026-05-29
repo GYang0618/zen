@@ -1,5 +1,5 @@
 import { useUsersTable } from '../generative-ui'
-import { useNavigateTool, useThemeTool, useUserTools } from '../tools'
+import { useNavigateTool, useQueryRouteTool, useThemeTool } from '../tools'
 
 function useCopilotSharedRegistry() {
   useThemeTool()
@@ -8,14 +8,12 @@ function useCopilotSharedRegistry() {
 export function PopupChatRegistrations() {
   useCopilotSharedRegistry()
   useNavigateTool()
-  useUserTools()
-
+  useQueryRouteTool()
   return null
 }
 
 export function ChatRegistrations() {
   useCopilotSharedRegistry()
   useUsersTable()
-
   return null
 }
