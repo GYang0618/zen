@@ -13,7 +13,7 @@ const OUTLINE = {
   visibleEdgeColor: 0x67e8f9,
   hiddenEdgeColor: 0x0891b2,
   kernelSize: KernelSize.VERY_SMALL,
-  blur: true
+  blur: false
 } as const
 
 const FILL = {
@@ -45,7 +45,7 @@ export function Highlight() {
 
   return (
     <>
-      <EffectComposer multisampling={8} autoClear={false}>
+      <EffectComposer multisampling={0} autoClear={false}>
         <Outline
           selection={selection}
           blendFunction={OUTLINE.blendFunction}
@@ -55,7 +55,7 @@ export function Highlight() {
           hiddenEdgeColor={OUTLINE.hiddenEdgeColor}
           kernelSize={OUTLINE.kernelSize}
           blur={OUTLINE.blur}
-          xRay
+          xRay={false}
         />
       </EffectComposer>
       <group renderOrder={999}>

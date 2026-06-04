@@ -16,18 +16,17 @@ export function Scene({ children }: SceneProps) {
   return (
     <Canvas
       className="size-full"
-      shadows
       frameloop="demand"
       camera={{ position: [14, 10, 14], fov: 60, near: 0.1, far: 500 }}
       gl={{
-        antialias: true,
+        antialias: false,
         toneMapping: ACESFilmicToneMapping,
         toneMappingExposure: 1.15
       }}
       onCreated={({ gl }) => {
-        gl.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        gl.setPixelRatio(Math.min(window.devicePixelRatio, 1.25))
         gl.outputColorSpace = SRGBColorSpace
-        gl.shadowMap.enabled = true
+        gl.shadowMap.enabled = false
       }}
       onPointerMissed={() => clearSelection()}
     >

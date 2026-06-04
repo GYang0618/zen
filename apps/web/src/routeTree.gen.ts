@@ -17,6 +17,7 @@ import { Route as Errors500RouteImport } from './routes/errors/500'
 import { Route as Errors404RouteImport } from './routes/errors/404'
 import { Route as Errors403RouteImport } from './routes/errors/403'
 import { Route as Errors401RouteImport } from './routes/errors/401'
+import { Route as AuthenticatedGisRouteImport } from './routes/_authenticated/gis'
 import { Route as AuthenticatedBimRouteImport } from './routes/_authenticated/bim'
 import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
 import { Route as authSignInRouteImport } from './routes/(auth)/sign-in'
@@ -63,6 +64,11 @@ const Errors401Route = Errors401RouteImport.update({
   path: '/errors/401',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedGisRoute = AuthenticatedGisRouteImport.update({
+  id: '/gis',
+  path: '/gis',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedBimRoute = AuthenticatedBimRouteImport.update({
   id: '/bim',
   path: '/bim',
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof authSignInRoute
   '/sign-up': typeof authSignUpRoute
   '/bim': typeof AuthenticatedBimRoute
+  '/gis': typeof AuthenticatedGisRoute
   '/errors/401': typeof Errors401Route
   '/errors/403': typeof Errors403Route
   '/errors/404': typeof Errors404Route
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof authSignInRoute
   '/sign-up': typeof authSignUpRoute
   '/bim': typeof AuthenticatedBimRoute
+  '/gis': typeof AuthenticatedGisRoute
   '/errors/401': typeof Errors401Route
   '/errors/403': typeof Errors403Route
   '/errors/404': typeof Errors404Route
@@ -138,6 +146,7 @@ export interface FileRoutesById {
   '/(auth)/sign-in': typeof authSignInRoute
   '/(auth)/sign-up': typeof authSignUpRoute
   '/_authenticated/bim': typeof AuthenticatedBimRoute
+  '/_authenticated/gis': typeof AuthenticatedGisRoute
   '/errors/401': typeof Errors401Route
   '/errors/403': typeof Errors403Route
   '/errors/404': typeof Errors404Route
@@ -156,6 +165,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/bim'
+    | '/gis'
     | '/errors/401'
     | '/errors/403'
     | '/errors/404'
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/bim'
+    | '/gis'
     | '/errors/401'
     | '/errors/403'
     | '/errors/404'
@@ -187,6 +198,7 @@ export interface FileRouteTypes {
     | '/(auth)/sign-in'
     | '/(auth)/sign-up'
     | '/_authenticated/bim'
+    | '/_authenticated/gis'
     | '/errors/401'
     | '/errors/403'
     | '/errors/404'
@@ -267,6 +279,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Errors401RouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/gis': {
+      id: '/_authenticated/gis'
+      path: '/gis'
+      fullPath: '/gis'
+      preLoaderRoute: typeof AuthenticatedGisRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/bim': {
       id: '/_authenticated/bim'
       path: '/bim'
@@ -335,6 +354,7 @@ const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedBimRoute: typeof AuthenticatedBimRoute
+  AuthenticatedGisRoute: typeof AuthenticatedGisRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAiChatRoute: typeof AuthenticatedAiChatRoute
   AuthenticatedAiCopilotRoute: typeof AuthenticatedAiCopilotRoute
@@ -344,6 +364,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBimRoute: AuthenticatedBimRoute,
+  AuthenticatedGisRoute: AuthenticatedGisRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAiChatRoute: AuthenticatedAiChatRoute,
   AuthenticatedAiCopilotRoute: AuthenticatedAiCopilotRoute,

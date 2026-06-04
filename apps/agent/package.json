@@ -5,7 +5,7 @@
     "openapi:generate": "openapi-ts -f openapi-ts.config.ts",
     "prebuild": "pnpm run openapi:generate",
     "predev": "pnpm run openapi:generate",
-    "dev": "langgraphjs dev --port 3600",
+    "dev": "langgraphjs dev --port 3600 --no-browser",
     "service": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js"

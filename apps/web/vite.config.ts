@@ -3,6 +3,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
 import react, { reactCompilerPreset } from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import cesium from 'vite-plugin-cesium'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -13,7 +14,8 @@ export default defineConfig({
     }),
     react(),
     tailwindcss(),
-    babel({ presets: [reactCompilerPreset()] })
+    babel({ presets: [reactCompilerPreset()] }),
+    cesium()
   ],
   resolve: {
     tsconfigPaths: true

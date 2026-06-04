@@ -4,6 +4,7 @@ import { Main } from '@/components/layouts'
 
 import { BIMModel } from './components/model'
 import { Scene } from './components/scene'
+import { Tileset } from './components/tileset'
 import { Copilot } from './copilot'
 import { useModelStore } from './stores/model'
 
@@ -20,6 +21,7 @@ export function BIMScreen() {
               <BIMModel {...instance} />
             </Suspense>
           ))}
+          <Tileset />
         </Scene>
       </div>
     </Main>

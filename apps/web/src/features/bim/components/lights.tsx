@@ -13,15 +13,6 @@ export function Lights() {
         color="#ffffff"
         intensity={KEY_LIGHT_INTENSITY}
         position={[24, 32, 18]}
-        castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-camera-near={0.5}
-        shadow-camera-far={120}
-        shadow-camera-left={-40}
-        shadow-camera-right={40}
-        shadow-camera-top={40}
-        shadow-camera-bottom={-40}
-        shadow-bias={-0.0002}
       />
       <directionalLight
         color="#c7d2fe"

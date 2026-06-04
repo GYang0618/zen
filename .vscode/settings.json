@@ -26,6 +26,7 @@
     "kwargs",
     "langgraphjs",
     "lebombo",
+    "Meshopt",
     "metalness",
     "threejs",
     "TILESET"

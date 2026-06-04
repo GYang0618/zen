@@ -12,6 +12,7 @@ import {
   FolderKanban,
   GalleryVerticalEnd,
   GitBranch,
+  Globe,
   HardDrive,
   HelpCircle,
   KeyRound,
@@ -79,6 +80,11 @@ export const sidebarData: SidebarData = {
           title: '三维场景（BIM）',
           url: '/bim',
           icon: Cuboid
+        },
+        {
+          title: '三维场景（GIS）',
+          url: '/gis',
+          icon: Globe
         },
         {
           title: '我的待办',

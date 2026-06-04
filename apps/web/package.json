@@ -33,6 +33,7 @@
     "@zen/shared": "workspace:*",
     "@zen/ui": "workspace:*",
     "ai": "^6.0.153",
+    "cesium": "^1.142.0",
     "lucide-react": "^1.7.0",
     "motion": "^12.38.0",
     "postprocessing": "^6.39.1",
@@ -57,8 +58,10 @@
     "@vitejs/plugin-react": "^6.0.1",
     "add": "^2.0.6",
     "babel-plugin-react-compiler": "^1.0.0",
+    "r3f-perf": "^7.2.3",
     "tailwindcss": "^4.2.2",
     "typescript": "~5.9.3",
-    "vite": "^8.0.1"
+    "vite": "^8.0.1",
+    "vite-plugin-cesium": "^1.2.23"
   }
 }

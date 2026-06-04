@@ -1,15 +1,8 @@
-import { CopilotPopup as CopilotkitPopup, useConfigureSuggestions } from '@copilotkit/react-core/v2'
+import { CopilotPopup as CopilotkitPopup } from '@copilotkit/react-core/v2'
 
 import { PopupChatRegistrations } from './components/registrations'
 
 export function CopilotPopup() {
-  useConfigureSuggestions({
-    instructions:
-      '你是一个AI助手，请根据用户的问题和生成的答案，生成建议，建议需要简洁明了，不要过于复杂',
-    minSuggestions: 2,
-    maxSuggestions: 3,
-    available: 'always'
-  })
   return (
     <>
       <PopupChatRegistrations />

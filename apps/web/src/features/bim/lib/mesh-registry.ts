@@ -23,6 +23,10 @@ export const bimMeshRegistry = {
     return registry.has(id)
   },
 
+  registerMesh(mesh: Mesh): void {
+    registry.set(getObjectId(mesh), mesh)
+  },
+
   /** 遍历子树注册所有 Mesh，返回卸载函数 */
   registerFromRoot(root: Object3D): () => void {
     const owned = new Map<string, Mesh>()

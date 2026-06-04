@@ -1,17 +1,15 @@
 import {
   createErrorMiddleware,
-  createHttpClient,
   createRequestMiddleware,
   createResponseMiddleware,
   isAxiosError
 } from '@zen/request'
 import { toast } from 'sonner'
 
-import { useEnv } from '@/config/env'
 import { useAuthStore } from '@/stores'
 
 import { isAuthAnonymousRequestUrl } from './auth-paths'
-import { http } from './client'
+import { anonymousHttp, http } from './client'
 import { ApiClientError } from './types'
 import { buildFallback, fallbackMessage, isRequestErrorResponse } from './utils'
 
@@ -28,7 +26,7 @@ type RefreshAuthResult =
   | { ok: true; session: AuthSession }
   | { ok: false; reason: 'auth' | 'transient'; cause: unknown }
 
-function isRefreshUnauthorizedFailure(cause: unknown): boolean {
+export function isRefreshUnauthorizedFailure(cause: unknown): boolean {
   if (!isAxiosError(cause)) return false
   return cause.response?.status === 401
 }
@@ -53,15 +51,6 @@ function refreshFailureToClientError(cause: unknown): Error {
 
   return new ApiClientError(buildFallback(503, fallbackMessage(undefined)))
 }
-
-const anonymousHttp = createHttpClient(() => {
-  const { baseUrl, apiTimeout } = useEnv()
-  return {
-    baseURL: baseUrl,
-    timeout: apiTimeout,
-    withCredentials: true
-  }
-})
 
 /* token设置中间件 */
 export const withTokenMiddleware = createRequestMiddleware((config) => {
@@ -221,7 +210,9 @@ export function createTokenRefreshMiddleware() {
   })
 }
 
-function unwrapResponseData<T = unknown>(response: AxiosResponse<RequestResponse<T>>): T | null {
+export function unwrapResponseData<T = unknown>(
+  response: AxiosResponse<RequestResponse<T>>
+): T | null {
   const body = response.data
   if (body && typeof body === 'object' && 'data' in body) {
     return body.data
