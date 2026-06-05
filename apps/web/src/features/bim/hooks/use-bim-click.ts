@@ -13,6 +13,7 @@ export function useBimClick() {
 
   return useCallback(
     (event: ThreeEvent<PointerEvent>) => {
+      console.log('🚀 ~ useBimClick ~ event:', event)
       handleBimPointerClick(event, selectElement)
       invalidate()
     },

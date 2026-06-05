@@ -1,7 +1,7 @@
 import { TilesRendererContext } from '3d-tiles-renderer/r3f'
 import { useContext, useEffect } from 'react'
 
-import { bimMeshRegistry } from '../lib/mesh-registry'
+import { tilesetFeatureRegistry } from '../lib/feature-registry'
 
 import type { Object3D } from 'three'
 
@@ -9,8 +9,8 @@ interface TileModelEvent {
   scene: Object3D
 }
 
-/** 瓦片加载/卸载时同步 mesh 索引，供 Outline 高亮查询 */
-export function useTilesetMeshRegistry(): void {
+/** 瓦片加载/卸载时同步 feature 索引，供构件级高亮查询 */
+export function useTilesetFeatureRegistry(): void {
   const tiles = useContext(TilesRendererContext)
 
   useEffect(() => {
@@ -20,7 +20,7 @@ export function useTilesetMeshRegistry(): void {
 
     const onLoadModel = ({ scene }: TileModelEvent) => {
       if (cleanups.has(scene)) return
-      cleanups.set(scene, bimMeshRegistry.registerFromRoot(scene))
+      cleanups.set(scene, tilesetFeatureRegistry.registerFromRoot(scene))
     }
 
     const onDisposeModel = ({ scene }: TileModelEvent) => {

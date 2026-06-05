@@ -9,11 +9,7 @@ export function Lights() {
     <>
       <hemisphereLight args={['#e2e8f0', '#1e293b', HEMISPHERE_INTENSITY]} position={[0, 50, 0]} />
       <ambientLight args={['#ffffff', AMBIENT_INTENSITY]} />
-      <directionalLight
-        color="#ffffff"
-        intensity={KEY_LIGHT_INTENSITY}
-        position={[24, 32, 18]}
-      />
+      <directionalLight color="#ffffff" intensity={KEY_LIGHT_INTENSITY} position={[24, 32, 18]} />
       <directionalLight
         color="#c7d2fe"
         intensity={FILL_LIGHT_INTENSITY}

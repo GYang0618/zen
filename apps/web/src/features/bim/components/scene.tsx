@@ -1,8 +1,10 @@
 import { Environment, Grid, OrbitControls } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
+import { Perf } from 'r3f-perf'
 import { ACESFilmicToneMapping, SRGBColorSpace } from 'three'
 
 import { useModelStore } from '../stores/model'
+import { useTilesetSelectionStore } from '../tileset'
 import { Highlight } from './highlight'
 import { Lights } from './lights'
 
@@ -11,7 +13,8 @@ interface SceneProps {
 }
 
 export function Scene({ children }: SceneProps) {
-  const clearSelection = useModelStore((state) => state.clearSelection)
+  const clearModelSelection = useModelStore((state) => state.clearSelection)
+  const clearTilesetSelection = useTilesetSelectionStore((state) => state.clearSelection)
 
   return (
     <Canvas
@@ -28,7 +31,10 @@ export function Scene({ children }: SceneProps) {
         gl.outputColorSpace = SRGBColorSpace
         gl.shadowMap.enabled = false
       }}
-      onPointerMissed={() => clearSelection()}
+      onPointerMissed={() => {
+        clearModelSelection()
+        clearTilesetSelection()
+      }}
     >
       <color attach="background" args={['#0f172a']} />
       <OrbitControls makeDefault enableDamping target={[0, 0, 0]} maxPolarAngle={Math.PI * 0.48} />
@@ -43,6 +49,9 @@ export function Scene({ children }: SceneProps) {
       />
       {children}
       <Highlight />
+      {import.meta.env.DEV && (
+        <Perf style={{ position: 'absolute', borderRadius: '8px', top: '10px', right: '10px' }} />
+      )}
     </Canvas>
   )
 }

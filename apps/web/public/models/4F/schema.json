@@ -1,0 +1,68 @@
+{
+  "id": "empty",
+  "classes": {
+    "empty": {},
+    "BIMElement": {
+      "name": "BIMElement Metadata Class",
+      "properties": {
+        "floor": {
+          "type": "STRING"
+        },
+        "Tag": {
+          "type": "STRING"
+        },
+        "Reference": {
+          "type": "STRING"
+        },
+        "ContainedInStructure_inverse": {
+          "type": "STRING"
+        },
+        "EntityAliasName": {
+          "type": "STRING"
+        },
+        "Name": {
+          "type": "STRING"
+        },
+        "Description": {
+          "type": "STRING"
+        },
+        "PredefinedType": {
+          "type": "STRING"
+        },
+        "GlobalId": {
+          "type": "STRING"
+        },
+        "Representation": {
+          "type": "STRING"
+        },
+        "IsDefinedBy_inverse": {
+          "type": "STRING"
+        },
+        "ObjectPlacement": {
+          "type": "STRING"
+        },
+        "HasAssociations_inverse": {
+          "type": "STRING"
+        },
+        "IsExternal": {
+          "type": "STRING"
+        },
+        "id": {
+          "type": "STRING"
+        },
+        "IfcEntity": {
+          "type": "STRING"
+        },
+        "IsTypedBy_inverse": {
+          "type": "STRING"
+        },
+        "ObjectType": {
+          "type": "STRING"
+        },
+        "OwnerHistory": {
+          "type": "STRING"
+        }
+      }
+    }
+  }
+}
