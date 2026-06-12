@@ -11,8 +11,8 @@ export interface TilesetLoaders {
 }
 
 const DECODER_PATHS = {
-  draco: '/draco/',
-  ktx2: '/basis/'
+  draco: '/oss/draco/',
+  ktx2: '/oss/basis/'
 }
 
 export function useTilesetLoaders(): TilesetLoaders {

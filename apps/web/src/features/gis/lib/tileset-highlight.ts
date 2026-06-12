@@ -33,7 +33,7 @@ export function attachTilesetPickHighlight(viewer: Viewer): () => void {
   }
 
   const handler = new ScreenSpaceEventHandler(viewer.scene.canvas)
-  handler.setInputAction((movement) => {
+  handler.setInputAction((movement: ScreenSpaceEventHandler.PositionedEvent) => {
     clearHighlight()
     const feature = pickTileFeature(viewer, movement.position)
     if (!feature) return

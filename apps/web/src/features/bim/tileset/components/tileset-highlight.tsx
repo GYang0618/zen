@@ -63,7 +63,7 @@ export function TilesetHighlight() {
           <mesh
             key={mesh.uuid}
             geometry={mesh.geometry}
-            matrix={mesh.matrix}
+            matrix={mesh.matrixWorld}
             matrixAutoUpdate={false}
             frustumCulled={false}
             renderOrder={999}

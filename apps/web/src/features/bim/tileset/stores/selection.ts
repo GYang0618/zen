@@ -1,49 +1,17 @@
 import { create } from 'zustand'
 
 import { MAX_TILESET_SELECTION } from '../constants'
-import { tilesetFeatureRegistry } from '../lib/feature-registry'
 
 type SelectOptions = {
   multi?: boolean
   append?: boolean
-  properties?: Record<string, unknown>
-}
-
-type InspectionState = {
-  inspectedElementId: string | null
-  inspectedProperties: Record<string, unknown> | undefined
 }
 
 type TilesetSelectionState = {
   selectedElementIds: string[]
-  inspectedElementId: string | null
-  inspectedProperties: Record<string, unknown> | undefined
   selectElement: (id: string, options?: SelectOptions) => void
   setSelection: (ids: string[]) => void
   clearSelection: () => void
-}
-
-function resolveInspection(
-  id: string,
-  nextIds: string[],
-  properties?: Record<string, unknown>
-): InspectionState {
-  if (nextIds.includes(id)) {
-    return {
-      inspectedElementId: id,
-      inspectedProperties: properties ?? tilesetFeatureRegistry.getElementProperties(id)
-    }
-  }
-
-  const fallbackId = nextIds.at(-1) ?? null
-  if (!fallbackId) {
-    return { inspectedElementId: null, inspectedProperties: undefined }
-  }
-
-  return {
-    inspectedElementId: fallbackId,
-    inspectedProperties: tilesetFeatureRegistry.getElementProperties(fallbackId)
-  }
 }
 
 function clampSelection(ids: string[]): string[] {
@@ -52,11 +20,9 @@ function clampSelection(ids: string[]): string[] {
 
 export const useTilesetSelectionStore = create<TilesetSelectionState>((set, get) => ({
   selectedElementIds: [],
-  inspectedElementId: null,
-  inspectedProperties: undefined,
 
   selectElement: (id, options = {}) => {
-    const { multi = false, append = false, properties } = options
+    const { multi = false, append = false } = options
     const current = get().selectedElementIds
     let nextIds: string[]
 
@@ -72,29 +38,14 @@ export const useTilesetSelectionStore = create<TilesetSelectionState>((set, get)
       nextIds = [id]
     }
 
-    set({
-      selectedElementIds: nextIds,
-      ...resolveInspection(id, nextIds, properties)
-    })
+    set({ selectedElementIds: nextIds })
   },
 
   setSelection: (ids) => {
-    const nextIds = clampSelection([...new Set(ids)])
-    const lastId = nextIds.at(-1) ?? null
-    set({
-      selectedElementIds: nextIds,
-      inspectedElementId: lastId,
-      inspectedProperties: lastId
-        ? tilesetFeatureRegistry.getElementProperties(lastId)
-        : undefined
-    })
+    set({ selectedElementIds: clampSelection([...new Set(ids)]) })
   },
 
   clearSelection: () => {
-    set({
-      selectedElementIds: [],
-      inspectedElementId: null,
-      inspectedProperties: undefined
-    })
+    set({ selectedElementIds: [] })
   }
 }))

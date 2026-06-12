@@ -16,14 +16,13 @@ import {
 import { useTilesetClick } from '../hooks/use-tileset-click'
 import { useTilesetFeatureRegistry } from '../hooks/use-tileset-feature-registry'
 import { useTilesetLoaders } from '../hooks/use-tileset-loaders'
-import { useTilesetPickDebugger } from '../hooks/use-tileset-pick-debugger'
 import { TilesetHighlight } from './tileset-highlight'
 
-const DEFAULT_URL = '/models/4F/tileset.json'
+const DEFAULT_URL = '/oss/models/all/tileset.json'
+const ENVIRONMENT_URL = '/oss/hdri/potsdamer_platz_1k.hdr'
 
-function TilesetInteraction() {
+function TilesetFeatureRegistry() {
   useTilesetFeatureRegistry()
-  useTilesetPickDebugger()
   return null
 }
 
@@ -33,7 +32,7 @@ export function Tileset({ url = DEFAULT_URL }: { url?: string }) {
 
   return (
     <>
-      <Stage>
+      <Stage environment={{ files: ENVIRONMENT_URL }}>
         <TilesRenderer
           url={url}
           group={{ onClick: handleClick } as never}
@@ -43,16 +42,23 @@ export function Tileset({ url = DEFAULT_URL }: { url?: string }) {
         >
           <TilesPlugin
             plugin={GLTFExtensionsPlugin}
-            args={[{ dracoLoader, ktxLoader, meshoptDecoder }]}
+            args={[
+              {
+                dracoLoader,
+                ktxLoader,
+                meshoptDecoder
+                // metadata: true
+              }
+            ]}
           />
-          <TilesPlugin plugin={ReorientationPlugin} args={[{ recenter: true }]} />
+          <TilesPlugin plugin={ReorientationPlugin} args={[{ recenter: true, up: '+y' }]} />
           {/* 压缩驻留几何（index buffer）并关闭 mipmap，显著降低海量构件内存占用 */}
           <TilesPlugin plugin={TileCompressionPlugin} />
           {/* 主动卸载视锥外瓦片，配合 LRU 字节预算控制内存 */}
           <TilesPlugin plugin={UnloadTilesPlugin} />
           {/* 配合 frameloop="demand"：仅相机/瓦片变化时才执行 update */}
           <TilesPlugin plugin={UpdateOnChangePlugin} />
-          <TilesetInteraction />
+          <TilesetFeatureRegistry />
         </TilesRenderer>
       </Stage>
       <TilesetHighlight />

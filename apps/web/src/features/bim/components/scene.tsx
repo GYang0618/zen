@@ -38,7 +38,7 @@ export function Scene({ children }: SceneProps) {
     >
       <color attach="background" args={['#0f172a']} />
       <OrbitControls makeDefault enableDamping target={[0, 0, 0]} maxPolarAngle={Math.PI * 0.48} />
-      <Environment files="/hdri/lebombo_1k.hdr" environmentIntensity={0.85} />
+      <Environment files="/oss/hdri/lebombo_1k.hdr" environmentIntensity={0.85} />
       <Lights />
       <Grid
         args={[60, 60]}

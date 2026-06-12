@@ -28,18 +28,30 @@ export function Scene() {
     const container = viewerRef.current
     if (!container) return
 
+    let cancelled = false
     const viewer = new Viewer(container, VIEWER_OPTIONS)
     let tileset: Cesium3DTileset | undefined
     let detachHighlight: (() => void) | undefined
 
+    const isViewerAlive = () => !cancelled && !viewer.isDestroyed()
+
     const loadTileset = async () => {
       try {
-        tileset = await Cesium3DTileset.fromUrl(BIM_TILESET_URL)
+        const loadedTileset = await Cesium3DTileset.fromUrl(BIM_TILESET_URL)
+        if (!isViewerAlive()) {
+          loadedTileset.destroy()
+          return
+        }
+
+        tileset = loadedTileset
         placeTilesetAt(tileset, BEIJING_CAPITAL)
         viewer.scene.primitives.add(tileset)
         await viewer.zoomTo(tileset)
+        if (!isViewerAlive()) return
+
         detachHighlight = attachTilesetPickHighlight(viewer)
       } catch (error) {
+        if (!isViewerAlive()) return
         console.error('[GIS] Failed to load 3D Tileset:', error)
       }
     }
@@ -47,6 +59,7 @@ export function Scene() {
     void loadTileset()
 
     return () => {
+      cancelled = true
       detachHighlight?.()
       if (tileset && !viewer.isDestroyed()) {
         viewer.scene.primitives.remove(tileset)

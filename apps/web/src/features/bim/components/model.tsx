@@ -5,9 +5,10 @@ import { useBimClick } from '../hooks/use-bim-click'
 import { bimMeshRegistry } from '../lib/mesh-registry'
 
 import type { BimModelInstance } from '../stores/model'
+
 type BimModelProps = Pick<BimModelInstance, 'id' | 'url' | 'position'>
 
-useGLTF.setDecoderPath('/draco/')
+useGLTF.setDecoderPath('/oss/draco/')
 
 const FRAME_MARGIN = 1.35
 const FRAME_DURATION_SEC = 0.9

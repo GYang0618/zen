@@ -1,4 +1,4 @@
-export const BIM_TILESET_URL = '/models/bim/tileset.json'
+export const BIM_TILESET_URL = '/oss/models/bim/tileset.json'
 
 /** 北京市中心（天安门广场附近）WGS84 */
 export const BEIJING_CAPITAL = {

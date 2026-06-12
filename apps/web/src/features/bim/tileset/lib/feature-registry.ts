@@ -1,14 +1,9 @@
 import { Mesh } from 'three'
 
 import { disposeFeatureGeometryCache, getOrCreateFeatureGeometry } from './extract-feature-geometry'
-import {
-  findMetadataRoot,
-  getFeatureProperties,
-  getMeshFeatures,
-  resolveStableElementId
-} from './metadata'
 import './setup-bvh'
 
+import type { MeshFeatures } from '3d-tiles-renderer/plugins'
 import type { Object3D } from 'three'
 
 export type TilesetFeatureRef = {
@@ -18,6 +13,10 @@ export type TilesetFeatureRef = {
 
 const refsByElementId = new Map<string, TilesetFeatureRef[]>()
 const elementIdByMeshFeature = new Map<string, string>()
+
+function getMeshFeatures(mesh: Mesh): MeshFeatures | undefined {
+  return mesh.userData.meshFeatures as MeshFeatures | undefined
+}
 
 function meshFeatureKey(mesh: Mesh, featureId: number): string {
   return `${mesh.uuid}:${featureId}`
@@ -33,9 +32,7 @@ function addRef(elementId: string, ref: TilesetFeatureRef): void {
 
 export const tilesetFeatureRegistry = {
   /**
-   * 瓦片加载时仅做廉价处理：登记本瓦片拥有的 feature mesh，并为其几何构建 BVH 以加速点击拾取。
-   * 稳定 ID（GlobalId 等）的解析与属性表解码延迟到拾取时 `registerPick` 执行，
-   * 避免在加载期对每个 feature 急切解码结构化元数据（海量构件下成本极高）。
+   * 瓦片加载时登记 feature mesh，并为其几何构建 BVH 以加速点击拾取。
    */
   registerFromRoot(root: Object3D): () => void {
     const ownedMeshes = new Set<Mesh>()
@@ -70,22 +67,14 @@ export const tilesetFeatureRegistry = {
     }
   },
 
-  registerPick(mesh: Mesh, featureId: number, metadataRoot: Object3D): string {
-    const elementId = resolveStableElementId(mesh, featureId, metadataRoot)
+  registerPick(mesh: Mesh, featureId: number): string {
+    const elementId = `${mesh.uuid}:${featureId}`
     addRef(elementId, { mesh, featureId })
     return elementId
   },
 
   getRefs(elementId: string): readonly TilesetFeatureRef[] {
     return refsByElementId.get(elementId) ?? []
-  },
-
-  getElementProperties(elementId: string): Record<string, unknown> | undefined {
-    const refs = refsByElementId.get(elementId)
-    if (!refs?.length) return undefined
-
-    const { mesh, featureId } = refs[0]
-    return getFeatureProperties(mesh, featureId, findMetadataRoot(mesh))
   },
 
   /** 为 Outline / 填充层构建仅含 feature 子几何的临时 Mesh */
@@ -100,6 +89,7 @@ export const tilesetFeatureRegistry = {
         const highlight = new Mesh(geometry)
         highlight.matrix.copy(mesh.matrixWorld)
         highlight.matrixAutoUpdate = false
+        highlight.updateMatrixWorld(true)
         highlight.frustumCulled = false
         highlight.renderOrder = 999
         meshes.push(highlight)

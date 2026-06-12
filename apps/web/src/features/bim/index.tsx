@@ -6,7 +6,7 @@ import { BIMModel } from './components/model'
 import { Scene } from './components/scene'
 import { Copilot } from './copilot'
 import { useModelStore } from './stores/model'
-import { Tileset, TilesetPropertiesPanel } from './tileset'
+import { Tileset } from './tileset'
 
 export function BIMScreen() {
   const modelInstances = useModelStore((state) => state.modelInstances)
@@ -23,7 +23,6 @@ export function BIMScreen() {
           ))}
           <Tileset />
         </Scene>
-        <TilesetPropertiesPanel />
       </div>
     </Main>
   )

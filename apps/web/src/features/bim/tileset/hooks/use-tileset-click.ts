@@ -13,7 +13,14 @@ export function useTilesetClick() {
 
   return useCallback(
     (event: ThreeEvent<PointerEvent>) => {
-      handleTilesetPointerClick(event, selectElement)
+      const { meshFeatures, structuralMetadata } = event.object.userData
+
+      const picked = handleTilesetPointerClick(event, selectElement)
+      console.log('🚀 ~ useTilesetClick ~ picked:', picked?.properties)
+
+      const { propertyTable } = meshFeatures?.featureIds[0] ?? {}
+      const properties = structuralMetadata?.getPropertyTableData(propertyTable, picked?.featureId)
+      console.log('🚀 ~ useTilesetClick ~ properties:', properties)
       invalidate()
     },
     [selectElement, invalidate]
