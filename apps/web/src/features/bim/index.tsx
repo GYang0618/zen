@@ -1,4 +1,4 @@
-import { Suspense } from 'react'
+import { Suspense, useState } from 'react'
 
 import { Main } from '@/components/layouts'
 
@@ -10,7 +10,12 @@ import { Tileset } from './tileset'
 
 export function BIMScreen() {
   const modelInstances = useModelStore((state) => state.modelInstances)
+  const [tilesetUrls] = useState<string[]>([
+    '/oss/models/bim-ifc/demo1/tileset.json',
+    '/oss/models/bim-ifc/demo2/tileset.json'
 
+    // '/oss/models/plumb/tileset.json'
+  ])
   return (
     <Main fixed fluid className="flex flex-1 flex-col p-0 rounded-xl">
       <div className="relative size-full">
@@ -21,7 +26,9 @@ export function BIMScreen() {
               <BIMModel {...instance} />
             </Suspense>
           ))}
-          <Tileset />
+          {tilesetUrls.map((url) => (
+            <Tileset key={url} url={url} />
+          ))}
         </Scene>
       </div>
     </Main>

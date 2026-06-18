@@ -18,7 +18,6 @@ import { useTilesetFeatureRegistry } from '../hooks/use-tileset-feature-registry
 import { useTilesetLoaders } from '../hooks/use-tileset-loaders'
 import { TilesetHighlight } from './tileset-highlight'
 
-const DEFAULT_URL = '/oss/models/all/tileset.json'
 const ENVIRONMENT_URL = '/oss/hdri/potsdamer_platz_1k.hdr'
 
 function TilesetFeatureRegistry() {
@@ -26,7 +25,7 @@ function TilesetFeatureRegistry() {
   return null
 }
 
-export function Tileset({ url = DEFAULT_URL }: { url?: string }) {
+export function Tileset({ url }: { url: string }) {
   const { dracoLoader, ktxLoader, meshoptDecoder } = useTilesetLoaders()
   const handleClick = useTilesetClick()
 
@@ -51,7 +50,7 @@ export function Tileset({ url = DEFAULT_URL }: { url?: string }) {
               }
             ]}
           />
-          <TilesPlugin plugin={ReorientationPlugin} args={[{ recenter: true, up: '+y' }]} />
+          <TilesPlugin plugin={ReorientationPlugin} args={[{ recenter: true }]} />
           {/* 压缩驻留几何（index buffer）并关闭 mipmap，显著降低海量构件内存占用 */}
           <TilesPlugin plugin={TileCompressionPlugin} />
           {/* 主动卸载视锥外瓦片，配合 LRU 字节预算控制内存 */}
