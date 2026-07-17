@@ -29,7 +29,12 @@ function clampSelection(ids: string[]): string[] {
 }
 
 export const useModelStore = create<BimState>((set, get) => ({
-  modelInstances: [],
+  modelInstances: [
+    {
+      id: '1',
+      url: '/oss/models/12F.glb'
+    }
+  ],
   selectedElementIds: [],
 
   addModelInstance: ({ url, position }) => {

@@ -4,9 +4,10 @@ import { Perf } from 'r3f-perf'
 import { ACESFilmicToneMapping, SRGBColorSpace } from 'three'
 
 import { useModelStore } from '../stores/model'
-import { useTilesetSelectionStore } from '../tileset'
+import { useTilesetSelectionStore } from '../tileset/stores/selection'
 import { Highlight } from './highlight'
 import { Lights } from './lights'
+import { Walkthrough } from './walkthrough'
 
 interface SceneProps {
   children?: React.ReactNode
@@ -48,6 +49,7 @@ export function Scene({ children }: SceneProps) {
         infiniteGrid
       />
       {children}
+      <Walkthrough />
       <Highlight />
       {import.meta.env.DEV && (
         <Perf style={{ position: 'absolute', borderRadius: '8px', top: '10px', right: '10px' }} />

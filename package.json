@@ -25,7 +25,8 @@
   "pnpm": {
     "overrides": {
       "fastify": "5.8.5",
-      "hono": "^4.12.18"
+      "hono": "^4.12.18",
+      "three-mesh-bvh": "0.9.10"
     }
   },
   "volta": {
