@@ -40,6 +40,10 @@ export const roleConfig: Record<string, RoleConfig> = {
     label: '超级管理员',
     icon: Shield
   },
+  user: {
+    label: '普通用户',
+    icon: Users
+  },
   admin: {
     label: '管理员',
     icon: UserCheck

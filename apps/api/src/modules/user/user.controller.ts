@@ -66,7 +66,7 @@ export class UserController {
   @Post()
   @ApiOperation({
     summary: '创建用户',
-    description: '注册新用户账号，分配默认 guest 角色，返回列表行结构。'
+    description: '注册新用户账号，分配默认 user 角色，返回列表行结构。'
   })
   @ApiBody({ type: CreateUserSwaggerDto })
   @ApiCreatedResponse({

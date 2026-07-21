@@ -25,7 +25,7 @@ import type {
   UserListResponse
 } from './responses/user.response'
 
-const DEFAULT_ROLE_CODE = 'guest'
+const DEFAULT_ROLE_CODE = 'user'
 
 @Injectable()
 export class UserService {

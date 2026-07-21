@@ -44,7 +44,19 @@ export const rolesColumns = [
   }),
   columnHelper.accessor('name', {
     header: ({ column }) => <DataTableColumnHeader column={column} title="角色名称" />,
-    cell: (info) => <LongText className="max-w-48 ps-3">{info.getValue()}</LongText>,
+    cell: (info) => {
+      const role = info.row.original
+      return (
+        <div className="flex items-center gap-2 ps-3">
+          <LongText className="max-w-48">{info.getValue()}</LongText>
+          {role.isSystem ? (
+            <Badge variant="secondary" className="text-xs">
+              系统
+            </Badge>
+          ) : null}
+        </div>
+      )
+    },
     meta: {
       title: '角色名称',
       className: cn(

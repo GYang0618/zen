@@ -1,26 +1,26 @@
-import type { Paged, PageQueryInput } from '../pagination'
-import type { UserStatus } from '../user'
+import type { z } from 'zod'
+import type { permissionGroupSchema, permissionSchema } from './permission.schema'
+import type {
+  assignRolePermissionsSchema,
+  createRoleSchema,
+  deleteRolesSchema,
+  roleDataScopeSchema,
+  roleSchema,
+  roleStatusSchema,
+  rolesPageSchema,
+  rolesQuerySchema,
+  updateRoleSchema
+} from './role.schema'
 
-export type RoleDataScope = 'all' | 'department' | 'self' | 'custom'
+export type RoleStatus = z.infer<typeof roleStatusSchema>
+export type RoleDataScope = z.infer<typeof roleDataScopeSchema>
+export type Role = z.infer<typeof roleSchema>
+export type CreateRole = z.infer<typeof createRoleSchema>
+export type UpdateRole = z.infer<typeof updateRoleSchema>
+export type DeleteRoles = z.infer<typeof deleteRolesSchema>
+export type AssignRolePermissions = z.infer<typeof assignRolePermissionsSchema>
+export type RolesQuery = z.input<typeof rolesQuerySchema>
+export type RolesPage = z.infer<typeof rolesPageSchema>
 
-export type Role = {
-  id: string
-  name: string
-  code: string
-  status: UserStatus
-  dataScope: RoleDataScope
-  sort: number
-  description: string | null
-  memberCount: number
-  permissions: string[]
-  createdAt: string
-  updatedAt: string
-}
-
-export type RolesQuery = PageQueryInput & {
-  keyword?: string
-  status?: UserStatus | UserStatus[]
-  dataScope?: RoleDataScope | RoleDataScope[]
-}
-
-export type RolesPage = Paged<Role>
+export type Permission = z.infer<typeof permissionSchema>
+export type PermissionGroup = z.infer<typeof permissionGroupSchema>
