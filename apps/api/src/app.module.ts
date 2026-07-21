@@ -4,7 +4,14 @@ import { CommonModule } from '@/common'
 import { ConfigModule } from '@/config'
 import { LoggerModule } from '@/infra/logger'
 import { PrismaModule } from '@/infra/prisma'
-import { AuthModule, ChatModule, CopilotModule, HealthModule, UserModule } from '@/modules'
+import {
+  AuthModule,
+  ChatModule,
+  CopilotModule,
+  HealthModule,
+  RoleModule,
+  UserModule
+} from '@/modules'
 
 @Module({
   imports: [
@@ -15,6 +22,7 @@ import { AuthModule, ChatModule, CopilotModule, HealthModule, UserModule } from 
     AuthModule,
     HealthModule,
     UserModule,
+    RoleModule,
     ChatModule,
     CopilotModule
   ]

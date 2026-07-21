@@ -1,6 +1,6 @@
 import { Database, FolderTree, ShieldCheck, UserRound } from 'lucide-react'
 
-import type { RoleDataScope, UserStatus } from '@zen/shared'
+import type { RoleDataScope, RoleStatus } from '@zen/shared'
 import type { LucideIcon } from 'lucide-react'
 
 interface StatusConfig {
@@ -13,21 +13,13 @@ interface DataScopeConfig {
   icon: LucideIcon
 }
 
-export const roleStatusConfig: Record<UserStatus, StatusConfig> = {
+export const roleStatusConfig: Record<RoleStatus, StatusConfig> = {
   active: {
     label: '启用',
     color: 'bg-teal-100/30 text-teal-900 dark:text-teal-200 border-teal-200'
   },
-  inactive: {
-    label: '停用',
-    color: 'bg-neutral-300/40 border-neutral-300'
-  },
-  pending: {
-    label: '待审核',
-    color: 'bg-sky-200/40 text-sky-900 dark:text-sky-100 border-sky-300'
-  },
-  suspended: {
-    label: '已冻结',
+  disabled: {
+    label: '禁用',
     color:
       'bg-destructive/10 dark:bg-destructive/50 text-destructive dark:text-primary border-destructive/10'
   }
@@ -51,3 +43,13 @@ export const dataScopeConfig: Record<RoleDataScope, DataScopeConfig> = {
     icon: ShieldCheck
   }
 }
+
+export const dataScopeOptions = Object.entries(dataScopeConfig).map(([value, config]) => ({
+  value,
+  label: config.label
+}))
+
+export const roleStatusOptions = Object.entries(roleStatusConfig).map(([value, config]) => ({
+  value,
+  label: config.label
+}))
