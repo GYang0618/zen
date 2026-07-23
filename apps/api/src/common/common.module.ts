@@ -1,20 +1,41 @@
 import { Global, Module } from '@nestjs/common'
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
 import { JwtModule } from '@nestjs/jwt'
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler'
 
-import { authConfig } from '@/config'
+import { authConfig, securityConfig } from '@/config'
 import { LoggerModule } from '@/infra/logger'
+import { PrismaModule } from '@/infra/prisma'
 
+import { AuditService } from './auth/audit.service'
+import { AuthContextService } from './auth/auth-context.service'
+import { MembershipService } from './auth/membership.service'
+import { SessionService } from './auth/session.service'
 import { AllExceptionsFilter } from './filters/all-exceptions.filter'
+import { AuthContextGuard } from './guards/auth-context.guard'
 import { AuthGuard } from './guards/auth.guard'
+import { PermissionGuard } from './guards/permission.guard'
+import { PluginActiveGuard } from './guards/plugin-active.guard'
+import { StepUpGuard } from './guards/step-up.guard'
 import { TransformInterceptor } from './interceptors/transform.interceptor'
 
-import type { AuthConfig } from '@/config'
+import type { AuthConfig, SecurityConfig } from '@/config'
 
 @Global()
 @Module({
   imports: [
     LoggerModule,
+    PrismaModule,
+    ThrottlerModule.forRootAsync({
+      inject: [securityConfig.KEY],
+      useFactory: (security: SecurityConfig) => [
+        {
+          name: 'default',
+          ttl: security.throttle.ttl,
+          limit: security.throttle.limit
+        }
+      ]
+    }),
     JwtModule.registerAsync({
       inject: [authConfig.KEY],
       useFactory: (cfg: AuthConfig) => ({
@@ -23,19 +44,43 @@ import type { AuthConfig } from '@/config'
     })
   ],
   providers: [
+    AuthContextService,
+    AuditService,
+    SessionService,
+    MembershipService,
     {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter
     },
     {
       provide: APP_GUARD,
+      useClass: ThrottlerGuard
+    },
+    {
+      provide: APP_GUARD,
       useClass: AuthGuard
+    },
+    {
+      provide: APP_GUARD,
+      useClass: AuthContextGuard
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PermissionGuard
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PluginActiveGuard
+    },
+    {
+      provide: APP_GUARD,
+      useClass: StepUpGuard
     },
     {
       provide: APP_INTERCEPTOR,
       useClass: TransformInterceptor
     }
   ],
-  exports: [JwtModule]
+  exports: [JwtModule, AuthContextService, AuditService, SessionService, MembershipService]
 })
 export class CommonModule {}

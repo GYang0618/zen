@@ -21,7 +21,7 @@ const roleCodeSchema = z
   .max(50, '角色编码不能超过50个字符')
   .regex(/^[a-z][a-z0-9_]*$/, '角色编码仅支持小写字母、数字和下划线，且以字母开头')
 
-export const createRoleSchema = z.object({
+const createRoleObjectSchema = z.object({
   code: roleCodeSchema.describe('角色编码，创建后不可修改'),
   name: z
     .string()
@@ -31,15 +31,42 @@ export const createRoleSchema = z.object({
     .describe('角色名称'),
   description: z.string().trim().max(200, '描述不能超过200个字符').optional().describe('角色描述'),
   dataScope: roleDataScopeSchema.default('self').describe('数据权限范围'),
+  customOrgIds: z
+    .array(z.string().trim().min(1))
+    .optional()
+    .describe('CUSTOM 数据范围时的组织 ID 白名单'),
   sort: z.number().int().min(0).max(9999).optional().describe('排序值，越小越靠前'),
   permissionCodes: z.array(z.string().trim().min(1)).optional().describe('权限编码列表')
 })
 
-export const updateRoleSchema = createRoleSchema
+export const createRoleSchema = createRoleObjectSchema.superRefine((value, ctx) => {
+  if (value.dataScope === 'custom' && (!value.customOrgIds || value.customOrgIds.length === 0)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['customOrgIds'],
+      message: '自定义数据范围时至少选择一个组织'
+    })
+  }
+})
+
+export const updateRoleSchema = createRoleObjectSchema
   .omit({ code: true })
   .partial()
   .extend({
     status: roleStatusSchema.optional().describe('角色状态')
+  })
+  .superRefine((value, ctx) => {
+    if (
+      value.dataScope === 'custom' &&
+      value.customOrgIds !== undefined &&
+      value.customOrgIds.length === 0
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['customOrgIds'],
+        message: '自定义数据范围时至少选择一个组织'
+      })
+    }
   })
 
 export const deleteRolesSchema = z.object({
@@ -71,6 +98,7 @@ export const roleSchema = z.object({
   name: z.string().describe('角色名称'),
   status: roleStatusSchema.describe('状态'),
   dataScope: roleDataScopeSchema.describe('数据范围'),
+  customOrgIds: z.array(z.string()).describe('CUSTOM 数据范围组织白名单'),
   sort: z.number().describe('排序值'),
   description: z.string().nullable().describe('描述'),
   memberCount: z.number().describe('成员数量'),

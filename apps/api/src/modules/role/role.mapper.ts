@@ -54,6 +54,7 @@ export function toRoleResponse(role: RoleWithRelations): RoleResponse {
     name: role.name,
     status: toApiRoleStatus(role.status),
     dataScope: toApiDataScope(role.dataScope),
+    customOrgIds: role.customOrgIds ?? [],
     sort: role.sort ?? 0,
     description: role.description ?? null,
     memberCount: role._count.users,

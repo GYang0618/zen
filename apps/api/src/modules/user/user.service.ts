@@ -3,6 +3,11 @@ import { UserStatusCode } from '@prisma/client'
 import argon2 from 'argon2'
 
 import { toArray } from '@/common'
+import { applyUserListDataScope } from '@/common/auth/apply-data-scope'
+import { AuditService } from '@/common/auth/audit.service'
+import { AuthContextService } from '@/common/auth/auth-context.service'
+import { MembershipService } from '@/common/auth/membership.service'
+import { SessionService } from '@/common/auth/session.service'
 import { buildPaginationMeta, paginate } from '@/common/pagination'
 
 import { findUsersQuerySchema } from './dto/find-users-query.dto'
@@ -10,6 +15,8 @@ import { toUserInfoResponse, toUserListItemResponse } from './user.mapper'
 import { UserRepository } from './user.repository'
 
 import type { Prisma } from '@prisma/client'
+import type { AuthContext } from '@zen/shared'
+import type { AssignUserRolesDto } from './dto/assign-user-roles.dto'
 import type { CreateUserDto } from './dto/create-user.dto'
 import type {
   FindUsersQueryDto,
@@ -17,6 +24,7 @@ import type {
   UsersSortBy,
   UsersSortOrder
 } from './dto/find-users-query.dto'
+import type { ReplaceUserOrganizationsDto } from './dto/replace-user-organizations.dto'
 import type { UpdateUserDto } from './dto/update-user.dto'
 import type { UpdateUsersStatusDto } from './dto/update-users-status.dto'
 import type {
@@ -26,10 +34,17 @@ import type {
 } from './responses/user.response'
 
 const DEFAULT_ROLE_CODE = 'user'
+const SUPER_ADMIN_ROLE_CODE = 'super_admin'
 
 @Injectable()
 export class UserService {
-  constructor(@Inject(UserRepository) private readonly userRepo: UserRepository) {}
+  constructor(
+    @Inject(UserRepository) private readonly userRepo: UserRepository,
+    @Inject(MembershipService) private readonly membershipService: MembershipService,
+    @Inject(SessionService) private readonly sessionService: SessionService,
+    @Inject(AuditService) private readonly auditService: AuditService,
+    @Inject(AuthContextService) private readonly authContextService: AuthContextService
+  ) {}
 
   async create(data: CreateUserDto): Promise<UserListItemResponse> {
     const hashedPassword = await argon2.hash(data.password)
@@ -42,6 +57,7 @@ export class UserService {
     })
 
     await this.userRepo.ensureDomainData(created.id)
+    await this.membershipService.ensureDefaultMembership(created.id)
     await this.assignRoleByCode(created.id, DEFAULT_ROLE_CODE)
     return this.getUserListItemByUserId(created.id)
   }
@@ -96,15 +112,7 @@ export class UserService {
     return this.userRepo.update({ id }, data)
   }
 
-  /** 供内部（AuthService）使用，写入 refresh token 哈希与过期时间 */
-  updateRefreshTokenState(
-    id: string,
-    data: Pick<Prisma.UserUpdateInput, 'refreshTokenHash' | 'refreshTokenExpiresAt'>
-  ) {
-    return this.userRepo.update({ id }, data)
-  }
-
-  async findAll(query?: FindUsersQueryDto): Promise<UserListResponse> {
+  async findAll(query?: FindUsersQueryDto, auth?: AuthContext): Promise<UserListResponse> {
     const hasPage = query?.page !== undefined
     const hasPageSize = query?.pageSize !== undefined
     if (hasPage !== hasPageSize) {
@@ -114,11 +122,14 @@ export class UserService {
     const { keyword, status, role, page, pageSize, sortBy, sortOrder } = findUsersQuerySchema.parse(
       query ?? {}
     )
-    const where = this.buildFindUsersWhere({
-      keyword,
-      status: toArray(status),
-      role: toArray(role)
-    })
+    const where = this.buildFindUsersWhere(
+      {
+        keyword,
+        status: toArray(status),
+        role: toArray(role)
+      },
+      auth
+    )
     const orderBy = buildUsersOrderBy(sortBy, sortOrder)
 
     if (hasPage && hasPageSize) {
@@ -251,17 +262,169 @@ export class UserService {
     return this.userRepo.touchLoginAudit(userId, loginIp)
   }
 
+  async unlock(id: string): Promise<UserListItemResponse> {
+    const existing = await this.userRepo.findActiveWithDomainById(id)
+    if (!existing) throw new NotFoundException('用户不存在')
+
+    await this.userRepo.update(
+      { id },
+      { isLocked: false, loginAttempts: 0, lockExpireAt: null }
+    )
+    await this.auditService.write({
+      action: 'system.user.unlocked',
+      resource: 'user',
+      resourceId: id
+    })
+    return this.getUserListItemByUserId(id)
+  }
+
+  async adminResetPassword(
+    id: string,
+    password: string,
+    mustChangePassword = true
+  ): Promise<UserListItemResponse> {
+    const existing = await this.userRepo.findActiveWithDomainById(id)
+    if (!existing) throw new NotFoundException('用户不存在')
+
+    const hashed = await argon2.hash(password)
+    await this.userRepo.update({ id }, { password: hashed })
+    await this.userRepo.ensureDomainData(id)
+    await this.userRepo.updateSecurity(id, {
+      mustChangePassword,
+      lastPasswordChange: new Date(),
+      passwordExpireAt: null
+    })
+    await this.sessionService.revokeAllForUser(id)
+    await this.auditService.write({
+      action: 'system.user.password_reset',
+      resource: 'user',
+      resourceId: id,
+      diff: { mustChangePassword }
+    })
+    return this.getUserListItemByUserId(id)
+  }
+
   async assignRoleByCode(userId: string, roleCode: string) {
     const role = await this.userRepo.findRoleByCode(roleCode)
     if (!role) return
     await this.userRepo.upsertUserRole(userId, role.id)
   }
 
-  private buildFindUsersWhere(params: {
-    keyword?: string
-    status?: UserStatus[]
-    role?: string[]
-  }): Prisma.UserWhereInput {
+  async assignRoles(userId: string, payload: AssignUserRolesDto): Promise<UserInfoResponse> {
+    const existing = await this.userRepo.findActiveWithDomainById(userId)
+    if (!existing) throw new NotFoundException('用户不存在')
+
+    const roleIds = [
+      ...new Set(
+        payload.roleIds
+          .map((id) => id.trim())
+          .filter((id): id is string => id.length > 0)
+      )
+    ]
+    if (roleIds.length === 0) {
+      throw new BadRequestException('至少需要一个角色')
+    }
+
+    const roles = await this.userRepo.findRolesByIds(roleIds)
+    if (roles.length !== roleIds.length) {
+      throw new BadRequestException('部分角色不存在或已禁用')
+    }
+
+    const currentCodes = existing.roles.map((item) => item.role.code)
+    const nextCodes = roles.map((role) => role.code)
+    const removingSuperAdmin =
+      currentCodes.includes(SUPER_ADMIN_ROLE_CODE) && !nextCodes.includes(SUPER_ADMIN_ROLE_CODE)
+    if (removingSuperAdmin) {
+      const otherSuperAdmins = await this.userRepo.countActiveSuperAdminsExcluding(userId)
+      if (otherSuperAdmins === 0) {
+        throw new BadRequestException('系统至少需要保留一名超级管理员')
+      }
+    }
+
+    await this.userRepo.replaceUserRoles(userId, roleIds)
+    await this.auditService.write({
+      action: 'system.user.roles_assigned',
+      resource: 'user',
+      resourceId: userId,
+      diff: { roleIds, roleCodes: nextCodes }
+    })
+    await this.authContextService.bumpPermVer()
+    await this.sessionService.revokeAllForUser(userId)
+
+    return this.getUserInfoByUserId(userId)
+  }
+
+  async replaceOrganizations(
+    userId: string,
+    payload: ReplaceUserOrganizationsDto
+  ): Promise<UserInfoResponse> {
+    const existing = await this.userRepo.findActiveWithDomainById(userId)
+    if (!existing) throw new NotFoundException('用户不存在')
+
+    const organizations = payload.organizations.map((item) => ({
+      organizationId: item.organizationId.trim(),
+      isPrimary: item.isPrimary ?? false,
+      postId: item.postId ?? null
+    }))
+
+    if (organizations.length > 0) {
+      const orgIds = [...new Set(organizations.map((item) => item.organizationId))]
+      const orgs = await this.userRepo.findOrganizationsByIds(orgIds)
+      if (orgs.length !== orgIds.length) {
+        throw new BadRequestException('部分组织不存在')
+      }
+
+      const primaryCount = organizations.filter((item) => item.isPrimary).length
+      if (primaryCount > 1) {
+        throw new BadRequestException('主职组织最多只能有一个')
+      }
+      if (primaryCount === 0 && organizations.length > 0) {
+        organizations[0].isPrimary = true
+      }
+
+      const postIds = [
+        ...new Set(
+          organizations
+            .map((item) => item.postId)
+            .filter((id): id is string => typeof id === 'string' && id.length > 0)
+        )
+      ]
+      if (postIds.length > 0) {
+        const posts = await this.userRepo.findPostsByIds(postIds)
+        if (posts.length !== postIds.length) {
+          throw new BadRequestException('部分岗位不存在')
+        }
+        const postOrgMap = new Map(posts.map((post) => [post.id, post.organizationId]))
+        for (const item of organizations) {
+          if (!item.postId) continue
+          if (postOrgMap.get(item.postId) !== item.organizationId) {
+            throw new BadRequestException('岗位不属于对应组织')
+          }
+        }
+      }
+    }
+
+    await this.userRepo.replaceUserOrganizations(userId, organizations)
+    await this.auditService.write({
+      action: 'system.user.organizations_replaced',
+      resource: 'user',
+      resourceId: userId,
+      diff: { organizations }
+    })
+    await this.authContextService.bumpPermVer()
+    await this.sessionService.revokeAllForUser(userId)
+
+    return this.getUserInfoByUserId(userId)
+  }
+
+  private buildFindUsersWhere(
+    params: {
+      keyword?: string
+      status?: UserStatus[]
+      role?: string[]
+    },
+    auth?: AuthContext
+  ): Prisma.UserWhereInput {
     const { keyword, status, role } = params
     const conditions: Prisma.UserWhereInput[] = []
 
@@ -286,6 +449,10 @@ export class UserService {
     }
 
     conditions.push({ deletedAt: null })
+
+    if (auth) {
+      conditions.push(applyUserListDataScope(auth) as Prisma.UserWhereInput)
+    }
 
     if (conditions.length === 0) return {}
     if (conditions.length === 1) return conditions[0]

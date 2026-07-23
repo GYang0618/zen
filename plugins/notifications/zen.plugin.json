@@ -1,0 +1,29 @@
+{
+  "id": "notifications",
+  "name": "通知中心",
+  "version": "0.1.0",
+  "platformVersion": "^0.1.0",
+  "dependsOn": [],
+  "contributions": {
+    "permissions": [
+      {
+        "code": "notif:message:list",
+        "name": "查看通知列表",
+        "module": "notif",
+        "description": "查看当前用户通知列表"
+      },
+      {
+        "code": "notif:message:manage",
+        "name": "管理通知",
+        "module": "notif",
+        "description": "创建通知"
+      }
+    ],
+    "routes": "./src/web/routes",
+    "apiModule": "./src/api/notifications.module"
+  },
+  "lifecycle": {
+    "activate": "./src/activate.ts",
+    "deactivate": "./src/deactivate.ts"
+  }
+}

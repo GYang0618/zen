@@ -2,6 +2,7 @@ import { getRouteApi } from '@tanstack/react-router'
 
 import { ConfigDrawer, ProfileDropdown, Search, ThemeSwitch } from '@/components'
 import { Header, Main } from '@/components/layouts'
+import { SystemPageHeader } from '@/features/system/components'
 
 import { UsersDialogs } from './components/users-dialogs'
 import { UsersPrimaryButtons } from './components/users-primary-buttons'
@@ -24,7 +25,7 @@ export function Users() {
       <Copilot />
       <Header fixed>
         <Search />
-        <div className="ms-auto flex items-center space-x-4">
+        <div className="ms-auto flex items-center gap-4">
           <ThemeSwitch />
           <ConfigDrawer />
           <ProfileDropdown />
@@ -32,13 +33,11 @@ export function Users() {
       </Header>
 
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">用户管理</h2>
-            <p className="text-muted-foreground">管理系统中的所有用户，配置角色权限和组织架构</p>
-          </div>
-          <UsersPrimaryButtons />
-        </div>
+        <SystemPageHeader
+          title="用户管理"
+          description="管理系统中的所有用户，配置角色权限和组织架构"
+          actions={<UsersPrimaryButtons />}
+        />
         <UsersTable
           data={users}
           isLoading={isLoading}

@@ -1,17 +1,27 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
   Inject,
+  Param,
   Post,
   Req,
   Res,
   UnauthorizedException,
   UsePipes
 } from '@nestjs/common'
+import { Throttle } from '@nestjs/throttler'
+import {
+  changePasswordSchema,
+  forgotPasswordSchema,
+  PermissionCode,
+  resetPasswordSchema
+} from '@zen/shared'
 
+import { RequirePermission } from '@/common/decorators/require-permission.decorator'
 import { Public } from '@/common/decorators/public.decorator'
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
 import { CONFIG_NAMESPACES } from '@/config'
@@ -23,6 +33,7 @@ import { loginSchema } from './dto/login.dto'
 import { registerSchema } from './dto/register.dto'
 
 import type { Request, Response } from 'express'
+import type { ChangePassword, ForgotPassword, ResetPassword } from '@zen/shared'
 import type { JwtPayload } from '@/common/interfaces/jwt-payload.interface'
 import type { AppConfig, AuthConfig } from '@/config'
 import type { UserInfoResponse } from '@/modules/user/responses/user.response'
@@ -48,24 +59,103 @@ export class AuthController {
   @UsePipes(new ZodValidationPipe(registerSchema))
   async register(
     @Body() registerDto: RegisterDto,
+    @Req() request: Request,
     @Res({ passthrough: true }) reply: Response
   ): Promise<RegisterResponse> {
-    const { session, refreshToken } = await this.authService.register(registerDto)
-    await this.persistRefreshToken(reply, session.user.id, refreshToken)
+    const { session, refreshToken } = await this.authService.register(
+      registerDto,
+      this.requestMeta(request)
+    )
+    await this.persistRefreshToken(reply, session.user.id, refreshToken, request)
     return session
   }
 
   @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ZodValidationPipe(loginSchema))
   async login(
     @Body() loginDto: LoginDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) reply: Response
+  ): Promise<LoginResponse | { requiresMfa: true; mfaToken: string }> {
+    const result = await this.authService.login(loginDto, this.requestMeta(request))
+    if ('requiresMfa' in result) return result
+    const { session, refreshToken } = result
+    await this.persistRefreshToken(reply, session.user.id, refreshToken, request)
+    return session
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Post('mfa/verify')
+  @HttpCode(HttpStatus.OK)
+  async verifyMfa(
+    @Body() body: { mfaToken: string; code: string },
+    @Req() request: Request,
     @Res({ passthrough: true }) reply: Response
   ): Promise<LoginResponse> {
-    const { session, refreshToken } = await this.authService.login(loginDto)
-    await this.persistRefreshToken(reply, session.user.id, refreshToken)
+    const { session, refreshToken } = await this.authService.verifyMfaLogin(
+      body.mfaToken,
+      body.code,
+      this.requestMeta(request)
+    )
+    await this.persistRefreshToken(reply, session.user.id, refreshToken, request)
     return session
+  }
+
+  @Post('mfa/setup')
+  @HttpCode(HttpStatus.OK)
+  setupMfa(@Req() request: Request) {
+    return this.authService.setupMfa(this.requireUserId(request))
+  }
+
+  @Post('mfa/enable')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async enableMfa(@Req() request: Request, @Body() body: { code: string }): Promise<void> {
+    await this.authService.enableMfa(this.requireUserId(request), body.code)
+  }
+
+  @Post('mfa/disable')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async disableMfa(@Req() request: Request, @Body() body: { code: string }): Promise<void> {
+    await this.authService.disableMfa(this.requireUserId(request), body.code)
+  }
+
+  @Post('step-up')
+  @HttpCode(HttpStatus.OK)
+  stepUp(
+    @Req() request: Request,
+    @Body() body: { password?: string; mfaCode?: string }
+  ) {
+    return this.authService.createStepUpToken(this.requireUserId(request), body)
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @UsePipes(new ZodValidationPipe(forgotPasswordSchema))
+  forgotPassword(@Body() body: ForgotPassword) {
+    return this.authService.forgotPassword(body.email)
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post('reset-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UsePipes(new ZodValidationPipe(resetPasswordSchema))
+  async resetPassword(@Body() body: ResetPassword): Promise<void> {
+    await this.authService.resetPassword(body.token, body.password)
+  }
+
+  @Post('change-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UsePipes(new ZodValidationPipe(changePasswordSchema))
+  async changePassword(@Req() request: Request, @Body() body: ChangePassword): Promise<void> {
+    const userId = this.requireUserId(request)
+    await this.authService.changePassword(userId, body.newPassword, body.currentPassword)
   }
 
   @Public()
@@ -88,7 +178,7 @@ export class AuthController {
     await this.authService.assertRefreshTokenValid(payload.sub, refreshToken)
 
     const { session, refreshToken: nextRefreshToken } = await this.authService.refresh(payload.sub)
-    await this.persistRefreshToken(reply, session.user.id, nextRefreshToken)
+    await this.rotateRefreshToken(reply, payload.sub, refreshToken, nextRefreshToken, request)
     return session
   }
 
@@ -103,7 +193,7 @@ export class AuthController {
     if (refreshToken) {
       try {
         const payload = await this.tokenService.verifyRefreshToken(refreshToken)
-        await this.authService.logout(payload.sub)
+        await this.authService.logout(payload.sub, refreshToken)
       } catch {
         // ignore
       }
@@ -120,6 +210,56 @@ export class AuthController {
     return this.authService.getMe(user.sub)
   }
 
+  @Get('sessions')
+  @RequirePermission(PermissionCode.SESSION_LIST)
+  @HttpCode(HttpStatus.OK)
+  async listSessions(@Req() request: Request) {
+    const userId = this.requireUserId(request)
+    const items = await this.authService.listSessions(userId)
+    return {
+      items: items.map((item) => ({
+        id: item.id,
+        ip: item.ip,
+        userAgent: item.userAgent,
+        expiresAt: item.expiresAt.toISOString(),
+        createdAt: item.createdAt.toISOString()
+      }))
+    }
+  }
+
+  @Delete('sessions/:id')
+  @RequirePermission(PermissionCode.SESSION_REVOKE)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async revokeSession(@Req() request: Request, @Param('id') sessionId: string): Promise<void> {
+    const userId = this.requireUserId(request)
+    await this.authService.revokeSession(userId, sessionId)
+  }
+
+  @Delete('sessions')
+  @RequirePermission(PermissionCode.SESSION_REVOKE)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async revokeAllSessions(
+    @Req() request: Request,
+    @Res({ passthrough: true }) reply: Response
+  ): Promise<void> {
+    const userId = this.requireUserId(request)
+    await this.authService.revokeAllSessions(userId)
+    this.clearRefreshToken(reply)
+  }
+
+  private requestMeta(request: Request) {
+    return {
+      ip: request.ip,
+      userAgent: request.get('user-agent') ?? undefined
+    }
+  }
+
+  private requireUserId(request: Request): string {
+    const user = (request as unknown as { user?: JwtPayload }).user
+    if (!user?.sub) throw new UnauthorizedException('缺少认证信息')
+    return user.sub
+  }
+
   private clearRefreshToken(reply: Response) {
     reply.clearCookie(REFRESH_TOKEN_COOKIE_NAME, {
       path: this.cookiePath,
@@ -129,17 +269,52 @@ export class AuthController {
     })
   }
 
-  private async persistRefreshToken(reply: Response, userId: string, refreshToken: string) {
+  private async persistRefreshToken(
+    reply: Response,
+    userId: string,
+    refreshToken: string,
+    request: Request
+  ) {
     const maxAgeSeconds = durationToSeconds(this.authCfg.refreshExpiresIn)
     const refreshTokenExpiresAt = new Date(Date.now() + maxAgeSeconds * 1000)
-    await this.authService.rotateRefreshToken(userId, refreshToken, refreshTokenExpiresAt)
+    await this.authService.createRefreshSession(userId, refreshToken, refreshTokenExpiresAt, {
+      ip: request.ip,
+      userAgent: request.get('user-agent') ?? undefined
+    })
 
+    this.writeRefreshCookie(reply, refreshToken, refreshTokenExpiresAt)
+  }
+
+  private async rotateRefreshToken(
+    reply: Response,
+    userId: string,
+    previousRefreshToken: string,
+    nextRefreshToken: string,
+    request: Request
+  ) {
+    const maxAgeSeconds = durationToSeconds(this.authCfg.refreshExpiresIn)
+    const refreshTokenExpiresAt = new Date(Date.now() + maxAgeSeconds * 1000)
+    await this.authService.rotateRefreshSession(
+      userId,
+      previousRefreshToken,
+      nextRefreshToken,
+      refreshTokenExpiresAt,
+      {
+        ip: request.ip,
+        userAgent: request.get('user-agent') ?? undefined
+      }
+    )
+
+    this.writeRefreshCookie(reply, nextRefreshToken, refreshTokenExpiresAt)
+  }
+
+  private writeRefreshCookie(reply: Response, refreshToken: string, expiresAt: Date) {
     reply.cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken, {
       path: this.cookiePath,
       httpOnly: true,
       secure: this.appCfg.isProd,
       sameSite: 'strict',
-      expires: refreshTokenExpiresAt
+      expires: expiresAt
     })
   }
 

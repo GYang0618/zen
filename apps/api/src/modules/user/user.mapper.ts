@@ -101,8 +101,8 @@ function getPrimaryRoleCode(roles: UserWithDomain['roles']): string | null {
 }
 
 export function toUserInfoResponse(user: UserWithDomain): UserInfoResponse {
-  const { profile, security, preference, audit, departments, roles } = user
-  const primaryDept = departments.find((d) => d.isPrimary) ?? departments[0]
+  const { profile, security, preference, audit, organizations, roles } = user
+  const primaryOrg = organizations.find((item) => item.isPrimary) ?? organizations[0]
   const roleDetails = toRoleDetails(roles)
   const permissions = collectPermissions(roleDetails)
 
@@ -125,10 +125,17 @@ export function toUserInfoResponse(user: UserWithDomain): UserInfoResponse {
       roleDetails
     },
     org: {
-      deptId: primaryDept?.departmentId ?? null,
-      deptName: primaryDept?.department.name ?? null,
+      deptId: primaryOrg?.organizationId ?? null,
+      deptName: primaryOrg?.organization.name ?? null,
       jobTitle: profile?.jobTitle ?? null
     },
+    organizations: organizations.map((item) => ({
+      organizationId: item.organizationId,
+      organizationName: item.organization.name ?? null,
+      isPrimary: item.isPrimary,
+      postId: item.postId ?? null,
+      postName: item.post?.name ?? null
+    })),
     account: {
       status: toUserStatus(user.status),
       isVerified: true,
@@ -141,7 +148,8 @@ export function toUserInfoResponse(user: UserWithDomain): UserInfoResponse {
       mfaType: toMfaType(security?.mfaType),
       passwordExpireAt: security?.passwordExpireAt?.toISOString() ?? null,
       lastPasswordChange: security?.lastPasswordChange?.toISOString() ?? null,
-      loginAttempts: user.loginAttempts
+      loginAttempts: user.loginAttempts,
+      mustChangePassword: security?.mustChangePassword ?? false
     },
     preferences: {
       locale: preference?.locale ?? 'zh-CN',
@@ -170,7 +178,7 @@ export function toUserInfoResponse(user: UserWithDomain): UserInfoResponse {
 
 export function toUserListItemResponse(user: UserWithDomain): UserListItemResponse {
   const { profile, roles } = user
-  const primaryDept = user.departments.find((d) => d.isPrimary) ?? user.departments[0]
+  const primaryOrg = user.organizations.find((item) => item.isPrimary) ?? user.organizations[0]
 
   return {
     id: user.id,
@@ -182,9 +190,10 @@ export function toUserListItemResponse(user: UserWithDomain): UserListItemRespon
     phoneNumber: user.phoneNumber ?? null,
     status: toUserStatus(user.status),
     role: getPrimaryRoleCode(roles),
-    deptName: primaryDept?.department.name ?? null,
+    deptName: primaryOrg?.organization.name ?? null,
     jobTitle: profile?.jobTitle ?? null,
     permissions: collectPermissions(toRoleDetails(roles)),
+    isLocked: user.isLocked,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString()
   }

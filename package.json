@@ -8,6 +8,11 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "check-types": "turbo run check-types",
+    "test": "turbo run test",
+    "docs:check-links": "node scripts/check-docs-links.mjs",
+    "plugin:validate": "pnpm -F @zen/plugin-sdk build && pnpm -F @zen/plugin-sdk validate",
+    "plugin:generate": "pnpm -F @zen/plugin-sdk build && pnpm -F @zen/plugin-sdk generate && pnpm -F @zen/plugin-sdk build",
+    "plugin:create": "node scripts/create-plugin.mjs",
     "clean": "pnpm run clean:dist && pnpm run clean:modules",
     "clean:dist": "pnpm -r --parallel exec rimraf -rf dist",
     "clean:modules": "pnpm -r --parallel exec rimraf -rf node_modules && rimraf -rf node_modules"

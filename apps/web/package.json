@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build",
     "lint": "biome check --write .",
     "preview": "vite preview",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "3d-tiles-renderer": "^0.4.27",
@@ -29,6 +31,10 @@
     "@tanstack/react-router-devtools": "^1.166.11",
     "@tanstack/react-table": "^8.21.3",
     "@types/three": "^0.184.1",
+    "@zen/plugin-demo-notes": "workspace:*",
+    "@zen/plugin-files": "workspace:*",
+    "@zen/plugin-jobs": "workspace:*",
+    "@zen/plugin-notifications": "workspace:*",
     "@zen/request": "workspace:*",
     "@zen/shared": "workspace:*",
     "@zen/ui": "workspace:*",
@@ -36,6 +42,7 @@
     "cesium": "^1.142.0",
     "lucide-react": "^1.7.0",
     "motion": "^12.38.0",
+    "otplib": "12.0.1",
     "postprocessing": "^6.39.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
@@ -62,6 +69,7 @@
     "tailwindcss": "^4.2.2",
     "typescript": "~5.9.3",
     "vite": "^8.0.1",
-    "vite-plugin-cesium": "^1.2.23"
+    "vite-plugin-cesium": "^1.2.23",
+    "vitest": "^3.2.4"
   }
 }

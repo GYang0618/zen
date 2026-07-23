@@ -1,0 +1,1 @@
+export const DEMO_NOTES_PRISMA = Symbol('DEMO_NOTES_PRISMA')

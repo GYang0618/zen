@@ -1,10 +1,10 @@
-import { randomUUID } from 'node:crypto'
-
 import { Catch, HttpException, HttpStatus, Inject } from '@nestjs/common'
 import { HttpAdapterHost } from '@nestjs/core'
 import { Logger } from 'nestjs-pino'
 
 import { appConfig } from '@/config'
+
+import { resolveTraceId, TRACE_ID_HEADER } from '../utils/trace-id'
 
 import type { ArgumentsHost, ExceptionFilter } from '@nestjs/common'
 import type { AppConfig } from '@/config'
@@ -15,6 +15,10 @@ type HttpRequest = {
   method: string
   url: string
   headers: Record<string, string | string[] | undefined>
+}
+
+type HttpResponse = {
+  setHeader?: (name: string, value: string) => void
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -96,16 +100,19 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const { httpAdapter } = this.httpAdapterHost
     const ctx = host.switchToHttp()
     const request = ctx.getRequest<HttpRequest>()
+    const response = ctx.getResponse<HttpResponse>()
 
     const isHttpException = exception instanceof HttpException
     const statusCode = isHttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR
 
     const message = isHttpException ? normalizeHttpExceptionMessage(exception) : '内部服务器错误'
 
-    const requestId =
-      (request.id !== null && request.id !== undefined ? String(request.id) : undefined) ||
-      (request.headers['x-request-id'] as string | undefined) ||
-      randomUUID()
+    const traceId = resolveTraceId({
+      existingId: request.id,
+      headers: request.headers
+    })
+    request.id = traceId
+    response.setHeader?.(TRACE_ID_HEADER, traceId)
 
     const validationErrors = isHttpException ? extractValidationErrors(exception) : undefined
 
@@ -113,21 +120,21 @@ export class AllExceptionsFilter implements ExceptionFilter {
       code: statusCode,
       message,
       path: request.url,
-      requestId,
+      traceId,
       timestamp: new Date().toISOString(),
       error: this.appCfg.isDev && !isHttpException ? serializeError(exception) : null,
       fieldErrors: validationErrors?.fieldErrors ?? null,
       formErrors: validationErrors?.formErrors ?? null
     }
 
-    const logLine = `${request.method} ${request.url} -> ${statusCode} ${message} [${requestId}]`
+    const logLine = `${request.method} ${request.url} -> ${statusCode} ${message} [${traceId}]`
 
     if (statusCode >= 500) {
-      this.logger.error({ err: exception }, logLine)
+      this.logger.error({ err: exception, traceId }, logLine)
     } else {
-      this.logger.warn(logLine)
+      this.logger.warn({ traceId }, logLine)
     }
 
-    httpAdapter.reply(ctx.getResponse(), body, statusCode)
+    httpAdapter.reply(response, body, statusCode)
   }
 }

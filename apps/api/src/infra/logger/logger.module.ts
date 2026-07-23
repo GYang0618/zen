@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common'
 import { LoggerModule as Logger } from 'nestjs-pino'
 
+import { resolveTraceId, TRACE_ID_HEADER } from '@/common/utils/trace-id'
 import { CONFIG_NAMESPACES } from '@/config'
 
+import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { AppConfig, LoggerConfig } from '@/config'
 
 @Module({
@@ -17,6 +19,16 @@ import type { AppConfig, LoggerConfig } from '@/config'
             level: loggerCfg.level,
             redact: loggerCfg.redact,
             autoLogging: true,
+            genReqId: (req: IncomingMessage, res: ServerResponse) => {
+              const traceId = resolveTraceId({
+                headers: req.headers
+              })
+              res.setHeader(TRACE_ID_HEADER, traceId)
+              return traceId
+            },
+            customProps: (req: IncomingMessage & { id?: string }) => ({
+              traceId: req.id
+            }),
             transport: isProduction
               ? undefined
               : {

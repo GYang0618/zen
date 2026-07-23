@@ -4,6 +4,7 @@ export type RoleResponse = {
   name: string
   status: 'active' | 'disabled'
   dataScope: 'all' | 'department' | 'self' | 'custom'
+  customOrgIds: string[]
   sort: number
   description: string | null
   memberCount: number

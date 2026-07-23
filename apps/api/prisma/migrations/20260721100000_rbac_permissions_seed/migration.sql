@@ -23,7 +23,7 @@ WHERE "code" = 'super_admin';
 -- Add preset user role (普通用户)
 INSERT INTO "roles" ("id", "code", "name", "description", "is_system", "status", "sort", "data_scope", "created_at", "updated_at")
 VALUES
-  ('cm00000000000000000000003', 'user', '普通用户', '系统默认角色，拥有基础访问权限', true, 'ACTIVE', 10, 'self', NOW(), NOW())
+  ('cm00000000000000000000003', 'user', '普通用户', '系统默认角色，拥有基础访问权限', true, 'active', 10, 'self', NOW(), NOW())
 ON CONFLICT ("code") DO UPDATE
 SET "name" = EXCLUDED."name",
     "description" = EXCLUDED."description",

@@ -1,4 +1,5 @@
 import { DotsHorizontalIcon } from '@radix-ui/react-icons'
+import { PermissionCode } from '@zen/shared'
 import {
   Button,
   DropdownMenu,
@@ -9,6 +10,8 @@ import {
   DropdownMenuTrigger
 } from '@zen/ui'
 import { Shield, ShieldAlert } from 'lucide-react'
+
+import { Can } from '@/components/auth/can'
 
 import { useRoles } from '../roles-provider'
 
@@ -33,32 +36,36 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[160px]">
-        <DropdownMenuItem
-          disabled={isSuperAdmin}
-          onClick={() => {
-            setCurrentRow(role)
-            setOpen('edit')
-          }}
-        >
-          编辑
-          <DropdownMenuShortcut>
-            <Shield size={16} />
-          </DropdownMenuShortcut>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          disabled={role.isSystem}
-          onClick={() => {
-            setCurrentRow(role)
-            setOpen('delete')
-          }}
-          className="text-red-500!"
-        >
-          删除
-          <DropdownMenuShortcut>
-            <ShieldAlert size={16} />
-          </DropdownMenuShortcut>
-        </DropdownMenuItem>
+        <Can permission={PermissionCode.ROLE_UPDATE}>
+          <DropdownMenuItem
+            disabled={isSuperAdmin}
+            onClick={() => {
+              setCurrentRow(role)
+              setOpen('edit')
+            }}
+          >
+            编辑
+            <DropdownMenuShortcut>
+              <Shield size={16} />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
+        </Can>
+        <Can permission={PermissionCode.ROLE_DELETE}>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            disabled={role.isSystem}
+            onClick={() => {
+              setCurrentRow(role)
+              setOpen('delete')
+            }}
+            className="text-red-500!"
+          >
+            删除
+            <DropdownMenuShortcut>
+              <ShieldAlert size={16} />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
+        </Can>
       </DropdownMenuContent>
     </DropdownMenu>
   )

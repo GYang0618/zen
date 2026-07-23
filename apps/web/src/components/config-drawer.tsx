@@ -26,6 +26,7 @@ import {
 } from '@/components/icons'
 import { useLayout } from '@/context/layout-provider'
 import { useTheme } from '@/context/theme-provider'
+import { useI18nStore } from '@/stores/i18n'
 
 import type { ReactElement, SVGProps } from 'react'
 import type { Collapsible } from '@/context/layout-provider'
@@ -66,6 +67,7 @@ export function ConfigDrawer() {
           </SheetDescription>
         </SheetHeader>
         <div className="space-y-6 overflow-y-auto px-4">
+          <LocaleConfig />
           <ThemeConfig />
           <SidebarConfig />
           <LayoutConfig />
@@ -156,6 +158,36 @@ function RadioGroupItem({
         {item.label}
       </div>
     </Item>
+  )
+}
+
+function LocaleConfig() {
+  const locale = useI18nStore((state) => state.locale)
+  const setLocale = useI18nStore((state) => state.setLocale)
+
+  return (
+    <div>
+      <SectionTitle title="语言" />
+      <Radio
+        value={locale}
+        onValueChange={(value) => setLocale(value as 'zh-CN' | 'en-US')}
+        className="grid w-full max-w-md grid-cols-2 gap-4"
+        aria-label="选择界面语言"
+      >
+        <Item value="zh-CN" className="group relative flex flex-col items-center gap-1.5">
+          <div className="relative flex size-14 items-center justify-center rounded-lg border-2 border-muted bg-background group-data-[state=checked]:border-primary">
+            中
+          </div>
+          <div className="mt-1 text-xs">简体中文</div>
+        </Item>
+        <Item value="en-US" className="group relative flex flex-col items-center gap-1.5">
+          <div className="relative flex size-14 items-center justify-center rounded-lg border-2 border-muted bg-background group-data-[state=checked]:border-primary">
+            EN
+          </div>
+          <div className="mt-1 text-xs">English</div>
+        </Item>
+      </Radio>
+    </div>
   )
 }
 

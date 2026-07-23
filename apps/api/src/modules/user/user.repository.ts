@@ -9,8 +9,9 @@ export const USER_INCLUDE = {
   security: true,
   preference: true,
   audit: true,
-  departments: {
-    include: { department: true }
+  organizations: {
+    where: { leftAt: null },
+    include: { organization: true, post: true }
   },
   roles: {
     include: {
@@ -132,6 +133,13 @@ export class UserRepository {
     })
   }
 
+  updateSecurity(userId: string, data: Prisma.UserSecurityUpdateInput) {
+    return this.prisma.userSecurity.update({
+      where: { userId },
+      data
+    })
+  }
+
   findRoleByCode(code: string) {
     return this.prisma.role.findUnique({ where: { code } })
   }
@@ -141,6 +149,86 @@ export class UserRepository {
       where: { userId_roleId: { userId, roleId } },
       create: { userId, roleId },
       update: {}
+    })
+  }
+
+  findRolesByIds(ids: string[]) {
+    return this.prisma.role.findMany({
+      where: { id: { in: ids }, status: 'ACTIVE' }
+    })
+  }
+
+  replaceUserRoles(userId: string, roleIds: string[]) {
+    return this.prisma.$transaction([
+      this.prisma.userRole.deleteMany({ where: { userId } }),
+      ...(roleIds.length > 0
+        ? [
+            this.prisma.userRole.createMany({
+              data: roleIds.map((roleId) => ({ userId, roleId }))
+            })
+          ]
+        : [])
+    ])
+  }
+
+  findOrganizationsByIds(ids: string[]) {
+    return this.prisma.organization.findMany({
+      where: { id: { in: ids } },
+      select: { id: true }
+    })
+  }
+
+  findPostsByIds(ids: string[]) {
+    return this.prisma.post.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, organizationId: true }
+    })
+  }
+
+  async replaceUserOrganizations(
+    userId: string,
+    organizations: Array<{ organizationId: string; isPrimary: boolean; postId: string | null }>
+  ) {
+    const now = new Date()
+    await this.prisma.$transaction(async (tx) => {
+      await tx.userOrganization.updateMany({
+        where: { userId, leftAt: null },
+        data: { leftAt: now }
+      })
+
+      for (const item of organizations) {
+        await tx.userOrganization.upsert({
+          where: {
+            userId_organizationId: {
+              userId,
+              organizationId: item.organizationId
+            }
+          },
+          create: {
+            userId,
+            organizationId: item.organizationId,
+            isPrimary: item.isPrimary,
+            postId: item.postId,
+            joinedAt: now,
+            leftAt: null
+          },
+          update: {
+            isPrimary: item.isPrimary,
+            postId: item.postId,
+            joinedAt: now,
+            leftAt: null
+          }
+        })
+      }
+    })
+  }
+
+  countActiveSuperAdminsExcluding(userId: string) {
+    return this.prisma.userRole.count({
+      where: {
+        role: { code: 'super_admin' },
+        user: { deletedAt: null, id: { not: userId } }
+      }
     })
   }
 }

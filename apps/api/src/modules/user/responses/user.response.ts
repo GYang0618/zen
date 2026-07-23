@@ -43,6 +43,13 @@ export interface UserInfoResponse {
     deptName: string | null
     jobTitle: string | null
   }
+  organizations: Array<{
+    organizationId: string
+    organizationName: string | null
+    isPrimary: boolean
+    postId: string | null
+    postName: string | null
+  }>
   account: {
     status: UserStatus
     isVerified: boolean
@@ -56,6 +63,7 @@ export interface UserInfoResponse {
     passwordExpireAt: string | null
     lastPasswordChange: string | null
     loginAttempts: number | null
+    mustChangePassword: boolean
   }
   preferences: {
     locale: string

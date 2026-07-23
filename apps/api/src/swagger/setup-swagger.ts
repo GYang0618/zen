@@ -4,7 +4,6 @@ import { dirname, isAbsolute, resolve } from 'node:path'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 
 import { ACCESS_TOKEN_AUTH } from '@/common/swagger'
-import { UserModule } from '@/modules/user/user.module'
 
 import type { INestApplication } from '@nestjs/common'
 import type { OpenAPIObject } from '@nestjs/swagger'
@@ -21,7 +20,8 @@ async function writeSwaggerJsonFile(document: OpenAPIObject, outputPath: string)
 }
 
 /**
- * 初始化 OpenAPI 文档（当前仅包含 User 模块）并导出 swagger.json
+ * 初始化 OpenAPI 文档（AppModule 已注册的全部控制器）并导出 swagger.json。
+ * 不使用 include 白名单，避免漏配业务 Module。
  * @returns 写入的 swagger.json 绝对路径
  */
 export async function setupSwagger(
@@ -44,7 +44,6 @@ export async function setupSwagger(
     .build()
 
   const document = SwaggerModule.createDocument(app, config, {
-    include: [UserModule],
     operationIdFactory: (controllerKey, methodKey) => `${controllerKey}_${methodKey}`
   })
 

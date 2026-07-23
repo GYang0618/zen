@@ -6,12 +6,15 @@ import { CONFIG_NAMESPACES } from '@/config'
 import type { JwtSignOptions } from '@nestjs/jwt'
 import type { AuthConfig } from '@/config'
 
-export type JwtTokenType = 'access' | 'refresh'
+export type JwtTokenType = 'access' | 'refresh' | 'mfa' | 'step-up'
 
 export interface JwtTokenPayload {
   sub: string
   email: string
   typ: JwtTokenType
+  purpose?: string
+  /** Access Token 携带权限版本，变更后强制刷新 */
+  permVer?: number
 }
 
 export interface TokenPair {
@@ -27,9 +30,12 @@ export class AuthTokenService {
     private readonly authCfg: AuthConfig
   ) {}
 
-  generateTokenPair(userId: string, email: string): TokenPair {
+  generateTokenPair(userId: string, email: string, permVer = 1): TokenPair {
     return {
-      accessToken: this.signToken({ sub: userId, email, typ: 'access' }, this.authCfg.expiresIn),
+      accessToken: this.signToken(
+        { sub: userId, email, typ: 'access', permVer },
+        this.authCfg.expiresIn
+      ),
       refreshToken: this.signToken(
         { sub: userId, email, typ: 'refresh' },
         this.authCfg.refreshExpiresIn
@@ -37,9 +43,25 @@ export class AuthTokenService {
     }
   }
 
+  signMfaChallenge(userId: string, email: string): string {
+    return this.signToken({ sub: userId, email, typ: 'mfa' }, '5m')
+  }
+
+  signStepUp(userId: string, email: string, purpose = 'sensitive'): string {
+    return this.signToken({ sub: userId, email, typ: 'step-up', purpose }, '3m')
+  }
+
   async verifyRefreshToken(token: string): Promise<JwtTokenPayload> {
     const payload = await this.jwtService.verifyAsync<JwtTokenPayload>(token)
     if (payload.typ !== 'refresh') {
+      throw new Error('Invalid token type')
+    }
+    return payload
+  }
+
+  async verifyTypedToken(token: string, typ: JwtTokenType): Promise<JwtTokenPayload> {
+    const payload = await this.jwtService.verifyAsync<JwtTokenPayload>(token)
+    if (payload.typ !== typ) {
       throw new Error('Invalid token type')
     }
     return payload

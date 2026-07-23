@@ -6,11 +6,13 @@ node_modules
 .pnp.js
 
 # Local env files
-.env*
+.env
+.env.*
 !.env.example
 
 # Testing
 coverage
+*.lcov
 
 # Turbo
 .turbo
@@ -23,16 +25,27 @@ coverage
 out/
 build
 dist
+**/dist/
 
+# Generated clients（由 openapi-ts 等工具生成，勿提交）
+apps/agent/src/api-client/
 
 # Debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
 # Misc
 .DS_Store
 *.pem
+*.tsbuildinfo
 
 # LangGraph API
 .langgraph_api
+**/.langgraph_api/
+
+# IDE
+.idea/
+*.swp
+*.swo

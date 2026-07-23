@@ -60,6 +60,9 @@ export function Dashboard() {
         </div>
       </Header>
       <Main>
+        <div className="mb-4 rounded-lg border bg-card p-4 text-sm text-muted-foreground">
+          插件 Widget 槽位：启用的能力插件可通过 ContributionRegistry.widgets 贡献工作台组件（当前为占位）。
+        </div>
         <div className="mb-2 flex items-center justify-between space-y-2">
           <h1 className="text-2xl font-bold tracking-tight">仪表盘</h1>
           <div className="flex items-center space-x-2">

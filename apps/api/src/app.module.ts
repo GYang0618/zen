@@ -5,13 +5,19 @@ import { ConfigModule } from '@/config'
 import { LoggerModule } from '@/infra/logger'
 import { PrismaModule } from '@/infra/prisma'
 import {
+  AuditModule,
   AuthModule,
   ChatModule,
   CopilotModule,
+  DictModule,
   HealthModule,
+  OrganizationModule,
+  PluginModule,
   RoleModule,
+  SystemConfigModule,
   UserModule
 } from '@/modules'
+import { PluginsModule } from '@/plugins.module'
 
 @Module({
   imports: [
@@ -23,6 +29,12 @@ import {
     HealthModule,
     UserModule,
     RoleModule,
+    OrganizationModule,
+    DictModule,
+    AuditModule,
+    SystemConfigModule,
+    PluginModule,
+    PluginsModule,
     ChatModule,
     CopilotModule
   ]

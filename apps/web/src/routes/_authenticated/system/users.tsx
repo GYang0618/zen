@@ -20,8 +20,8 @@ export const Route = createFileRoute('/_authenticated/system/users')({
   staticData: {
     title: '用户管理',
     icon: 'users',
-    roles: ['super_admin'],
     group: '系统管理',
+    order: 10,
     permissions: ['system:user:list']
   }
 })

@@ -13,4 +13,10 @@ export class HealthController {
   health() {
     return this.healthService.getStatus()
   }
+
+  @Public()
+  @Get('metrics')
+  metrics() {
+    return this.healthService.getMetrics()
+  }
 }

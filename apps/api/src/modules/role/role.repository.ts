@@ -45,7 +45,7 @@ export class RoleRepository {
     where: Prisma.RoleWhereInput,
     skip: number | undefined,
     take: number | undefined,
-    orderBy: Prisma.RoleOrderByWithRelationInput
+    orderBy: Prisma.RoleOrderByWithRelationInput | Prisma.RoleOrderByWithRelationInput[]
   ) {
     return this.prisma.role.findMany({
       where,
@@ -99,6 +99,20 @@ export class RoleRepository {
   findAllPermissions() {
     return this.prisma.permission.findMany({
       orderBy: [{ module: 'asc' }, { code: 'asc' }]
+    })
+  }
+
+  async findUserIdsByRoleId(roleId: string): Promise<string[]> {
+    const rows = await this.prisma.userRole.findMany({
+      where: { roleId },
+      select: { userId: true }
+    })
+    return rows.map((row) => row.userId)
+  }
+
+  countOrganizationsByIds(ids: string[]) {
+    return this.prisma.organization.count({
+      where: { id: { in: ids } }
     })
   }
 }

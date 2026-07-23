@@ -1,0 +1,50 @@
+{
+  "id": "demo-notes",
+  "name": "演示便签",
+  "version": "0.1.0",
+  "platformVersion": "^0.1.0",
+  "dependsOn": [],
+  "contributions": {
+    "permissions": [
+      {
+        "code": "demo:note:list",
+        "name": "查看便签列表",
+        "module": "demo",
+        "description": "分页或列表查询便签"
+      },
+      {
+        "code": "demo:note:get",
+        "name": "查看便签详情",
+        "module": "demo",
+        "description": "按 ID 查看便签"
+      },
+      {
+        "code": "demo:note:create",
+        "name": "创建便签",
+        "module": "demo",
+        "description": "创建便签"
+      },
+      {
+        "code": "demo:note:update",
+        "name": "更新便签",
+        "module": "demo",
+        "description": "更新便签"
+      },
+      {
+        "code": "demo:note:delete",
+        "name": "删除便签",
+        "module": "demo",
+        "description": "删除便签"
+      }
+    ],
+    "routes": "./src/web/routes",
+    "apiModule": "./src/api/demo-notes.module",
+    "configSchema": "./src/config.schema.ts",
+    "events": ["demo.note.created"],
+    "agentTools": "./src/agent/tools.ts"
+  },
+  "lifecycle": {
+    "activate": "./src/activate.ts",
+    "deactivate": "./src/deactivate.ts"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "@zen/plugin-hello-stub",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Phase 2 stub plugin for manifest validation and installation lifecycle",
+  "scripts": {
+    "check-types": "node -e \"process.exit(0)\"",
+    "lint": "node -e \"process.exit(0)\"",
+    "build": "node -e \"process.exit(0)\"",
+    "test": "node -e \"process.exit(0)\""
+  },
+  "dependencies": {
+    "@zen/plugin-sdk": "workspace:*"
+  },
+  "packageManager": "pnpm@10.33.0"
+}

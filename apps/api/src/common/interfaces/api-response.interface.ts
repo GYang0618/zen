@@ -2,7 +2,8 @@ export interface ApiResponse<T> {
   code: number
   message: string
   data: T
-  requestId: string | null
+  /** 请求追踪 ID（与响应头 x-trace-id 一致） */
+  traceId: string
   timestamp: string
 }
 
@@ -16,7 +17,8 @@ export interface ApiErrorResponse {
   code: number
   message: string
   path: string
-  requestId: string | null
+  /** 请求追踪 ID（与响应头 x-trace-id 一致） */
+  traceId: string
   timestamp: string
   error: ApiErrorDetail | null
   /** 按字段分组的验证错误 */

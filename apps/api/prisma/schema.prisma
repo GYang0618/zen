@@ -82,38 +82,148 @@ enum OrganizationType {
   TEAM       @map("team")
 }
 
+/// 租户表（单租户交付阶段仅种子 default；全链路 Context 必带 tenantId）
+model Tenant {
+  /// 租户 ID
+  id        String       @id @default(cuid())
+  /// 租户编码
+  code      String       @unique
+  /// 租户名称
+  name      String
+  /// 状态
+  status    RecordStatus @default(ACTIVE)
+  /// 租户级配置
+  settings  Json?
+  /// 创建时间
+  createdAt DateTime     @default(now()) @map("created_at")
+  /// 更新时间
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("tenants")
+}
+
+/// 操作审计日志
+model AuditLog {
+  /// 审计 ID
+  id         String   @id @default(cuid())
+  /// 租户 ID
+  tenantId   String   @map("tenant_id")
+  /// 操作者用户 ID
+  actorId    String?  @map("actor_id")
+  /// 动作编码（如 system.user.created）
+  action     String
+  /// 资源类型
+  resource   String?
+  /// 资源 ID
+  resourceId String?  @map("resource_id")
+  /// 客户端 IP
+  ip         String?
+  /// User-Agent
+  userAgent  String?  @map("user_agent")
+  /// 请求追踪 ID
+  traceId    String?  @map("trace_id")
+  /// 变更摘要
+  diff       Json?
+  /// 创建时间
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([tenantId, createdAt])
+  @@index([actorId])
+  @@index([action])
+  @@index([traceId])
+  @@map("audit_logs")
+}
+
+/// 租户成员资格（单租户阶段每个用户一条 default 成员记录）
+model Membership {
+  id        String       @id @default(cuid())
+  tenantId  String       @map("tenant_id")
+  userId    String       @map("user_id")
+  status    RecordStatus @default(ACTIVE)
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([userId])
+  @@map("memberships")
+}
+
+/// 插件安装状态
+enum PluginInstallStatus {
+  ACTIVE   @map("active")
+  INACTIVE @map("inactive")
+}
+
+/// 租户内插件安装记录（编译期插件的启停与配置）
+model PluginInstallation {
+  id        String              @id @default(cuid())
+  tenantId  String              @map("tenant_id")
+  pluginId  String              @map("plugin_id")
+  version   String
+  status    PluginInstallStatus @default(ACTIVE)
+  config    Json?
+  createdAt DateTime            @default(now()) @map("created_at")
+  updatedAt DateTime            @updatedAt @map("updated_at")
+
+  @@unique([tenantId, pluginId])
+  @@index([tenantId, status])
+  @@index([pluginId])
+  @@map("plugin_installations")
+}
+
+/// 登录会话（Refresh Token 服务端实体，支持多设备与强制下线）
+model Session {
+  id               String    @id @default(cuid())
+  userId           String    @map("user_id")
+  tenantId         String    @map("tenant_id")
+  refreshTokenHash String    @map("refresh_token_hash")
+  expiresAt        DateTime  @map("expires_at")
+  revokedAt        DateTime? @map("revoked_at")
+  ip               String?
+  userAgent        String?   @map("user_agent")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tenantId])
+  @@index([refreshTokenHash])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
 /// 用户主表
 model User {
   /// 用户ID
-  id                    String         @id @default(cuid())
+  id            String         @id @default(cuid())
   /// 用户名
-  username              String         @unique
+  username      String         @unique
   /// 昵称
-  nickname              String?
+  nickname      String?
   /// 邮箱
-  email                 String         @unique
+  email         String         @unique
   /// 手机号码
-  phoneNumber           String?        @unique @map("phone_number")
+  phoneNumber   String?        @unique @map("phone_number")
   /// 密码哈希
-  password              String
-  /// Refresh Token 哈希（用于服务端撤销/轮换）
-  refreshTokenHash      String?        @map("refresh_token_hash")
-  /// Refresh Token 过期时间（服务端校验）
-  refreshTokenExpiresAt DateTime?      @map("refresh_token_expires_at")
+  password      String
   /// 账号状态
-  status                UserStatusCode @default(ACTIVE)
+  status        UserStatusCode @default(ACTIVE)
   /// 登录失败次数
-  loginAttempts         Int            @default(0)
+  loginAttempts Int            @default(0)
   /// 是否锁定
-  isLocked              Boolean        @default(false)
+  isLocked      Boolean        @default(false)
   /// 锁定到期时间
-  lockExpireAt          DateTime?
+  lockExpireAt  DateTime?
   /// 创建时间
-  createdAt             DateTime       @default(now()) @map("created_at")
+  createdAt     DateTime       @default(now()) @map("created_at")
   /// 更新时间
-  updatedAt             DateTime       @updatedAt @map("updated_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
   /// 软删除时间（null 表示未删除）
-  deletedAt             DateTime?      @map("deleted_at")
+  deletedAt     DateTime?      @map("deleted_at")
 
   /// 用户资料（一对一）
   profile          UserProfile?
@@ -125,8 +235,18 @@ model User {
   audit            UserAudit?
   /// 用户角色关联（一对多）
   roles            UserRole[]
-  /// 用户部门关联（一对多）
-  departments      UserDepartment[]
+  /// 租户成员资格
+  memberships      Membership[]
+  /// 登录会话
+  sessions         Session[]
+  /// 密码重置令牌
+  passwordResetTokens PasswordResetToken[]
+  /// 登录事件
+  loginEvents      LoginEvent[]
+  /// 站内通知
+  notifications    Notification[]
+  /// 上传文件
+  storedFiles      StoredFile[]
   /// 用户组织岗位关联（一对多）
   organizations    UserOrganization[]
   /// 负责的组织集合（一对多）
@@ -182,6 +302,10 @@ model UserSecurity {
   passwordExpireAt   DateTime? @map("password_expire_at")
   /// 上次修改密码时间
   lastPasswordChange DateTime? @map("last_password_change")
+  /// 是否必须修改密码（首次登录 / 管理员重置）
+  mustChangePassword Boolean   @default(false) @map("must_change_password")
+  /// TOTP 密钥（启用 MFA 后保存）
+  mfaSecret          String?   @map("mfa_secret")
   /// 创建时间
   createdAt          DateTime  @default(now()) @map("created_at")
   /// 更新时间
@@ -272,6 +396,8 @@ model Role {
   status      RecordStatus  @default(ACTIVE)
   /// 数据范围
   dataScope   RoleDataScope @default(SELF) @map("data_scope")
+  /// CUSTOM 数据范围时的组织白名单
+  customOrgIds String[]     @default([]) @map("custom_org_ids")
   /// 排序值
   sort        Int?
   /// 创建时间
@@ -327,6 +453,8 @@ model Organization {
   posts    Post[]
   /// 组织成员关联
   users    UserOrganization[]
+  /// 演示便签（参考插件）
+  demoNotes DemoNote[]
 
   @@index([parentId])
   @@index([leaderId])
@@ -463,56 +591,145 @@ model RolePermission {
   @@map("role_permissions")
 }
 
-/// 部门表
-model Department {
-  /// 部门ID
-  id          String       @id @default(cuid())
-  /// 部门编码
-  code        String       @unique
-  /// 部门名称
+/// 字典类型
+model DictType {
+  id          String   @id @default(cuid())
+  code        String   @unique
   name        String
-  /// 父部门ID
-  parentId    String?      @map("parent_id")
-  /// 部门描述
   description String?
-  /// 部门状态
-  status      RecordStatus @default(ACTIVE)
-  /// 排序值
-  sort        Int?
-  /// 创建时间
-  createdAt   DateTime     @default(now()) @map("created_at")
-  /// 更新时间
-  updatedAt   DateTime     @updatedAt @map("updated_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
-  /// 父级部门
-  parent   Department?      @relation("DepartmentHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  /// 子部门集合
-  children Department[]     @relation("DepartmentHierarchy")
-  /// 部门下的用户关联
-  users    UserDepartment[]
+  items DictItem[]
 
-  @@index([parentId])
-  @@index([status])
-  @@map("departments")
+  @@map("dict_types")
 }
 
-/// 用户部门关联表
-model UserDepartment {
-  /// 用户ID
-  userId       String   @map("user_id")
-  /// 部门ID
-  departmentId String   @map("department_id")
-  /// 是否主部门
-  isPrimary    Boolean  @default(false) @map("is_primary")
-  /// 创建时间
-  createdAt    DateTime @default(now()) @map("created_at")
+/// 字典项
+model DictItem {
+  id        String       @id @default(cuid())
+  typeCode  String       @map("type_code")
+  label     String
+  value     String
+  sort      Int          @default(0)
+  status    RecordStatus @default(ACTIVE)
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
 
-  /// 关联用户
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  /// 关联部门
-  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  type DictType @relation(fields: [typeCode], references: [code], onDelete: Cascade)
 
-  @@id([userId, departmentId])
-  @@index([departmentId])
-  @@map("user_departments")
+  @@unique([typeCode, value])
+  @@index([typeCode, sort])
+  @@map("dict_items")
+}
+
+/// 演示便签（参考插件 demo-notes）
+model DemoNote {
+  id             String    @id @default(cuid())
+  tenantId       String    @map("tenant_id")
+  organizationId String    @map("organization_id")
+  title          String
+  content        String?
+  createdBy      String    @map("created_by")
+  updatedBy      String?   @map("updated_by")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, organizationId])
+  @@index([tenantId, createdBy])
+  @@index([deletedAt])
+  @@map("demo_notes")
+}
+
+/// 密码重置令牌
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  tokenHash String    @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}
+
+/// 登录事件历史（可按用户/时间查询）
+model LoginEvent {
+  id         String   @id @default(cuid())
+  userId     String?  @map("user_id")
+  identifier String
+  success    Boolean
+  ip         String?
+  userAgent  String?  @map("user_agent")
+  reason     String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@map("login_events")
+}
+
+/// 站内通知（notifications 插件）
+model Notification {
+  id        String    @id @default(cuid())
+  tenantId  String    @default("cmtenant00000000000000001") @map("tenant_id")
+  userId    String    @map("user_id")
+  title     String
+  body      String?
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, userId])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+/// 文件对象元数据（files 插件）
+model StoredFile {
+  id         String    @id @default(cuid())
+  tenantId   String    @default("cmtenant00000000000000001") @map("tenant_id")
+  ownerId    String    @map("owner_id")
+  filename   String
+  mimeType   String?   @map("mime_type")
+  size       Int       @default(0)
+  storageKey String    @map("storage_key")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, ownerId])
+  @@index([deletedAt])
+  @@map("stored_files")
+}
+
+/// 异步任务记录（jobs 插件）
+model JobRecord {
+  id         String    @id @default(cuid())
+  tenantId   String    @default("cmtenant00000000000000001") @map("tenant_id")
+  name       String
+  status     String    @default("pending")
+  payload    Json?
+  result     Json?
+  createdBy  String?   @map("created_by")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  finishedAt DateTime? @map("finished_at")
+
+  @@index([tenantId, status])
+  @@index([createdAt])
+  @@map("job_records")
 }

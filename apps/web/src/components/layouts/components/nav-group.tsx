@@ -20,9 +20,10 @@ import {
   SidebarMenuSubItem,
   useSidebar
 } from '@zen/ui'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, ExternalLink } from 'lucide-react'
 
 import type { ReactNode } from 'react'
+import type { LinkProps } from '@tanstack/react-router'
 import type { NavCollapsible, NavGroup as NavGroupProps, NavItem, NavLink } from '../types'
 
 export function NavGroup({ title, items }: NavGroupProps) {
@@ -51,16 +52,51 @@ function NavBadge({ children }: { children: ReactNode }) {
   return <Badge className="rounded-full px-1 py-0 text-xs">{children}</Badge>
 }
 
+type NavAnchorProps = {
+  url: LinkProps['to'] | (string & {})
+  external?: boolean
+  onNavigate?: () => void
+  className?: string
+  children: ReactNode
+}
+
+function NavAnchor({ url, external, onNavigate, className, children }: NavAnchorProps) {
+  if (external) {
+    return (
+      <a
+        href={String(url)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={className}
+        onClick={onNavigate}
+      >
+        {children}
+      </a>
+    )
+  }
+
+  return (
+    <Link to={url} className={className} onClick={onNavigate}>
+      {children}
+    </Link>
+  )
+}
+
 function SidebarMenuLink({ item, href }: { item: NavLink; href: string }) {
   const { setOpenMobile } = useSidebar()
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton asChild isActive={checkIsActive(href, item)} tooltip={item.title}>
-        <Link to={item.url} onClick={() => setOpenMobile(false)}>
+      <SidebarMenuButton
+        asChild
+        isActive={!item.external && checkIsActive(href, item)}
+        tooltip={item.title}
+      >
+        <NavAnchor url={item.url} external={item.external} onNavigate={() => setOpenMobile(false)}>
           {item.icon && <item.icon />}
           <span>{item.title}</span>
+          {item.external && <ExternalLink className="ms-auto size-3.5 opacity-60" aria-hidden />}
           {item.badge && <NavBadge>{item.badge}</NavBadge>}
-        </Link>
+        </NavAnchor>
       </SidebarMenuButton>
     </SidebarMenuItem>
   )
@@ -87,12 +123,22 @@ function SidebarMenuCollapsible({ item, href }: { item: NavCollapsible; href: st
           <SidebarMenuSub>
             {item.items.map((subItem) => (
               <SidebarMenuSubItem key={subItem.title}>
-                <SidebarMenuSubButton asChild isActive={checkIsActive(href, subItem)}>
-                  <Link to={subItem.url} onClick={() => setOpenMobile(false)}>
+                <SidebarMenuSubButton
+                  asChild
+                  isActive={!subItem.external && checkIsActive(href, subItem)}
+                >
+                  <NavAnchor
+                    url={subItem.url}
+                    external={subItem.external}
+                    onNavigate={() => setOpenMobile(false)}
+                  >
                     {subItem.icon && <subItem.icon />}
                     <span>{subItem.title}</span>
+                    {subItem.external && (
+                      <ExternalLink className="ms-auto size-3 opacity-60" aria-hidden />
+                    )}
                     {subItem.badge && <NavBadge>{subItem.badge}</NavBadge>}
-                  </Link>
+                  </NavAnchor>
                 </SidebarMenuSubButton>
               </SidebarMenuSubItem>
             ))}
@@ -122,11 +168,16 @@ function SidebarMenuCollapsedDropdown({ item, href }: { item: NavCollapsible; hr
           <DropdownMenuSeparator />
           {item.items.map((sub) => (
             <DropdownMenuItem key={`${sub.title}-${sub.url}`} asChild>
-              <Link to={sub.url} className={`${checkIsActive(href, sub) ? 'bg-secondary' : ''}`}>
+              <NavAnchor
+                url={sub.url}
+                external={sub.external}
+                className={!sub.external && checkIsActive(href, sub) ? 'bg-secondary' : ''}
+              >
                 {sub.icon && <sub.icon />}
                 <span className="max-w-52 text-wrap">{sub.title}</span>
+                {sub.external && <ExternalLink className="ms-auto size-3 opacity-60" aria-hidden />}
                 {sub.badge && <span className="ms-auto text-xs">{sub.badge}</span>}
-              </Link>
+              </NavAnchor>
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
@@ -135,11 +186,21 @@ function SidebarMenuCollapsedDropdown({ item, href }: { item: NavCollapsible; hr
   )
 }
 
-function checkIsActive(href: string, item: NavItem, mainNav = false) {
+function checkIsActive(
+  href: string,
+  item: NavItem | { url?: LinkProps['to'] | (string & {}); items?: { url: LinkProps['to'] | (string & {}) }[] },
+  mainNav = false
+) {
+  const url = typeof item.url === 'string' ? item.url : undefined
+  if (url?.startsWith('http://') || url?.startsWith('https://')) return false
+
   return (
-    href === item.url || // /endpint?search=param
-    href.split('?')[0] === item.url || // endpoint
-    !!item?.items?.filter((i) => i.url === href).length || // if child nav is active
-    (mainNav && href.split('/')[1] !== '' && href.split('/')[1] === item?.url?.split('/')[1])
+    (!!url && href === url) ||
+    (!!url && href.split('?')[0] === url) ||
+    !!item.items?.some((child) => child.url === href) ||
+    (!!mainNav &&
+      !!url &&
+      href.split('/')[1] !== '' &&
+      href.split('/')[1] === url.split('/')[1])
   )
 }

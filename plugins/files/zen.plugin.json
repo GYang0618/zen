@@ -1,0 +1,29 @@
+{
+  "id": "files",
+  "name": "文件管理",
+  "version": "0.1.0",
+  "platformVersion": "^0.1.0",
+  "dependsOn": [],
+  "contributions": {
+    "permissions": [
+      {
+        "code": "file:object:list",
+        "name": "查看文件列表",
+        "module": "file",
+        "description": "查看当前用户文件列表"
+      },
+      {
+        "code": "file:object:manage",
+        "name": "管理文件",
+        "module": "file",
+        "description": "上传/删除文件"
+      }
+    ],
+    "routes": "./src/web/routes",
+    "apiModule": "./src/api/files.module"
+  },
+  "lifecycle": {
+    "activate": "./src/activate.ts",
+    "deactivate": "./src/deactivate.ts"
+  }
+}

@@ -22,6 +22,8 @@ export interface RouterMeta {
   link?: string
   /** 菜单分组 */
   group?: string
+  /** 所属编译期插件 ID；停用后菜单与路由不可见 */
+  pluginId?: string
 }
 
 export type AppPath = LinkProps['to']

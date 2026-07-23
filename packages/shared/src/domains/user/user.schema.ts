@@ -47,6 +47,27 @@ export const updateUsersStatusSchema = z.object({
   )
 })
 
+/** 覆盖式分配用户角色 */
+export const assignUserRolesSchema = z.object({
+  roleIds: z
+    .array(z.string().trim().min(1, '角色 ID 不能为空'))
+    .min(1, '至少需要一个角色')
+    .describe('角色 ID 列表（覆盖式）')
+})
+
+/** 覆盖式同步用户组织归属 */
+export const replaceUserOrganizationsSchema = z.object({
+  organizations: z
+    .array(
+      z.object({
+        organizationId: z.string().trim().min(1, '组织 ID 不能为空').describe('组织 ID'),
+        isPrimary: z.boolean().optional().describe('是否主职'),
+        postId: z.string().trim().min(1).nullable().optional().describe('岗位 ID')
+      })
+    )
+    .describe('组织归属列表（覆盖当前在职记录）')
+})
+
 export const usersSortBySchema = z.enum(['username', 'email', 'jobTitle', 'createdAt'])
 export const usersSortOrderSchema = z.enum(['asc', 'desc'])
 
@@ -80,6 +101,7 @@ export const userSchema = z.object({
   deptName: z.string().nullable().describe('部门'),
   jobTitle: z.string().nullable().describe('职位'),
   permissions: z.array(z.string()).describe('权限'),
+  isLocked: z.boolean().optional().describe('是否锁定'),
   createdAt: z.string().describe('创建时间（ISO 8601）'),
   updatedAt: z.string().describe('更新时间（ISO 8601）')
 })

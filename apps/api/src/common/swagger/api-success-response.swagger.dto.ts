@@ -9,11 +9,10 @@ export class ApiSuccessResponseBaseSwaggerDto {
   message!: string
 
   @ApiProperty({
-    description: '请求追踪 ID',
-    example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-    nullable: true
+    description: '请求追踪 ID（与响应头 x-trace-id 一致）',
+    example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479'
   })
-  requestId!: string | null
+  traceId!: string
 
   @ApiProperty({ description: '响应时间（ISO 8601）', example: '2026-05-22T08:00:00.000Z' })
   timestamp!: string

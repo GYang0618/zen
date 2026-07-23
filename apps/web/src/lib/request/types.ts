@@ -4,7 +4,8 @@ export interface RequestResponse<T> {
   code: number
   message: string
   data: T
-  requestId?: string
+  /** 请求追踪 ID（与响应头 x-trace-id 一致） */
+  traceId?: string
   timestamp: string
 }
 
@@ -22,7 +23,8 @@ export interface RequestErrorResponse {
   code: number
   message: string
   path: string
-  requestId?: string
+  /** 请求追踪 ID（与响应头 x-trace-id 一致） */
+  traceId?: string
   timestamp: string
   /** 开发环境下 server 返回的原始错误信息 */
   error?: { name?: string; message?: string; stack?: string }
@@ -35,6 +37,7 @@ export class ApiClientError extends Error {
   readonly code: number
   readonly fieldErrors?: Record<string, string[]>
   readonly formErrors?: string[]
+  readonly traceId?: string
 
   constructor(response: RequestErrorResponse) {
     super(response.message)
@@ -42,6 +45,7 @@ export class ApiClientError extends Error {
     this.code = response.code
     this.fieldErrors = response.fieldErrors
     this.formErrors = response.formErrors
+    this.traceId = response.traceId
   }
 }
 

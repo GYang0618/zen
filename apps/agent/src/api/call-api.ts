@@ -7,7 +7,7 @@ interface ApiSuccessEnvelope<T> {
   code: number
   message: string
   data: T
-  requestId: string | null
+  traceId: string
   timestamp: string
 }
 

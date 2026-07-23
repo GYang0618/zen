@@ -17,6 +17,10 @@ export type BaseNavItem = {
   badge?: string
   show?: boolean
   icon?: React.ElementType
+  /** 所需权限码（满足其一即可显示） */
+  permissions?: string[]
+  /** 外链：在新标签页打开 url */
+  external?: boolean
 }
 
 export type NavLink = BaseNavItem & {

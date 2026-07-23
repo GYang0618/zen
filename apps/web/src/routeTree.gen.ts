@@ -18,13 +18,28 @@ import { Route as Errors404RouteImport } from './routes/errors/404'
 import { Route as Errors403RouteImport } from './routes/errors/403'
 import { Route as Errors401RouteImport } from './routes/errors/401'
 import { Route as AuthenticatedGisRouteImport } from './routes/_authenticated/gis'
+import { Route as AuthenticatedChangePasswordRouteImport } from './routes/_authenticated/change-password'
 import { Route as AuthenticatedBimRouteImport } from './routes/_authenticated/bim'
 import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
 import { Route as authSignInRouteImport } from './routes/(auth)/sign-in'
+import { Route as authResetPasswordRouteImport } from './routes/(auth)/reset-password'
+import { Route as authForgotPasswordRouteImport } from './routes/(auth)/forgot-password'
 import { Route as AuthenticatedSystemUsersRouteImport } from './routes/_authenticated/system/users'
+import { Route as AuthenticatedSystemSessionsRouteImport } from './routes/_authenticated/system/sessions'
 import { Route as AuthenticatedSystemRolesRouteImport } from './routes/_authenticated/system/roles'
+import { Route as AuthenticatedSystemPluginsRouteImport } from './routes/_authenticated/system/plugins'
+import { Route as AuthenticatedSystemOrganizationRouteImport } from './routes/_authenticated/system/organization'
+import { Route as AuthenticatedSystemDictRouteImport } from './routes/_authenticated/system/dict'
+import { Route as AuthenticatedSystemConfigRouteImport } from './routes/_authenticated/system/config'
+import { Route as AuthenticatedSystemAuditRouteImport } from './routes/_authenticated/system/audit'
+import { Route as AuthenticatedSecurityMfaRouteImport } from './routes/_authenticated/security/mfa'
+import { Route as AuthenticatedPluginsNotificationsRouteImport } from './routes/_authenticated/plugins/notifications'
+import { Route as AuthenticatedPluginsJobsRouteImport } from './routes/_authenticated/plugins/jobs'
+import { Route as AuthenticatedPluginsFilesRouteImport } from './routes/_authenticated/plugins/files'
+import { Route as AuthenticatedDemoNotesRouteImport } from './routes/_authenticated/demo/notes'
 import { Route as AuthenticatedAiCopilotRouteImport } from './routes/_authenticated/ai/copilot'
 import { Route as AuthenticatedAiChatRouteImport } from './routes/_authenticated/ai/chat'
+import { Route as AuthenticatedSystemUsersUserIdRouteImport } from './routes/_authenticated/system/users_.$userId'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -69,6 +84,12 @@ const AuthenticatedGisRoute = AuthenticatedGisRouteImport.update({
   path: '/gis',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedChangePasswordRoute =
+  AuthenticatedChangePasswordRouteImport.update({
+    id: '/change-password',
+    path: '/change-password',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedBimRoute = AuthenticatedBimRouteImport.update({
   id: '/bim',
   path: '/bim',
@@ -84,10 +105,26 @@ const authSignInRoute = authSignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => authRouteRoute,
 } as any)
+const authResetPasswordRoute = authResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => authRouteRoute,
+} as any)
+const authForgotPasswordRoute = authForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => authRouteRoute,
+} as any)
 const AuthenticatedSystemUsersRoute =
   AuthenticatedSystemUsersRouteImport.update({
     id: '/system/users',
     path: '/system/users',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSystemSessionsRoute =
+  AuthenticatedSystemSessionsRouteImport.update({
+    id: '/system/sessions',
+    path: '/system/sessions',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedSystemRolesRoute =
@@ -96,6 +133,64 @@ const AuthenticatedSystemRolesRoute =
     path: '/system/roles',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedSystemPluginsRoute =
+  AuthenticatedSystemPluginsRouteImport.update({
+    id: '/system/plugins',
+    path: '/system/plugins',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSystemOrganizationRoute =
+  AuthenticatedSystemOrganizationRouteImport.update({
+    id: '/system/organization',
+    path: '/system/organization',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSystemDictRoute = AuthenticatedSystemDictRouteImport.update({
+  id: '/system/dict',
+  path: '/system/dict',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSystemConfigRoute =
+  AuthenticatedSystemConfigRouteImport.update({
+    id: '/system/config',
+    path: '/system/config',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSystemAuditRoute =
+  AuthenticatedSystemAuditRouteImport.update({
+    id: '/system/audit',
+    path: '/system/audit',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSecurityMfaRoute =
+  AuthenticatedSecurityMfaRouteImport.update({
+    id: '/security/mfa',
+    path: '/security/mfa',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPluginsNotificationsRoute =
+  AuthenticatedPluginsNotificationsRouteImport.update({
+    id: '/plugins/notifications',
+    path: '/plugins/notifications',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPluginsJobsRoute =
+  AuthenticatedPluginsJobsRouteImport.update({
+    id: '/plugins/jobs',
+    path: '/plugins/jobs',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPluginsFilesRoute =
+  AuthenticatedPluginsFilesRouteImport.update({
+    id: '/plugins/files',
+    path: '/plugins/files',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDemoNotesRoute = AuthenticatedDemoNotesRouteImport.update({
+  id: '/demo/notes',
+  path: '/demo/notes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAiCopilotRoute = AuthenticatedAiCopilotRouteImport.update({
   id: '/ai/copilot',
   path: '/ai/copilot',
@@ -106,12 +201,21 @@ const AuthenticatedAiChatRoute = AuthenticatedAiChatRouteImport.update({
   path: '/ai/chat',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSystemUsersUserIdRoute =
+  AuthenticatedSystemUsersUserIdRouteImport.update({
+    id: '/system/users_/$userId',
+    path: '/system/users/$userId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
+  '/forgot-password': typeof authForgotPasswordRoute
+  '/reset-password': typeof authResetPasswordRoute
   '/sign-in': typeof authSignInRoute
   '/sign-up': typeof authSignUpRoute
   '/bim': typeof AuthenticatedBimRoute
+  '/change-password': typeof AuthenticatedChangePasswordRoute
   '/gis': typeof AuthenticatedGisRoute
   '/errors/401': typeof Errors401Route
   '/errors/403': typeof Errors403Route
@@ -120,13 +224,28 @@ export interface FileRoutesByFullPath {
   '/errors/503': typeof Errors503Route
   '/ai/chat': typeof AuthenticatedAiChatRoute
   '/ai/copilot': typeof AuthenticatedAiCopilotRoute
+  '/demo/notes': typeof AuthenticatedDemoNotesRoute
+  '/plugins/files': typeof AuthenticatedPluginsFilesRoute
+  '/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
+  '/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
+  '/security/mfa': typeof AuthenticatedSecurityMfaRoute
+  '/system/audit': typeof AuthenticatedSystemAuditRoute
+  '/system/config': typeof AuthenticatedSystemConfigRoute
+  '/system/dict': typeof AuthenticatedSystemDictRoute
+  '/system/organization': typeof AuthenticatedSystemOrganizationRoute
+  '/system/plugins': typeof AuthenticatedSystemPluginsRoute
   '/system/roles': typeof AuthenticatedSystemRolesRoute
+  '/system/sessions': typeof AuthenticatedSystemSessionsRoute
   '/system/users': typeof AuthenticatedSystemUsersRoute
+  '/system/users/$userId': typeof AuthenticatedSystemUsersUserIdRoute
 }
 export interface FileRoutesByTo {
+  '/forgot-password': typeof authForgotPasswordRoute
+  '/reset-password': typeof authResetPasswordRoute
   '/sign-in': typeof authSignInRoute
   '/sign-up': typeof authSignUpRoute
   '/bim': typeof AuthenticatedBimRoute
+  '/change-password': typeof AuthenticatedChangePasswordRoute
   '/gis': typeof AuthenticatedGisRoute
   '/errors/401': typeof Errors401Route
   '/errors/403': typeof Errors403Route
@@ -136,16 +255,31 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/ai/chat': typeof AuthenticatedAiChatRoute
   '/ai/copilot': typeof AuthenticatedAiCopilotRoute
+  '/demo/notes': typeof AuthenticatedDemoNotesRoute
+  '/plugins/files': typeof AuthenticatedPluginsFilesRoute
+  '/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
+  '/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
+  '/security/mfa': typeof AuthenticatedSecurityMfaRoute
+  '/system/audit': typeof AuthenticatedSystemAuditRoute
+  '/system/config': typeof AuthenticatedSystemConfigRoute
+  '/system/dict': typeof AuthenticatedSystemDictRoute
+  '/system/organization': typeof AuthenticatedSystemOrganizationRoute
+  '/system/plugins': typeof AuthenticatedSystemPluginsRoute
   '/system/roles': typeof AuthenticatedSystemRolesRoute
+  '/system/sessions': typeof AuthenticatedSystemSessionsRoute
   '/system/users': typeof AuthenticatedSystemUsersRoute
+  '/system/users/$userId': typeof AuthenticatedSystemUsersUserIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/(auth)': typeof authRouteRouteWithChildren
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/(auth)/forgot-password': typeof authForgotPasswordRoute
+  '/(auth)/reset-password': typeof authResetPasswordRoute
   '/(auth)/sign-in': typeof authSignInRoute
   '/(auth)/sign-up': typeof authSignUpRoute
   '/_authenticated/bim': typeof AuthenticatedBimRoute
+  '/_authenticated/change-password': typeof AuthenticatedChangePasswordRoute
   '/_authenticated/gis': typeof AuthenticatedGisRoute
   '/errors/401': typeof Errors401Route
   '/errors/403': typeof Errors403Route
@@ -155,16 +289,31 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/ai/chat': typeof AuthenticatedAiChatRoute
   '/_authenticated/ai/copilot': typeof AuthenticatedAiCopilotRoute
+  '/_authenticated/demo/notes': typeof AuthenticatedDemoNotesRoute
+  '/_authenticated/plugins/files': typeof AuthenticatedPluginsFilesRoute
+  '/_authenticated/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
+  '/_authenticated/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
+  '/_authenticated/security/mfa': typeof AuthenticatedSecurityMfaRoute
+  '/_authenticated/system/audit': typeof AuthenticatedSystemAuditRoute
+  '/_authenticated/system/config': typeof AuthenticatedSystemConfigRoute
+  '/_authenticated/system/dict': typeof AuthenticatedSystemDictRoute
+  '/_authenticated/system/organization': typeof AuthenticatedSystemOrganizationRoute
+  '/_authenticated/system/plugins': typeof AuthenticatedSystemPluginsRoute
   '/_authenticated/system/roles': typeof AuthenticatedSystemRolesRoute
+  '/_authenticated/system/sessions': typeof AuthenticatedSystemSessionsRoute
   '/_authenticated/system/users': typeof AuthenticatedSystemUsersRoute
+  '/_authenticated/system/users_/$userId': typeof AuthenticatedSystemUsersUserIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/forgot-password'
+    | '/reset-password'
     | '/sign-in'
     | '/sign-up'
     | '/bim'
+    | '/change-password'
     | '/gis'
     | '/errors/401'
     | '/errors/403'
@@ -173,13 +322,28 @@ export interface FileRouteTypes {
     | '/errors/503'
     | '/ai/chat'
     | '/ai/copilot'
+    | '/demo/notes'
+    | '/plugins/files'
+    | '/plugins/jobs'
+    | '/plugins/notifications'
+    | '/security/mfa'
+    | '/system/audit'
+    | '/system/config'
+    | '/system/dict'
+    | '/system/organization'
+    | '/system/plugins'
     | '/system/roles'
+    | '/system/sessions'
     | '/system/users'
+    | '/system/users/$userId'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/forgot-password'
+    | '/reset-password'
     | '/sign-in'
     | '/sign-up'
     | '/bim'
+    | '/change-password'
     | '/gis'
     | '/errors/401'
     | '/errors/403'
@@ -189,15 +353,30 @@ export interface FileRouteTypes {
     | '/'
     | '/ai/chat'
     | '/ai/copilot'
+    | '/demo/notes'
+    | '/plugins/files'
+    | '/plugins/jobs'
+    | '/plugins/notifications'
+    | '/security/mfa'
+    | '/system/audit'
+    | '/system/config'
+    | '/system/dict'
+    | '/system/organization'
+    | '/system/plugins'
     | '/system/roles'
+    | '/system/sessions'
     | '/system/users'
+    | '/system/users/$userId'
   id:
     | '__root__'
     | '/(auth)'
     | '/_authenticated'
+    | '/(auth)/forgot-password'
+    | '/(auth)/reset-password'
     | '/(auth)/sign-in'
     | '/(auth)/sign-up'
     | '/_authenticated/bim'
+    | '/_authenticated/change-password'
     | '/_authenticated/gis'
     | '/errors/401'
     | '/errors/403'
@@ -207,8 +386,20 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/ai/chat'
     | '/_authenticated/ai/copilot'
+    | '/_authenticated/demo/notes'
+    | '/_authenticated/plugins/files'
+    | '/_authenticated/plugins/jobs'
+    | '/_authenticated/plugins/notifications'
+    | '/_authenticated/security/mfa'
+    | '/_authenticated/system/audit'
+    | '/_authenticated/system/config'
+    | '/_authenticated/system/dict'
+    | '/_authenticated/system/organization'
+    | '/_authenticated/system/plugins'
     | '/_authenticated/system/roles'
+    | '/_authenticated/system/sessions'
     | '/_authenticated/system/users'
+    | '/_authenticated/system/users_/$userId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -286,6 +477,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGisRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/change-password': {
+      id: '/_authenticated/change-password'
+      path: '/change-password'
+      fullPath: '/change-password'
+      preLoaderRoute: typeof AuthenticatedChangePasswordRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/bim': {
       id: '/_authenticated/bim'
       path: '/bim'
@@ -307,6 +505,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authSignInRouteImport
       parentRoute: typeof authRouteRoute
     }
+    '/(auth)/reset-password': {
+      id: '/(auth)/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof authResetPasswordRouteImport
+      parentRoute: typeof authRouteRoute
+    }
+    '/(auth)/forgot-password': {
+      id: '/(auth)/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof authForgotPasswordRouteImport
+      parentRoute: typeof authRouteRoute
+    }
     '/_authenticated/system/users': {
       id: '/_authenticated/system/users'
       path: '/system/users'
@@ -314,11 +526,88 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSystemUsersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/system/sessions': {
+      id: '/_authenticated/system/sessions'
+      path: '/system/sessions'
+      fullPath: '/system/sessions'
+      preLoaderRoute: typeof AuthenticatedSystemSessionsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/system/roles': {
       id: '/_authenticated/system/roles'
       path: '/system/roles'
       fullPath: '/system/roles'
       preLoaderRoute: typeof AuthenticatedSystemRolesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/system/plugins': {
+      id: '/_authenticated/system/plugins'
+      path: '/system/plugins'
+      fullPath: '/system/plugins'
+      preLoaderRoute: typeof AuthenticatedSystemPluginsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/system/organization': {
+      id: '/_authenticated/system/organization'
+      path: '/system/organization'
+      fullPath: '/system/organization'
+      preLoaderRoute: typeof AuthenticatedSystemOrganizationRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/system/dict': {
+      id: '/_authenticated/system/dict'
+      path: '/system/dict'
+      fullPath: '/system/dict'
+      preLoaderRoute: typeof AuthenticatedSystemDictRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/system/config': {
+      id: '/_authenticated/system/config'
+      path: '/system/config'
+      fullPath: '/system/config'
+      preLoaderRoute: typeof AuthenticatedSystemConfigRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/system/audit': {
+      id: '/_authenticated/system/audit'
+      path: '/system/audit'
+      fullPath: '/system/audit'
+      preLoaderRoute: typeof AuthenticatedSystemAuditRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/security/mfa': {
+      id: '/_authenticated/security/mfa'
+      path: '/security/mfa'
+      fullPath: '/security/mfa'
+      preLoaderRoute: typeof AuthenticatedSecurityMfaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/plugins/notifications': {
+      id: '/_authenticated/plugins/notifications'
+      path: '/plugins/notifications'
+      fullPath: '/plugins/notifications'
+      preLoaderRoute: typeof AuthenticatedPluginsNotificationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/plugins/jobs': {
+      id: '/_authenticated/plugins/jobs'
+      path: '/plugins/jobs'
+      fullPath: '/plugins/jobs'
+      preLoaderRoute: typeof AuthenticatedPluginsJobsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/plugins/files': {
+      id: '/_authenticated/plugins/files'
+      path: '/plugins/files'
+      fullPath: '/plugins/files'
+      preLoaderRoute: typeof AuthenticatedPluginsFilesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/demo/notes': {
+      id: '/_authenticated/demo/notes'
+      path: '/demo/notes'
+      fullPath: '/demo/notes'
+      preLoaderRoute: typeof AuthenticatedDemoNotesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/ai/copilot': {
@@ -335,15 +624,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAiChatRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/system/users_/$userId': {
+      id: '/_authenticated/system/users_/$userId'
+      path: '/system/users/$userId'
+      fullPath: '/system/users/$userId'
+      preLoaderRoute: typeof AuthenticatedSystemUsersUserIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface authRouteRouteChildren {
+  authForgotPasswordRoute: typeof authForgotPasswordRoute
+  authResetPasswordRoute: typeof authResetPasswordRoute
   authSignInRoute: typeof authSignInRoute
   authSignUpRoute: typeof authSignUpRoute
 }
 
 const authRouteRouteChildren: authRouteRouteChildren = {
+  authForgotPasswordRoute: authForgotPasswordRoute,
+  authResetPasswordRoute: authResetPasswordRoute,
   authSignInRoute: authSignInRoute,
   authSignUpRoute: authSignUpRoute,
 }
@@ -354,22 +654,49 @@ const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedBimRoute: typeof AuthenticatedBimRoute
+  AuthenticatedChangePasswordRoute: typeof AuthenticatedChangePasswordRoute
   AuthenticatedGisRoute: typeof AuthenticatedGisRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAiChatRoute: typeof AuthenticatedAiChatRoute
   AuthenticatedAiCopilotRoute: typeof AuthenticatedAiCopilotRoute
+  AuthenticatedDemoNotesRoute: typeof AuthenticatedDemoNotesRoute
+  AuthenticatedPluginsFilesRoute: typeof AuthenticatedPluginsFilesRoute
+  AuthenticatedPluginsJobsRoute: typeof AuthenticatedPluginsJobsRoute
+  AuthenticatedPluginsNotificationsRoute: typeof AuthenticatedPluginsNotificationsRoute
+  AuthenticatedSecurityMfaRoute: typeof AuthenticatedSecurityMfaRoute
+  AuthenticatedSystemAuditRoute: typeof AuthenticatedSystemAuditRoute
+  AuthenticatedSystemConfigRoute: typeof AuthenticatedSystemConfigRoute
+  AuthenticatedSystemDictRoute: typeof AuthenticatedSystemDictRoute
+  AuthenticatedSystemOrganizationRoute: typeof AuthenticatedSystemOrganizationRoute
+  AuthenticatedSystemPluginsRoute: typeof AuthenticatedSystemPluginsRoute
   AuthenticatedSystemRolesRoute: typeof AuthenticatedSystemRolesRoute
+  AuthenticatedSystemSessionsRoute: typeof AuthenticatedSystemSessionsRoute
   AuthenticatedSystemUsersRoute: typeof AuthenticatedSystemUsersRoute
+  AuthenticatedSystemUsersUserIdRoute: typeof AuthenticatedSystemUsersUserIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBimRoute: AuthenticatedBimRoute,
+  AuthenticatedChangePasswordRoute: AuthenticatedChangePasswordRoute,
   AuthenticatedGisRoute: AuthenticatedGisRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAiChatRoute: AuthenticatedAiChatRoute,
   AuthenticatedAiCopilotRoute: AuthenticatedAiCopilotRoute,
+  AuthenticatedDemoNotesRoute: AuthenticatedDemoNotesRoute,
+  AuthenticatedPluginsFilesRoute: AuthenticatedPluginsFilesRoute,
+  AuthenticatedPluginsJobsRoute: AuthenticatedPluginsJobsRoute,
+  AuthenticatedPluginsNotificationsRoute:
+    AuthenticatedPluginsNotificationsRoute,
+  AuthenticatedSecurityMfaRoute: AuthenticatedSecurityMfaRoute,
+  AuthenticatedSystemAuditRoute: AuthenticatedSystemAuditRoute,
+  AuthenticatedSystemConfigRoute: AuthenticatedSystemConfigRoute,
+  AuthenticatedSystemDictRoute: AuthenticatedSystemDictRoute,
+  AuthenticatedSystemOrganizationRoute: AuthenticatedSystemOrganizationRoute,
+  AuthenticatedSystemPluginsRoute: AuthenticatedSystemPluginsRoute,
   AuthenticatedSystemRolesRoute: AuthenticatedSystemRolesRoute,
+  AuthenticatedSystemSessionsRoute: AuthenticatedSystemSessionsRoute,
   AuthenticatedSystemUsersRoute: AuthenticatedSystemUsersRoute,
+  AuthenticatedSystemUsersUserIdRoute: AuthenticatedSystemUsersUserIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

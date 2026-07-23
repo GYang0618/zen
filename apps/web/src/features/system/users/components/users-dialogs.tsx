@@ -1,6 +1,7 @@
 import { useUsers } from '../users-provider'
 import { UsersActionDialog } from './users-action-dialog'
 import { UsersDeleteDialog } from './users-delete-dialog'
+import { UsersResetPasswordDialog } from './users-reset-password-dialog'
 
 export function UsersDialogs() {
   const { open, setOpen, currentRow, setCurrentRow } = useUsers()
@@ -9,22 +10,25 @@ export function UsersDialogs() {
     setOpen(nextOpen ? 'add' : null)
   }
 
+  const clearCurrentRowSoon = () => {
+    setTimeout(() => {
+      setCurrentRow(null)
+    }, 500)
+  }
+
   const handleEditOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen ? 'edit' : null)
-    if (!nextOpen) {
-      setTimeout(() => {
-        setCurrentRow(null)
-      }, 500)
-    }
+    if (!nextOpen) clearCurrentRowSoon()
   }
 
   const handleDeleteOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen ? 'delete' : null)
-    if (!nextOpen) {
-      setTimeout(() => {
-        setCurrentRow(null)
-      }, 500)
-    }
+    if (!nextOpen) clearCurrentRowSoon()
+  }
+
+  const handleResetPasswordOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen ? 'reset-password' : null)
+    if (!nextOpen) clearCurrentRowSoon()
   }
 
   return (
@@ -44,6 +48,13 @@ export function UsersDialogs() {
             key={`user-delete-${currentRow.id}`}
             open={open === 'delete'}
             onOpenChange={handleDeleteOpenChange}
+            currentRow={currentRow}
+          />
+
+          <UsersResetPasswordDialog
+            key={`user-reset-${currentRow.id}`}
+            open={open === 'reset-password'}
+            onOpenChange={handleResetPasswordOpenChange}
             currentRow={currentRow}
           />
         </>

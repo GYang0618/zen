@@ -8,12 +8,16 @@ import {
 } from '@nestjs/common'
 
 import { toArray } from '@/common'
+import { AuditService } from '@/common/auth/audit.service'
+import { AuthContextService } from '@/common/auth/auth-context.service'
+import { SessionService } from '@/common/auth/session.service'
 import { buildPaginationMeta, paginate } from '@/common/pagination'
 
 import { findRolesQuerySchema } from './dto'
 import {
   fromApiDataScope,
   fromApiRoleStatus,
+  toApiDataScope,
   toRoleListItemResponse,
   toRoleResponse
 } from './role.mapper'
@@ -39,7 +43,12 @@ const LOCKED_SYSTEM_ROLE_CODES = new Set(['super_admin'])
 
 @Injectable()
 export class RoleService {
-  constructor(@Inject(RoleRepository) private readonly roleRepo: RoleRepository) {}
+  constructor(
+    @Inject(RoleRepository) private readonly roleRepo: RoleRepository,
+    @Inject(AuditService) private readonly auditService: AuditService,
+    @Inject(SessionService) private readonly sessionService: SessionService,
+    @Inject(AuthContextService) private readonly authContextService: AuthContextService
+  ) {}
 
   async create(data: CreateRoleDto): Promise<RoleResponse> {
     const existing = await this.roleRepo.findByCode(data.code)
@@ -47,12 +56,15 @@ export class RoleService {
       throw new ConflictException('角色编码已存在')
     }
 
+    const dataScope = data.dataScope ?? 'self'
+    const customOrgIds = await this.resolveCustomOrgIds(dataScope, data.customOrgIds)
     const permissionIds = await this.resolvePermissionIds(data.permissionCodes ?? [])
     const created = await this.roleRepo.create({
       code: data.code,
       name: data.name,
       description: data.description,
-      dataScope: fromApiDataScope(data.dataScope ?? 'self'),
+      dataScope: fromApiDataScope(dataScope),
+      customOrgIds,
       sort: data.sort,
       isSystem: false,
       permissions:
@@ -62,6 +74,10 @@ export class RoleService {
             }
           : undefined
     })
+
+    if (permissionIds.length > 0) {
+      await this.authContextService.bumpPermVer()
+    }
 
     const role = await this.roleRepo.findById(created.id)
     if (!role) throw new NotFoundException('角色不存在')
@@ -88,16 +104,16 @@ export class RoleService {
         pageSize: pageSize!,
         count: () => this.roleRepo.count(where),
         findMany: ({ skip, take }) =>
-          this.roleRepo.findMany(where, skip, take, { sort: 'asc', createdAt: 'desc' })
+          this.roleRepo.findMany(where, skip, take, [{ sort: 'asc' }, { createdAt: 'desc' }])
       })
 
       return { items: items.map(toRoleListItemResponse), pagination }
     }
 
-    const items = await this.roleRepo.findMany(where, undefined, undefined, {
-      sort: 'asc',
-      createdAt: 'desc'
-    })
+    const items = await this.roleRepo.findMany(where, undefined, undefined, [
+      { sort: 'asc' },
+      { createdAt: 'desc' }
+    ])
     const total = items.length
     return {
       items: items.map(toRoleListItemResponse),
@@ -120,17 +136,32 @@ export class RoleService {
     }
 
     const updateData: Prisma.RoleUpdateInput = {}
+    let scopeChanged = false
 
     if (data.name !== undefined) updateData.name = data.name
     if (data.description !== undefined) updateData.description = data.description
     if (data.sort !== undefined) updateData.sort = data.sort
-    if (data.dataScope !== undefined) updateData.dataScope = fromApiDataScope(data.dataScope)
     if (data.status !== undefined) updateData.status = fromApiRoleStatus(data.status)
+
+    if (data.dataScope !== undefined || data.customOrgIds !== undefined) {
+      const nextScope = data.dataScope ?? toApiDataScope(existing.dataScope)
+      const nextCustomOrgIds = await this.resolveCustomOrgIds(
+        nextScope,
+        data.customOrgIds ?? (nextScope === 'custom' ? existing.customOrgIds : [])
+      )
+      if (data.dataScope !== undefined) {
+        updateData.dataScope = fromApiDataScope(data.dataScope)
+      }
+      updateData.customOrgIds = nextScope === 'custom' ? nextCustomOrgIds : []
+      scopeChanged = true
+    }
 
     await this.roleRepo.update(id, updateData)
 
     if (data.permissionCodes !== undefined) {
       await this.assignPermissions(id, { permissionCodes: data.permissionCodes }, existing)
+    } else if (scopeChanged) {
+      await this.invalidateRoleMembers(id)
     }
 
     const role = await this.roleRepo.findById(id)
@@ -153,9 +184,26 @@ export class RoleService {
     const permissionIds = await this.resolvePermissionIds(payload.permissionCodes)
     await this.roleRepo.replacePermissions(id, permissionIds)
 
+    await this.auditService.write({
+      action: 'system.role.permissions_assigned',
+      resource: 'role',
+      resourceId: id,
+      diff: { permissionCodes: payload.permissionCodes }
+    })
+
+    await this.authContextService.bumpPermVer()
+    const memberIds = await this.roleRepo.findUserIdsByRoleId(id)
+    await Promise.all(memberIds.map((userId) => this.sessionService.revokeAllForUser(userId)))
+
     const role = await this.roleRepo.findById(id)
     if (!role) throw new NotFoundException('角色不存在')
     return toRoleResponse(role)
+  }
+
+  private async invalidateRoleMembers(roleId: string) {
+    await this.authContextService.bumpPermVer()
+    const memberIds = await this.roleRepo.findUserIdsByRoleId(roleId)
+    await Promise.all(memberIds.map((userId) => this.sessionService.revokeAllForUser(userId)))
   }
 
   async remove(idsInput: string[]): Promise<RoleListItemResponse[]> {
@@ -194,6 +242,22 @@ export class RoleService {
     }
 
     return permissions.map((item) => item.id)
+  }
+
+  private async resolveCustomOrgIds(
+    dataScope: RoleDataScope,
+    customOrgIds?: string[]
+  ): Promise<string[]> {
+    if (dataScope !== 'custom') return []
+    const ids = [...new Set((customOrgIds ?? []).map((id) => id.trim()).filter(Boolean))]
+    if (ids.length === 0) {
+      throw new BadRequestException('自定义数据范围时至少选择一个组织')
+    }
+    const count = await this.roleRepo.countOrganizationsByIds(ids)
+    if (count !== ids.length) {
+      throw new BadRequestException('部分组织不存在')
+    }
+    return ids
   }
 
   private buildFindRolesWhere(params: {
