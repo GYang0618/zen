@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useRouter } from '@tanstack/react-router'
 import {
   Command,
@@ -13,13 +13,40 @@ import {
   ScrollArea
 } from '@zen/ui'
 import { ArrowRight, Laptop, Moon, Sun } from 'lucide-react'
+import { useMemo } from 'react'
 
-import { buildNavGroupsFromRoutes } from '@/components/layouts/build-nav-from-routes'
+import { buildNavGroupsFromRouteTree } from '@/components/layouts/build-nav-from-routes'
 import { useSearch } from '@/context/search-provider'
 import { useTheme } from '@/context/theme-provider'
+import { fetchActivePluginIds } from '@/features/system/plugins/api'
 import { useAuthStore } from '@/stores'
 
-import type { RouterMeta } from '@/types/router'
+import type { RouteTreeNode } from '@/components/layouts/build-nav-from-routes'
+import type { NavItem, NavLink } from '@/components/layouts/types'
+
+function flattenNavLinks(items: NavItem[]): NavLink[] {
+  const links: NavLink[] = []
+  for (const item of items) {
+    if ('items' in item && item.items) {
+      for (const sub of item.items) {
+        links.push({
+          title: sub.title,
+          url: sub.url,
+          external: sub.external,
+          icon: sub.icon,
+          permissions: sub.permissions,
+          badge: sub.badge,
+          show: sub.show
+        })
+      }
+      continue
+    }
+    if ('url' in item && item.url) {
+      links.push(item)
+    }
+  }
+  return links
+}
 
 export function CommandMenu() {
   const navigate = useNavigate()
@@ -27,14 +54,19 @@ export function CommandMenu() {
   const { setTheme } = useTheme()
   const { open, setOpen } = useSearch()
   const permissions = useAuthStore((state) => state.user?.permissions ?? [])
+  const activePluginsQuery = useQuery({
+    queryKey: ['plugins', 'active-ids'],
+    queryFn: () => fetchActivePluginIds(true),
+    staleTime: 30_000
+  })
 
   const navGroups = useMemo(() => {
-    const routes = Object.values(router.routesById).map((route) => ({
-      fullPath: route.fullPath,
-      staticData: route.options.staticData as RouterMeta | undefined
-    }))
-    return buildNavGroupsFromRoutes(routes, permissions)
-  }, [router.routesById, permissions])
+    return buildNavGroupsFromRouteTree(
+      router.routeTree as RouteTreeNode,
+      permissions,
+      activePluginsQuery.data
+    )
+  }, [router.routeTree, permissions, activePluginsQuery.data])
 
   const runCommand = (command: () => unknown) => {
     setOpen(false)
@@ -48,11 +80,12 @@ export function CommandMenu() {
         <CommandList>
           <ScrollArea type="hover" className="h-72 pe-1">
             <CommandEmpty>未找到结果。</CommandEmpty>
-            {navGroups.map((group) => (
-              <CommandGroup key={group.title} heading={group.title}>
-                {group.items.map((navItem) => {
-                  if (!('url' in navItem) || !navItem.url) return null
-                  return (
+            {navGroups.map((group) => {
+              const links = flattenNavLinks(group.items)
+              if (links.length === 0) return null
+              return (
+                <CommandGroup key={group.title} heading={group.title}>
+                  {links.map((navItem) => (
                     <CommandItem
                       key={`${navItem.url}-${navItem.title}`}
                       value={navItem.title}
@@ -65,10 +98,10 @@ export function CommandMenu() {
                       </div>
                       {navItem.title}
                     </CommandItem>
-                  )
-                })}
-              </CommandGroup>
-            ))}
+                  ))}
+                </CommandGroup>
+              )
+            })}
             <CommandSeparator />
             <CommandGroup heading="主题">
               <CommandItem onSelect={() => runCommand(() => setTheme('light'))}>

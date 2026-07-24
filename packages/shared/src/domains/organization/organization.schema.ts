@@ -68,6 +68,8 @@ export const createPostSchema = z.object({
   name: z.string().trim().min(1).max(100),
   organizationId: z.string().trim().min(1),
   description: z.string().trim().max(500).optional(),
+  grade: z.string().trim().max(50).optional(),
+  headcount: z.number().int().min(1).max(999).optional().default(1),
   sort: z.number().int().min(0).max(9999).optional()
 })
 
@@ -81,6 +83,23 @@ export const updatePostSchema = createPostSchema
 export type UpsertOrganizationMember = z.infer<typeof upsertOrganizationMemberSchema>
 export type CreatePost = z.infer<typeof createPostSchema>
 export type UpdatePost = z.infer<typeof updatePostSchema>
+
+export const postSchema = z.object({
+  id: z.string(),
+  code: z.string(),
+  name: z.string(),
+  organizationId: z.string(),
+  description: z.string().nullable(),
+  grade: z.string().nullable(),
+  headcount: z.number(),
+  filledCount: z.number(),
+  status: organizationStatusSchema,
+  sort: z.number(),
+  createdAt: z.string(),
+  updatedAt: z.string()
+})
+
+export type Post = z.infer<typeof postSchema>
 
 export const organizationSchema = z.object({
   id: z.string(),

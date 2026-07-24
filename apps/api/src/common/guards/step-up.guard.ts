@@ -1,16 +1,11 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-  Inject,
-  Injectable
-} from '@nestjs/common'
+import { ForbiddenException, Inject, Injectable } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { JwtService } from '@nestjs/jwt'
 
 import { REQUIRE_STEP_UP_KEY } from '@/common/decorators/require-step-up.decorator'
 import { CONFIG_NAMESPACES } from '@/config'
 
+import type { CanActivate, ExecutionContext } from '@nestjs/common'
 import type { Request } from 'express'
 import type { AuthConfig } from '@/config'
 

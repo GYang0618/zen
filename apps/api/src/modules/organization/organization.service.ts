@@ -6,10 +6,10 @@ import {
   NotFoundException
 } from '@nestjs/common'
 
+import { applyOrganizationTreeDataScope } from '@/common/auth/apply-data-scope'
 import { AuditService } from '@/common/auth/audit.service'
 import { AuthContextService } from '@/common/auth/auth-context.service'
 import { SessionService } from '@/common/auth/session.service'
-import { applyOrganizationTreeDataScope } from '@/common/auth/apply-data-scope'
 
 import {
   fromApiOrganizationStatus,
@@ -18,8 +18,8 @@ import {
 } from './organization.mapper'
 import { OrganizationRepository } from './organization.repository'
 
-import type { AuthContext, OrganizationTreeNode } from '@zen/shared'
 import type { Prisma } from '@prisma/client'
+import type { AuthContext, OrganizationTreeNode } from '@zen/shared'
 import type {
   CreateOrganizationDto,
   DeleteOrganizationsDto,
@@ -299,17 +299,7 @@ export class OrganizationService {
 
   async listPosts(organizationId?: string) {
     const rows = await this.orgRepo.listPosts(organizationId)
-    return rows.map((row) => ({
-      id: row.id,
-      code: row.code,
-      name: row.name,
-      organizationId: row.organizationId,
-      description: row.description,
-      status: row.status === 'ACTIVE' ? 'active' : 'disabled',
-      sort: row.sort,
-      createdAt: row.createdAt.toISOString(),
-      updatedAt: row.updatedAt.toISOString()
-    }))
+    return rows.map((row) => this.toPostResponse(row))
   }
 
   async createPost(payload: {
@@ -317,6 +307,8 @@ export class OrganizationService {
     name: string
     organizationId: string
     description?: string
+    grade?: string
+    headcount?: number
     sort?: number
   }) {
     const org = await this.orgRepo.findById(payload.organizationId)
@@ -328,6 +320,8 @@ export class OrganizationService {
       code: payload.code,
       name: payload.name,
       description: payload.description,
+      grade: payload.grade,
+      headcount: payload.headcount ?? 1,
       sort: payload.sort,
       organization: { connect: { id: payload.organizationId } }
     })
@@ -339,22 +333,19 @@ export class OrganizationService {
       diff: payload
     })
 
-    return {
-      id: created.id,
-      code: created.code,
-      name: created.name,
-      organizationId: created.organizationId,
-      description: created.description,
-      status: 'active' as const,
-      sort: created.sort,
-      createdAt: created.createdAt.toISOString(),
-      updatedAt: created.updatedAt.toISOString()
-    }
+    return this.toPostResponse(created)
   }
 
   async updatePost(
     id: string,
-    payload: { name?: string; description?: string; sort?: number; status?: 'active' | 'disabled' }
+    payload: {
+      name?: string
+      description?: string
+      grade?: string
+      headcount?: number
+      sort?: number
+      status?: 'active' | 'disabled'
+    }
   ) {
     const existing = await this.orgRepo.findPostById(id)
     if (!existing) throw new NotFoundException('岗位不存在')
@@ -362,6 +353,8 @@ export class OrganizationService {
     const updated = await this.orgRepo.updatePost(id, {
       name: payload.name,
       description: payload.description,
+      grade: payload.grade,
+      headcount: payload.headcount,
       sort: payload.sort,
       status:
         payload.status === undefined
@@ -378,16 +371,36 @@ export class OrganizationService {
       diff: payload
     })
 
+    return this.toPostResponse(updated)
+  }
+
+  private toPostResponse(row: {
+    id: string
+    code: string
+    name: string
+    organizationId: string
+    description: string | null
+    grade: string | null
+    headcount: number
+    status: 'ACTIVE' | 'DISABLED'
+    sort: number | null
+    createdAt: Date
+    updatedAt: Date
+    _count?: { users: number }
+  }) {
     return {
-      id: updated.id,
-      code: updated.code,
-      name: updated.name,
-      organizationId: updated.organizationId,
-      description: updated.description,
-      status: updated.status === 'ACTIVE' ? ('active' as const) : ('disabled' as const),
-      sort: updated.sort,
-      createdAt: updated.createdAt.toISOString(),
-      updatedAt: updated.updatedAt.toISOString()
+      id: row.id,
+      code: row.code,
+      name: row.name,
+      organizationId: row.organizationId,
+      description: row.description,
+      grade: row.grade,
+      headcount: row.headcount,
+      filledCount: row._count?.users ?? 0,
+      status: row.status === 'ACTIVE' ? ('active' as const) : ('disabled' as const),
+      sort: row.sort ?? 0,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString()
     }
   }
 

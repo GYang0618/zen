@@ -25,7 +25,9 @@ import { RoleRepository } from './role.repository'
 
 import type { Prisma } from '@prisma/client'
 import type {
+  AssignRoleMembersDto,
   AssignRolePermissionsDto,
+  CloneRoleDto,
   CreateRoleDto,
   FindRolesQueryDto,
   RoleDataScope,
@@ -36,10 +38,13 @@ import type {
   PermissionGroupResponse,
   RoleListItemResponse,
   RoleListResponse,
+  RoleMemberResponse,
+  RoleMembersResponse,
   RoleResponse
 } from './responses/role.response'
 
 const LOCKED_SYSTEM_ROLE_CODES = new Set(['super_admin'])
+const SUPER_ADMIN_ROLE_CODE = 'super_admin'
 
 @Injectable()
 export class RoleService {
@@ -78,6 +83,18 @@ export class RoleService {
     if (permissionIds.length > 0) {
       await this.authContextService.bumpPermVer()
     }
+
+    await this.auditService.write({
+      action: 'system.role.created',
+      resource: 'role',
+      resourceId: created.id,
+      diff: {
+        code: data.code,
+        name: data.name,
+        dataScope,
+        permissionCount: permissionIds.length
+      }
+    })
 
     const role = await this.roleRepo.findById(created.id)
     if (!role) throw new NotFoundException('角色不存在')
@@ -160,13 +177,147 @@ export class RoleService {
 
     if (data.permissionCodes !== undefined) {
       await this.assignPermissions(id, { permissionCodes: data.permissionCodes }, existing)
-    } else if (scopeChanged) {
-      await this.invalidateRoleMembers(id)
+    } else if (scopeChanged || data.status !== undefined || data.name !== undefined) {
+      if (scopeChanged) {
+        await this.invalidateRoleMembers(id)
+      }
+      await this.auditService.write({
+        action:
+          data.status !== undefined
+            ? data.status === 'active'
+              ? 'system.role.unfrozen'
+              : 'system.role.frozen'
+            : 'system.role.updated',
+        resource: 'role',
+        resourceId: id,
+        diff: {
+          name: data.name,
+          description: data.description,
+          status: data.status,
+          dataScope: data.dataScope,
+          customOrgIds: data.customOrgIds
+        }
+      })
     }
 
     const role = await this.roleRepo.findById(id)
     if (!role) throw new NotFoundException('角色不存在')
     return toRoleResponse(role)
+  }
+
+  async clone(id: string, payload: CloneRoleDto): Promise<RoleResponse> {
+    const source = await this.roleRepo.findById(id)
+    if (!source) throw new NotFoundException('角色不存在')
+
+    const existing = await this.roleRepo.findByCode(payload.code)
+    if (existing) {
+      throw new ConflictException('角色编码已存在')
+    }
+
+    const permissionCodes = source.permissions.map((item) => item.permission.code)
+    const created = await this.create({
+      code: payload.code,
+      name: payload.name,
+      description: payload.description,
+      dataScope: toApiDataScope(source.dataScope),
+      customOrgIds: source.customOrgIds ?? [],
+      sort: source.sort ?? undefined,
+      permissionCodes
+    })
+
+    await this.auditService.write({
+      action: 'system.role.cloned',
+      resource: 'role',
+      resourceId: created.id,
+      diff: {
+        sourceRoleId: source.id,
+        sourceRoleCode: source.code,
+        permissionCount: permissionCodes.length,
+        dataScope: created.dataScope
+      }
+    })
+
+    return created
+  }
+
+  async listMembers(roleId: string, page = 1, pageSize = 100): Promise<RoleMembersResponse> {
+    const role = await this.roleRepo.findById(roleId)
+    if (!role) throw new NotFoundException('角色不存在')
+
+    const { items, pagination } = await paginate({
+      page,
+      pageSize,
+      count: () => this.roleRepo.countMembers(roleId),
+      findMany: ({ skip, take }) => this.roleRepo.findMembers(roleId, skip, take)
+    })
+
+    return {
+      items: items.map(toRoleMemberResponse),
+      pagination: pagination ?? buildPaginationMeta(page, pageSize, items.length)
+    }
+  }
+
+  async addMembers(roleId: string, payload: AssignRoleMembersDto): Promise<RoleMembersResponse> {
+    const role = await this.roleRepo.findById(roleId)
+    if (!role) throw new NotFoundException('角色不存在')
+
+    const userIds = [
+      ...new Set(payload.userIds.map((id) => id.trim()).filter((id) => id.length > 0))
+    ]
+    if (userIds.length === 0) {
+      throw new BadRequestException('至少选择一名用户')
+    }
+
+    const users = await this.roleRepo.findActiveUsersByIds(userIds)
+    if (users.length !== userIds.length) {
+      throw new BadRequestException('部分用户不存在或已删除')
+    }
+
+    await this.roleRepo.addMembers(roleId, userIds)
+    await this.auditService.write({
+      action: 'system.role.members_added',
+      resource: 'role',
+      resourceId: roleId,
+      diff: { userIds, roleCode: role.code, roleName: role.name }
+    })
+    await this.authContextService.bumpPermVer()
+    await Promise.all(userIds.map((userId) => this.sessionService.revokeAllForUser(userId)))
+
+    return this.listMembers(roleId)
+  }
+
+  async removeMember(roleId: string, userId: string): Promise<RoleMembersResponse> {
+    const role = await this.roleRepo.findById(roleId)
+    if (!role) throw new NotFoundException('角色不存在')
+
+    const memberIds = await this.roleRepo.findUserIdsByRoleId(roleId)
+    if (!memberIds.includes(userId)) {
+      throw new NotFoundException('该用户未绑定此角色')
+    }
+
+    if (role.code === SUPER_ADMIN_ROLE_CODE) {
+      const otherSuperAdmins = await this.roleRepo.countActiveSuperAdminsExcluding(userId)
+      if (otherSuperAdmins === 0) {
+        throw new BadRequestException('系统至少需要保留一名超级管理员')
+      }
+    }
+
+    const userRoles = await this.roleRepo.findUserRoleCodes(userId)
+    if (userRoles.length <= 1) {
+      throw new BadRequestException('用户至少需要保留一个角色，无法解绑')
+    }
+
+    await this.roleRepo.removeMember(roleId, userId)
+    await this.auditService.write({
+      action: 'system.role.member_removed',
+      resource: 'role',
+      resourceId: roleId,
+      diff: { userId, roleCode: role.code, roleName: role.name }
+    })
+    await this.authContextService.bumpPermVer()
+    await this.sessionService.revokeAllForUser(userId)
+
+    return this.listMembers(roleId)
   }
 
   async assignPermissions(
@@ -224,6 +375,12 @@ export class RoleService {
     }
 
     await this.roleRepo.deleteManyByIds(ids)
+    await this.auditService.write({
+      action: 'system.role.deleted',
+      resource: 'role',
+      resourceId: ids.join(','),
+      diff: { ids, codes: roles.map((role) => role.code) }
+    })
     return roles.map(toRoleListItemResponse)
   }
 
@@ -306,6 +463,22 @@ function normalizeIds(idsInput: string[]): string[] {
     throw new BadRequestException('至少需要一个有效的角色 ID')
   }
   return ids
+}
+
+function toRoleMemberResponse(
+  row: Awaited<ReturnType<RoleRepository['findMembers']>>[number]
+): RoleMemberResponse {
+  const primaryOrg = row.user.organizations[0]?.organization
+  return {
+    id: row.user.id,
+    username: row.user.username,
+    nickname: row.user.nickname ?? null,
+    realName: row.user.profile?.realName ?? null,
+    avatar: row.user.profile?.avatar ?? null,
+    email: row.user.email,
+    deptName: primaryOrg?.name ?? null,
+    boundAt: row.createdAt.toISOString()
+  }
 }
 
 function groupPermissionsByModule(

@@ -5,9 +5,8 @@ import { useEffect } from 'react'
 
 import { useTabsStore } from '@/stores'
 
-import type { RouterMeta } from '@/types/router'
-import type { TabItem } from '@/stores/tabs'
 import type { MouseEvent } from 'react'
+import type { TabItem } from '@/stores/tabs'
 
 /** 将当前路由同步到多页签 store */
 export function TabsSync() {
@@ -18,7 +17,7 @@ export function TabsSync() {
 
   useEffect(() => {
     const leaf = matches[matches.length - 1]
-    const meta = leaf?.staticData as RouterMeta | undefined
+    const meta = leaf?.staticData
     if (!meta?.title) return
 
     addTab({
@@ -71,6 +70,7 @@ export function NavTabs({ className }: { className?: string }) {
           <div
             key={tab.id}
             role="tab"
+            tabIndex={isActive ? 0 : -1}
             aria-selected={isActive}
             className={cn(
               'group inline-flex h-7 shrink-0 items-center gap-1 rounded-md border px-2 text-xs transition-colors',

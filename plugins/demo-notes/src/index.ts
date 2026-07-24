@@ -1,5 +1,5 @@
 export * from './activate'
-export * from './constants'
 export * from './config.schema'
+export * from './constants'
 export * from './deactivate'
 export * from './note.schema'

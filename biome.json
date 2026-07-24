@@ -54,6 +54,9 @@
     "lineEnding": "lf"
   },
   "javascript": {
+    "parser": {
+      "unsafeParameterDecoratorsEnabled": true
+    },
     "formatter": {
       "trailingCommas": "none",
       "semicolons": "asNeeded",

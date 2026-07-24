@@ -115,7 +115,10 @@ function resolveRowIndex(table: PropertyTableAccessorInternal, featureId: number
   return featureId
 }
 
-function readBimRow(table: PropertyTableAccessorInternal, rowIndex: number): Record<string, unknown> {
+function readBimRow(
+  table: PropertyTableAccessorInternal,
+  rowIndex: number
+): Record<string, unknown> {
   const row: Record<string, unknown> = {}
 
   for (const key of BIM_DISPLAY_KEYS) {
@@ -136,7 +139,10 @@ function readBimRow(table: PropertyTableAccessorInternal, rowIndex: number): Rec
 }
 
 /** 用 pick 得到的 featureId 读取 property table 行 */
-export function getFeatureProperties(mesh: Mesh, featureId: number): Record<string, unknown> | undefined {
+export function getFeatureProperties(
+  mesh: Mesh,
+  featureId: number
+): Record<string, unknown> | undefined {
   const meshFeatures = mesh.userData.meshFeatures as MeshFeatures | undefined
   const metadata = findStructuralMetadata(mesh)
   if (!meshFeatures || !metadata) return undefined

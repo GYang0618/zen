@@ -1,10 +1,7 @@
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from '@zen/ui'
 import { MapPin, Play, Square, Trash2, X } from 'lucide-react'
 
-import {
-  useWalkthroughStore,
-  WALKTHROUGH_MIN_WAYPOINTS
-} from '../../stores/walkthrough'
+import { useWalkthroughStore, WALKTHROUGH_MIN_WAYPOINTS } from '../../stores/walkthrough'
 
 import type { WalkthroughPoint } from '../../stores/walkthrough'
 

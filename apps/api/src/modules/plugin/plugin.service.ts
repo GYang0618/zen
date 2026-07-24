@@ -1,19 +1,13 @@
-import {
-  Inject,
-  Injectable,
-  NotFoundException
-} from '@nestjs/common'
-import { PluginInstallStatus, type Prisma } from '@prisma/client'
-import {
-  filterActiveRegistryEntries,
-  PLUGIN_REGISTRY
-} from '@zen/plugin-sdk'
+import { Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { PluginInstallStatus } from '@prisma/client'
+import { filterActiveRegistryEntries, PLUGIN_REGISTRY } from '@zen/plugin-sdk'
 import { DEFAULT_TENANT_ID } from '@zen/shared'
 
 import { AuditService } from '@/common/auth/audit.service'
 import { PrismaService } from '@/infra/prisma'
 
-import type { PluginInstallStatus as SdkStatus, PluginRegistryEntry } from '@zen/plugin-sdk'
+import type { Prisma } from '@prisma/client'
+import type { PluginRegistryEntry, PluginInstallStatus as SdkStatus } from '@zen/plugin-sdk'
 import type { PluginListItemResponse, PluginListResponse } from './responses/plugin.response'
 
 @Injectable()
@@ -89,7 +83,10 @@ export class PluginService {
     return toListItem(entry, installation)
   }
 
-  async deactivate(pluginId: string, tenantId = DEFAULT_TENANT_ID): Promise<PluginListItemResponse> {
+  async deactivate(
+    pluginId: string,
+    tenantId = DEFAULT_TENANT_ID
+  ): Promise<PluginListItemResponse> {
     const entry = findRegistryEntry(pluginId)
     const existing = await this.prisma.pluginInstallation.findUnique({
       where: { tenantId_pluginId: { tenantId, pluginId } }

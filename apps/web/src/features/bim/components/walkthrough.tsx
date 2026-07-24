@@ -257,7 +257,9 @@ function WalkthroughRunner() {
 
   if (!isWalking) return null
 
-  return <WalkthroughAvatar groupRef={avatarRef} moveDistanceRef={moveDistanceRef} active={isWalking} />
+  return (
+    <WalkthroughAvatar groupRef={avatarRef} moveDistanceRef={moveDistanceRef} active={isWalking} />
+  )
 }
 
 /** 室内漫游：点位拾取、人物步行、第三人称跟随（含碰撞） */

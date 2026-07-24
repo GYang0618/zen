@@ -3,7 +3,7 @@ export type RoleResponse = {
   code: string
   name: string
   status: 'active' | 'disabled'
-  dataScope: 'all' | 'department' | 'self' | 'custom'
+  dataScope: 'all' | 'department' | 'department_only' | 'self' | 'custom'
   customOrgIds: string[]
   sort: number
   description: string | null
@@ -18,6 +18,27 @@ export type RoleListItemResponse = RoleResponse
 
 export type RoleListResponse = {
   items: RoleListItemResponse[]
+  pagination: {
+    total: number
+    totalPages: number
+    page: number
+    pageSize: number
+  }
+}
+
+export type RoleMemberResponse = {
+  id: string
+  username: string
+  nickname: string | null
+  realName: string | null
+  avatar: string | null
+  email: string
+  deptName: string | null
+  boundAt: string
+}
+
+export type RoleMembersResponse = {
+  items: RoleMemberResponse[]
   pagination: {
     total: number
     totalPages: number

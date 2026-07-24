@@ -3,9 +3,7 @@ import { z } from 'zod'
 import { PLUGIN_PERMISSION_CODE_PATTERN } from './constants'
 
 export const permissionContributionSchema = z.object({
-  code: z
-    .string()
-    .regex(PLUGIN_PERMISSION_CODE_PATTERN, '权限码须为 module:resource:action'),
+  code: z.string().regex(PLUGIN_PERMISSION_CODE_PATTERN, '权限码须为 module:resource:action'),
   name: z.string().min(1),
   module: z.string().min(1),
   description: z.string().optional()

@@ -1,9 +1,4 @@
-import {
-  getObjectId,
-  getObjectKind,
-  getObjectUserData,
-  isObjectSelectable
-} from '../lib/object'
+import { getObjectId, getObjectKind, getObjectUserData, isObjectSelectable } from '../lib/object'
 
 import type { Object3D } from 'three'
 import type { KindType } from '../lib/object'

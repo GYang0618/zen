@@ -22,8 +22,8 @@ import {
 } from '@zen/ui'
 import { ChevronRight, ExternalLink } from 'lucide-react'
 
-import type { ReactNode } from 'react'
 import type { LinkProps } from '@tanstack/react-router'
+import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 import type { NavCollapsible, NavGroup as NavGroupProps, NavItem, NavLink } from '../types'
 
 export function NavGroup({ title, items }: NavGroupProps) {
@@ -34,7 +34,7 @@ export function NavGroup({ title, items }: NavGroupProps) {
       <SidebarGroupLabel>{title}</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
-          const key = `${item.title}-${item.url}`
+          const key = 'url' in item && item.url ? `${item.title}-${item.url}` : item.title
 
           if (!item.items) return <SidebarMenuLink key={key} item={item} href={href} />
 
@@ -58,9 +58,9 @@ type NavAnchorProps = {
   onNavigate?: () => void
   className?: string
   children: ReactNode
-}
+} & Omit<ComponentPropsWithoutRef<'a'>, 'href' | 'children'>
 
-function NavAnchor({ url, external, onNavigate, className, children }: NavAnchorProps) {
+function NavAnchor({ url, external, onNavigate, className, children, ...rest }: NavAnchorProps) {
   if (external) {
     return (
       <a
@@ -69,6 +69,7 @@ function NavAnchor({ url, external, onNavigate, className, children }: NavAnchor
         rel="noopener noreferrer"
         className={className}
         onClick={onNavigate}
+        {...rest}
       >
         {children}
       </a>
@@ -76,7 +77,7 @@ function NavAnchor({ url, external, onNavigate, className, children }: NavAnchor
   }
 
   return (
-    <Link to={url} className={className} onClick={onNavigate}>
+    <Link to={url} className={className} onClick={onNavigate} {...rest}>
       {children}
     </Link>
   )
@@ -132,7 +133,6 @@ function SidebarMenuCollapsible({ item, href }: { item: NavCollapsible; href: st
                     external={subItem.external}
                     onNavigate={() => setOpenMobile(false)}
                   >
-                    {subItem.icon && <subItem.icon />}
                     <span>{subItem.title}</span>
                     {subItem.external && (
                       <ExternalLink className="ms-auto size-3 opacity-60" aria-hidden />
@@ -173,7 +173,6 @@ function SidebarMenuCollapsedDropdown({ item, href }: { item: NavCollapsible; hr
                 external={sub.external}
                 className={!sub.external && checkIsActive(href, sub) ? 'bg-secondary' : ''}
               >
-                {sub.icon && <sub.icon />}
                 <span className="max-w-52 text-wrap">{sub.title}</span>
                 {sub.external && <ExternalLink className="ms-auto size-3 opacity-60" aria-hidden />}
                 {sub.badge && <span className="ms-auto text-xs">{sub.badge}</span>}
@@ -188,7 +187,9 @@ function SidebarMenuCollapsedDropdown({ item, href }: { item: NavCollapsible; hr
 
 function checkIsActive(
   href: string,
-  item: NavItem | { url?: LinkProps['to'] | (string & {}); items?: { url: LinkProps['to'] | (string & {}) }[] },
+  item:
+    | NavItem
+    | { url?: LinkProps['to'] | (string & {}); items?: { url: LinkProps['to'] | (string & {}) }[] },
   mainNav = false
 ) {
   const url = typeof item.url === 'string' ? item.url : undefined
@@ -198,9 +199,6 @@ function checkIsActive(
     (!!url && href === url) ||
     (!!url && href.split('?')[0] === url) ||
     !!item.items?.some((child) => child.url === href) ||
-    (!!mainNav &&
-      !!url &&
-      href.split('/')[1] !== '' &&
-      href.split('/')[1] === url.split('/')[1])
+    (!!mainNav && !!url && href.split('/')[1] !== '' && href.split('/')[1] === url.split('/')[1])
   )
 }

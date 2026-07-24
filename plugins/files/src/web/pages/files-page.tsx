@@ -45,7 +45,9 @@ export function FilesPage({ request, can }: FilesPageProps) {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">文件管理</h1>
-          <p className="text-sm text-muted-foreground">能力插件 files：文件对象元数据登记与软删除</p>
+          <p className="text-sm text-muted-foreground">
+            能力插件 files：文件对象元数据登记与软删除
+          </p>
         </div>
         {can(FILE_PERMISSIONS.MANAGE) ? (
           <Button

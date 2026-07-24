@@ -24,7 +24,9 @@ export const PermissionCode = {
   PLUGIN_LIST: 'system:plugin:list',
   PLUGIN_MANAGE: 'system:plugin:manage',
 
+  /** @deprecated 会话已并入个人设置自助能力，权限码仅兼容历史数据 */
   SESSION_LIST: 'system:session:list',
+  /** @deprecated 会话已并入个人设置自助能力，权限码仅兼容历史数据 */
   SESSION_REVOKE: 'system:session:revoke',
 
   POST_LIST: 'system:post:list',
@@ -70,10 +72,7 @@ export function hasAllPermissions(
   return required.every((code) => set.has(code))
 }
 
-export function hasAnyPermission(
-  granted: readonly string[],
-  required: readonly string[]
-): boolean {
+export function hasAnyPermission(granted: readonly string[], required: readonly string[]): boolean {
   if (required.length === 0) return true
   const set = new Set(granted)
   return required.some((code) => set.has(code))

@@ -8,8 +8,7 @@ export const PLUGINS_GLOB_DIR = 'plugins'
 export const PLUGIN_MANIFEST_FILENAME = 'zen.plugin.json'
 
 /** 权限码命名：module:resource:action */
-export const PLUGIN_PERMISSION_CODE_PATTERN =
-  /^[a-z][a-z0-9_-]*:[a-z][a-z0-9_-]*:[a-z][a-z0-9_-]*$/
+export const PLUGIN_PERMISSION_CODE_PATTERN = /^[a-z][a-z0-9_-]*:[a-z][a-z0-9_-]*:[a-z][a-z0-9_-]*$/
 
 /** 内核保留前缀，插件不得贡献 */
 export const KERNEL_PERMISSION_PREFIX = 'system:'

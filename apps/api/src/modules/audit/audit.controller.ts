@@ -4,9 +4,9 @@ import { DEFAULT_TENANT_ID, PermissionCode } from '@zen/shared'
 import { z } from 'zod'
 
 import { RequirePermission } from '@/common/decorators/require-permission.decorator'
+import { buildPaginationMeta, paginate } from '@/common/pagination'
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
 import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '@/common/swagger'
-import { buildPaginationMeta, paginate } from '@/common/pagination'
 import { PrismaService } from '@/infra/prisma'
 
 const auditQuerySchema = z.object({

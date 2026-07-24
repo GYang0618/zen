@@ -2,7 +2,7 @@ import { createRouter } from '@tanstack/react-router'
 
 import { routeTree } from './routeTree.gen'
 
-import type { RouterMeta } from '@/types/router'
+import type {} from '@/types/router'
 
 export const router = createRouter({
   routeTree,
@@ -15,6 +15,4 @@ declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router
   }
-
-  interface StaticDataRouteOption extends RouterMeta {}
 }

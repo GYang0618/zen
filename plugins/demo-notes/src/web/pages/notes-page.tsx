@@ -47,7 +47,9 @@ export function NotesPage({ request, can }: NotesPageProps) {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">演示便签</h1>
-          <p className="text-sm text-muted-foreground">参考插件 demo-notes：CRUD + DataScope + 启停</p>
+          <p className="text-sm text-muted-foreground">
+            参考插件 demo-notes：CRUD + DataScope + 启停
+          </p>
         </div>
         {can(DEMO_NOTE_PERMISSIONS.CREATE) ? (
           <Button

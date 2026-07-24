@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Inject,
-  Param,
-  Patch,
-  Post
-} from '@nestjs/common'
+import { Body, Controller, Delete, Get, Inject, Param, Patch, Post } from '@nestjs/common'
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger'
 
 import { DEMO_NOTE_PERMISSIONS, DEMO_NOTES_PLUGIN_ID } from '../constants'

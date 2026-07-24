@@ -29,6 +29,9 @@ export interface OrganizationPost {
   name: string
   organizationId: string
   description: string | null
+  grade: string | null
+  headcount: number
+  filledCount: number
   status: 'active' | 'disabled'
   sort: number
   createdAt: string

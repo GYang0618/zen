@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Inject,
   Param,
+  Patch,
   Post,
   Req,
   Res,
@@ -17,11 +18,10 @@ import { Throttle } from '@nestjs/throttler'
 import {
   changePasswordSchema,
   forgotPasswordSchema,
-  PermissionCode,
-  resetPasswordSchema
+  resetPasswordSchema,
+  updateMyProfileSchema
 } from '@zen/shared'
 
-import { RequirePermission } from '@/common/decorators/require-permission.decorator'
 import { Public } from '@/common/decorators/public.decorator'
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
 import { CONFIG_NAMESPACES } from '@/config'
@@ -32,8 +32,8 @@ import { durationToSeconds, REFRESH_TOKEN_COOKIE_NAME } from './auth-cookie'
 import { loginSchema } from './dto/login.dto'
 import { registerSchema } from './dto/register.dto'
 
+import type { ChangePassword, ForgotPassword, ResetPassword, UpdateMyProfile } from '@zen/shared'
 import type { Request, Response } from 'express'
-import type { ChangePassword, ForgotPassword, ResetPassword } from '@zen/shared'
 import type { JwtPayload } from '@/common/interfaces/jwt-payload.interface'
 import type { AppConfig, AuthConfig } from '@/config'
 import type { UserInfoResponse } from '@/modules/user/responses/user.response'
@@ -125,10 +125,7 @@ export class AuthController {
 
   @Post('step-up')
   @HttpCode(HttpStatus.OK)
-  stepUp(
-    @Req() request: Request,
-    @Body() body: { password?: string; mfaCode?: string }
-  ) {
+  stepUp(@Req() request: Request, @Body() body: { password?: string; mfaCode?: string }) {
     return this.authService.createStepUpToken(this.requireUserId(request), body)
   }
 
@@ -210,11 +207,23 @@ export class AuthController {
     return this.authService.getMe(user.sub)
   }
 
+  @Patch('me')
+  @HttpCode(HttpStatus.OK)
+  @UsePipes(new ZodValidationPipe(updateMyProfileSchema))
+  async updateMe(
+    @Req() request: Request,
+    @Body() body: UpdateMyProfile
+  ): Promise<UserInfoResponse> {
+    const userId = this.requireUserId(request)
+    return this.authService.updateMe(userId, body)
+  }
+
   @Get('sessions')
-  @RequirePermission(PermissionCode.SESSION_LIST)
   @HttpCode(HttpStatus.OK)
   async listSessions(@Req() request: Request) {
     const userId = this.requireUserId(request)
+    const refreshToken = request.cookies?.[REFRESH_TOKEN_COOKIE_NAME] as string | undefined
+    const currentId = await this.authService.resolveCurrentSessionId(userId, refreshToken)
     const items = await this.authService.listSessions(userId)
     return {
       items: items.map((item) => ({
@@ -222,29 +231,25 @@ export class AuthController {
         ip: item.ip,
         userAgent: item.userAgent,
         expiresAt: item.expiresAt.toISOString(),
-        createdAt: item.createdAt.toISOString()
+        createdAt: item.createdAt.toISOString(),
+        current: item.id === currentId
       }))
     }
   }
 
+  @Delete('sessions/others')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async revokeOtherSessions(@Req() request: Request): Promise<void> {
+    const userId = this.requireUserId(request)
+    const refreshToken = request.cookies?.[REFRESH_TOKEN_COOKIE_NAME] as string | undefined
+    await this.authService.revokeOtherSessions(userId, refreshToken)
+  }
+
   @Delete('sessions/:id')
-  @RequirePermission(PermissionCode.SESSION_REVOKE)
   @HttpCode(HttpStatus.NO_CONTENT)
   async revokeSession(@Req() request: Request, @Param('id') sessionId: string): Promise<void> {
     const userId = this.requireUserId(request)
     await this.authService.revokeSession(userId, sessionId)
-  }
-
-  @Delete('sessions')
-  @RequirePermission(PermissionCode.SESSION_REVOKE)
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async revokeAllSessions(
-    @Req() request: Request,
-    @Res({ passthrough: true }) reply: Response
-  ): Promise<void> {
-    const userId = this.requireUserId(request)
-    await this.authService.revokeAllSessions(userId)
-    this.clearRefreshToken(reply)
   }
 
   private requestMeta(request: Request) {

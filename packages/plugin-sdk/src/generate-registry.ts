@@ -59,14 +59,13 @@ export type GeneratedPluginId = (typeof PLUGIN_REGISTRY)[number]['id']
 `
 }
 
-export function generatePluginRegistry(options?: {
-  rootDir?: string
-  outFile?: string
-}): { outFile: string; count: number } {
+export function generatePluginRegistry(options?: { rootDir?: string; outFile?: string }): {
+  outFile: string
+  count: number
+} {
   const root = options?.rootDir ?? findMonorepoRoot()
   const outFile =
-    options?.outFile ??
-    join(root, 'packages/plugin-sdk/src/generated/plugin-registry.gen.ts')
+    options?.outFile ?? join(root, 'packages/plugin-sdk/src/generated/plugin-registry.gen.ts')
   const entries = buildRegistryEntries(root)
   mkdirSync(dirname(outFile), { recursive: true })
   writeFileSync(outFile, `${renderRegistrySource(entries)}\n`, 'utf8')

@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@zen/ui'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 
 import { userApi } from '@/features/system/users/api'
@@ -35,6 +35,7 @@ type CreateOrganizationDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   parentOptions: OrganizationTreeNode[]
+  defaultParentId?: string | null
 }
 
 async function resolveUserId(keyword: string): Promise<string | null> {
@@ -49,7 +50,8 @@ async function resolveUserId(keyword: string): Promise<string | null> {
 export function CreateOrganizationDialog({
   open,
   onOpenChange,
-  parentOptions
+  parentOptions,
+  defaultParentId = null
 }: CreateOrganizationDialogProps) {
   const createMutation = useCreateOrganization()
   const [leaderKeyword, setLeaderKeyword] = useState('')
@@ -61,16 +63,38 @@ export function CreateOrganizationDialog({
       code: '',
       name: '',
       type: 'department',
+      parentId: defaultParentId ?? undefined,
       description: '',
       leaderId: undefined
     }
   })
 
   const resetForm = () => {
-    form.reset({ code: '', name: '', type: 'department', description: '', leaderId: undefined })
+    form.reset({
+      code: '',
+      name: '',
+      type: 'department',
+      parentId: defaultParentId ?? undefined,
+      description: '',
+      leaderId: undefined
+    })
     setLeaderKeyword('')
     setLeaderHint('')
   }
+
+  useEffect(() => {
+    if (!open) return
+    form.reset({
+      code: '',
+      name: '',
+      type: 'department',
+      parentId: defaultParentId ?? undefined,
+      description: '',
+      leaderId: undefined
+    })
+    setLeaderKeyword('')
+    setLeaderHint('')
+  }, [open, defaultParentId, form])
 
   const onSubmit = form.handleSubmit(async (values) => {
     let leaderId = values.leaderId ?? undefined

@@ -5,8 +5,8 @@ import { useAuthStore } from '@/stores'
 
 import { authApi } from './api'
 
-import type { SignInData } from './api'
 import type { AuthLoginResult, AuthSession } from '@zen/shared'
+import type { SignInData } from './api'
 
 export type { SignInData }
 

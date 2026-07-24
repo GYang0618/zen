@@ -8,7 +8,10 @@ function getMaxBarycoordIndex(barycoord: Vector3): number {
   return 2
 }
 
-function getTriangleVertexIndices(geometry: BufferGeometry, triangle: number): [number, number, number] {
+function getTriangleVertexIndices(
+  geometry: BufferGeometry,
+  triangle: number
+): [number, number, number] {
   const index = geometry.index
   if (index) {
     const i = triangle * 3
@@ -18,7 +21,10 @@ function getTriangleVertexIndices(geometry: BufferGeometry, triangle: number): [
   return [base, base + 1, base + 2]
 }
 
-function getFeatureIdAttribute(geometry: BufferGeometry, attributeIndex: number): BufferAttribute | undefined {
+function getFeatureIdAttribute(
+  geometry: BufferGeometry,
+  attributeIndex: number
+): BufferAttribute | undefined {
   const exact = [`_feature_id_${attributeIndex}`, `_FEATURE_ID_${attributeIndex}`]
   for (const name of exact) {
     const attr = geometry.getAttribute(name)

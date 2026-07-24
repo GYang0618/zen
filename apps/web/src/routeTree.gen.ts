@@ -11,35 +11,47 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as authRouteRouteImport } from './routes/(auth)/route'
-import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as Errors503RouteImport } from './routes/errors/503'
 import { Route as Errors500RouteImport } from './routes/errors/500'
 import { Route as Errors404RouteImport } from './routes/errors/404'
 import { Route as Errors403RouteImport } from './routes/errors/403'
 import { Route as Errors401RouteImport } from './routes/errors/401'
-import { Route as AuthenticatedGisRouteImport } from './routes/_authenticated/gis'
 import { Route as AuthenticatedChangePasswordRouteImport } from './routes/_authenticated/change-password'
-import { Route as AuthenticatedBimRouteImport } from './routes/_authenticated/bim'
 import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
 import { Route as authSignInRouteImport } from './routes/(auth)/sign-in'
 import { Route as authResetPasswordRouteImport } from './routes/(auth)/reset-password'
 import { Route as authForgotPasswordRouteImport } from './routes/(auth)/forgot-password'
-import { Route as AuthenticatedSystemUsersRouteImport } from './routes/_authenticated/system/users'
-import { Route as AuthenticatedSystemSessionsRouteImport } from './routes/_authenticated/system/sessions'
-import { Route as AuthenticatedSystemRolesRouteImport } from './routes/_authenticated/system/roles'
+import { Route as AuthenticatedSystemRouteRouteImport } from './routes/_authenticated/system/route'
+import { Route as AuthenticatedPluginsRouteRouteImport } from './routes/_authenticated/plugins/route'
+import { Route as AuthenticatedAiRouteRouteImport } from './routes/_authenticated/ai/route'
+import { Route as AuthenticatedWorkbenchRouteRouteImport } from './routes/_authenticated/_workbench/route'
+import { Route as AuthenticatedOtherRouteRouteImport } from './routes/_authenticated/_other/route'
+import { Route as AuthenticatedWorkbenchIndexRouteImport } from './routes/_authenticated/_workbench/index'
 import { Route as AuthenticatedSystemPluginsRouteImport } from './routes/_authenticated/system/plugins'
-import { Route as AuthenticatedSystemOrganizationRouteImport } from './routes/_authenticated/system/organization'
 import { Route as AuthenticatedSystemDictRouteImport } from './routes/_authenticated/system/dict'
 import { Route as AuthenticatedSystemConfigRouteImport } from './routes/_authenticated/system/config'
-import { Route as AuthenticatedSystemAuditRouteImport } from './routes/_authenticated/system/audit'
-import { Route as AuthenticatedSecurityMfaRouteImport } from './routes/_authenticated/security/mfa'
 import { Route as AuthenticatedPluginsNotificationsRouteImport } from './routes/_authenticated/plugins/notifications'
+import { Route as AuthenticatedPluginsNotesRouteImport } from './routes/_authenticated/plugins/notes'
 import { Route as AuthenticatedPluginsJobsRouteImport } from './routes/_authenticated/plugins/jobs'
 import { Route as AuthenticatedPluginsFilesRouteImport } from './routes/_authenticated/plugins/files'
-import { Route as AuthenticatedDemoNotesRouteImport } from './routes/_authenticated/demo/notes'
-import { Route as AuthenticatedAiCopilotRouteImport } from './routes/_authenticated/ai/copilot'
-import { Route as AuthenticatedAiChatRouteImport } from './routes/_authenticated/ai/chat'
-import { Route as AuthenticatedSystemUsersUserIdRouteImport } from './routes/_authenticated/system/users_.$userId'
+import { Route as AuthenticatedAiWorkflowsRouteImport } from './routes/_authenticated/ai/workflows'
+import { Route as AuthenticatedAiSkillsRouteImport } from './routes/_authenticated/ai/skills'
+import { Route as AuthenticatedAiAgentsRouteImport } from './routes/_authenticated/ai/agents'
+import { Route as AuthenticatedWorkbenchGisRouteImport } from './routes/_authenticated/_workbench/gis'
+import { Route as AuthenticatedWorkbenchChatV2RouteImport } from './routes/_authenticated/_workbench/chat-v2'
+import { Route as AuthenticatedWorkbenchChatRouteImport } from './routes/_authenticated/_workbench/chat'
+import { Route as AuthenticatedWorkbenchBimRouteImport } from './routes/_authenticated/_workbench/bim'
+import { Route as AuthenticatedSystemIdentityRouteRouteImport } from './routes/_authenticated/system/_identity/route'
+import { Route as AuthenticatedOtherSettingsRouteRouteImport } from './routes/_authenticated/_other/settings/route'
+import { Route as AuthenticatedSystemIdentityUsersRouteImport } from './routes/_authenticated/system/_identity/users'
+import { Route as AuthenticatedSystemIdentityRolesRouteImport } from './routes/_authenticated/system/_identity/roles'
+import { Route as AuthenticatedSystemIdentityOrganizationRouteImport } from './routes/_authenticated/system/_identity/organization'
+import { Route as AuthenticatedOtherSettingsProfileRouteImport } from './routes/_authenticated/_other/settings/profile'
+import { Route as AuthenticatedOtherSettingsNotificationsRouteImport } from './routes/_authenticated/_other/settings/notifications'
+import { Route as AuthenticatedOtherSettingsAppearanceRouteImport } from './routes/_authenticated/_other/settings/appearance'
+import { Route as AuthenticatedOtherSettingsActivityRouteImport } from './routes/_authenticated/_other/settings/activity'
+import { Route as AuthenticatedOtherSettingsAccountRouteImport } from './routes/_authenticated/_other/settings/account'
+import { Route as AuthenticatedSystemIdentityUsersUserIdRouteImport } from './routes/_authenticated/system/_identity/users_.$userId'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -48,11 +60,6 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const authRouteRoute = authRouteRouteImport.update({
   id: '/(auth)',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const Errors503Route = Errors503RouteImport.update({
   id: '/errors/503',
@@ -79,22 +86,12 @@ const Errors401Route = Errors401RouteImport.update({
   path: '/errors/401',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedGisRoute = AuthenticatedGisRouteImport.update({
-  id: '/gis',
-  path: '/gis',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedChangePasswordRoute =
   AuthenticatedChangePasswordRouteImport.update({
     id: '/change-password',
     path: '/change-password',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedBimRoute = AuthenticatedBimRouteImport.update({
-  id: '/bim',
-  path: '/bim',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const authSignUpRoute = authSignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
@@ -115,291 +112,437 @@ const authForgotPasswordRoute = authForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => authRouteRoute,
 } as any)
-const AuthenticatedSystemUsersRoute =
-  AuthenticatedSystemUsersRouteImport.update({
-    id: '/system/users',
-    path: '/system/users',
+const AuthenticatedSystemRouteRoute =
+  AuthenticatedSystemRouteRouteImport.update({
+    id: '/system',
+    path: '/system',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedSystemSessionsRoute =
-  AuthenticatedSystemSessionsRouteImport.update({
-    id: '/system/sessions',
-    path: '/system/sessions',
+const AuthenticatedPluginsRouteRoute =
+  AuthenticatedPluginsRouteRouteImport.update({
+    id: '/plugins',
+    path: '/plugins',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedSystemRolesRoute =
-  AuthenticatedSystemRolesRouteImport.update({
-    id: '/system/roles',
-    path: '/system/roles',
+const AuthenticatedAiRouteRoute = AuthenticatedAiRouteRouteImport.update({
+  id: '/ai',
+  path: '/ai',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedWorkbenchRouteRoute =
+  AuthenticatedWorkbenchRouteRouteImport.update({
+    id: '/_workbench',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedOtherRouteRoute = AuthenticatedOtherRouteRouteImport.update({
+  id: '/_other',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedWorkbenchIndexRoute =
+  AuthenticatedWorkbenchIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedWorkbenchRouteRoute,
   } as any)
 const AuthenticatedSystemPluginsRoute =
   AuthenticatedSystemPluginsRouteImport.update({
-    id: '/system/plugins',
-    path: '/system/plugins',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedSystemOrganizationRoute =
-  AuthenticatedSystemOrganizationRouteImport.update({
-    id: '/system/organization',
-    path: '/system/organization',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/plugins',
+    path: '/plugins',
+    getParentRoute: () => AuthenticatedSystemRouteRoute,
   } as any)
 const AuthenticatedSystemDictRoute = AuthenticatedSystemDictRouteImport.update({
-  id: '/system/dict',
-  path: '/system/dict',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  id: '/dict',
+  path: '/dict',
+  getParentRoute: () => AuthenticatedSystemRouteRoute,
 } as any)
 const AuthenticatedSystemConfigRoute =
   AuthenticatedSystemConfigRouteImport.update({
-    id: '/system/config',
-    path: '/system/config',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedSystemAuditRoute =
-  AuthenticatedSystemAuditRouteImport.update({
-    id: '/system/audit',
-    path: '/system/audit',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedSecurityMfaRoute =
-  AuthenticatedSecurityMfaRouteImport.update({
-    id: '/security/mfa',
-    path: '/security/mfa',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/config',
+    path: '/config',
+    getParentRoute: () => AuthenticatedSystemRouteRoute,
   } as any)
 const AuthenticatedPluginsNotificationsRoute =
   AuthenticatedPluginsNotificationsRouteImport.update({
-    id: '/plugins/notifications',
-    path: '/plugins/notifications',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedPluginsRouteRoute,
+  } as any)
+const AuthenticatedPluginsNotesRoute =
+  AuthenticatedPluginsNotesRouteImport.update({
+    id: '/notes',
+    path: '/notes',
+    getParentRoute: () => AuthenticatedPluginsRouteRoute,
   } as any)
 const AuthenticatedPluginsJobsRoute =
   AuthenticatedPluginsJobsRouteImport.update({
-    id: '/plugins/jobs',
-    path: '/plugins/jobs',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/jobs',
+    path: '/jobs',
+    getParentRoute: () => AuthenticatedPluginsRouteRoute,
   } as any)
 const AuthenticatedPluginsFilesRoute =
   AuthenticatedPluginsFilesRouteImport.update({
-    id: '/plugins/files',
-    path: '/plugins/files',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/files',
+    path: '/files',
+    getParentRoute: () => AuthenticatedPluginsRouteRoute,
   } as any)
-const AuthenticatedDemoNotesRoute = AuthenticatedDemoNotesRouteImport.update({
-  id: '/demo/notes',
-  path: '/demo/notes',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const AuthenticatedAiWorkflowsRoute =
+  AuthenticatedAiWorkflowsRouteImport.update({
+    id: '/workflows',
+    path: '/workflows',
+    getParentRoute: () => AuthenticatedAiRouteRoute,
+  } as any)
+const AuthenticatedAiSkillsRoute = AuthenticatedAiSkillsRouteImport.update({
+  id: '/skills',
+  path: '/skills',
+  getParentRoute: () => AuthenticatedAiRouteRoute,
 } as any)
-const AuthenticatedAiCopilotRoute = AuthenticatedAiCopilotRouteImport.update({
-  id: '/ai/copilot',
-  path: '/ai/copilot',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const AuthenticatedAiAgentsRoute = AuthenticatedAiAgentsRouteImport.update({
+  id: '/agents',
+  path: '/agents',
+  getParentRoute: () => AuthenticatedAiRouteRoute,
 } as any)
-const AuthenticatedAiChatRoute = AuthenticatedAiChatRouteImport.update({
-  id: '/ai/chat',
-  path: '/ai/chat',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedSystemUsersUserIdRoute =
-  AuthenticatedSystemUsersUserIdRouteImport.update({
-    id: '/system/users_/$userId',
-    path: '/system/users/$userId',
-    getParentRoute: () => AuthenticatedRouteRoute,
+const AuthenticatedWorkbenchGisRoute =
+  AuthenticatedWorkbenchGisRouteImport.update({
+    id: '/gis',
+    path: '/gis',
+    getParentRoute: () => AuthenticatedWorkbenchRouteRoute,
+  } as any)
+const AuthenticatedWorkbenchChatV2Route =
+  AuthenticatedWorkbenchChatV2RouteImport.update({
+    id: '/chat-v2',
+    path: '/chat-v2',
+    getParentRoute: () => AuthenticatedWorkbenchRouteRoute,
+  } as any)
+const AuthenticatedWorkbenchChatRoute =
+  AuthenticatedWorkbenchChatRouteImport.update({
+    id: '/chat',
+    path: '/chat',
+    getParentRoute: () => AuthenticatedWorkbenchRouteRoute,
+  } as any)
+const AuthenticatedWorkbenchBimRoute =
+  AuthenticatedWorkbenchBimRouteImport.update({
+    id: '/bim',
+    path: '/bim',
+    getParentRoute: () => AuthenticatedWorkbenchRouteRoute,
+  } as any)
+const AuthenticatedSystemIdentityRouteRoute =
+  AuthenticatedSystemIdentityRouteRouteImport.update({
+    id: '/_identity',
+    getParentRoute: () => AuthenticatedSystemRouteRoute,
+  } as any)
+const AuthenticatedOtherSettingsRouteRoute =
+  AuthenticatedOtherSettingsRouteRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedOtherRouteRoute,
+  } as any)
+const AuthenticatedSystemIdentityUsersRoute =
+  AuthenticatedSystemIdentityUsersRouteImport.update({
+    id: '/users',
+    path: '/users',
+    getParentRoute: () => AuthenticatedSystemIdentityRouteRoute,
+  } as any)
+const AuthenticatedSystemIdentityRolesRoute =
+  AuthenticatedSystemIdentityRolesRouteImport.update({
+    id: '/roles',
+    path: '/roles',
+    getParentRoute: () => AuthenticatedSystemIdentityRouteRoute,
+  } as any)
+const AuthenticatedSystemIdentityOrganizationRoute =
+  AuthenticatedSystemIdentityOrganizationRouteImport.update({
+    id: '/organization',
+    path: '/organization',
+    getParentRoute: () => AuthenticatedSystemIdentityRouteRoute,
+  } as any)
+const AuthenticatedOtherSettingsProfileRoute =
+  AuthenticatedOtherSettingsProfileRouteImport.update({
+    id: '/profile',
+    path: '/profile',
+    getParentRoute: () => AuthenticatedOtherSettingsRouteRoute,
+  } as any)
+const AuthenticatedOtherSettingsNotificationsRoute =
+  AuthenticatedOtherSettingsNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedOtherSettingsRouteRoute,
+  } as any)
+const AuthenticatedOtherSettingsAppearanceRoute =
+  AuthenticatedOtherSettingsAppearanceRouteImport.update({
+    id: '/appearance',
+    path: '/appearance',
+    getParentRoute: () => AuthenticatedOtherSettingsRouteRoute,
+  } as any)
+const AuthenticatedOtherSettingsActivityRoute =
+  AuthenticatedOtherSettingsActivityRouteImport.update({
+    id: '/activity',
+    path: '/activity',
+    getParentRoute: () => AuthenticatedOtherSettingsRouteRoute,
+  } as any)
+const AuthenticatedOtherSettingsAccountRoute =
+  AuthenticatedOtherSettingsAccountRouteImport.update({
+    id: '/account',
+    path: '/account',
+    getParentRoute: () => AuthenticatedOtherSettingsRouteRoute,
+  } as any)
+const AuthenticatedSystemIdentityUsersUserIdRoute =
+  AuthenticatedSystemIdentityUsersUserIdRouteImport.update({
+    id: '/users_/$userId',
+    path: '/users/$userId',
+    getParentRoute: () => AuthenticatedSystemIdentityRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof AuthenticatedIndexRoute
+  '/': typeof AuthenticatedWorkbenchIndexRoute
+  '/ai': typeof AuthenticatedAiRouteRouteWithChildren
+  '/plugins': typeof AuthenticatedPluginsRouteRouteWithChildren
+  '/system': typeof AuthenticatedSystemIdentityRouteRouteWithChildren
   '/forgot-password': typeof authForgotPasswordRoute
   '/reset-password': typeof authResetPasswordRoute
   '/sign-in': typeof authSignInRoute
   '/sign-up': typeof authSignUpRoute
-  '/bim': typeof AuthenticatedBimRoute
   '/change-password': typeof AuthenticatedChangePasswordRoute
-  '/gis': typeof AuthenticatedGisRoute
   '/errors/401': typeof Errors401Route
   '/errors/403': typeof Errors403Route
   '/errors/404': typeof Errors404Route
   '/errors/500': typeof Errors500Route
   '/errors/503': typeof Errors503Route
-  '/ai/chat': typeof AuthenticatedAiChatRoute
-  '/ai/copilot': typeof AuthenticatedAiCopilotRoute
-  '/demo/notes': typeof AuthenticatedDemoNotesRoute
+  '/settings': typeof AuthenticatedOtherSettingsRouteRouteWithChildren
+  '/bim': typeof AuthenticatedWorkbenchBimRoute
+  '/chat': typeof AuthenticatedWorkbenchChatRoute
+  '/chat-v2': typeof AuthenticatedWorkbenchChatV2Route
+  '/gis': typeof AuthenticatedWorkbenchGisRoute
+  '/ai/agents': typeof AuthenticatedAiAgentsRoute
+  '/ai/skills': typeof AuthenticatedAiSkillsRoute
+  '/ai/workflows': typeof AuthenticatedAiWorkflowsRoute
   '/plugins/files': typeof AuthenticatedPluginsFilesRoute
   '/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
+  '/plugins/notes': typeof AuthenticatedPluginsNotesRoute
   '/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
-  '/security/mfa': typeof AuthenticatedSecurityMfaRoute
-  '/system/audit': typeof AuthenticatedSystemAuditRoute
   '/system/config': typeof AuthenticatedSystemConfigRoute
   '/system/dict': typeof AuthenticatedSystemDictRoute
-  '/system/organization': typeof AuthenticatedSystemOrganizationRoute
   '/system/plugins': typeof AuthenticatedSystemPluginsRoute
-  '/system/roles': typeof AuthenticatedSystemRolesRoute
-  '/system/sessions': typeof AuthenticatedSystemSessionsRoute
-  '/system/users': typeof AuthenticatedSystemUsersRoute
-  '/system/users/$userId': typeof AuthenticatedSystemUsersUserIdRoute
+  '/settings/account': typeof AuthenticatedOtherSettingsAccountRoute
+  '/settings/activity': typeof AuthenticatedOtherSettingsActivityRoute
+  '/settings/appearance': typeof AuthenticatedOtherSettingsAppearanceRoute
+  '/settings/notifications': typeof AuthenticatedOtherSettingsNotificationsRoute
+  '/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
+  '/system/organization': typeof AuthenticatedSystemIdentityOrganizationRoute
+  '/system/roles': typeof AuthenticatedSystemIdentityRolesRoute
+  '/system/users': typeof AuthenticatedSystemIdentityUsersRoute
+  '/system/users/$userId': typeof AuthenticatedSystemIdentityUsersUserIdRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof AuthenticatedWorkbenchIndexRoute
+  '/ai': typeof AuthenticatedAiRouteRouteWithChildren
+  '/plugins': typeof AuthenticatedPluginsRouteRouteWithChildren
+  '/system': typeof AuthenticatedSystemIdentityRouteRouteWithChildren
   '/forgot-password': typeof authForgotPasswordRoute
   '/reset-password': typeof authResetPasswordRoute
   '/sign-in': typeof authSignInRoute
   '/sign-up': typeof authSignUpRoute
-  '/bim': typeof AuthenticatedBimRoute
   '/change-password': typeof AuthenticatedChangePasswordRoute
-  '/gis': typeof AuthenticatedGisRoute
   '/errors/401': typeof Errors401Route
   '/errors/403': typeof Errors403Route
   '/errors/404': typeof Errors404Route
   '/errors/500': typeof Errors500Route
   '/errors/503': typeof Errors503Route
-  '/': typeof AuthenticatedIndexRoute
-  '/ai/chat': typeof AuthenticatedAiChatRoute
-  '/ai/copilot': typeof AuthenticatedAiCopilotRoute
-  '/demo/notes': typeof AuthenticatedDemoNotesRoute
+  '/settings': typeof AuthenticatedOtherSettingsRouteRouteWithChildren
+  '/bim': typeof AuthenticatedWorkbenchBimRoute
+  '/chat': typeof AuthenticatedWorkbenchChatRoute
+  '/chat-v2': typeof AuthenticatedWorkbenchChatV2Route
+  '/gis': typeof AuthenticatedWorkbenchGisRoute
+  '/ai/agents': typeof AuthenticatedAiAgentsRoute
+  '/ai/skills': typeof AuthenticatedAiSkillsRoute
+  '/ai/workflows': typeof AuthenticatedAiWorkflowsRoute
   '/plugins/files': typeof AuthenticatedPluginsFilesRoute
   '/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
+  '/plugins/notes': typeof AuthenticatedPluginsNotesRoute
   '/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
-  '/security/mfa': typeof AuthenticatedSecurityMfaRoute
-  '/system/audit': typeof AuthenticatedSystemAuditRoute
   '/system/config': typeof AuthenticatedSystemConfigRoute
   '/system/dict': typeof AuthenticatedSystemDictRoute
-  '/system/organization': typeof AuthenticatedSystemOrganizationRoute
   '/system/plugins': typeof AuthenticatedSystemPluginsRoute
-  '/system/roles': typeof AuthenticatedSystemRolesRoute
-  '/system/sessions': typeof AuthenticatedSystemSessionsRoute
-  '/system/users': typeof AuthenticatedSystemUsersRoute
-  '/system/users/$userId': typeof AuthenticatedSystemUsersUserIdRoute
+  '/settings/account': typeof AuthenticatedOtherSettingsAccountRoute
+  '/settings/activity': typeof AuthenticatedOtherSettingsActivityRoute
+  '/settings/appearance': typeof AuthenticatedOtherSettingsAppearanceRoute
+  '/settings/notifications': typeof AuthenticatedOtherSettingsNotificationsRoute
+  '/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
+  '/system/organization': typeof AuthenticatedSystemIdentityOrganizationRoute
+  '/system/roles': typeof AuthenticatedSystemIdentityRolesRoute
+  '/system/users': typeof AuthenticatedSystemIdentityUsersRoute
+  '/system/users/$userId': typeof AuthenticatedSystemIdentityUsersUserIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/(auth)': typeof authRouteRouteWithChildren
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/_authenticated/_other': typeof AuthenticatedOtherRouteRouteWithChildren
+  '/_authenticated/_workbench': typeof AuthenticatedWorkbenchRouteRouteWithChildren
+  '/_authenticated/ai': typeof AuthenticatedAiRouteRouteWithChildren
+  '/_authenticated/plugins': typeof AuthenticatedPluginsRouteRouteWithChildren
+  '/_authenticated/system': typeof AuthenticatedSystemRouteRouteWithChildren
   '/(auth)/forgot-password': typeof authForgotPasswordRoute
   '/(auth)/reset-password': typeof authResetPasswordRoute
   '/(auth)/sign-in': typeof authSignInRoute
   '/(auth)/sign-up': typeof authSignUpRoute
-  '/_authenticated/bim': typeof AuthenticatedBimRoute
   '/_authenticated/change-password': typeof AuthenticatedChangePasswordRoute
-  '/_authenticated/gis': typeof AuthenticatedGisRoute
   '/errors/401': typeof Errors401Route
   '/errors/403': typeof Errors403Route
   '/errors/404': typeof Errors404Route
   '/errors/500': typeof Errors500Route
   '/errors/503': typeof Errors503Route
-  '/_authenticated/': typeof AuthenticatedIndexRoute
-  '/_authenticated/ai/chat': typeof AuthenticatedAiChatRoute
-  '/_authenticated/ai/copilot': typeof AuthenticatedAiCopilotRoute
-  '/_authenticated/demo/notes': typeof AuthenticatedDemoNotesRoute
+  '/_authenticated/_other/settings': typeof AuthenticatedOtherSettingsRouteRouteWithChildren
+  '/_authenticated/system/_identity': typeof AuthenticatedSystemIdentityRouteRouteWithChildren
+  '/_authenticated/_workbench/bim': typeof AuthenticatedWorkbenchBimRoute
+  '/_authenticated/_workbench/chat': typeof AuthenticatedWorkbenchChatRoute
+  '/_authenticated/_workbench/chat-v2': typeof AuthenticatedWorkbenchChatV2Route
+  '/_authenticated/_workbench/gis': typeof AuthenticatedWorkbenchGisRoute
+  '/_authenticated/ai/agents': typeof AuthenticatedAiAgentsRoute
+  '/_authenticated/ai/skills': typeof AuthenticatedAiSkillsRoute
+  '/_authenticated/ai/workflows': typeof AuthenticatedAiWorkflowsRoute
   '/_authenticated/plugins/files': typeof AuthenticatedPluginsFilesRoute
   '/_authenticated/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
+  '/_authenticated/plugins/notes': typeof AuthenticatedPluginsNotesRoute
   '/_authenticated/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
-  '/_authenticated/security/mfa': typeof AuthenticatedSecurityMfaRoute
-  '/_authenticated/system/audit': typeof AuthenticatedSystemAuditRoute
   '/_authenticated/system/config': typeof AuthenticatedSystemConfigRoute
   '/_authenticated/system/dict': typeof AuthenticatedSystemDictRoute
-  '/_authenticated/system/organization': typeof AuthenticatedSystemOrganizationRoute
   '/_authenticated/system/plugins': typeof AuthenticatedSystemPluginsRoute
-  '/_authenticated/system/roles': typeof AuthenticatedSystemRolesRoute
-  '/_authenticated/system/sessions': typeof AuthenticatedSystemSessionsRoute
-  '/_authenticated/system/users': typeof AuthenticatedSystemUsersRoute
-  '/_authenticated/system/users_/$userId': typeof AuthenticatedSystemUsersUserIdRoute
+  '/_authenticated/_workbench/': typeof AuthenticatedWorkbenchIndexRoute
+  '/_authenticated/_other/settings/account': typeof AuthenticatedOtherSettingsAccountRoute
+  '/_authenticated/_other/settings/activity': typeof AuthenticatedOtherSettingsActivityRoute
+  '/_authenticated/_other/settings/appearance': typeof AuthenticatedOtherSettingsAppearanceRoute
+  '/_authenticated/_other/settings/notifications': typeof AuthenticatedOtherSettingsNotificationsRoute
+  '/_authenticated/_other/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
+  '/_authenticated/system/_identity/organization': typeof AuthenticatedSystemIdentityOrganizationRoute
+  '/_authenticated/system/_identity/roles': typeof AuthenticatedSystemIdentityRolesRoute
+  '/_authenticated/system/_identity/users': typeof AuthenticatedSystemIdentityUsersRoute
+  '/_authenticated/system/_identity/users_/$userId': typeof AuthenticatedSystemIdentityUsersUserIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/ai'
+    | '/plugins'
+    | '/system'
     | '/forgot-password'
     | '/reset-password'
     | '/sign-in'
     | '/sign-up'
-    | '/bim'
     | '/change-password'
-    | '/gis'
     | '/errors/401'
     | '/errors/403'
     | '/errors/404'
     | '/errors/500'
     | '/errors/503'
-    | '/ai/chat'
-    | '/ai/copilot'
-    | '/demo/notes'
+    | '/settings'
+    | '/bim'
+    | '/chat'
+    | '/chat-v2'
+    | '/gis'
+    | '/ai/agents'
+    | '/ai/skills'
+    | '/ai/workflows'
     | '/plugins/files'
     | '/plugins/jobs'
+    | '/plugins/notes'
     | '/plugins/notifications'
-    | '/security/mfa'
-    | '/system/audit'
     | '/system/config'
     | '/system/dict'
-    | '/system/organization'
     | '/system/plugins'
+    | '/settings/account'
+    | '/settings/activity'
+    | '/settings/appearance'
+    | '/settings/notifications'
+    | '/settings/profile'
+    | '/system/organization'
     | '/system/roles'
-    | '/system/sessions'
     | '/system/users'
     | '/system/users/$userId'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
+    | '/ai'
+    | '/plugins'
+    | '/system'
     | '/forgot-password'
     | '/reset-password'
     | '/sign-in'
     | '/sign-up'
-    | '/bim'
     | '/change-password'
-    | '/gis'
     | '/errors/401'
     | '/errors/403'
     | '/errors/404'
     | '/errors/500'
     | '/errors/503'
-    | '/'
-    | '/ai/chat'
-    | '/ai/copilot'
-    | '/demo/notes'
+    | '/settings'
+    | '/bim'
+    | '/chat'
+    | '/chat-v2'
+    | '/gis'
+    | '/ai/agents'
+    | '/ai/skills'
+    | '/ai/workflows'
     | '/plugins/files'
     | '/plugins/jobs'
+    | '/plugins/notes'
     | '/plugins/notifications'
-    | '/security/mfa'
-    | '/system/audit'
     | '/system/config'
     | '/system/dict'
-    | '/system/organization'
     | '/system/plugins'
+    | '/settings/account'
+    | '/settings/activity'
+    | '/settings/appearance'
+    | '/settings/notifications'
+    | '/settings/profile'
+    | '/system/organization'
     | '/system/roles'
-    | '/system/sessions'
     | '/system/users'
     | '/system/users/$userId'
   id:
     | '__root__'
     | '/(auth)'
     | '/_authenticated'
+    | '/_authenticated/_other'
+    | '/_authenticated/_workbench'
+    | '/_authenticated/ai'
+    | '/_authenticated/plugins'
+    | '/_authenticated/system'
     | '/(auth)/forgot-password'
     | '/(auth)/reset-password'
     | '/(auth)/sign-in'
     | '/(auth)/sign-up'
-    | '/_authenticated/bim'
     | '/_authenticated/change-password'
-    | '/_authenticated/gis'
     | '/errors/401'
     | '/errors/403'
     | '/errors/404'
     | '/errors/500'
     | '/errors/503'
-    | '/_authenticated/'
-    | '/_authenticated/ai/chat'
-    | '/_authenticated/ai/copilot'
-    | '/_authenticated/demo/notes'
+    | '/_authenticated/_other/settings'
+    | '/_authenticated/system/_identity'
+    | '/_authenticated/_workbench/bim'
+    | '/_authenticated/_workbench/chat'
+    | '/_authenticated/_workbench/chat-v2'
+    | '/_authenticated/_workbench/gis'
+    | '/_authenticated/ai/agents'
+    | '/_authenticated/ai/skills'
+    | '/_authenticated/ai/workflows'
     | '/_authenticated/plugins/files'
     | '/_authenticated/plugins/jobs'
+    | '/_authenticated/plugins/notes'
     | '/_authenticated/plugins/notifications'
-    | '/_authenticated/security/mfa'
-    | '/_authenticated/system/audit'
     | '/_authenticated/system/config'
     | '/_authenticated/system/dict'
-    | '/_authenticated/system/organization'
     | '/_authenticated/system/plugins'
-    | '/_authenticated/system/roles'
-    | '/_authenticated/system/sessions'
-    | '/_authenticated/system/users'
-    | '/_authenticated/system/users_/$userId'
+    | '/_authenticated/_workbench/'
+    | '/_authenticated/_other/settings/account'
+    | '/_authenticated/_other/settings/activity'
+    | '/_authenticated/_other/settings/appearance'
+    | '/_authenticated/_other/settings/notifications'
+    | '/_authenticated/_other/settings/profile'
+    | '/_authenticated/system/_identity/organization'
+    | '/_authenticated/system/_identity/roles'
+    | '/_authenticated/system/_identity/users'
+    | '/_authenticated/system/_identity/users_/$userId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -427,13 +570,6 @@ declare module '@tanstack/react-router' {
       fullPath: ''
       preLoaderRoute: typeof authRouteRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/': {
-      id: '/_authenticated/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/errors/503': {
       id: '/errors/503'
@@ -470,25 +606,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Errors401RouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/gis': {
-      id: '/_authenticated/gis'
-      path: '/gis'
-      fullPath: '/gis'
-      preLoaderRoute: typeof AuthenticatedGisRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/change-password': {
       id: '/_authenticated/change-password'
       path: '/change-password'
       fullPath: '/change-password'
       preLoaderRoute: typeof AuthenticatedChangePasswordRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/bim': {
-      id: '/_authenticated/bim'
-      path: '/bim'
-      fullPath: '/bim'
-      preLoaderRoute: typeof AuthenticatedBimRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/(auth)/sign-up': {
@@ -519,117 +641,222 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authForgotPasswordRouteImport
       parentRoute: typeof authRouteRoute
     }
-    '/_authenticated/system/users': {
-      id: '/_authenticated/system/users'
-      path: '/system/users'
-      fullPath: '/system/users'
-      preLoaderRoute: typeof AuthenticatedSystemUsersRouteImport
+    '/_authenticated/system': {
+      id: '/_authenticated/system'
+      path: '/system'
+      fullPath: '/system'
+      preLoaderRoute: typeof AuthenticatedSystemRouteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/system/sessions': {
-      id: '/_authenticated/system/sessions'
-      path: '/system/sessions'
-      fullPath: '/system/sessions'
-      preLoaderRoute: typeof AuthenticatedSystemSessionsRouteImport
+    '/_authenticated/plugins': {
+      id: '/_authenticated/plugins'
+      path: '/plugins'
+      fullPath: '/plugins'
+      preLoaderRoute: typeof AuthenticatedPluginsRouteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/system/roles': {
-      id: '/_authenticated/system/roles'
-      path: '/system/roles'
-      fullPath: '/system/roles'
-      preLoaderRoute: typeof AuthenticatedSystemRolesRouteImport
+    '/_authenticated/ai': {
+      id: '/_authenticated/ai'
+      path: '/ai'
+      fullPath: '/ai'
+      preLoaderRoute: typeof AuthenticatedAiRouteRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/_workbench': {
+      id: '/_authenticated/_workbench'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedWorkbenchRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/_other': {
+      id: '/_authenticated/_other'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedOtherRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/_workbench/': {
+      id: '/_authenticated/_workbench/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedWorkbenchIndexRouteImport
+      parentRoute: typeof AuthenticatedWorkbenchRouteRoute
     }
     '/_authenticated/system/plugins': {
       id: '/_authenticated/system/plugins'
-      path: '/system/plugins'
+      path: '/plugins'
       fullPath: '/system/plugins'
       preLoaderRoute: typeof AuthenticatedSystemPluginsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/system/organization': {
-      id: '/_authenticated/system/organization'
-      path: '/system/organization'
-      fullPath: '/system/organization'
-      preLoaderRoute: typeof AuthenticatedSystemOrganizationRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedSystemRouteRoute
     }
     '/_authenticated/system/dict': {
       id: '/_authenticated/system/dict'
-      path: '/system/dict'
+      path: '/dict'
       fullPath: '/system/dict'
       preLoaderRoute: typeof AuthenticatedSystemDictRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedSystemRouteRoute
     }
     '/_authenticated/system/config': {
       id: '/_authenticated/system/config'
-      path: '/system/config'
+      path: '/config'
       fullPath: '/system/config'
       preLoaderRoute: typeof AuthenticatedSystemConfigRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/system/audit': {
-      id: '/_authenticated/system/audit'
-      path: '/system/audit'
-      fullPath: '/system/audit'
-      preLoaderRoute: typeof AuthenticatedSystemAuditRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/security/mfa': {
-      id: '/_authenticated/security/mfa'
-      path: '/security/mfa'
-      fullPath: '/security/mfa'
-      preLoaderRoute: typeof AuthenticatedSecurityMfaRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedSystemRouteRoute
     }
     '/_authenticated/plugins/notifications': {
       id: '/_authenticated/plugins/notifications'
-      path: '/plugins/notifications'
+      path: '/notifications'
       fullPath: '/plugins/notifications'
       preLoaderRoute: typeof AuthenticatedPluginsNotificationsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedPluginsRouteRoute
+    }
+    '/_authenticated/plugins/notes': {
+      id: '/_authenticated/plugins/notes'
+      path: '/notes'
+      fullPath: '/plugins/notes'
+      preLoaderRoute: typeof AuthenticatedPluginsNotesRouteImport
+      parentRoute: typeof AuthenticatedPluginsRouteRoute
     }
     '/_authenticated/plugins/jobs': {
       id: '/_authenticated/plugins/jobs'
-      path: '/plugins/jobs'
+      path: '/jobs'
       fullPath: '/plugins/jobs'
       preLoaderRoute: typeof AuthenticatedPluginsJobsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedPluginsRouteRoute
     }
     '/_authenticated/plugins/files': {
       id: '/_authenticated/plugins/files'
-      path: '/plugins/files'
+      path: '/files'
       fullPath: '/plugins/files'
       preLoaderRoute: typeof AuthenticatedPluginsFilesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedPluginsRouteRoute
     }
-    '/_authenticated/demo/notes': {
-      id: '/_authenticated/demo/notes'
-      path: '/demo/notes'
-      fullPath: '/demo/notes'
-      preLoaderRoute: typeof AuthenticatedDemoNotesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/_authenticated/ai/workflows': {
+      id: '/_authenticated/ai/workflows'
+      path: '/workflows'
+      fullPath: '/ai/workflows'
+      preLoaderRoute: typeof AuthenticatedAiWorkflowsRouteImport
+      parentRoute: typeof AuthenticatedAiRouteRoute
     }
-    '/_authenticated/ai/copilot': {
-      id: '/_authenticated/ai/copilot'
-      path: '/ai/copilot'
-      fullPath: '/ai/copilot'
-      preLoaderRoute: typeof AuthenticatedAiCopilotRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/_authenticated/ai/skills': {
+      id: '/_authenticated/ai/skills'
+      path: '/skills'
+      fullPath: '/ai/skills'
+      preLoaderRoute: typeof AuthenticatedAiSkillsRouteImport
+      parentRoute: typeof AuthenticatedAiRouteRoute
     }
-    '/_authenticated/ai/chat': {
-      id: '/_authenticated/ai/chat'
-      path: '/ai/chat'
-      fullPath: '/ai/chat'
-      preLoaderRoute: typeof AuthenticatedAiChatRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/_authenticated/ai/agents': {
+      id: '/_authenticated/ai/agents'
+      path: '/agents'
+      fullPath: '/ai/agents'
+      preLoaderRoute: typeof AuthenticatedAiAgentsRouteImport
+      parentRoute: typeof AuthenticatedAiRouteRoute
     }
-    '/_authenticated/system/users_/$userId': {
-      id: '/_authenticated/system/users_/$userId'
-      path: '/system/users/$userId'
+    '/_authenticated/_workbench/gis': {
+      id: '/_authenticated/_workbench/gis'
+      path: '/gis'
+      fullPath: '/gis'
+      preLoaderRoute: typeof AuthenticatedWorkbenchGisRouteImport
+      parentRoute: typeof AuthenticatedWorkbenchRouteRoute
+    }
+    '/_authenticated/_workbench/chat-v2': {
+      id: '/_authenticated/_workbench/chat-v2'
+      path: '/chat-v2'
+      fullPath: '/chat-v2'
+      preLoaderRoute: typeof AuthenticatedWorkbenchChatV2RouteImport
+      parentRoute: typeof AuthenticatedWorkbenchRouteRoute
+    }
+    '/_authenticated/_workbench/chat': {
+      id: '/_authenticated/_workbench/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof AuthenticatedWorkbenchChatRouteImport
+      parentRoute: typeof AuthenticatedWorkbenchRouteRoute
+    }
+    '/_authenticated/_workbench/bim': {
+      id: '/_authenticated/_workbench/bim'
+      path: '/bim'
+      fullPath: '/bim'
+      preLoaderRoute: typeof AuthenticatedWorkbenchBimRouteImport
+      parentRoute: typeof AuthenticatedWorkbenchRouteRoute
+    }
+    '/_authenticated/system/_identity': {
+      id: '/_authenticated/system/_identity'
+      path: ''
+      fullPath: '/system'
+      preLoaderRoute: typeof AuthenticatedSystemIdentityRouteRouteImport
+      parentRoute: typeof AuthenticatedSystemRouteRoute
+    }
+    '/_authenticated/_other/settings': {
+      id: '/_authenticated/_other/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedOtherSettingsRouteRouteImport
+      parentRoute: typeof AuthenticatedOtherRouteRoute
+    }
+    '/_authenticated/system/_identity/users': {
+      id: '/_authenticated/system/_identity/users'
+      path: '/users'
+      fullPath: '/system/users'
+      preLoaderRoute: typeof AuthenticatedSystemIdentityUsersRouteImport
+      parentRoute: typeof AuthenticatedSystemIdentityRouteRoute
+    }
+    '/_authenticated/system/_identity/roles': {
+      id: '/_authenticated/system/_identity/roles'
+      path: '/roles'
+      fullPath: '/system/roles'
+      preLoaderRoute: typeof AuthenticatedSystemIdentityRolesRouteImport
+      parentRoute: typeof AuthenticatedSystemIdentityRouteRoute
+    }
+    '/_authenticated/system/_identity/organization': {
+      id: '/_authenticated/system/_identity/organization'
+      path: '/organization'
+      fullPath: '/system/organization'
+      preLoaderRoute: typeof AuthenticatedSystemIdentityOrganizationRouteImport
+      parentRoute: typeof AuthenticatedSystemIdentityRouteRoute
+    }
+    '/_authenticated/_other/settings/profile': {
+      id: '/_authenticated/_other/settings/profile'
+      path: '/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof AuthenticatedOtherSettingsProfileRouteImport
+      parentRoute: typeof AuthenticatedOtherSettingsRouteRoute
+    }
+    '/_authenticated/_other/settings/notifications': {
+      id: '/_authenticated/_other/settings/notifications'
+      path: '/notifications'
+      fullPath: '/settings/notifications'
+      preLoaderRoute: typeof AuthenticatedOtherSettingsNotificationsRouteImport
+      parentRoute: typeof AuthenticatedOtherSettingsRouteRoute
+    }
+    '/_authenticated/_other/settings/appearance': {
+      id: '/_authenticated/_other/settings/appearance'
+      path: '/appearance'
+      fullPath: '/settings/appearance'
+      preLoaderRoute: typeof AuthenticatedOtherSettingsAppearanceRouteImport
+      parentRoute: typeof AuthenticatedOtherSettingsRouteRoute
+    }
+    '/_authenticated/_other/settings/activity': {
+      id: '/_authenticated/_other/settings/activity'
+      path: '/activity'
+      fullPath: '/settings/activity'
+      preLoaderRoute: typeof AuthenticatedOtherSettingsActivityRouteImport
+      parentRoute: typeof AuthenticatedOtherSettingsRouteRoute
+    }
+    '/_authenticated/_other/settings/account': {
+      id: '/_authenticated/_other/settings/account'
+      path: '/account'
+      fullPath: '/settings/account'
+      preLoaderRoute: typeof AuthenticatedOtherSettingsAccountRouteImport
+      parentRoute: typeof AuthenticatedOtherSettingsRouteRoute
+    }
+    '/_authenticated/system/_identity/users_/$userId': {
+      id: '/_authenticated/system/_identity/users_/$userId'
+      path: '/users/$userId'
       fullPath: '/system/users/$userId'
-      preLoaderRoute: typeof AuthenticatedSystemUsersUserIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      preLoaderRoute: typeof AuthenticatedSystemIdentityUsersUserIdRouteImport
+      parentRoute: typeof AuthenticatedSystemIdentityRouteRoute
     }
   }
 }
@@ -652,51 +879,168 @@ const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
   authRouteRouteChildren,
 )
 
-interface AuthenticatedRouteRouteChildren {
-  AuthenticatedBimRoute: typeof AuthenticatedBimRoute
-  AuthenticatedChangePasswordRoute: typeof AuthenticatedChangePasswordRoute
-  AuthenticatedGisRoute: typeof AuthenticatedGisRoute
-  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
-  AuthenticatedAiChatRoute: typeof AuthenticatedAiChatRoute
-  AuthenticatedAiCopilotRoute: typeof AuthenticatedAiCopilotRoute
-  AuthenticatedDemoNotesRoute: typeof AuthenticatedDemoNotesRoute
+interface AuthenticatedOtherSettingsRouteRouteChildren {
+  AuthenticatedOtherSettingsAccountRoute: typeof AuthenticatedOtherSettingsAccountRoute
+  AuthenticatedOtherSettingsActivityRoute: typeof AuthenticatedOtherSettingsActivityRoute
+  AuthenticatedOtherSettingsAppearanceRoute: typeof AuthenticatedOtherSettingsAppearanceRoute
+  AuthenticatedOtherSettingsNotificationsRoute: typeof AuthenticatedOtherSettingsNotificationsRoute
+  AuthenticatedOtherSettingsProfileRoute: typeof AuthenticatedOtherSettingsProfileRoute
+}
+
+const AuthenticatedOtherSettingsRouteRouteChildren: AuthenticatedOtherSettingsRouteRouteChildren =
+  {
+    AuthenticatedOtherSettingsAccountRoute:
+      AuthenticatedOtherSettingsAccountRoute,
+    AuthenticatedOtherSettingsActivityRoute:
+      AuthenticatedOtherSettingsActivityRoute,
+    AuthenticatedOtherSettingsAppearanceRoute:
+      AuthenticatedOtherSettingsAppearanceRoute,
+    AuthenticatedOtherSettingsNotificationsRoute:
+      AuthenticatedOtherSettingsNotificationsRoute,
+    AuthenticatedOtherSettingsProfileRoute:
+      AuthenticatedOtherSettingsProfileRoute,
+  }
+
+const AuthenticatedOtherSettingsRouteRouteWithChildren =
+  AuthenticatedOtherSettingsRouteRoute._addFileChildren(
+    AuthenticatedOtherSettingsRouteRouteChildren,
+  )
+
+interface AuthenticatedOtherRouteRouteChildren {
+  AuthenticatedOtherSettingsRouteRoute: typeof AuthenticatedOtherSettingsRouteRouteWithChildren
+}
+
+const AuthenticatedOtherRouteRouteChildren: AuthenticatedOtherRouteRouteChildren =
+  {
+    AuthenticatedOtherSettingsRouteRoute:
+      AuthenticatedOtherSettingsRouteRouteWithChildren,
+  }
+
+const AuthenticatedOtherRouteRouteWithChildren =
+  AuthenticatedOtherRouteRoute._addFileChildren(
+    AuthenticatedOtherRouteRouteChildren,
+  )
+
+interface AuthenticatedWorkbenchRouteRouteChildren {
+  AuthenticatedWorkbenchBimRoute: typeof AuthenticatedWorkbenchBimRoute
+  AuthenticatedWorkbenchChatRoute: typeof AuthenticatedWorkbenchChatRoute
+  AuthenticatedWorkbenchChatV2Route: typeof AuthenticatedWorkbenchChatV2Route
+  AuthenticatedWorkbenchGisRoute: typeof AuthenticatedWorkbenchGisRoute
+  AuthenticatedWorkbenchIndexRoute: typeof AuthenticatedWorkbenchIndexRoute
+}
+
+const AuthenticatedWorkbenchRouteRouteChildren: AuthenticatedWorkbenchRouteRouteChildren =
+  {
+    AuthenticatedWorkbenchBimRoute: AuthenticatedWorkbenchBimRoute,
+    AuthenticatedWorkbenchChatRoute: AuthenticatedWorkbenchChatRoute,
+    AuthenticatedWorkbenchChatV2Route: AuthenticatedWorkbenchChatV2Route,
+    AuthenticatedWorkbenchGisRoute: AuthenticatedWorkbenchGisRoute,
+    AuthenticatedWorkbenchIndexRoute: AuthenticatedWorkbenchIndexRoute,
+  }
+
+const AuthenticatedWorkbenchRouteRouteWithChildren =
+  AuthenticatedWorkbenchRouteRoute._addFileChildren(
+    AuthenticatedWorkbenchRouteRouteChildren,
+  )
+
+interface AuthenticatedAiRouteRouteChildren {
+  AuthenticatedAiAgentsRoute: typeof AuthenticatedAiAgentsRoute
+  AuthenticatedAiSkillsRoute: typeof AuthenticatedAiSkillsRoute
+  AuthenticatedAiWorkflowsRoute: typeof AuthenticatedAiWorkflowsRoute
+}
+
+const AuthenticatedAiRouteRouteChildren: AuthenticatedAiRouteRouteChildren = {
+  AuthenticatedAiAgentsRoute: AuthenticatedAiAgentsRoute,
+  AuthenticatedAiSkillsRoute: AuthenticatedAiSkillsRoute,
+  AuthenticatedAiWorkflowsRoute: AuthenticatedAiWorkflowsRoute,
+}
+
+const AuthenticatedAiRouteRouteWithChildren =
+  AuthenticatedAiRouteRoute._addFileChildren(AuthenticatedAiRouteRouteChildren)
+
+interface AuthenticatedPluginsRouteRouteChildren {
   AuthenticatedPluginsFilesRoute: typeof AuthenticatedPluginsFilesRoute
   AuthenticatedPluginsJobsRoute: typeof AuthenticatedPluginsJobsRoute
+  AuthenticatedPluginsNotesRoute: typeof AuthenticatedPluginsNotesRoute
   AuthenticatedPluginsNotificationsRoute: typeof AuthenticatedPluginsNotificationsRoute
-  AuthenticatedSecurityMfaRoute: typeof AuthenticatedSecurityMfaRoute
-  AuthenticatedSystemAuditRoute: typeof AuthenticatedSystemAuditRoute
+}
+
+const AuthenticatedPluginsRouteRouteChildren: AuthenticatedPluginsRouteRouteChildren =
+  {
+    AuthenticatedPluginsFilesRoute: AuthenticatedPluginsFilesRoute,
+    AuthenticatedPluginsJobsRoute: AuthenticatedPluginsJobsRoute,
+    AuthenticatedPluginsNotesRoute: AuthenticatedPluginsNotesRoute,
+    AuthenticatedPluginsNotificationsRoute:
+      AuthenticatedPluginsNotificationsRoute,
+  }
+
+const AuthenticatedPluginsRouteRouteWithChildren =
+  AuthenticatedPluginsRouteRoute._addFileChildren(
+    AuthenticatedPluginsRouteRouteChildren,
+  )
+
+interface AuthenticatedSystemIdentityRouteRouteChildren {
+  AuthenticatedSystemIdentityOrganizationRoute: typeof AuthenticatedSystemIdentityOrganizationRoute
+  AuthenticatedSystemIdentityRolesRoute: typeof AuthenticatedSystemIdentityRolesRoute
+  AuthenticatedSystemIdentityUsersRoute: typeof AuthenticatedSystemIdentityUsersRoute
+  AuthenticatedSystemIdentityUsersUserIdRoute: typeof AuthenticatedSystemIdentityUsersUserIdRoute
+}
+
+const AuthenticatedSystemIdentityRouteRouteChildren: AuthenticatedSystemIdentityRouteRouteChildren =
+  {
+    AuthenticatedSystemIdentityOrganizationRoute:
+      AuthenticatedSystemIdentityOrganizationRoute,
+    AuthenticatedSystemIdentityRolesRoute:
+      AuthenticatedSystemIdentityRolesRoute,
+    AuthenticatedSystemIdentityUsersRoute:
+      AuthenticatedSystemIdentityUsersRoute,
+    AuthenticatedSystemIdentityUsersUserIdRoute:
+      AuthenticatedSystemIdentityUsersUserIdRoute,
+  }
+
+const AuthenticatedSystemIdentityRouteRouteWithChildren =
+  AuthenticatedSystemIdentityRouteRoute._addFileChildren(
+    AuthenticatedSystemIdentityRouteRouteChildren,
+  )
+
+interface AuthenticatedSystemRouteRouteChildren {
+  AuthenticatedSystemIdentityRouteRoute: typeof AuthenticatedSystemIdentityRouteRouteWithChildren
   AuthenticatedSystemConfigRoute: typeof AuthenticatedSystemConfigRoute
   AuthenticatedSystemDictRoute: typeof AuthenticatedSystemDictRoute
-  AuthenticatedSystemOrganizationRoute: typeof AuthenticatedSystemOrganizationRoute
   AuthenticatedSystemPluginsRoute: typeof AuthenticatedSystemPluginsRoute
-  AuthenticatedSystemRolesRoute: typeof AuthenticatedSystemRolesRoute
-  AuthenticatedSystemSessionsRoute: typeof AuthenticatedSystemSessionsRoute
-  AuthenticatedSystemUsersRoute: typeof AuthenticatedSystemUsersRoute
-  AuthenticatedSystemUsersUserIdRoute: typeof AuthenticatedSystemUsersUserIdRoute
+}
+
+const AuthenticatedSystemRouteRouteChildren: AuthenticatedSystemRouteRouteChildren =
+  {
+    AuthenticatedSystemIdentityRouteRoute:
+      AuthenticatedSystemIdentityRouteRouteWithChildren,
+    AuthenticatedSystemConfigRoute: AuthenticatedSystemConfigRoute,
+    AuthenticatedSystemDictRoute: AuthenticatedSystemDictRoute,
+    AuthenticatedSystemPluginsRoute: AuthenticatedSystemPluginsRoute,
+  }
+
+const AuthenticatedSystemRouteRouteWithChildren =
+  AuthenticatedSystemRouteRoute._addFileChildren(
+    AuthenticatedSystemRouteRouteChildren,
+  )
+
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedOtherRouteRoute: typeof AuthenticatedOtherRouteRouteWithChildren
+  AuthenticatedWorkbenchRouteRoute: typeof AuthenticatedWorkbenchRouteRouteWithChildren
+  AuthenticatedAiRouteRoute: typeof AuthenticatedAiRouteRouteWithChildren
+  AuthenticatedPluginsRouteRoute: typeof AuthenticatedPluginsRouteRouteWithChildren
+  AuthenticatedSystemRouteRoute: typeof AuthenticatedSystemRouteRouteWithChildren
+  AuthenticatedChangePasswordRoute: typeof AuthenticatedChangePasswordRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedBimRoute: AuthenticatedBimRoute,
+  AuthenticatedOtherRouteRoute: AuthenticatedOtherRouteRouteWithChildren,
+  AuthenticatedWorkbenchRouteRoute:
+    AuthenticatedWorkbenchRouteRouteWithChildren,
+  AuthenticatedAiRouteRoute: AuthenticatedAiRouteRouteWithChildren,
+  AuthenticatedPluginsRouteRoute: AuthenticatedPluginsRouteRouteWithChildren,
+  AuthenticatedSystemRouteRoute: AuthenticatedSystemRouteRouteWithChildren,
   AuthenticatedChangePasswordRoute: AuthenticatedChangePasswordRoute,
-  AuthenticatedGisRoute: AuthenticatedGisRoute,
-  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
-  AuthenticatedAiChatRoute: AuthenticatedAiChatRoute,
-  AuthenticatedAiCopilotRoute: AuthenticatedAiCopilotRoute,
-  AuthenticatedDemoNotesRoute: AuthenticatedDemoNotesRoute,
-  AuthenticatedPluginsFilesRoute: AuthenticatedPluginsFilesRoute,
-  AuthenticatedPluginsJobsRoute: AuthenticatedPluginsJobsRoute,
-  AuthenticatedPluginsNotificationsRoute:
-    AuthenticatedPluginsNotificationsRoute,
-  AuthenticatedSecurityMfaRoute: AuthenticatedSecurityMfaRoute,
-  AuthenticatedSystemAuditRoute: AuthenticatedSystemAuditRoute,
-  AuthenticatedSystemConfigRoute: AuthenticatedSystemConfigRoute,
-  AuthenticatedSystemDictRoute: AuthenticatedSystemDictRoute,
-  AuthenticatedSystemOrganizationRoute: AuthenticatedSystemOrganizationRoute,
-  AuthenticatedSystemPluginsRoute: AuthenticatedSystemPluginsRoute,
-  AuthenticatedSystemRolesRoute: AuthenticatedSystemRolesRoute,
-  AuthenticatedSystemSessionsRoute: AuthenticatedSystemSessionsRoute,
-  AuthenticatedSystemUsersRoute: AuthenticatedSystemUsersRoute,
-  AuthenticatedSystemUsersUserIdRoute: AuthenticatedSystemUsersUserIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

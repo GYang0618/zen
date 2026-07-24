@@ -15,9 +15,15 @@ type RoleDeleteDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   currentRow: Role
+  onDeleted?: (roleId: string) => void
 }
 
-export function RolesDeleteDialog({ open, onOpenChange, currentRow }: RoleDeleteDialogProps) {
+export function RolesDeleteDialog({
+  open,
+  onOpenChange,
+  currentRow,
+  onDeleted
+}: RoleDeleteDialogProps) {
   const [value, setValue] = useState('')
   const { mutate: deleteRoles, isPending } = useDeleteRolesMutation()
 
@@ -28,6 +34,7 @@ export function RolesDeleteDialog({ open, onOpenChange, currentRow }: RoleDelete
       onSuccess: () => {
         toast.success('角色删除成功')
         setValue('')
+        onDeleted?.(currentRow.id)
         onOpenChange(false)
       }
     })

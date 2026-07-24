@@ -1,4 +1,5 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
+import { FolderKanban } from 'lucide-react'
 
 import { FilesFeaturePage } from '@/features/plugins/files'
 import { fetchActivePluginIds } from '@/features/system/plugins/api'
@@ -13,8 +14,7 @@ export const Route = createFileRoute('/_authenticated/plugins/files')({
   component: FilesFeaturePage,
   staticData: {
     title: '文件中心',
-    icon: 'folder-kanban',
-    group: '能力插件',
+    icon: FolderKanban,
     order: 120,
     permissions: ['file:object:list'],
     pluginId: 'files'

@@ -36,8 +36,7 @@ export const useTabsStore = create<TabsState>((set) => ({
       if (!target || target.affix) return state
 
       const tabs = state.tabs.filter((item) => item.id !== id)
-      const activeId =
-        state.activeId === id ? (tabs[tabs.length - 1]?.id ?? null) : state.activeId
+      const activeId = state.activeId === id ? (tabs[tabs.length - 1]?.id ?? null) : state.activeId
 
       return { tabs, activeId }
     }),

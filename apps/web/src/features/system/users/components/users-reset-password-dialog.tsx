@@ -88,9 +88,7 @@ export function UsersResetPasswordDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>重置密码</DialogTitle>
-          <DialogDescription>
-            为用户 {currentRow.username} 设置新密码
-          </DialogDescription>
+          <DialogDescription>为用户 {currentRow.username} 设置新密码</DialogDescription>
         </DialogHeader>
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
           <FieldGroup>

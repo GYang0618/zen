@@ -110,6 +110,68 @@ export class RoleRepository {
     return rows.map((row) => row.userId)
   }
 
+  countMembers(roleId: string) {
+    return this.prisma.userRole.count({ where: { roleId } })
+  }
+
+  findMembers(roleId: string, skip?: number, take?: number) {
+    return this.prisma.userRole.findMany({
+      where: { roleId },
+      include: {
+        user: {
+          include: {
+            profile: true,
+            organizations: {
+              where: { isPrimary: true, leftAt: null },
+              include: { organization: true },
+              take: 1
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take
+    })
+  }
+
+  addMembers(roleId: string, userIds: string[]) {
+    return this.prisma.userRole.createMany({
+      data: userIds.map((userId) => ({ userId, roleId })),
+      skipDuplicates: true
+    })
+  }
+
+  removeMember(roleId: string, userId: string) {
+    return this.prisma.userRole.deleteMany({
+      where: { roleId, userId }
+    })
+  }
+
+  findActiveUsersByIds(ids: string[]) {
+    return this.prisma.user.findMany({
+      where: { id: { in: ids }, deletedAt: null },
+      select: { id: true }
+    })
+  }
+
+  countActiveSuperAdminsExcluding(userId: string) {
+    return this.prisma.userRole.count({
+      where: {
+        role: { code: 'super_admin' },
+        userId: { not: userId },
+        user: { deletedAt: null, status: 'ACTIVE' }
+      }
+    })
+  }
+
+  findUserRoleCodes(userId: string) {
+    return this.prisma.userRole.findMany({
+      where: { userId },
+      select: { role: { select: { code: true } } }
+    })
+  }
+
   countOrganizationsByIds(ids: string[]) {
     return this.prisma.organization.count({
       where: { id: { in: ids } }

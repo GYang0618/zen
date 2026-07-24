@@ -1,6 +1,7 @@
+import { randomUUID } from 'node:crypto'
+
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { DEFAULT_TENANT_ID } from '@zen/shared'
-import { randomUUID } from 'node:crypto'
 
 import { FileRepository } from './file.repository'
 

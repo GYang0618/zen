@@ -15,39 +15,62 @@ type NotificationRecord = {
   updatedAt: Date
 }
 
+/** Notification 模型定义于平台 schema，插件包内 PrismaClient 类型未包含，故用委托桥接 */
+type NotificationDelegate = {
+  findMany: (args: {
+    where: { tenantId: string; userId: string }
+    orderBy: { createdAt: 'desc' }
+  }) => Promise<NotificationRecord[]>
+  findFirst: (args: {
+    where: { id: string; tenantId: string }
+  }) => Promise<NotificationRecord | null>
+  create: (args: {
+    data: {
+      tenantId: string
+      userId: string
+      title: string
+      body: string | null
+    }
+  }) => Promise<NotificationRecord>
+  update: (args: { where: { id: string }; data: { readAt: Date } }) => Promise<NotificationRecord>
+}
+
 @Injectable()
 export class NotificationRepository {
-  constructor(@Inject(NOTIFICATIONS_PRISMA) private readonly prisma: PrismaClient) {}
+  private readonly notification: NotificationDelegate
+
+  constructor(@Inject(NOTIFICATIONS_PRISMA) prisma: PrismaClient) {
+    this.notification = (prisma as unknown as { notification: NotificationDelegate }).notification
+  }
 
   findManyByUser(tenantId: string, userId: string) {
-    // Notification 模型定义于平台 schema，插件包内 Prisma 类型未包含，故经 any 桥接
-    return (this.prisma as any).notification.findMany({
+    return this.notification.findMany({
       where: { tenantId, userId },
       orderBy: { createdAt: 'desc' }
-    }) as Promise<NotificationRecord[]>
+    })
   }
 
   findById(id: string, tenantId: string) {
-    return (this.prisma as any).notification.findFirst({
+    return this.notification.findFirst({
       where: { id, tenantId }
-    }) as Promise<NotificationRecord | null>
+    })
   }
 
   create(data: { tenantId: string; userId: string; title: string; body?: string | null }) {
-    return (this.prisma as any).notification.create({
+    return this.notification.create({
       data: {
         tenantId: data.tenantId,
         userId: data.userId,
         title: data.title,
         body: data.body ?? null
       }
-    }) as Promise<NotificationRecord>
+    })
   }
 
   markRead(id: string) {
-    return (this.prisma as any).notification.update({
+    return this.notification.update({
       where: { id },
       data: { readAt: new Date() }
-    }) as Promise<NotificationRecord>
+    })
   }
 }

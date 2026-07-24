@@ -47,7 +47,9 @@ export function NotificationsPage({ request, can }: NotificationsPageProps) {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">通知中心</h1>
-          <p className="text-sm text-muted-foreground">能力插件 notifications：站内消息与已读状态</p>
+          <p className="text-sm text-muted-foreground">
+            能力插件 notifications：站内消息与已读状态
+          </p>
         </div>
         {can(NOTIF_PERMISSIONS.MANAGE) ? (
           <Button
@@ -100,11 +102,15 @@ export function NotificationsPage({ request, can }: NotificationsPageProps) {
               <div className="flex items-center gap-2">
                 <span className="truncate font-medium">{notification.title}</span>
                 {!notification.readAt ? (
-                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">未读</span>
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                    未读
+                  </span>
                 ) : null}
               </div>
               {notification.body ? (
-                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{notification.body}</p>
+                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                  {notification.body}
+                </p>
               ) : null}
               <p className="mt-1 text-xs text-muted-foreground">
                 创建于 {new Date(notification.createdAt).toLocaleString()}

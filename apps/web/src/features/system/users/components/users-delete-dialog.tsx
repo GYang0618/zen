@@ -5,8 +5,8 @@ import { AlertTriangle } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { ConfirmDialog } from '@/components/confirm-dialog'
 import { PasswordInput } from '@/components'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { authApi } from '@/features/auth/api'
 
 import { useDeleteUsersMutation } from '../mutations'

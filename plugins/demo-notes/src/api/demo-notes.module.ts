@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common'
 
 import { DemoNotesEventBus } from './event-bus'
-import { DemoNoteCreatedListener } from './note-created.listener'
 import { NoteController } from './note.controller'
 import { NoteRepository } from './note.repository'
 import { NoteService } from './note.service'
+import { DemoNoteCreatedListener } from './note-created.listener'
 import { DEMO_NOTES_PRISMA } from './tokens'
 
 import type { DynamicModule, FactoryProvider } from '@nestjs/common'

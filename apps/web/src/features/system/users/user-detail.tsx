@@ -1,15 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { PermissionCode } from '@zen/shared'
-import {
-  Badge,
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Skeleton
-} from '@zen/ui'
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Skeleton } from '@zen/ui'
 import { ArrowLeft, Building2, Shield } from 'lucide-react'
 import { useState } from 'react'
 
@@ -195,7 +187,11 @@ export function UserDetail({ userId }: { userId: string }) {
                           {org.organizationName || org.organizationId}
                         </div>
                         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                          {org.isPrimary ? <Badge variant="secondary">主职</Badge> : <span>兼职</span>}
+                          {org.isPrimary ? (
+                            <Badge variant="secondary">主职</Badge>
+                          ) : (
+                            <span>兼职</span>
+                          )}
                           {org.postName ? <span>{org.postName}</span> : null}
                         </div>
                       </div>
@@ -217,10 +213,7 @@ export function UserDetail({ userId }: { userId: string }) {
                 />
                 <DetailRow label="MFA 类型" value={data.security.mfaType} />
                 <DetailRow label="密码过期" value={formatDate(data.security.passwordExpireAt)} />
-                <DetailRow
-                  label="上次改密"
-                  value={formatDate(data.security.lastPasswordChange)}
-                />
+                <DetailRow label="上次改密" value={formatDate(data.security.lastPasswordChange)} />
                 <DetailRow label="登录尝试" value={data.security.loginAttempts ?? '—'} />
                 {data.account.lockReason ? (
                   <DetailRow label="锁定原因" value={data.account.lockReason} />

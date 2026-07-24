@@ -17,22 +17,47 @@ type StoredFileRecord = {
   deletedAt: Date | null
 }
 
+/** StoredFile 模型定义于平台 schema，插件包内 PrismaClient 类型未包含，故用委托桥接 */
+type StoredFileDelegate = {
+  findMany: (args: {
+    where: { tenantId: string; ownerId: string; deletedAt: null }
+    orderBy: { createdAt: 'desc' }
+  }) => Promise<StoredFileRecord[]>
+  findFirst: (args: {
+    where: { id: string; tenantId: string; deletedAt: null }
+  }) => Promise<StoredFileRecord | null>
+  create: (args: {
+    data: {
+      tenantId: string
+      ownerId: string
+      filename: string
+      mimeType: string | null
+      size: number
+      storageKey: string
+    }
+  }) => Promise<StoredFileRecord>
+  update: (args: { where: { id: string }; data: { deletedAt: Date } }) => Promise<StoredFileRecord>
+}
+
 @Injectable()
 export class FileRepository {
-  constructor(@Inject(FILES_PRISMA) private readonly prisma: PrismaClient) {}
+  private readonly storedFile: StoredFileDelegate
+
+  constructor(@Inject(FILES_PRISMA) prisma: PrismaClient) {
+    this.storedFile = (prisma as unknown as { storedFile: StoredFileDelegate }).storedFile
+  }
 
   findManyByOwner(tenantId: string, ownerId: string) {
-    // StoredFile 模型定义于平台 schema，插件包内 Prisma 类型未包含，故经 any 桥接
-    return (this.prisma as any).storedFile.findMany({
+    return this.storedFile.findMany({
       where: { tenantId, ownerId, deletedAt: null },
       orderBy: { createdAt: 'desc' }
-    }) as Promise<StoredFileRecord[]>
+    })
   }
 
   findById(id: string, tenantId: string) {
-    return (this.prisma as any).storedFile.findFirst({
+    return this.storedFile.findFirst({
       where: { id, tenantId, deletedAt: null }
-    }) as Promise<StoredFileRecord | null>
+    })
   }
 
   create(data: {
@@ -43,7 +68,7 @@ export class FileRepository {
     size?: number
     storageKey: string
   }) {
-    return (this.prisma as any).storedFile.create({
+    return this.storedFile.create({
       data: {
         tenantId: data.tenantId,
         ownerId: data.ownerId,
@@ -52,13 +77,13 @@ export class FileRepository {
         size: data.size ?? 0,
         storageKey: data.storageKey
       }
-    }) as Promise<StoredFileRecord>
+    })
   }
 
   softDelete(id: string) {
-    return (this.prisma as any).storedFile.update({
+    return this.storedFile.update({
       where: { id },
       data: { deletedAt: new Date() }
-    }) as Promise<StoredFileRecord>
+    })
   }
 }

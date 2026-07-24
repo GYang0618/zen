@@ -54,9 +54,7 @@ export class ContributionRegistry {
   }
 
   listActivePluginIds(): string[] {
-    return [...this.status.entries()]
-      .filter(([, status]) => status === 'active')
-      .map(([id]) => id)
+    return [...this.status.entries()].filter(([, status]) => status === 'active').map(([id]) => id)
   }
 
   getActivePermissions(): PermissionContribution[] {

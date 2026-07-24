@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto'
+
 import {
   BadRequestException,
   ForbiddenException,
@@ -8,7 +10,6 @@ import {
 } from '@nestjs/common'
 import { UserStatusCode } from '@prisma/client'
 import argon2 from 'argon2'
-import { randomBytes } from 'node:crypto'
 
 import { AuthContextService } from '@/common/auth/auth-context.service'
 import { MembershipService } from '@/common/auth/membership.service'
@@ -260,8 +261,20 @@ export class AuthService {
     return this.userService.getUserInfoByUserId(userId)
   }
 
+  async updateMe(userId: string, data: Parameters<UserService['updateMe']>[1]) {
+    return this.userService.updateMe(userId, data)
+  }
+
   listSessions(userId: string) {
     return this.sessionService.listActiveSummariesByUser(userId)
+  }
+
+  async resolveCurrentSessionId(userId: string, refreshToken: string | undefined) {
+    if (!refreshToken) return null
+    const matched = await this.sessionService.findActiveMatching(userId, (hash) =>
+      argon2.verify(hash, `${REFRESH_TOKEN_HASH_PREFIX}${refreshToken}`)
+    )
+    return matched?.id ?? null
   }
 
   async revokeSession(userId: string, sessionId: string) {
@@ -269,8 +282,13 @@ export class AuthService {
     if (!ok) throw new UnauthorizedException('会话不存在或已失效')
   }
 
-  async revokeAllSessions(userId: string) {
-    await this.sessionService.revokeAllForUser(userId)
+  async revokeOtherSessions(userId: string, refreshToken: string | undefined) {
+    const currentId = await this.resolveCurrentSessionId(userId, refreshToken)
+    if (!currentId) {
+      await this.sessionService.revokeAllForUser(userId)
+      return
+    }
+    await this.sessionService.revokeOthersForUser(userId, currentId)
   }
 
   async revokeSessionsForUsers(userIds: string[]) {

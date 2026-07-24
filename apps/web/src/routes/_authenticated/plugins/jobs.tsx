@@ -1,4 +1,5 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
+import { Cuboid } from 'lucide-react'
 
 import { JobsFeaturePage } from '@/features/plugins/jobs'
 import { fetchActivePluginIds } from '@/features/system/plugins/api'
@@ -13,8 +14,7 @@ export const Route = createFileRoute('/_authenticated/plugins/jobs')({
   component: JobsFeaturePage,
   staticData: {
     title: '任务中心',
-    icon: 'cuboid',
-    group: '能力插件',
+    icon: Cuboid,
     order: 130,
     permissions: ['job:task:list'],
     pluginId: 'jobs'

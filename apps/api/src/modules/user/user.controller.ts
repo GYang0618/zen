@@ -23,16 +23,16 @@ import {
 } from '@nestjs/swagger'
 import { PermissionCode } from '@zen/shared'
 
+import { CurrentAuth } from '@/common/decorators/current-auth.decorator'
 import { RequirePermission } from '@/common/decorators/require-permission.decorator'
 import { RequireStepUp } from '@/common/decorators/require-step-up.decorator'
-import { CurrentAuth } from '@/common/decorators/current-auth.decorator'
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
 import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '@/common/swagger'
 
+import { assignUserRolesSchema } from './dto/assign-user-roles.dto'
 import { createUserSchema } from './dto/create-user.dto'
 import { deleteUsersSchema } from './dto/delete-users.dto'
 import { findUsersQuerySchema } from './dto/find-users-query.dto'
-import { assignUserRolesSchema } from './dto/assign-user-roles.dto'
 import { replaceUserOrganizationsSchema } from './dto/replace-user-organizations.dto'
 import { updateUserSchema } from './dto/update-user.dto'
 import { updateUsersStatusSchema } from './dto/update-users-status.dto'
@@ -50,8 +50,8 @@ import {
 } from './swagger'
 import { UserService } from './user.service'
 
-import type { Request } from 'express'
 import type { AuthContext } from '@zen/shared'
+import type { Request } from 'express'
 import type { JwtPayload } from '@/common/interfaces/jwt-payload.interface'
 import type { AssignUserRolesDto } from './dto/assign-user-roles.dto'
 import type { CreateUserDto } from './dto/create-user.dto'

@@ -168,7 +168,8 @@ export class OrganizationRepository {
   listPosts(organizationId?: string) {
     return this.prisma.post.findMany({
       where: organizationId ? { organizationId } : undefined,
-      orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }]
+      orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
+      include: { _count: { select: { users: true } } }
     })
   }
 
@@ -177,15 +178,25 @@ export class OrganizationRepository {
   }
 
   findPostById(id: string) {
-    return this.prisma.post.findUnique({ where: { id } })
+    return this.prisma.post.findUnique({
+      where: { id },
+      include: { _count: { select: { users: true } } }
+    })
   }
 
   createPost(data: Prisma.PostCreateInput) {
-    return this.prisma.post.create({ data })
+    return this.prisma.post.create({
+      data,
+      include: { _count: { select: { users: true } } }
+    })
   }
 
   updatePost(id: string, data: Prisma.PostUpdateInput) {
-    return this.prisma.post.update({ where: { id }, data })
+    return this.prisma.post.update({
+      where: { id },
+      data,
+      include: { _count: { select: { users: true } } }
+    })
   }
 
   deletePost(id: string) {

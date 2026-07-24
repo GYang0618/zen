@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query'
 import { PermissionCode } from '@zen/shared'
 import {
   Button,
@@ -14,7 +15,6 @@ import {
   SelectTrigger,
   SelectValue
 } from '@zen/ui'
-import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -33,9 +33,7 @@ type AssignUserOrganizationsDialogProps = {
   user: UserInfo
 }
 
-function flattenTree(
-  nodes: OrganizationTreeNode[]
-): Array<{ id: string; name: string }> {
+function flattenTree(nodes: OrganizationTreeNode[]): Array<{ id: string; name: string }> {
   const result: Array<{ id: string; name: string }> = []
   for (const node of nodes) {
     result.push({ id: node.id, name: node.name })

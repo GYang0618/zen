@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 import { generatePluginRegistry } from './generate-registry'
 import { validatePlugins } from './validate'
 

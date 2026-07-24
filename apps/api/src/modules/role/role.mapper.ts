@@ -16,6 +16,7 @@ const ROLE_STATUS_FROM_API: Record<RoleStatus, RecordStatus> = {
 const DATA_SCOPE_TO_API: Record<RoleDataScope, ApiRoleDataScope> = {
   ALL: 'all',
   ORGANIZATION: 'department',
+  ORGANIZATION_ONLY: 'department_only',
   SELF: 'self',
   CUSTOM: 'custom'
 }
@@ -23,6 +24,7 @@ const DATA_SCOPE_TO_API: Record<RoleDataScope, ApiRoleDataScope> = {
 const DATA_SCOPE_FROM_API: Record<ApiRoleDataScope, RoleDataScope> = {
   all: 'ALL',
   department: 'ORGANIZATION',
+  department_only: 'ORGANIZATION_ONLY',
   self: 'SELF',
   custom: 'CUSTOM'
 }

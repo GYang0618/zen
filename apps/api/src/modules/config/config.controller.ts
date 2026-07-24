@@ -8,8 +8,8 @@ import {
 } from '@zen/shared'
 
 import { AuditService } from '@/common/auth/audit.service'
-import { RequirePermission } from '@/common/decorators/require-permission.decorator'
 import { Public } from '@/common/decorators/public.decorator'
+import { RequirePermission } from '@/common/decorators/require-permission.decorator'
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
 import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '@/common/swagger'
 import { PrismaService } from '@/infra/prisma'
@@ -74,7 +74,11 @@ export class ConfigController {
 
   private async readRawSettings(): Promise<Record<string, unknown>> {
     const tenant = await this.prisma.tenant.findUnique({ where: { id: DEFAULT_TENANT_ID } })
-    if (!tenant?.settings || typeof tenant.settings !== 'object' || Array.isArray(tenant.settings)) {
+    if (
+      !tenant?.settings ||
+      typeof tenant.settings !== 'object' ||
+      Array.isArray(tenant.settings)
+    ) {
       return {}
     }
     return tenant.settings as Record<string, unknown>

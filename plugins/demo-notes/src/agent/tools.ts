@@ -5,7 +5,7 @@
 export const demoNotesAgentTools = [
   {
     name: 'list_demo_notes',
-    description: '列出当前用户可见的演示便签',
+    description: '列出当前用户可见的演示便签'
     // 实际 Tool 执行由宿主 Copilot runtime 绑定 NoteService
   }
 ]

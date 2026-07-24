@@ -1,5 +1,4 @@
 import { SetMetadata } from '@nestjs/common'
-
 import { REQUIRE_PERMISSIONS_KEY, REQUIRE_PLUGIN_ID_KEY } from '@zen/plugin-sdk'
 
 export type RequirePermissionsMode = 'all' | 'any'

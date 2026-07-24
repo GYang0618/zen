@@ -1,5 +1,5 @@
-import { Checkbox, Label, ScrollArea, Skeleton } from '@zen/ui'
 import { useQuery } from '@tanstack/react-query'
+import { Checkbox, Label, ScrollArea, Skeleton } from '@zen/ui'
 
 import { organizationApi } from '@/features/system/organization/api'
 
@@ -11,7 +11,10 @@ type OrganizationPickerProps = {
   disabled?: boolean
 }
 
-function flattenTree(nodes: OrganizationTreeNode[], depth = 0): Array<{ id: string; name: string; depth: number }> {
+function flattenTree(
+  nodes: OrganizationTreeNode[],
+  depth = 0
+): Array<{ id: string; name: string; depth: number }> {
   const result: Array<{ id: string; name: string; depth: number }> = []
   for (const node of nodes) {
     result.push({ id: node.id, name: node.name, depth })

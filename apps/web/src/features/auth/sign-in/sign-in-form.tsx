@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
+import { isAuthMfaChallenge } from '@zen/shared'
 import {
   Button,
   Field,
@@ -10,7 +11,6 @@ import {
   FieldSeparator,
   Input
 } from '@zen/ui'
-import { isAuthMfaChallenge } from '@zen/shared'
 import { Loader2, LogIn } from 'lucide-react'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
@@ -18,7 +18,6 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { PasswordInput } from '@/components'
-import { useI18nStore } from '@/stores/i18n'
 
 import { useSignInMutation, useVerifyMfaMutation } from '../mutations'
 import { ThirdPartyLogin } from '../third-party-login'
@@ -35,7 +34,6 @@ export function SignInForm() {
   const verifyMfa = useVerifyMfaMutation()
   const navigate = useNavigate()
   const search = useSearch({ from: '/(auth)/sign-in' })
-  const t = useI18nStore((state) => state.t)
   const [mfaToken, setMfaToken] = useState<string | null>(null)
   const [mfaCode, setMfaCode] = useState('')
   const form = useForm<FormValues>({
@@ -46,8 +44,11 @@ export function SignInForm() {
     }
   })
 
-  const finishLogin = (session: { mustChangePassword?: boolean; user: { nickname: string | null; username: string } }) => {
-    toast.success(`${t('auth.welcome')}，${session.user.nickname || session.user.username}👋🎉`, {
+  const finishLogin = (session: {
+    mustChangePassword?: boolean
+    user: { nickname: string | null; username: string }
+  }) => {
+    toast.success(`欢迎回来，${session.user.nickname || session.user.username}👋🎉`, {
       duration: 2000,
       position: 'top-center'
     })

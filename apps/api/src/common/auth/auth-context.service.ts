@@ -19,8 +19,11 @@ function toDataScope(scope: RoleDataScope): DataScope {
     case RoleDataScope.ALL:
       return 'all'
     case RoleDataScope.ORGANIZATION:
-      // 现有枚举 ORGANIZATION 语义对齐为「本组织及下级」
+      // 本组织及下级
       return 'org_and_child'
+    case RoleDataScope.ORGANIZATION_ONLY:
+      // 仅本组织（不含下级）
+      return 'org'
     case RoleDataScope.CUSTOM:
       return 'custom'
     default:
@@ -108,7 +111,11 @@ export class AuthContextService {
 
   async readPermVer(): Promise<number> {
     const tenant = await this.prisma.tenant.findUnique({ where: { id: DEFAULT_TENANT_ID } })
-    if (!tenant?.settings || typeof tenant.settings !== 'object' || Array.isArray(tenant.settings)) {
+    if (
+      !tenant?.settings ||
+      typeof tenant.settings !== 'object' ||
+      Array.isArray(tenant.settings)
+    ) {
       return 1
     }
     const settings = tenant.settings as Record<string, unknown>

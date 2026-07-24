@@ -6,10 +6,7 @@ export function getGrantedPermissions(): string[] {
   return useAuthStore.getState().user?.permissions ?? []
 }
 
-export function canAccess(
-  required?: readonly string[],
-  mode: 'all' | 'any' = 'any'
-): boolean {
+export function canAccess(required?: readonly string[], mode: 'all' | 'any' = 'any'): boolean {
   if (!required || required.length === 0) return true
   const granted = getGrantedPermissions()
   return mode === 'all' ? hasAllPermissions(granted, required) : hasAnyPermission(granted, required)

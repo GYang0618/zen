@@ -3,9 +3,7 @@ import type { PluginRegistryEntry } from './types'
 /**
  * 对插件依赖做拓扑排序；若有环则抛错。
  */
-export function topologicalSort(
-  plugins: Array<{ id: string; dependsOn: string[] }>
-): string[] {
+export function topologicalSort(plugins: Array<{ id: string; dependsOn: string[] }>): string[] {
   const byId = new Map(plugins.map((plugin) => [plugin.id, plugin]))
   const visiting = new Set<string>()
   const visited = new Set<string>()

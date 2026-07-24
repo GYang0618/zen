@@ -1,6 +1,6 @@
 import { DRAG_THRESHOLD_PX } from '../constants'
-import { getFeatureProperties } from './get-feature-properties'
 import { tilesetFeatureRegistry } from './feature-registry'
+import { getFeatureProperties } from './get-feature-properties'
 import { readFeatureIdAt } from './read-feature-id'
 
 import type { ThreeEvent } from '@react-three/fiber'

@@ -58,7 +58,7 @@ export function ProfileDropdown() {
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuItem asChild>
-              <Link to="/">
+              <Link to="/settings/profile">
                 个人资料
                 <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
               </Link>
@@ -70,7 +70,7 @@ export function ProfileDropdown() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link to="/">
+              <Link to="/settings/profile">
                 账户设置
                 <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
               </Link>

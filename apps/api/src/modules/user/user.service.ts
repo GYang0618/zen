@@ -75,6 +75,87 @@ export class UserService {
     return toUserInfoResponse(user)
   }
 
+  async updateMe(
+    userId: string,
+    data: {
+      nickname?: string
+      phoneNumber?: string | null
+      bio?: string | null
+      avatar?: string | null
+      preferences?: {
+        theme?: 'light' | 'dark' | 'system'
+        notifyByEmail?: boolean
+        notifyByPush?: boolean
+        notifyBySms?: boolean
+      }
+    }
+  ): Promise<UserInfoResponse> {
+    const existing = await this.userRepo.findActiveWithDomainById(userId)
+    if (!existing) throw new NotFoundException('用户不存在')
+
+    const themeMap = {
+      light: 'LIGHT',
+      dark: 'DARK',
+      system: 'SYSTEM'
+    } as const
+
+    await this.userRepo.update(
+      { id: userId },
+      {
+        ...(data.nickname !== undefined ? { nickname: data.nickname } : {}),
+        ...(data.phoneNumber !== undefined ? { phoneNumber: data.phoneNumber } : {}),
+        profile: {
+          upsert: {
+            create: {
+              remark: data.bio ?? null,
+              avatar: data.avatar ?? null
+            },
+            update: {
+              ...(data.bio !== undefined ? { remark: data.bio } : {}),
+              ...(data.avatar !== undefined ? { avatar: data.avatar } : {})
+            }
+          }
+        },
+        ...(data.preferences
+          ? {
+              preference: {
+                upsert: {
+                  create: {
+                    theme: data.preferences.theme ? themeMap[data.preferences.theme] : 'SYSTEM',
+                    notifyByEmail: data.preferences.notifyByEmail ?? true,
+                    notifyByPush: data.preferences.notifyByPush ?? true,
+                    notifyBySms: data.preferences.notifyBySms ?? false
+                  },
+                  update: {
+                    ...(data.preferences.theme ? { theme: themeMap[data.preferences.theme] } : {}),
+                    ...(data.preferences.notifyByEmail !== undefined
+                      ? { notifyByEmail: data.preferences.notifyByEmail }
+                      : {}),
+                    ...(data.preferences.notifyByPush !== undefined
+                      ? { notifyByPush: data.preferences.notifyByPush }
+                      : {}),
+                    ...(data.preferences.notifyBySms !== undefined
+                      ? { notifyBySms: data.preferences.notifyBySms }
+                      : {})
+                  }
+                }
+              }
+            }
+          : {})
+      }
+    )
+
+    await this.auditService.write({
+      action: 'auth.profile.updated',
+      resource: 'user',
+      resourceId: userId,
+      actorId: userId,
+      diff: data
+    })
+
+    return this.getUserInfoByUserId(userId)
+  }
+
   private async getUserListItemByUserId(userId: string): Promise<UserListItemResponse> {
     await this.userRepo.ensureDomainData(userId)
 
@@ -266,10 +347,7 @@ export class UserService {
     const existing = await this.userRepo.findActiveWithDomainById(id)
     if (!existing) throw new NotFoundException('用户不存在')
 
-    await this.userRepo.update(
-      { id },
-      { isLocked: false, loginAttempts: 0, lockExpireAt: null }
-    )
+    await this.userRepo.update({ id }, { isLocked: false, loginAttempts: 0, lockExpireAt: null })
     await this.auditService.write({
       action: 'system.user.unlocked',
       resource: 'user',
@@ -315,11 +393,7 @@ export class UserService {
     if (!existing) throw new NotFoundException('用户不存在')
 
     const roleIds = [
-      ...new Set(
-        payload.roleIds
-          .map((id) => id.trim())
-          .filter((id): id is string => id.length > 0)
-      )
+      ...new Set(payload.roleIds.map((id) => id.trim()).filter((id): id is string => id.length > 0))
     ]
     if (roleIds.length === 0) {
       throw new BadRequestException('至少需要一个角色')

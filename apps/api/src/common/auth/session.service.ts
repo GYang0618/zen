@@ -38,10 +38,7 @@ export class SessionService {
     })
   }
 
-  async findActiveMatching(
-    userId: string,
-    verify: (refreshTokenHash: string) => Promise<boolean>
-  ) {
+  async findActiveMatching(userId: string, verify: (refreshTokenHash: string) => Promise<boolean>) {
     const sessions = await this.listActiveByUser(userId)
     for (const session of sessions) {
       if (await verify(session.refreshTokenHash)) {
@@ -89,5 +86,16 @@ export class SessionService {
       data: { revokedAt: new Date() }
     })
     return result.count > 0
+  }
+
+  async revokeOthersForUser(userId: string, keepSessionId: string) {
+    await this.prisma.session.updateMany({
+      where: {
+        userId,
+        revokedAt: null,
+        id: { not: keepSessionId }
+      },
+      data: { revokedAt: new Date() }
+    })
   }
 }

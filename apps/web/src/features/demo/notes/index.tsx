@@ -1,9 +1,9 @@
 import { NotesPage } from '@zen/plugin-demo-notes/web'
 
-import { canAccess } from '@/lib/auth/permissions'
-import { request } from '@/lib/request/client'
 import { ConfigDrawer, ProfileDropdown, Search, ThemeSwitch } from '@/components'
 import { Header, Main } from '@/components/layouts'
+import { canAccess } from '@/lib/auth/permissions'
+import { request } from '@/lib/request/client'
 
 export function DemoNotesPage() {
   return (
@@ -17,10 +17,7 @@ export function DemoNotesPage() {
         </div>
       </Header>
       <Main>
-        <NotesPage
-          request={request}
-          can={(permission) => canAccess([permission], 'any')}
-        />
+        <NotesPage request={request} can={(permission) => canAccess([permission], 'any')} />
       </Main>
     </>
   )

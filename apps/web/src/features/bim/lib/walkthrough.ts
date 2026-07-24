@@ -194,9 +194,7 @@ export function resolveFollowCamera(
     flatForward.normalize()
   }
 
-  out
-    .copy(characterFeet)
-    .addScaledVector(flatForward, -WALKTHROUGH_CAMERA_DISTANCE)
+  out.copy(characterFeet).addScaledVector(flatForward, -WALKTHROUGH_CAMERA_DISTANCE)
   out.y = characterFeet.y + WALKTHROUGH_CAMERA_HEIGHT
 
   // 从胸口/头部略高处朝理想相机点打射线，检测墙体遮挡

@@ -49,13 +49,15 @@ enum RecordStatus {
 /// 角色数据范围枚举
 enum RoleDataScope {
   /// 全部数据
-  ALL          @map("all")
+  ALL               @map("all")
   /// 组织及下级
-  ORGANIZATION @map("organization")
+  ORGANIZATION      @map("organization")
+  /// 仅本组织（不含下级）
+  ORGANIZATION_ONLY @map("organization_only")
   /// 仅本人数据
-  SELF         @map("self")
+  SELF              @map("self")
   /// 自定义数据范围
-  CUSTOM       @map("custom")
+  CUSTOM            @map("custom")
 }
 
 /// 用户账号状态枚举
@@ -476,6 +478,10 @@ model Post {
   organizationId String       @map("organization_id")
   /// 岗位描述
   description    String?
+  /// 岗级 / 职级，例如 P7 / 专家
+  grade          String?
+  /// 编制人数
+  headcount      Int          @default(1)
   /// 状态
   status         RecordStatus @default(ACTIVE)
   /// 排序值

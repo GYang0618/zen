@@ -1,5 +1,7 @@
 export {
+  assignRoleMembersSchema,
   assignRolePermissionsSchema,
+  cloneRoleSchema,
   createRoleSchema,
   deleteRolesSchema,
   rolesQuerySchema as findRolesQuerySchema,
@@ -7,7 +9,9 @@ export {
 } from '@zen/shared'
 
 export type {
+  AssignRoleMembers as AssignRoleMembersDto,
   AssignRolePermissions as AssignRolePermissionsDto,
+  CloneRole as CloneRoleDto,
   CreateRole as CreateRoleDto,
   DeleteRoles as DeleteRolesDto,
   RoleDataScope,

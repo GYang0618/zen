@@ -3,21 +3,17 @@ import { cn } from '@zen/ui'
 import { ChevronRight } from 'lucide-react'
 import { Fragment } from 'react'
 
-import type { RouterMeta } from '@/types/router'
-
 type BreadcrumbItem = {
   title: string
   path: string
 }
 
-function collectBreadcrumbs(
-  matches: ReturnType<typeof useMatches>
-): BreadcrumbItem[] {
+function collectBreadcrumbs(matches: ReturnType<typeof useMatches>): BreadcrumbItem[] {
   const items: BreadcrumbItem[] = []
 
   for (const match of matches) {
-    const meta = match.staticData as RouterMeta | undefined
-    if (!meta?.title || meta.hideInBreadcrumb) continue
+    const meta = match.staticData
+    if (!meta.title || meta.hideInBreadcrumb) continue
     items.push({
       title: meta.title,
       path: match.pathname

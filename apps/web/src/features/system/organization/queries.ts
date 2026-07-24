@@ -6,6 +6,7 @@ import { organizationApi } from './api'
 import type {
   CreateOrganization,
   CreatePost,
+  MoveOrganization,
   UpdateOrganization,
   UpdatePost,
   UpsertOrganizationMember
@@ -64,6 +65,19 @@ export function useUpdateOrganization() {
       toast.success('组织已更新')
     },
     onError: (error: Error) => toast.error(error.message || '更新失败')
+  })
+}
+
+export function useMoveOrganization() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: MoveOrganization }) =>
+      organizationApi.move(id, data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: organizationKeys.all })
+      toast.success('组织已移动')
+    },
+    onError: (error: Error) => toast.error(error.message || '移动失败')
   })
 }
 

@@ -8,10 +8,11 @@ export const roleStatusSchema = z.union([
 ])
 
 export const roleDataScopeSchema = z.union([
-  z.literal('all').describe('全部数据'),
-  z.literal('department').describe('本部门及以下'),
-  z.literal('self').describe('仅本人'),
-  z.literal('custom').describe('自定义')
+  z.literal('all').describe('全公司数据'),
+  z.literal('department').describe('本部门及下属所有子部门'),
+  z.literal('department_only').describe('仅本部门数据'),
+  z.literal('self').describe('仅本人数据'),
+  z.literal('custom').describe('自定义组织白名单')
 ])
 
 const roleCodeSchema = z
@@ -80,6 +81,24 @@ export const assignRolePermissionsSchema = z.object({
   permissionCodes: z.array(z.string().trim().min(1)).describe('权限编码列表')
 })
 
+export const assignRoleMembersSchema = z.object({
+  userIds: z
+    .array(z.string().trim().min(1, '用户 ID 不能为空'))
+    .min(1, '至少选择一名用户')
+    .describe('要绑定到角色的用户 ID 列表')
+})
+
+export const cloneRoleSchema = z.object({
+  code: roleCodeSchema.describe('新角色编码'),
+  name: z
+    .string()
+    .trim()
+    .min(1, '角色名称不能为空')
+    .max(50, '角色名称不能超过50个字符')
+    .describe('新角色名称'),
+  description: z.string().trim().max(200, '描述不能超过200个字符').optional().describe('新角色描述')
+})
+
 export const rolesQuerySchema = pageQuerySchema.extend({
   keyword: z.string().trim().optional().describe('关键字搜索：支持角色名称、编码'),
   status: z
@@ -108,4 +127,16 @@ export const roleSchema = z.object({
   updatedAt: z.string().describe('更新时间（ISO 8601）')
 })
 
+export const roleMemberSchema = z.object({
+  id: z.string().describe('用户 ID'),
+  username: z.string().describe('用户名'),
+  nickname: z.string().nullable().describe('昵称'),
+  realName: z.string().nullable().describe('真实姓名'),
+  avatar: z.string().nullable().describe('头像'),
+  email: z.string().describe('邮箱'),
+  deptName: z.string().nullable().describe('部门'),
+  boundAt: z.string().describe('绑定时间（ISO 8601）')
+})
+
 export const rolesPageSchema = paged(roleSchema)
+export const roleMembersPageSchema = paged(roleMemberSchema)

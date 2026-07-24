@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>现代化后台设置与个人资料原型</title>
+  <!-- 引入 Tailwind CSS 标准 CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 引入 FontAwesome 图标库 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* 隐藏滚动条但允许滚动 */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- 顶部系统 Header -->
+  <header class="h-16 border-b border-slate-200 bg-white px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+    <div class="flex items-center space-x-3">
+      <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold shadow-sm">
+        <i class="fa-solid fa-cube text-sm"></i>
+      </div>
+      <span class="font-semibold text-lg tracking-tight text-slate-800">SaaS Console</span>
+      <span class="text-slate-300">/</span>
+      <span class="text-sm font-medium text-slate-500">个人与系统设置</span>
+    </div>
+    
+    <div class="flex items-center space-x-4">
+      <button type="button" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors relative" title="消息通知">
+        <i class="fa-regular fa-bell"></i>
+        <span class="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white"></span>
+      </button>
+      <div class="flex items-center space-x-2 pl-2 border-l border-slate-200">
+        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Avatar" class="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200">
+        <span class="text-sm font-medium text-slate-700 hidden sm:inline">Sarah Chen</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主体工作区 (两栏布局) -->
+  <div class="flex-1 flex max-w-7xl w-full mx-auto p-4 sm:p-6 gap-6">
+    
+    <!-- 左侧菜单导航（5 个平级一级导航） -->
+    <aside class="w-60 shrink-0 hidden md:block">
+      <div class="sticky top-24 space-y-1.5">
+        <button onclick="switchTab('profile')" id="nav-profile" class="nav-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all bg-indigo-50 text-indigo-600">
+          <i class="fa-regular fa-user w-5 text-center text-base"></i>
+          <span>个人资料</span>
+        </button>
+
+        <button onclick="switchTab('account')" id="nav-account" class="nav-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-600 hover:bg-slate-100/80 hover:text-slate-900">
+          <i class="fa-solid fa-shield-halved w-5 text-center text-base"></i>
+          <span>账户与安全</span>
+        </button>
+
+        <button onclick="switchTab('activity')" id="nav-activity" class="nav-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-600 hover:bg-slate-100/80 hover:text-slate-900">
+          <i class="fa-solid fa-clock-rotate-left w-5 text-center text-base"></i>
+          <span>安全动态</span>
+        </button>
+
+        <button onclick="switchTab('appearance')" id="nav-appearance" class="nav-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-600 hover:bg-slate-100/80 hover:text-slate-900">
+          <i class="fa-solid fa-palette w-5 text-center text-base"></i>
+          <span>外观界面</span>
+        </button>
+
+        <button onclick="switchTab('notifications')" id="nav-notifications" class="nav-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-600 hover:bg-slate-100/80 hover:text-slate-900">
+          <i class="fa-regular fa-bell w-5 text-center text-base"></i>
+          <span>通知与消息</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- 右侧主内容区域 -->
+    <main class="flex-1 min-w-0 pb-12">
+      
+      <!-- 移动端标签选择器 -->
+      <div class="flex md:hidden overflow-x-auto pb-4 gap-2 mb-4 no-scrollbar">
+        <button onclick="switchTab('profile')" class="mobile-tab px-4 py-2 rounded-full text-xs font-medium bg-indigo-600 text-white shrink-0" data-tab="profile">个人资料</button>
+        <button onclick="switchTab('account')" class="mobile-tab px-4 py-2 rounded-full text-xs font-medium bg-white text-slate-600 border border-slate-200 shrink-0" data-tab="account">账户</button>
+        <button onclick="switchTab('activity')" class="mobile-tab px-4 py-2 rounded-full text-xs font-medium bg-white text-slate-600 border border-slate-200 shrink-0" data-tab="activity">安全动态</button>
+        <button onclick="switchTab('appearance')" class="mobile-tab px-4 py-2 rounded-full text-xs font-medium bg-white text-slate-600 border border-slate-200 shrink-0" data-tab="appearance">外观</button>
+        <button onclick="switchTab('notifications')" class="mobile-tab px-4 py-2 rounded-full text-xs font-medium bg-white text-slate-600 border border-slate-200 shrink-0" data-tab="notifications">通知</button>
+      </div>
+
+      <!-- 栏目 1：个人资料 (Profile) -->
+      <div id="tab-profile" class="tab-content space-y-6">
+        <div class="border-b border-slate-200 pb-4">
+          <h1 class="text-2xl font-bold tracking-tight text-slate-900">个人资料</h1>
+          <p class="text-sm text-slate-500 mt-1">管理您的个人身份信息、系统角色及联系方式。</p>
+        </div>
+
+        <!-- 头部身份卡片 -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-6">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+            <input type="file" id="avatar-input" class="hidden" accept="image/*" onchange="previewAvatar(event)">
+            
+            <div class="relative group cursor-pointer rounded-full overflow-hidden shrink-0" onclick="document.getElementById('avatar-input').click()" title="点击更换头像">
+              <img id="avatar-img" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80" alt="Avatar" class="w-20 h-20 rounded-full object-cover ring-2 ring-slate-100 transition-transform duration-200 group-hover:scale-105">
+              <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-xs font-medium">
+                <i class="fa-solid fa-camera mb-1 text-sm"></i>
+                <span>更换照片</span>
+              </div>
+            </div>
+
+            <div class="space-y-2.5 flex-1 min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <h3 class="text-xl font-bold text-slate-900 tracking-tight">Sarah Chen</h3>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">@sarahchen</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/80 sm:ml-2">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>在职 / 已认证
+                </span>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2 text-xs">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200/80 font-medium">
+                  <i class="fa-solid fa-shield-halved mr-1.5 text-amber-600"></i>超级管理员
+                </span>
+                <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-50 text-slate-700 border border-slate-200/80 font-medium">
+                  <i class="fa-solid fa-sitemap mr-1.5 text-slate-400"></i>体验设计中心 / UI-UX 设计部
+                </span>
+                <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100 font-medium">
+                  <i class="fa-solid fa-briefcase mr-1.5 text-indigo-500"></i>高级体验设计师
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 基本信息编辑卡片 -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-xs divide-y divide-slate-100">
+          <div class="p-6 space-y-4">
+            <h2 class="text-base font-semibold text-slate-900">详细联系信息</h2>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-slate-700">真实姓名</label>
+                <input type="text" value="Sarah Chen" class="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all">
+              </div>
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-slate-700">唯一用户名 (@handle)</label>
+                <input type="text" value="sarahchen" class="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all">
+              </div>
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-slate-700 flex items-center justify-between">
+                  <span>工作邮箱</span>
+                  <span class="text-xs text-emerald-600 font-normal"><i class="fa-solid fa-circle-check mr-1"></i>已验证</span>
+                </label>
+                <input type="email" value="sarah.chen@company.com" disabled class="w-full h-10 px-3 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 text-sm cursor-not-allowed">
+              </div>
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-slate-700">联系手机</label>
+                <input type="tel" value="+86 138-0013-8000" class="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all">
+              </div>
+            </div>
+
+            <div class="space-y-2 pt-2">
+              <label class="text-sm font-medium text-slate-700">个人简介 (Bio)</label>
+              <textarea rows="3" class="w-full p-3 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all resize-none">负责核心后台架构与云原生产品设计，长期专注现代 UI/UX 体验沉淀与设计规范制定。</textarea>
+              <p class="text-xs text-slate-400">简短介绍，将显示在团队协作与审批列表中。上限 160 字。</p>
+            </div>
+          </div>
+
+          <div class="px-6 py-3.5 bg-slate-50/50 flex justify-end items-center rounded-b-xl">
+            <button type="button" onclick="showToast('个人基本信息已成功保存')" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-xs transition-colors">
+              保存基本信息
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 栏目 2：账户与安全 (Account) -->
+      <div id="tab-account" class="tab-content space-y-6 hidden">
+        <div class="border-b border-slate-200 pb-4">
+          <h1 class="text-2xl font-bold tracking-tight text-slate-900">账户与安全</h1>
+          <p class="text-sm text-slate-500 mt-1">管理密码凭证、双重身份验证 (2FA) 及活跃登录设备会话。</p>
+        </div>
+
+        <!-- 修改密码卡片 -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-xs divide-y divide-slate-100">
+          <div class="p-6 space-y-4 max-w-xl">
+            <h2 class="text-base font-semibold text-slate-900">修改登录密码</h2>
+            <div class="space-y-3">
+              <div class="space-y-1.5">
+                <label class="text-sm font-medium text-slate-700">当前旧密码</label>
+                <input type="password" placeholder="••••••••" class="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600">
+              </div>
+              <div class="space-y-1.5">
+                <label class="text-sm font-medium text-slate-700">设置新密码</label>
+                <input type="password" id="new-password" placeholder="8 位以上，须包含大小写字母及数字" class="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600" oninput="checkPasswordStrength(this.value)">
+                <div class="flex items-center gap-1.5 pt-1">
+                  <div id="pwd-step-1" class="h-1 flex-1 bg-slate-200 rounded-full transition-colors"></div>
+                  <div id="pwd-step-2" class="h-1 flex-1 bg-slate-200 rounded-full transition-colors"></div>
+                  <div id="pwd-step-3" class="h-1 flex-1 bg-slate-200 rounded-full transition-colors"></div>
+                  <span id="pwd-text" class="text-xs text-slate-400 ml-2">密码强度</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="px-6 py-3.5 bg-slate-50/50 flex justify-end rounded-b-xl">
+            <button type="button" onclick="showToast('登录密码已成功更新')" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-xs transition-colors">
+              更新密码
+            </button>
+          </div>
+        </div>
+
+        <!-- 2FA 安全验证卡片 -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-6 flex items-center justify-between">
+          <div class="space-y-1">
+            <div class="flex items-center space-x-2">
+              <h2 class="text-base font-semibold text-slate-900">双重验证 (2FA / TOTP)</h2>
+              <span class="px-2 py-0.5 rounded-md text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">已开启</span>
+            </div>
+            <p class="text-sm text-slate-500">已绑定 Authenticator 动态口令验证器，保护登录安全。</p>
+          </div>
+          <button type="button" onclick="showToast('安全验证码重置链接已发送至邮箱')" class="px-3.5 py-2 border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg text-sm font-medium transition-colors">
+            重新配置 2FA
+          </button>
+        </div>
+
+        <!-- 登录设备与 Session -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-6 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+              <h2 class="text-base font-semibold text-slate-900">活跃登录会话与设备</h2>
+              <p class="text-xs text-slate-500 mt-0.5">展示当前已登录您账号的终端设备，若发现异常请求可快速下线。</p>
+            </div>
+            <button type="button" onclick="showToast('已安全下线其他所有设备')" class="text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-200/80 transition-colors self-start sm:self-auto shrink-0">
+              <i class="fa-solid fa-power-off mr-1"></i>下线其他所有设备
+            </button>
+          </div>
+
+          <div class="space-y-3">
+            <div class="flex items-center justify-between p-3.5 rounded-xl border border-indigo-100 bg-indigo-50/20">
+              <div class="flex items-center space-x-3.5">
+                <div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                  <i class="fa-solid fa-laptop text-lg"></i>
+                </div>
+                <div>
+                  <div class="flex items-center space-x-2">
+                    <span class="text-sm font-semibold text-slate-900">macOS Apple Silicon · Chrome 浏览器</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-600 text-white">当前设备</span>
+                  </div>
+                  <div class="text-xs text-slate-500 mt-0.5">北京, 中国 · IP: 114.242.xx.xx · 刚才活跃</div>
+                </div>
+              </div>
+              <span class="text-xs font-medium text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/60 hidden sm:inline-flex items-center">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>在线
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between p-3.5 rounded-xl border border-slate-100 hover:border-slate-200 transition-colors">
+              <div class="flex items-center space-x-3.5">
+                <div class="w-10 h-10 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center shrink-0">
+                  <i class="fa-solid fa-mobile-screen-button text-lg"></i>
+                </div>
+                <div>
+                  <div class="text-sm font-medium text-slate-900">iPhone 15 Pro · iOS App</div>
+                  <div class="text-xs text-slate-400 mt-0.5">上海, 中国 · IP: 222.66.xx.xx · 2 小时前活跃</div>
+                </div>
+              </div>
+              <button type="button" onclick="showToast('已强行下线该设备')" class="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg border border-slate-200 transition-colors font-medium shrink-0">
+                强行下线
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 栏目 3：全新独立的“个人安全动态” (Security Activity) -->
+      <div id="tab-activity" class="tab-content space-y-6 hidden">
+        <div class="border-b border-slate-200 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900">个人安全动态</h1>
+            <p class="text-sm text-slate-500 mt-1">查看与您账户相关的历史登录记录、安全配置变更及风险预警日志。</p>
+          </div>
+          <button type="button" onclick="showToast('个人安全日志导出成功 (CSV)')" class="inline-flex items-center space-x-2 px-3.5 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-medium transition-colors shadow-xs shrink-0 self-start sm:self-auto">
+            <i class="fa-solid fa-download text-xs text-slate-500"></i>
+            <span>导出日志 (CSV)</span>
+          </button>
+        </div>
+
+        <!-- 安全概览三方卡片 -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-4 flex items-center space-x-4">
+            <div class="w-11 h-11 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-right-to-bracket text-lg"></i>
+            </div>
+            <div>
+              <div class="text-xs text-slate-500 font-medium">近 30 天登录次数</div>
+              <div class="text-xl font-bold text-slate-900 mt-0.5">42 次</div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-4 flex items-center space-x-4">
+            <div class="w-11 h-11 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+            </div>
+            <div>
+              <div class="text-xs text-slate-500 font-medium">风险异地登录告警</div>
+              <div class="text-xl font-bold text-amber-600 mt-0.5">1 次</div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-4 flex items-center space-x-4">
+            <div class="w-11 h-11 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-key text-lg"></i>
+            </div>
+            <div>
+              <div class="text-xs text-slate-500 font-medium">最近密码更新</div>
+              <div class="text-sm font-bold text-slate-900 mt-1">2026-07-24</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 安全日志表格与多维筛选卡片 -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-6 space-y-5">
+          <!-- 筛选与搜索工具栏 -->
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div class="flex items-center space-x-2 overflow-x-auto no-scrollbar">
+              <button class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-600 shrink-0">全部动态</button>
+              <button class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 shrink-0">登录历史</button>
+              <button class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 shrink-0">凭证变更</button>
+              <button class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 shrink-0">异常告警</button>
+            </div>
+            <select class="h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+              <option>最近 30 天</option>
+              <option>最近 7 天</option>
+              <option>最近 90 天</option>
+            </select>
+          </div>
+
+          <!-- 时间轴式安全日志明细 -->
+          <div class="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
+            
+            <!-- 日志条目 1 -->
+            <div class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <span class="absolute -left-6 top-1.5 w-2.5 h-2.5 rounded-full bg-indigo-600 ring-4 ring-white"></span>
+              <div class="space-y-1">
+                <div class="flex items-center space-x-2">
+                  <span class="font-semibold text-slate-900 text-sm">密码修改成功</span>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">凭证变更</span>
+                </div>
+                <div class="text-slate-500 flex items-center space-x-3">
+                  <span><i class="fa-solid fa-laptop mr-1 text-slate-400"></i>macOS · Chrome 浏览器</span>
+                  <span>·</span>
+                  <span>IP: 114.242.xx.xx (中国 北京)</span>
+                </div>
+              </div>
+              <div class="text-slate-400 shrink-0 font-mono text-[11px] sm:text-right">
+                2026-07-24 10:15:22
+              </div>
+            </div>
+
+            <!-- 日志条目 2 -->
+            <div class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <span class="absolute -left-6 top-1.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-white"></span>
+              <div class="space-y-1">
+                <div class="flex items-center space-x-2">
+                  <span class="font-semibold text-slate-900 text-sm">客户端完成 2FA 双重验证登录</span>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700">登录成功</span>
+                </div>
+                <div class="text-slate-500 flex items-center space-x-3">
+                  <span><i class="fa-solid fa-mobile-screen-button mr-1 text-slate-400"></i>iPhone 15 Pro · iOS App</span>
+                  <span>·</span>
+                  <span>IP: 222.66.xx.xx (中国 上海)</span>
+                </div>
+              </div>
+              <div class="text-slate-400 shrink-0 font-mono text-[11px] sm:text-right">
+                2026-07-23 18:40:05
+              </div>
+            </div>
+
+            <!-- 日志条目 3 (告警) -->
+            <div class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <span class="absolute -left-6 top-1.5 w-2.5 h-2.5 rounded-full bg-amber-500 ring-4 ring-white"></span>
+              <div class="space-y-1">
+                <div class="flex items-center space-x-2">
+                  <span class="font-semibold text-slate-900 text-sm">异地新设备登录告警</span>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200">异地触发</span>
+                </div>
+                <div class="text-slate-500 flex items-center space-x-3">
+                  <span><i class="fa-solid fa-desktop mr-1 text-slate-400"></i>Windows 11 · Edge 浏览器</span>
+                  <span>·</span>
+                  <span>IP: 183.14.xx.xx (中国 深圳)</span>
+                </div>
+              </div>
+              <div class="text-slate-400 shrink-0 font-mono text-[11px] sm:text-right">
+                2026-07-20 09:12:44
+              </div>
+            </div>
+
+            <!-- 日志条目 4 -->
+            <div class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <span class="absolute -left-6 top-1.5 w-2.5 h-2.5 rounded-full bg-slate-300 ring-4 ring-white"></span>
+              <div class="space-y-1">
+                <div class="flex items-center space-x-2">
+                  <span class="font-medium text-slate-800 text-sm">重新生成个人 API Access Token</span>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">密钥变更</span>
+                </div>
+                <div class="text-slate-500 flex items-center space-x-3">
+                  <span><i class="fa-solid fa-code mr-1 text-slate-400"></i>开发人员 API 接口控制台</span>
+                  <span>·</span>
+                  <span>IP: 114.242.xx.xx (中国 北京)</span>
+                </div>
+              </div>
+              <div class="text-slate-400 shrink-0 font-mono text-[11px] sm:text-right">
+                2026-07-10 11:30:18
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- 栏目 4：外观界面 (Appearance) -->
+      <div id="tab-appearance" class="tab-content space-y-6 hidden">
+        <div class="border-b border-slate-200 pb-4">
+          <h1 class="text-2xl font-bold tracking-tight text-slate-900">外观与界面偏好</h1>
+          <p class="text-sm text-slate-500 mt-1">自定义视觉色彩、系统主题模式、字体风格及排版密度。</p>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 shadow-xs divide-y divide-slate-100">
+          <div class="p-6 space-y-6">
+            <!-- 主题切换 -->
+            <div class="space-y-3">
+              <label class="text-sm font-semibold text-slate-900">视觉主题模式</label>
+              <div class="grid grid-cols-3 gap-4">
+                <label class="cursor-pointer border-2 border-indigo-600 rounded-xl p-4 flex flex-col items-center justify-center gap-2 bg-indigo-50/30 transition-all">
+                  <input type="radio" name="theme" checked class="hidden">
+                  <div class="w-full h-14 bg-white rounded-lg border border-slate-200 shadow-xs flex items-center justify-center text-slate-800 font-bold text-xs">浅色亮彩</div>
+                  <span class="text-xs font-medium text-indigo-900">亮色 (Light)</span>
+                </label>
+                <label class="cursor-pointer border-2 border-slate-200 hover:border-slate-300 rounded-xl p-4 flex flex-col items-center justify-center gap-2 bg-white transition-all">
+                  <input type="radio" name="theme" class="hidden">
+                  <div class="w-full h-14 bg-slate-900 rounded-lg border border-slate-800 shadow-xs flex items-center justify-center text-white font-bold text-xs">深邃暗夜</div>
+                  <span class="text-xs font-medium text-slate-600">暗色 (Dark)</span>
+                </label>
+                <label class="cursor-pointer border-2 border-slate-200 hover:border-slate-300 rounded-xl p-4 flex flex-col items-center justify-center gap-2 bg-white transition-all">
+                  <input type="radio" name="theme" class="hidden">
+                  <div class="w-full h-14 bg-gradient-to-r from-white to-slate-900 rounded-lg border border-slate-200 shadow-xs flex items-center justify-center text-slate-600 font-bold text-xs">自动跟随</div>
+                  <span class="text-xs font-medium text-slate-600">跟随系统</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- 系统字体设置 -->
+            <div class="space-y-3 pt-2">
+              <label class="text-sm font-semibold text-slate-900">界面系统字体 (Typography)</label>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <label class="border border-indigo-600 bg-indigo-50/20 rounded-lg p-3 flex items-center space-x-3 cursor-pointer">
+                  <input type="radio" name="font" checked class="text-indigo-600 focus:ring-indigo-500">
+                  <div>
+                    <div class="text-sm font-medium text-slate-900 font-sans">Inter / 无衬线</div>
+                    <div class="text-xs text-slate-400">现代极简首选</div>
+                  </div>
+                </label>
+                <label class="border border-slate-200 hover:border-slate-300 rounded-lg p-3 flex items-center space-x-3 cursor-pointer">
+                  <input type="radio" name="font" class="text-indigo-600 focus:ring-indigo-500">
+                  <div>
+                    <div class="text-sm font-medium text-slate-900 font-serif">Serif / 经典衬线</div>
+                    <div class="text-xs text-slate-400">报刊阅读质感</div>
+                  </div>
+                </label>
+                <label class="border border-slate-200 hover:border-slate-300 rounded-lg p-3 flex items-center space-x-3 cursor-pointer">
+                  <input type="radio" name="font" class="text-indigo-600 focus:ring-indigo-500">
+                  <div>
+                    <div class="text-sm font-medium text-slate-900 font-mono">Monospace / 等宽</div>
+                    <div class="text-xs text-slate-400">代码友好排版</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- 布局密度与侧边栏样式 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-slate-700">表格与卡片间距密度</label>
+                <select class="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600">
+                  <option>舒适 (Default Comfortable)</option>
+                  <option>紧凑 (Compact Density)</option>
+                  <option>宽松 (Relaxed)</option>
+                </select>
+              </div>
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-slate-700">主导航侧边栏形态</label>
+                <select class="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600">
+                  <option>展开式侧边栏 (Expanded)</option>
+                  <option>极简图标模式 (Icon Only)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="px-6 py-3.5 bg-slate-50/50 flex justify-end rounded-b-xl">
+            <button type="button" onclick="showToast('外观偏好设置已成功应用')" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-xs transition-colors">
+              应用外观配置
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 栏目 5：通知与消息 (Notifications) -->
+      <div id="tab-notifications" class="tab-content space-y-6 hidden">
+        <div class="border-b border-slate-200 pb-4">
+          <h1 class="text-2xl font-bold tracking-tight text-slate-900">通知与消息偏好</h1>
+          <p class="text-sm text-slate-500 mt-1">控制系统通知推送渠道、邮件频率以及免打扰时段。</p>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 shadow-xs divide-y divide-slate-100">
+          <div class="p-6 space-y-6">
+            <div class="space-y-4">
+              <h2 class="text-base font-semibold text-slate-900">推送类别</h2>
+              
+              <div class="flex items-center justify-between">
+                <div class="space-y-0.5">
+                  <h3 class="text-sm font-medium text-slate-900">安全预警与异地登录提醒</h3>
+                  <p class="text-xs text-slate-500">检测到风险操作或账号异地登录时立即通过短信与邮件触发告警。</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" checked class="sr-only peer">
+                  <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                </label>
+              </div>
+
+              <div class="flex items-center justify-between border-t border-slate-100 pt-4">
+                <div class="space-y-0.5">
+                  <h3 class="text-sm font-medium text-slate-900">扣费与用量超限预警</h3>
+                  <p class="text-xs text-slate-500">当 API 额度消耗超过 80% 或账单扣费成功时发送通知。</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" checked class="sr-only peer">
+                  <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                </label>
+              </div>
+
+              <div class="flex items-center justify-between border-t border-slate-100 pt-4">
+                <div class="space-y-0.5">
+                  <h3 class="text-sm font-medium text-slate-900">系统更新与版本功能周报</h3>
+                  <p class="text-xs text-slate-500">每周一自动接收产品新功能介绍及系统优化报告。</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" class="sr-only peer">
+                  <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                </label>
+              </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 space-y-3">
+              <h2 class="text-base font-semibold text-slate-900">勿扰模式时段</h2>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                  <label class="text-xs font-medium text-slate-600">勿扰开始时间</label>
+                  <input type="time" value="22:00" class="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600">
+                </div>
+                <div class="space-y-1.5">
+                  <label class="text-xs font-medium text-slate-600">勿扰结束时间</label>
+                  <input type="time" value="08:00" class="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="px-6 py-3.5 bg-slate-50/50 flex justify-end rounded-b-xl">
+            <button type="button" onclick="showToast('通知偏好设置已成功保存')" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-xs transition-colors">
+              保存通知偏好
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- 全局 Toast 轻量气泡提示器 -->
+  <div id="toast" class="fixed top-20 right-6 z-50 transform translate-x-full opacity-0 transition-all duration-300 ease-in-out bg-slate-900 text-white shadow-xl rounded-xl px-4 py-3 flex items-center space-x-3 pointer-events-none">
+    <div class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs">
+      <i class="fa-solid fa-check"></i>
+    </div>
+    <span id="toast-text" class="text-sm font-medium">设置保存成功</span>
+  </div>
+
+  <script>
+    // 切换 5 大一级 Tab 选项卡
+    function switchTab(tabId) {
+      // 1. 隐藏所有 Tab 容器
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      
+      // 2. 显示当前被选中的 Tab 容器
+      const targetTab = document.getElementById(`tab-${tabId}`);
+      if (targetTab) {
+        targetTab.classList.remove('hidden');
+      }
+
+      // 3. 更新左侧 Sidebar 样式高亮
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.className = "nav-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-600 hover:bg-slate-100/80 hover:text-slate-900";
+      });
+      const activeNav = document.getElementById(`nav-${tabId}`);
+      if (activeNav) {
+        activeNav.className = "nav-btn w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all bg-indigo-50 text-indigo-600";
+      }
+
+      // 4. 更新移动端流动 Tab 高亮
+      document.querySelectorAll('.mobile-tab').forEach(tab => {
+        if (tab.getAttribute('data-tab') === tabId) {
+          tab.className = "mobile-tab px-4 py-2 rounded-full text-xs font-medium bg-indigo-600 text-white shrink-0";
+        } else {
+          tab.className = "mobile-tab px-4 py-2 rounded-full text-xs font-medium bg-white text-slate-600 border border-slate-200 shrink-0";
+        }
+      });
+    }
+
+    // 头像实时本地选择预览
+    function previewAvatar(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('avatar-img').src = e.target.result;
+          showToast('头像照片更新成功');
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    // 密码强度检测指示器
+    function checkPasswordStrength(val) {
+      const step1 = document.getElementById('pwd-step-1');
+      const step2 = document.getElementById('pwd-step-2');
+      const step3 = document.getElementById('pwd-step-3');
+      const text = document.getElementById('pwd-text');
+
+      if (!val) {
+        step1.className = step2.className = step3.className = "h-1 flex-1 bg-slate-200 rounded-full transition-colors";
+        text.innerText = "密码强度";
+        return;
+      }
+
+      if (val.length < 6) {
+        step1.className = "h-1 flex-1 bg-rose-500 rounded-full transition-colors";
+        step2.className = step3.className = "h-1 flex-1 bg-slate-200 rounded-full transition-colors";
+        text.innerText = "强度：弱";
+      } else if (val.length < 10) {
+        step1.className = step2.className = "h-1 flex-1 bg-amber-500 rounded-full transition-colors";
+        step3.className = "h-1 flex-1 bg-slate-200 rounded-full transition-colors";
+        text.innerText = "强度：中等";
+      } else {
+        step1.className = step2.className = step3.className = "h-1 flex-1 bg-emerald-500 rounded-full transition-colors";
+        text.innerText = "强度：强";
+      }
+    }
+
+    // Toast 轻量气泡控制器
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-text').innerText = message;
+      toast.classList.remove('translate-x-full', 'opacity-0');
+      toast.classList.add('translate-x-0', 'opacity-100');
+      
+      setTimeout(() => {
+        toast.classList.remove('translate-x-0', 'opacity-100');
+        toast.classList.add('translate-x-full', 'opacity-0');
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

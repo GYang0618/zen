@@ -59,10 +59,7 @@ export function SiteConfigPage() {
       </Header>
 
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
-        <SystemPageHeader
-          title="站点配置"
-          description="维护站点名称、Logo 与全局 Feature Flag"
-        />
+        <SystemPageHeader title="站点配置" description="维护站点名称、Logo 与全局 Feature Flag" />
 
         {isLoading || !data ? (
           <Skeleton className="h-72 w-full max-w-2xl rounded-xl" />
@@ -70,7 +67,9 @@ export function SiteConfigPage() {
           <Card className="max-w-2xl">
             <CardHeader className="border-b">
               <CardTitle>基础信息</CardTitle>
-              <CardDescription>修改后点击保存立即生效；Feature Flags 须为合法 JSON 对象</CardDescription>
+              <CardDescription>
+                修改后点击保存立即生效；Feature Flags 须为合法 JSON 对象
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <FieldGroup>

@@ -1,8 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  NotFoundException
-} from '@nestjs/common'
+import { Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { PluginInstallStatus } from '@prisma/client'
 import { REQUIRE_PLUGIN_ID_KEY } from '@zen/plugin-sdk'

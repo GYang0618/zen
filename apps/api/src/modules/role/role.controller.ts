@@ -20,13 +20,16 @@ import {
   ApiTags
 } from '@nestjs/swagger'
 import { PermissionCode } from '@zen/shared'
+import { z } from 'zod'
 
 import { RequirePermission } from '@/common/decorators/require-permission.decorator'
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
 import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '@/common/swagger'
 
 import {
+  assignRoleMembersSchema,
   assignRolePermissionsSchema,
+  cloneRoleSchema,
   createRoleSchema,
   deleteRolesSchema,
   findRolesQuerySchema,
@@ -35,7 +38,9 @@ import {
 import { RoleService } from './role.service'
 
 import type {
+  AssignRoleMembersDto,
   AssignRolePermissionsDto,
+  CloneRoleDto,
   CreateRoleDto,
   DeleteRolesDto,
   FindRolesQueryDto,
@@ -45,8 +50,14 @@ import type {
   PermissionGroupResponse,
   RoleListItemResponse,
   RoleListResponse,
+  RoleMembersResponse,
   RoleResponse
 } from './responses/role.response'
+
+const roleMembersQuerySchema = z.object({
+  page: z.coerce.number().int().positive().optional(),
+  pageSize: z.coerce.number().int().positive().max(100).optional()
+})
 
 @ApiTags('角色管理')
 @ApiBearerAuth(ACCESS_TOKEN_AUTH)
@@ -94,6 +105,63 @@ export class RoleController {
   @ApiStandardErrorResponses()
   findOne(@Param('id') id: string): Promise<RoleResponse> {
     return this.roleService.findOne(id)
+  }
+
+  @Post(':id/clone')
+  @RequirePermission(PermissionCode.ROLE_CREATE)
+  @ApiOperation({
+    summary: '克隆角色',
+    description: '基于已有角色深拷贝权限与数据边界生成新角色。'
+  })
+  @ApiParam({ name: 'id', description: '源角色 ID' })
+  @ApiCreatedResponse({ description: '克隆成功' })
+  @ApiStandardErrorResponses()
+  @UsePipes(new ZodValidationPipe(cloneRoleSchema))
+  clone(@Param('id') id: string, @Body() payload: CloneRoleDto): Promise<RoleResponse> {
+    return this.roleService.clone(id, payload)
+  }
+
+  @Get(':id/members')
+  @RequirePermission(PermissionCode.ROLE_LIST)
+  @ApiOperation({ summary: '查询角色关联用户', description: '分页返回已绑定该角色的用户列表。' })
+  @ApiParam({ name: 'id', description: '角色 ID' })
+  @ApiOkResponse({ description: '查询成功' })
+  @ApiStandardErrorResponses()
+  @UsePipes(new ZodValidationPipe(roleMembersQuerySchema, { types: ['query'] }))
+  listMembers(
+    @Param('id') id: string,
+    @Query() query?: z.infer<typeof roleMembersQuerySchema>
+  ): Promise<RoleMembersResponse> {
+    return this.roleService.listMembers(id, query?.page ?? 1, query?.pageSize ?? 100)
+  }
+
+  @Post(':id/members')
+  @RequirePermission(PermissionCode.ROLE_ASSIGN)
+  @ApiOperation({ summary: '绑定用户到角色', description: '将指定用户追加绑定到当前角色。' })
+  @ApiParam({ name: 'id', description: '角色 ID' })
+  @ApiBody({ description: '用户 ID 列表' })
+  @ApiOkResponse({ description: '绑定成功' })
+  @ApiStandardErrorResponses()
+  @UsePipes(new ZodValidationPipe(assignRoleMembersSchema))
+  addMembers(
+    @Param('id') id: string,
+    @Body() payload: AssignRoleMembersDto
+  ): Promise<RoleMembersResponse> {
+    return this.roleService.addMembers(id, payload)
+  }
+
+  @Delete(':id/members/:userId')
+  @RequirePermission(PermissionCode.ROLE_ASSIGN)
+  @ApiOperation({ summary: '解绑角色用户', description: '将指定用户从当前角色解绑。' })
+  @ApiParam({ name: 'id', description: '角色 ID' })
+  @ApiParam({ name: 'userId', description: '用户 ID' })
+  @ApiOkResponse({ description: '解绑成功' })
+  @ApiStandardErrorResponses()
+  removeMember(
+    @Param('id') id: string,
+    @Param('userId') userId: string
+  ): Promise<RoleMembersResponse> {
+    return this.roleService.removeMember(id, userId)
   }
 
   @Patch(':id/permissions')
