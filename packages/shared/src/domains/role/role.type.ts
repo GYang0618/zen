@@ -1,4 +1,5 @@
 import type { z } from 'zod'
+import type { permissionGroupSchema, permissionSchema } from './permission.schema'
 import type {
   assignRoleMembersSchema,
   assignRolePermissionsSchema,
@@ -14,6 +15,9 @@ import type {
   rolesQuerySchema,
   updateRoleSchema
 } from './role.schema'
+
+export type Permission = z.infer<typeof permissionSchema>
+export type PermissionGroup = z.infer<typeof permissionGroupSchema>
 
 export type RoleStatus = z.infer<typeof roleStatusSchema>
 export type RoleDataScope = z.infer<typeof roleDataScopeSchema>

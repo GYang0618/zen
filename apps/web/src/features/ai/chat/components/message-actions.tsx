@@ -14,7 +14,7 @@ interface MessageActionsProps {
 export function MessageActions({ part, from }: MessageActionsProps) {
   const { regenerate } = useCopilot()
   const [copied, setCopied] = useState(false)
-  const copyTimer = useRef<number | null>(null)
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isUser = from === 'user'
   const isAssistant = from === 'assistant'
 

@@ -6,12 +6,12 @@ export const menus = [
   },
   {
     name: 'chat',
-    path: '/ai/chat',
+    path: '/chat',
     description: 'chat页面'
   },
   {
     name: 'copilot',
-    path: '/ai/copilot',
+    path: '/chat-v2',
     description: 'copilot页面'
   },
   {

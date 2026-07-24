@@ -29,7 +29,7 @@ import { useCreateOrganization } from './queries'
 import type { OrganizationTreeNode } from '@zen/shared'
 import type { z } from 'zod'
 
-type CreateFormValues = z.infer<typeof createOrganizationSchema>
+type CreateFormValues = z.input<typeof createOrganizationSchema>
 
 type CreateOrganizationDialogProps = {
   open: boolean
@@ -113,6 +113,7 @@ export function CreateOrganizationDialog({
 
     await createMutation.mutateAsync({
       ...values,
+      type: values.type ?? 'department',
       parentId: values.parentId || undefined,
       leaderId: leaderId || undefined
     })

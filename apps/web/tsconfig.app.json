@@ -28,6 +28,7 @@
     "paths": {
       "@/*": ["src/*"],
       "@zen/ui": ["../../packages/ui/src/index.ts"],
+      "@zen/ui/*": ["../../packages/ui/src/*"],
       "@zen/request": ["../../packages/request/src/index.ts"],
       "@zen/shared": ["../../packages/shared/src/index.ts"],
       "@zen/plugin-demo-notes/web": ["../../plugins/demo-notes/src/web/index.ts"],

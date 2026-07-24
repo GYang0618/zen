@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 
 import type { Role } from '@zen/shared'
 
-type RolesDialogType = 'add' | 'delete'
+type RolesDialogType = 'add' | 'edit' | 'delete'
 
 type RolesContextType = {
   open: RolesDialogType | null

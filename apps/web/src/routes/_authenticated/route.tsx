@@ -60,7 +60,7 @@ export const Route = createFileRoute('/_authenticated')({
 })
 
 /** 不需要显示 CopilotPopup 的页面 */
-const COPILOT_POPUP_EXCLUDED_PATHS: readonly AppPath[] = ['/ai/chat', '/ai/copilot']
+const COPILOT_POPUP_EXCLUDED_PATHS: readonly AppPath[] = ['/chat', '/chat-v2']
 
 function AuthenticatedLayoutComponent() {
   const { pathname } = useLocation()

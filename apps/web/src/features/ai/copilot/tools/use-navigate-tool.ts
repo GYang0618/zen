@@ -4,8 +4,8 @@ import z from 'zod'
 
 const pathSchema = z.union([
   z.literal('/').describe('首页'),
-  z.literal('/ai/chat').describe('chat页面'),
-  z.literal('/ai/copilot').describe('copilot页面'),
+  z.literal('/chat').describe('chat页面'),
+  z.literal('/chat-v2').describe('copilot页面'),
   z.literal('/bim').describe('三维场景BIM页面（threejs）'),
   z.literal('/system/roles').describe('角色管理页面'),
   z.literal('/system/users').describe('用户管理页面')

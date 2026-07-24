@@ -32,7 +32,8 @@
     "overrides": {
       "fastify": "5.8.5",
       "hono": "^4.12.18",
-      "three-mesh-bvh": "0.9.10"
+      "three-mesh-bvh": "0.9.10",
+      "@tanstack/router-generator>zod": "^3.25.76"
     }
   },
   "volta": {

@@ -1,7 +1,7 @@
 import { cn } from '@zen/ui'
 
 import type { SVGProps } from 'react'
-import type { Direction } from '@/context/direction-provider'
+type Direction = 'ltr' | 'rtl'
 
 type IconDirProps = SVGProps<SVGSVGElement> & {
   dir: Direction

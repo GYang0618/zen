@@ -33,7 +33,7 @@ import type { OrganizationPost } from './api'
 const postFormSchema = z.object({
   name: z.string().trim().min(1, '岗位名称不能为空').max(100),
   grade: z.string().trim().min(1, '请选择职级'),
-  headcount: z.coerce.number().int().min(1, '编制至少为 1').max(999),
+  headcount: z.number().int().min(1, '编制至少为 1').max(999),
   description: z.string().trim().max(500).optional()
 })
 

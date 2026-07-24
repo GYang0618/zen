@@ -22,7 +22,7 @@ import {
   Textarea
 } from '@zen/ui'
 import { AlertCircle, Settings } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
 

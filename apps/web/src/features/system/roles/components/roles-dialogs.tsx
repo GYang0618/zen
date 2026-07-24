@@ -1,4 +1,5 @@
 import { useRoles } from '../roles-provider'
+import { RoleEditDialog } from './role-edit-dialog'
 import { RolesActionDialog } from './roles-action-dialog'
 import { RolesDeleteDialog } from './roles-delete-dialog'
 
@@ -23,6 +24,15 @@ export function RolesDialogs({ onCreated, onDeleted }: RolesDialogsProps) {
     }
   }
 
+  const handleEditOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen ? 'edit' : null)
+    if (!nextOpen) {
+      setTimeout(() => {
+        setCurrentRow(null)
+      }, 500)
+    }
+  }
+
   return (
     <>
       <RolesActionDialog
@@ -33,13 +43,21 @@ export function RolesDialogs({ onCreated, onDeleted }: RolesDialogsProps) {
       />
 
       {currentRow ? (
-        <RolesDeleteDialog
-          key={`role-delete-${currentRow.id}`}
-          open={open === 'delete'}
-          onOpenChange={handleDeleteOpenChange}
-          currentRow={currentRow}
-          onDeleted={onDeleted}
-        />
+        <>
+          <RoleEditDialog
+            key={`role-edit-${currentRow.id}`}
+            open={open === 'edit'}
+            onOpenChange={handleEditOpenChange}
+            role={currentRow}
+          />
+          <RolesDeleteDialog
+            key={`role-delete-${currentRow.id}`}
+            open={open === 'delete'}
+            onOpenChange={handleDeleteOpenChange}
+            currentRow={currentRow}
+            onDeleted={onDeleted}
+          />
+        </>
       ) : null}
     </>
   )

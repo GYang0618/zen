@@ -1,4 +1,7 @@
 import type { LinkProps } from '@tanstack/react-router'
+import type { ComponentType } from 'react'
+
+type NavIcon = ComponentType<{ className?: string }>
 
 export type User = {
   name: string
@@ -8,7 +11,7 @@ export type User = {
 
 export type Team = {
   name: string
-  logo: React.ElementType
+  logo: NavIcon
   plan: string
 }
 
@@ -16,7 +19,7 @@ export type BaseNavItem = {
   title: string
   badge?: string
   show?: boolean
-  icon?: React.ElementType
+  icon?: NavIcon
   /** 所需权限码（满足其一即可显示） */
   permissions?: string[]
   /** 外链：在新标签页打开 url */

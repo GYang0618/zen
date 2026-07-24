@@ -21,20 +21,40 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useAuthStore } from '@/stores'
 
-import type {
-  AssistantMessage as CopilotkitAssistantMessage,
-  Message as CopilotkitMessage,
-  ReasoningMessage as CopilotkitReasoningMessage,
-  UserMessage as CopilotkitUserMessage
-} from '@copilotkit/react-core/v2'
+type UserMessageContentPart = { type: string; text?: string }
+
+type CopilotkitUserMessage = {
+  id: string
+  role: 'user'
+  content?: string | UserMessageContentPart[]
+}
+
+type CopilotkitAssistantMessage = {
+  id: string
+  role: 'assistant'
+  content?: string | null
+  toolCalls?: unknown[]
+}
+
+type CopilotkitReasoningMessage = {
+  id: string
+  role: 'reasoning'
+  content?: string | null
+}
+
+type CopilotkitMessage =
+  | CopilotkitUserMessage
+  | CopilotkitAssistantMessage
+  | CopilotkitReasoningMessage
+  | { id: string; role: 'tool' | 'activity' | string; content?: unknown; toolCalls?: unknown }
 
 function flattenUserMessageContent(content: CopilotkitUserMessage['content']): string {
   if (!content) return ''
   if (typeof content === 'string') return content
 
   return content
-    .map((part) => (part.type === 'text' ? part.text : ''))
-    .filter((text) => text.length > 0)
+    .map((part: UserMessageContentPart) => (part.type === 'text' ? part.text : ''))
+    .filter((text): text is string => Boolean(text?.length))
     .join('\n')
 }
 
@@ -142,7 +162,7 @@ function useDisplayMessages(messages: CopilotkitMessage[]): CopilotkitMessage[] 
         orderRef.current.push(message.id)
       }
       if (message.role === 'user') {
-        persistedUsersRef.current.set(message.id, message)
+        persistedUsersRef.current.set(message.id, message as CopilotkitUserMessage)
       }
     }
 
@@ -165,7 +185,8 @@ export function ChatMessages() {
   const { agent } = useAgent()
   const { renderActivityMessage } = useRenderActivityMessage()
   const user = useAuthStore((state) => state.user)
-  const { messages, isRunning } = agent
+  const { messages: agentMessages, isRunning } = agent
+  const messages = agentMessages as CopilotkitMessage[]
   const [runError, setRunError] = useState<string | null>(null)
 
   const displayMessages = useDisplayMessages(messages)
@@ -218,17 +239,19 @@ export function ChatMessages() {
 
         return (
           <Fragment key={message.id}>
-            {message.role === 'user' && <UserMessage message={message} />}
+            {message.role === 'user' && (
+              <UserMessage message={message as CopilotkitUserMessage} />
+            )}
             {message.role === 'assistant' && (
               <AssistantMessage
-                message={message}
+                message={message as CopilotkitAssistantMessage}
                 messages={displayMessages}
                 isRunning={isRunning}
               />
             )}
             {message.role === 'reasoning' && (
               <ReasoningMessage
-                message={message}
+                message={message as CopilotkitReasoningMessage}
                 messages={displayMessages}
                 isRunning={isRunning}
               />
