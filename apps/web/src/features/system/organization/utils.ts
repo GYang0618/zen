@@ -94,6 +94,27 @@ export function collectExpandableIds(nodes: OrganizationTreeNode[]): string[] {
   return ids
 }
 
+/** 按名称 / 编码过滤组织树，保留匹配节点及其祖先路径 */
+export function filterOrganizationTree(
+  nodes: OrganizationTreeNode[],
+  keyword: string
+): OrganizationTreeNode[] {
+  const normalized = keyword.trim().toLowerCase()
+  if (!normalized) return nodes
+
+  const filterNode = (node: OrganizationTreeNode): OrganizationTreeNode | null => {
+    const children = node.children
+      .map(filterNode)
+      .filter((child): child is OrganizationTreeNode => child !== null)
+    const selfMatch =
+      node.name.toLowerCase().includes(normalized) || node.code.toLowerCase().includes(normalized)
+    if (!selfMatch && children.length === 0) return null
+    return { ...node, children }
+  }
+
+  return nodes.map(filterNode).filter((node): node is OrganizationTreeNode => node !== null)
+}
+
 export function postInitials(name: string): string {
   const trimmed = name.trim()
   if (!trimmed) return '岗'

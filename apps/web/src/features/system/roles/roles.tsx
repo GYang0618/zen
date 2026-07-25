@@ -10,6 +10,7 @@ import { EmptyState, SystemPageHeader } from '@/features/system/components'
 import { RoleDetailPanel } from './components/role-detail-panel'
 import { RolesDialogs } from './components/roles-dialogs'
 import { RolesSidebar } from './components/roles-sidebar'
+import { Copilot } from './copilot'
 import { useRolesQuery } from './queries'
 import { RolesProvider, useRoles } from './roles-provider'
 
@@ -19,18 +20,22 @@ const route = getRouteApi('/_authenticated/system/_identity/roles')
 
 function RolesWorkspace() {
   const search = route.useSearch()
+  const navigate = route.useNavigate()
   const { setOpen, setCurrentRow } = useRoles()
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [keyword, setKeyword] = useState(search.keyword ?? '')
   const [filter, setFilter] = useState<RoleListFilter>('all')
   const [isDirty, setIsDirty] = useState(false)
   const [pendingSelectId, setPendingSelectId] = useState<string | null>(null)
 
+  const keyword = search.keyword ?? ''
+
   const { data, isLoading } = useRolesQuery({
-    page: 1,
-    pageSize: 100,
-    keyword: keyword.trim() || undefined
+    page: search.page ?? 1,
+    pageSize: search.pageSize ?? 100,
+    keyword: keyword.trim() || undefined,
+    status: search.status,
+    dataScope: search.dataScope
   })
 
   const roles = data?.items ?? []
@@ -53,6 +58,16 @@ function RolesWorkspace() {
     if (selectedId && roles.some((role) => role.id === selectedId)) return
     setSelectedId(filteredRoles[0]?.id ?? roles[0]?.id ?? null)
   }, [filteredRoles, isLoading, roles, selectedId])
+
+  const handleKeywordChange = (value: string) => {
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        keyword: value.trim() || undefined,
+        page: 1
+      })
+    })
+  }
 
   const handleSelect = (id: string) => {
     if (isDirty && id !== selectedId) {
@@ -85,6 +100,7 @@ function RolesWorkspace() {
 
   return (
     <>
+      <Copilot />
       <Header fixed>
         <Search />
         <div className="ms-auto flex items-center gap-4">
@@ -107,7 +123,7 @@ function RolesWorkspace() {
             keyword={keyword}
             filter={filter}
             isLoading={isLoading}
-            onKeywordChange={setKeyword}
+            onKeywordChange={handleKeywordChange}
             onFilterChange={setFilter}
             onSelect={handleSelect}
             onCreate={handleCreate}

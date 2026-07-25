@@ -228,31 +228,31 @@ model User {
   deletedAt     DateTime?      @map("deleted_at")
 
   /// 用户资料（一对一）
-  profile          UserProfile?
+  profile             UserProfile?
   /// 用户安全设置（一对一）
-  security         UserSecurity?
+  security            UserSecurity?
   /// 用户偏好设置（一对一）
-  preference       UserPreference?
+  preference          UserPreference?
   /// 用户审计信息（一对一）
-  audit            UserAudit?
+  audit               UserAudit?
   /// 用户角色关联（一对多）
-  roles            UserRole[]
+  roles               UserRole[]
   /// 租户成员资格
-  memberships      Membership[]
+  memberships         Membership[]
   /// 登录会话
-  sessions         Session[]
+  sessions            Session[]
   /// 密码重置令牌
   passwordResetTokens PasswordResetToken[]
   /// 登录事件
-  loginEvents      LoginEvent[]
+  loginEvents         LoginEvent[]
   /// 站内通知
-  notifications    Notification[]
+  notifications       Notification[]
   /// 上传文件
-  storedFiles      StoredFile[]
+  storedFiles         StoredFile[]
   /// 用户组织岗位关联（一对多）
-  organizations    UserOrganization[]
+  organizations       UserOrganization[]
   /// 负责的组织集合（一对多）
-  ledOrganizations Organization[]     @relation("OrganizationLeader")
+  ledOrganizations    Organization[]       @relation("OrganizationLeader")
 
   @@index([email])
   @@index([username])
@@ -385,27 +385,27 @@ model UserAudit {
 /// 角色表
 model Role {
   /// 角色ID
-  id          String        @id @default(cuid())
+  id           String        @id @default(cuid())
   /// 角色编码
-  code        String        @unique
+  code         String        @unique
   /// 角色名称
-  name        String
+  name         String
   /// 角色描述
-  description String?
+  description  String?
   /// 是否系统角色
-  isSystem    Boolean       @default(false) @map("is_system")
+  isSystem     Boolean       @default(false) @map("is_system")
   /// 角色状态
-  status      RecordStatus  @default(ACTIVE)
+  status       RecordStatus  @default(ACTIVE)
   /// 数据范围
-  dataScope   RoleDataScope @default(SELF) @map("data_scope")
+  dataScope    RoleDataScope @default(SELF) @map("data_scope")
   /// CUSTOM 数据范围时的组织白名单
-  customOrgIds String[]     @default([]) @map("custom_org_ids")
+  customOrgIds String[]      @default([]) @map("custom_org_ids")
   /// 排序值
-  sort        Int?
+  sort         Int?
   /// 创建时间
-  createdAt   DateTime      @default(now()) @map("created_at")
+  createdAt    DateTime      @default(now()) @map("created_at")
   /// 更新时间
-  updatedAt   DateTime      @updatedAt @map("updated_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
 
   /// 角色下的用户关联
   users       UserRole[]
@@ -446,15 +446,15 @@ model Organization {
   updatedAt   DateTime         @updatedAt @map("updated_at")
 
   /// 父级组织
-  parent   Organization?      @relation("OrganizationHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  parent    Organization?      @relation("OrganizationHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   /// 子级组织
-  children Organization[]     @relation("OrganizationHierarchy")
+  children  Organization[]     @relation("OrganizationHierarchy")
   /// 负责人
-  leader   User?              @relation("OrganizationLeader", fields: [leaderId], references: [id], onDelete: SetNull)
+  leader    User?              @relation("OrganizationLeader", fields: [leaderId], references: [id], onDelete: SetNull)
   /// 组织岗位集合
-  posts    Post[]
+  posts     Post[]
   /// 组织成员关联
-  users    UserOrganization[]
+  users     UserOrganization[]
   /// 演示便签（参考插件）
   demoNotes DemoNote[]
 

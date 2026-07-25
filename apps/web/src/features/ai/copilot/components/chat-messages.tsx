@@ -32,21 +32,29 @@ type CopilotkitUserMessage = {
 type CopilotkitAssistantMessage = {
   id: string
   role: 'assistant'
-  content?: string | null
+  content?: string
   toolCalls?: unknown[]
 }
 
 type CopilotkitReasoningMessage = {
   id: string
   role: 'reasoning'
-  content?: string | null
+  content?: string
+}
+
+type CopilotkitActivityMessage = {
+  id: string
+  role: 'activity'
+  activityType: string
+  content: Record<string, unknown>
 }
 
 type CopilotkitMessage =
   | CopilotkitUserMessage
   | CopilotkitAssistantMessage
   | CopilotkitReasoningMessage
-  | { id: string; role: 'tool' | 'activity' | string; content?: unknown; toolCalls?: unknown }
+  | CopilotkitActivityMessage
+  | { id: string; role: 'tool'; content?: unknown; toolCalls?: unknown }
 
 function flattenUserMessageContent(content: CopilotkitUserMessage['content']): string {
   if (!content) return ''
@@ -98,7 +106,10 @@ function AssistantMessage({ message, messages, isRunning }: AssistantMessageProp
           </MessageContent>
         </Message>
       )}
-      <CopilotChatToolCallsView message={message} messages={messages} />
+      <CopilotChatToolCallsView
+        message={message as never}
+        messages={messages as never}
+      />
     </>
   )
 }

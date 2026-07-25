@@ -1,6 +1,6 @@
 import { PermissionCode } from '@zen/shared'
-import { Button, cn, ScrollArea, Skeleton } from '@zen/ui'
-import { Building2, ChevronRight, ChevronsDown, ChevronsUp, Plus } from 'lucide-react'
+import { Button, cn, Input, ScrollArea, Skeleton } from '@zen/ui'
+import { Building2, ChevronRight, ChevronsDown, ChevronsUp, Plus, Search } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
 import { Can } from '@/components/auth/can'
@@ -13,9 +13,11 @@ import type { OrganizationTreeNode } from '@zen/shared'
 type OrgTreeSidebarProps = {
   tree: OrganizationTreeNode[]
   selectedId: string | null
+  keyword?: string
   isLoading?: boolean
   onSelect: (id: string) => void
   onCreate: () => void
+  onKeywordChange?: (value: string) => void
 }
 
 function OrgTreeNode({
@@ -106,9 +108,11 @@ function OrgTreeNode({
 export function OrgTreeSidebar({
   tree,
   selectedId,
+  keyword = '',
   isLoading = false,
   onSelect,
-  onCreate
+  onCreate,
+  onKeywordChange
 }: OrgTreeSidebarProps) {
   const allExpandableIds = useMemo(() => collectExpandableIds(tree), [tree])
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set(allExpandableIds))
@@ -128,44 +132,59 @@ export function OrgTreeSidebar({
 
   return (
     <aside className="flex max-h-[min(50vh,28rem)] min-h-0 flex-col overflow-hidden rounded-xl border bg-card lg:max-h-[calc(100svh-12rem)]">
-      <div className="flex items-center justify-between border-b px-4 py-3">
-        <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-          组织架构图谱
-        </span>
-        <div className="flex items-center gap-0.5">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            title="展开全部"
-            aria-label="展开全部"
-            onClick={() => setExpandedIds(new Set(allExpandableIds))}
-          >
-            <ChevronsDown className="size-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            title="折叠全部"
-            aria-label="折叠全部"
-            onClick={() => setExpandedIds(new Set())}
-          >
-            <ChevronsUp className="size-4" />
-          </Button>
-          <Can permission={PermissionCode.ORG_CREATE}>
+      <div className="space-y-3 border-b px-4 py-3">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+            组织架构图谱
+          </span>
+          <div className="flex items-center gap-0.5">
             <Button
               type="button"
               variant="ghost"
               size="icon-sm"
-              title="新建部门"
-              aria-label="新建部门"
-              onClick={onCreate}
+              title="展开全部"
+              aria-label="展开全部"
+              onClick={() => setExpandedIds(new Set(allExpandableIds))}
             >
-              <Plus className="size-4" />
+              <ChevronsDown className="size-4" />
             </Button>
-          </Can>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              title="折叠全部"
+              aria-label="折叠全部"
+              onClick={() => setExpandedIds(new Set())}
+            >
+              <ChevronsUp className="size-4" />
+            </Button>
+            <Can permission={PermissionCode.ORG_CREATE}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                title="新建部门"
+                aria-label="新建部门"
+                onClick={onCreate}
+              >
+                <Plus className="size-4" />
+              </Button>
+            </Can>
+          </div>
         </div>
+
+        {onKeywordChange ? (
+          <div className="relative">
+            <Search className="pointer-events-none absolute start-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={keyword}
+              onChange={(event) => onKeywordChange(event.target.value)}
+              placeholder="按名称 / 编码过滤..."
+              className="h-8 ps-8 text-xs"
+              aria-label="搜索组织"
+            />
+          </div>
+        ) : null}
       </div>
 
       <ScrollArea className="min-h-0 flex-1">

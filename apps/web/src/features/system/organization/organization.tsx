@@ -1,3 +1,4 @@
+import { getRouteApi } from '@tanstack/react-router'
 import { PermissionCode } from '@zen/shared'
 import { Button } from '@zen/ui'
 import { Building2, Plus } from 'lucide-react'
@@ -8,20 +9,27 @@ import { Can } from '@/components/auth/can'
 import { Header, Main } from '@/components/layouts'
 import { EmptyState, SystemPageHeader } from '@/features/system/components'
 
+import { Copilot } from './copilot'
 import { CreateOrganizationDialog } from './create-organization-dialog'
 import { OrgDetailPanel } from './org-detail-panel'
 import { OrgTreeSidebar } from './org-tree-sidebar'
 import { useDeleteOrganizations, useOrganizationTree } from './queries'
-import { findOrganizationNode, flattenOrganizationTree } from './utils'
+import { filterOrganizationTree, findOrganizationNode, flattenOrganizationTree } from './utils'
+
+const route = getRouteApi('/_authenticated/system/_identity/organization')
 
 export function Organizations() {
+  const search = route.useSearch()
+  const navigate = route.useNavigate()
   const { data, isLoading } = useOrganizationTree()
   const deleteMutation = useDeleteOrganizations()
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(search.orgId ?? null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
+  const keyword = search.keyword ?? ''
   const tree = data ?? []
+  const displayTree = useMemo(() => filterOrganizationTree(tree, keyword), [keyword, tree])
 
   const parentOptions = useMemo(() => flattenOrganizationTree(tree), [tree])
 
@@ -31,15 +39,42 @@ export function Organizations() {
   )
 
   useEffect(() => {
+    if (search.orgId) {
+      setSelectedId(search.orgId)
+    }
+  }, [search.orgId])
+
+  useEffect(() => {
     if (isLoading) return
     if (selectedId && findOrganizationNode(tree, selectedId)) return
-    setSelectedId(tree[0]?.id ?? null)
-  }, [isLoading, selectedId, tree])
+    const fallbackId = displayTree[0]?.id ?? tree[0]?.id ?? null
+    setSelectedId(fallbackId)
+  }, [displayTree, isLoading, selectedId, tree])
+
+  const handleSelect = (id: string) => {
+    setSelectedId(id)
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        orgId: id
+      })
+    })
+  }
+
+  const handleKeywordChange = (value: string) => {
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        keyword: value.trim() || undefined
+      })
+    })
+  }
 
   const deleteTarget = parentOptions.find((node) => node.id === deleteId)
 
   return (
     <>
+      <Copilot />
       <Header fixed>
         <Search />
         <div className="ms-auto flex items-center gap-4">
@@ -65,11 +100,13 @@ export function Organizations() {
 
         <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
           <OrgTreeSidebar
-            tree={tree}
+            tree={displayTree}
             selectedId={selectedId}
+            keyword={keyword}
             isLoading={isLoading}
-            onSelect={setSelectedId}
+            onSelect={handleSelect}
             onCreate={() => setDialogOpen(true)}
+            onKeywordChange={handleKeywordChange}
           />
 
           {selectedNode ? (

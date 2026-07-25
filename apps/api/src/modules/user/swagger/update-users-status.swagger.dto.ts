@@ -16,7 +16,12 @@ export class UpdateUsersStatusSwaggerDto {
     description:
       '目标账号状态。管理员禁用/停用/封禁账户请使用 suspended；inactive 仅表示账号未完成激活',
     enum: UserStatusSwagger,
+    enumName: 'UserStatusSwagger',
     example: UserStatusSwagger.SUSPENDED
   })
-  status!: UserStatusSwagger
+  /**
+   * 使用字面量联合而非跨文件 enum 类型注解，避免 @nestjs/swagger 插件
+   * 在含非 ASCII 路径时生成指向 src/ 的绝对 require（运行时 MODULE_NOT_FOUND）。
+   */
+  status!: `${UserStatusSwagger}`
 }

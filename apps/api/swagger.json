@@ -3623,8 +3623,8 @@
     }
   },
   "info": {
-    "title": "Admin Zen",
-    "description": "Admin Zen API 文档",
+    "title": "Admin",
+    "description": "Admin API 文档",
     "version": "1.0.0",
     "contact": {}
   },
@@ -4525,6 +4525,16 @@
           "data"
         ]
       },
+      "UserStatusSwagger": {
+        "type": "string",
+        "enum": [
+          "active",
+          "inactive",
+          "pending",
+          "suspended"
+        ],
+        "description": "目标账号状态。管理员禁用/停用/封禁账户请使用 suspended；inactive 仅表示账号未完成激活"
+      },
       "UpdateUsersStatusSwaggerDto": {
         "type": "object",
         "properties": {
@@ -4540,15 +4550,13 @@
             }
           },
           "status": {
-            "enum": [
-              "active",
-              "inactive",
-              "pending",
-              "suspended"
-            ],
-            "type": "string",
             "description": "目标账号状态。管理员禁用/停用/封禁账户请使用 suspended；inactive 仅表示账号未完成激活",
-            "example": "suspended"
+            "example": "suspended",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserStatusSwagger"
+              }
+            ]
           }
         },
         "required": [

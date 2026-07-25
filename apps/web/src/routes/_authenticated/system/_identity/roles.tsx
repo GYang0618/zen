@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { roleDataScopeSchema, roleStatusSchema } from '@zen/shared'
 import { KeyRound } from 'lucide-react'
 import { z } from 'zod'
 
@@ -8,8 +9,11 @@ const rolesSearchSchema = z.object({
   keyword: z.string().trim().min(1).optional().catch(undefined),
   page: z.coerce.number().int().positive().optional().catch(undefined),
   pageSize: z.coerce.number().int().positive().max(100).optional().catch(undefined),
-  status: z.array(z.string()).optional().catch(undefined),
-  dataScope: z.array(z.string()).optional().catch(undefined)
+  status: z.union([roleStatusSchema, roleStatusSchema.array()]).optional().catch(undefined),
+  dataScope: z
+    .union([roleDataScopeSchema, roleDataScopeSchema.array()])
+    .optional()
+    .catch(undefined)
 })
 
 export const Route = createFileRoute('/_authenticated/system/_identity/roles')({

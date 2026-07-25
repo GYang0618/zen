@@ -273,7 +273,8 @@ export const MessageBranchPage = ({ className, ...props }: MessageBranchPageProp
 
 export type MessageResponseProps = ComponentProps<typeof Streamdown>
 
-const streamdownPlugins = { cjk, code, math, mermaid }
+/** unified v10/v11 在 monorepo 中并存时，@streamdown/* 与 streamdown 的 PluginConfig 类型会冲突 */
+const streamdownPlugins = { cjk, code, math, mermaid } as MessageResponseProps['plugins']
 
 export const MessageResponse = memo(
   ({ className, ...props }: MessageResponseProps) => (

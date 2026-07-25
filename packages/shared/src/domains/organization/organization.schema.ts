@@ -128,3 +128,20 @@ export type MoveOrganization = z.infer<typeof moveOrganizationSchema>
 export type DeleteOrganizations = z.infer<typeof deleteOrganizationsSchema>
 export type Organization = z.infer<typeof organizationSchema>
 export type OrganizationTreeNode = Organization & { children: OrganizationTreeNode[] }
+
+/** 组织树节点（含递归 children），用于 API 结果校验与生成式 UI 解析 */
+export const organizationTreeNodeSchema: z.ZodType<OrganizationTreeNode> = z.lazy(() =>
+  organizationSchema.extend({
+    children: z.array(organizationTreeNodeSchema)
+  })
+)
+
+export const organizationTreeSchema = z.array(organizationTreeNodeSchema)
+
+/** 前端定位组织树节点（打开页面并选中 / 关键字过滤） */
+export const organizationFocusSchema = z.object({
+  id: z.string().trim().min(1).optional().describe('要选中的组织 ID'),
+  keyword: z.string().trim().optional().describe('按组织名称或编码过滤树节点')
+})
+
+export type OrganizationFocus = z.input<typeof organizationFocusSchema>

@@ -3,6 +3,7 @@ export const MODULE_NAVIGATION_RULES = `
 ## 模块列表
 - 用户管理：/system/users
 - 角色管理：/system/roles
+- 组织架构：/system/organization
 - 三维场景（BIM）： /bim
 
 ## 模块导航规则
