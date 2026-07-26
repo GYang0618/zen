@@ -18,12 +18,12 @@ export function ActivityPage() {
   const resolvedMainTab = mainTab === 'audit' && !canAudit ? 'sessions' : mainTab
 
   return (
-    <SettingsShell className="max-w-5xl">
+    <SettingsShell>
       <SettingsPageHeader
         title="安全动态"
         description={
           canAudit
-            ? '管理活跃登录会话，并查询租户操作审计与登录历史。'
+            ? '管理活跃登录会话，并查询您的操作审计与安全历史。'
             : '查看并管理当前账号的活跃登录会话与设备。'
         }
       />
@@ -34,22 +34,23 @@ export function ActivityPage() {
           onValueChange={(value) => setMainTab(value as MainTab)}
           className="gap-4"
         >
-          <TabsList>
-            <TabsTrigger value="sessions">
-              <MonitorSmartphone data-icon="inline-start" />
+          <TabsList variant="line" className="w-full justify-start border-b rounded-none p-0 h-10 gap-6">
+            <TabsTrigger value="sessions" className="gap-2 px-1">
+              <MonitorSmartphone className="size-4" />
               登录会话
             </TabsTrigger>
-            <TabsTrigger value="audit">
-              <ShieldAlert data-icon="inline-start" />
+            <TabsTrigger value="audit" className="gap-2 px-1">
+              <ShieldAlert className="size-4" />
               操作审计
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="sessions" className="mt-0">
+
+          <TabsContent value="sessions" className="mt-4">
             <SessionsPanel />
           </TabsContent>
 
-          <TabsContent value="audit" className="mt-0">
+          <TabsContent value="audit" className="mt-4">
             <AuditPanel />
           </TabsContent>
         </Tabs>
@@ -59,3 +60,4 @@ export function ActivityPage() {
     </SettingsShell>
   )
 }
+

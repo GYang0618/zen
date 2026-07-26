@@ -35,7 +35,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           <span className="sr-only">打开菜单</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[160px]">
+      <DropdownMenuContent align="end" className="w-40">
         <Can permission={PermissionCode.ROLE_UPDATE}>
           <DropdownMenuItem
             disabled={isSuperAdmin}

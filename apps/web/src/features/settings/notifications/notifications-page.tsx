@@ -15,17 +15,17 @@ const CHANNELS: NotifyChannel[] = [
   {
     key: 'email',
     title: '邮件通知',
-    description: '通过注册邮箱接收安全预警、账单与系统消息。'
+    description: '通过绑定的注册邮箱接收安全预警、重要异动与通知。'
   },
   {
     key: 'push',
     title: '推送通知',
-    description: '在已登录客户端接收实时推送提醒。'
+    description: '在已登录的浏览器客户端接收实时消息推送。'
   },
   {
     key: 'sms',
     title: '短信通知',
-    description: '高风险操作或异地登录时通过短信触达（可能产生费用）。'
+    description: '进行高风险敏感操作或异常登录时触发短信触达。'
   }
 ]
 
@@ -54,67 +54,62 @@ export function NotificationsPage() {
   return (
     <SettingsShell>
       <SettingsPageHeader
-        title="通知与消息偏好"
-        description="控制系统通知推送渠道，选择希望接收提醒的方式。"
+        title="通知与消息"
+        description="配置您希望接收系统消息的推送渠道与提醒方式。"
       />
 
-      <form
-        className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-xs"
-        onSubmit={(event) => {
-          event.preventDefault()
-          updateMe.mutate({
-            preferences: {
-              notifyByEmail: email,
-              notifyByPush: push,
-              notifyBySms: sms
-            }
-          })
-        }}
-      >
-        <div className="space-y-6 p-6">
-          <h3 className="text-base font-semibold">推送渠道</h3>
-
-          {isLoading || !me ? (
-            <div className="space-y-4">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {CHANNELS.map((channel, index) => (
-                <div
-                  key={channel.key}
-                  className={
-                    index === 0
-                      ? 'flex items-center justify-between gap-4'
-                      : 'flex items-center justify-between gap-4 border-t border-border pt-4'
-                  }
-                >
-                  <div className="space-y-0.5">
-                    <Label htmlFor={`notify-${channel.key}`} className="text-sm font-medium">
-                      {channel.title}
-                    </Label>
-                    <p className="text-xs text-muted-foreground">{channel.description}</p>
-                  </div>
-                  <Switch
-                    id={`notify-${channel.key}`}
-                    checked={values[channel.key]}
-                    onCheckedChange={setters[channel.key]}
-                    aria-label={channel.title}
-                  />
+      {isLoading || !me ? (
+        <div className="space-y-4">
+          <Skeleton className="h-16 w-full rounded-lg" />
+          <Skeleton className="h-16 w-full rounded-lg" />
+          <Skeleton className="h-16 w-full rounded-lg" />
+        </div>
+      ) : (
+        <form
+          className="space-y-8"
+          onSubmit={(event) => {
+            event.preventDefault()
+            updateMe.mutate({
+              preferences: {
+                notifyByEmail: email,
+                notifyByPush: push,
+                notifyBySms: sms
+              }
+            })
+          }}
+        >
+          <div className="space-y-4 rounded-lg border p-4">
+            {CHANNELS.map((channel, index) => (
+              <div
+                key={channel.key}
+                className={
+                  index === 0
+                    ? 'flex items-center justify-between gap-4'
+                    : 'flex items-center justify-between gap-4 border-t pt-4'
+                }
+              >
+                <div className="space-y-0.5">
+                  <Label htmlFor={`notify-${channel.key}`} className="text-sm font-medium">
+                    {channel.title}
+                  </Label>
+                  <p className="text-[0.8rem] text-muted-foreground">{channel.description}</p>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                <Switch
+                  id={`notify-${channel.key}`}
+                  checked={values[channel.key]}
+                  onCheckedChange={setters[channel.key]}
+                  aria-label={channel.title}
+                />
+              </div>
+            ))}
+          </div>
 
-        <div className="flex justify-end bg-muted/40 px-6 py-3.5">
           <Button type="submit" disabled={updateMe.isPending || isLoading}>
-            {updateMe.isPending ? '保存中…' : '保存通知偏好'}
+            {updateMe.isPending ? '保存中…' : '保存通知设置'}
           </Button>
-        </div>
-      </form>
+        </form>
+      )}
     </SettingsShell>
   )
 }
+

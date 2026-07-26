@@ -208,8 +208,8 @@ export function PermissionMatrix({
   return (
     <div className="flex min-h-0 flex-col gap-4">
       <div className="flex flex-col justify-between gap-3 rounded-xl border bg-card p-3 shadow-sm md:flex-row md:items-center">
-        <div className="relative min-w-[220px] flex-1">
-          <Search className="pointer-events-none absolute start-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        <div className="relative min-w-55 flex-1">
+          <Search className="pointer-events-none absolute inset-s-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}

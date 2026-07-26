@@ -6,17 +6,16 @@ export function AppearancePage() {
   return (
     <SettingsShell>
       <SettingsPageHeader
-        title="外观与界面偏好"
-        description="自定义视觉主题、侧边栏形态与布局模式。"
+        title="外观偏好"
+        description="自定义系统的视觉主题模式 (日间/夜间/跟随系统)、侧边栏形态及界面布局。"
       />
 
-      <section className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
-        <div className="space-y-8 p-6">
-          <ThemeConfig size="lg" />
-          <SidebarConfig size="lg" />
-          <LayoutConfig size="lg" />
-        </div>
-      </section>
+      <div className="space-y-8">
+        <ThemeConfig size="lg" />
+        <SidebarConfig size="lg" />
+        <LayoutConfig size="lg" />
+      </div>
     </SettingsShell>
   )
 }
+

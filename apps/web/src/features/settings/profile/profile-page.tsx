@@ -9,7 +9,7 @@ import {
   Skeleton,
   Textarea
 } from '@zen/ui'
-import { Briefcase, Building2, Shield } from 'lucide-react'
+import { Briefcase, Building2, CheckCircle2, Shield } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { SettingsPageHeader } from '@/features/settings/components/settings-page-header'
@@ -18,7 +18,7 @@ import { useMeQuery, useUpdateMeMutation } from '@/features/settings/queries'
 
 function getInitials(value: string) {
   const normalized = value.trim()
-  if (!normalized) return '—'
+  if (!normalized) return 'U'
   const parts = normalized.split(/\s+/).filter(Boolean)
   if (parts.length >= 2) {
     return `${parts[0]!.slice(0, 1)}${parts[1]!.slice(0, 1)}`.toUpperCase()
@@ -57,141 +57,149 @@ export function ProfilePage() {
     <SettingsShell>
       <SettingsPageHeader
         title="个人资料"
-        description="管理您的个人身份信息、系统角色及联系方式。"
+        description="管理您的个人身份标识、展示名称、头像及公开联系方式。"
       />
 
       {isLoading || !me ? (
-        <div className="space-y-4">
-          <Skeleton className="h-28 w-full rounded-xl" />
-          <Skeleton className="h-64 w-full rounded-xl" />
+        <div className="space-y-6">
+          <Skeleton className="h-24 w-full rounded-lg" />
+          <Skeleton className="h-64 w-full rounded-lg" />
         </div>
       ) : (
-        <>
-          <section className="rounded-xl border border-border bg-card p-6 shadow-xs">
-            <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
-              <Avatar className="size-20 ring-2 ring-border">
+        <form
+          className="space-y-8"
+          onSubmit={(event) => {
+            event.preventDefault()
+            updateMe.mutate({
+              nickname: nickname.trim() || undefined,
+              phoneNumber: phoneNumber.trim() ? phoneNumber.trim() : null,
+              bio: bio.trim() ? bio.trim() : null,
+              avatar: avatar.trim() ? avatar.trim() : null
+            })
+          }}
+        >
+          {/* Avatar Preview & Base Info Header */}
+          <div className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between bg-card/50">
+            <div className="flex items-center gap-4">
+              <Avatar className="size-16 border border-border shadow-xs">
                 <AvatarImage src={avatar || undefined} alt={displayName} />
-                <AvatarFallback className="text-lg">{getInitials(displayName)}</AvatarFallback>
+                <AvatarFallback className="text-base font-semibold bg-primary/10 text-primary">
+                  {getInitials(displayName)}
+                </AvatarFallback>
               </Avatar>
-
-              <div className="min-w-0 flex-1 space-y-2.5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-xl font-bold tracking-tight">{displayName}</h2>
-                  <Badge variant="secondary">@{me.profile.username}</Badge>
-                  {me.account.isVerified ? (
-                    <Badge
-                      variant="outline"
-                      className="gap-1.5 text-emerald-700 dark:text-emerald-400"
-                    >
-                      <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden />
-                      已认证
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-base text-foreground">{displayName}</h3>
+                  <Badge variant="secondary" className="font-mono text-xs">
+                    @{me.profile.username}
+                  </Badge>
+                  {me.account.isVerified && (
+                    <Badge variant="outline" className="gap-1 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
+                      <CheckCircle2 className="size-3" />
+                      已验证
                     </Badge>
-                  ) : null}
+                  )}
                 </div>
-
-                <div className="flex flex-wrap items-center gap-2 text-xs">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   {roleNames.map((name) => (
-                    <Badge key={name} variant="outline" className="gap-1.5 font-medium">
-                      <Shield className="size-3 text-muted-foreground" aria-hidden />
-                      {name}
-                    </Badge>
+                    <span key={name} className="inline-flex items-center gap-1">
+                      <Shield className="size-3" /> {name}
+                    </span>
                   ))}
-                  {orgLabel ? (
-                    <Badge variant="outline" className="gap-1.5 font-medium">
-                      <Building2 className="size-3 text-muted-foreground" aria-hidden />
-                      {orgLabel}
-                    </Badge>
-                  ) : null}
-                  {me.org.jobTitle ? (
-                    <Badge variant="outline" className="gap-1.5 font-medium">
-                      <Briefcase className="size-3 text-muted-foreground" aria-hidden />
-                      {me.org.jobTitle}
-                    </Badge>
-                  ) : null}
+                  {orgLabel && (
+                    <span className="inline-flex items-center gap-1">
+                      <Building2 className="size-3" /> {orgLabel}
+                    </span>
+                  )}
+                  {me.org.jobTitle && (
+                    <span className="inline-flex items-center gap-1">
+                      <Briefcase className="size-3" /> {me.org.jobTitle}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
-          </section>
+          </div>
 
-          <form
-            className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-xs"
-            onSubmit={(event) => {
-              event.preventDefault()
-              updateMe.mutate({
-                nickname: nickname.trim() || undefined,
-                phoneNumber: phoneNumber.trim() ? phoneNumber.trim() : null,
-                bio: bio.trim() ? bio.trim() : null,
-                avatar: avatar.trim() ? avatar.trim() : null
-              })
-            }}
-          >
-            <div className="space-y-4 p-6">
-              <h3 className="text-base font-semibold">详细联系信息</h3>
+          {/* Profile Form Fields */}
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="username">用户名</Label>
+              <Input id="username" value={me.profile.username} disabled className="bg-muted/50" />
+              <p className="text-[0.8rem] text-muted-foreground">
+                这是您在系统内的公共识别凭证，不可变更。
+              </p>
+            </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="nickname">昵称</Label>
-                  <Input
-                    id="nickname"
-                    value={nickname}
-                    onChange={(e) => setNickname(e.target.value)}
-                    maxLength={50}
-                    placeholder="显示名称"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="username">用户名</Label>
-                  <Input id="username" value={me.profile.username} disabled />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">邮箱</Label>
-                  <Input id="email" type="email" value={me.contact.email} disabled />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">联系手机</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder="+86 ..."
-                  />
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="avatar">头像 URL</Label>
-                  <Input
-                    id="avatar"
-                    type="url"
-                    value={avatar}
-                    onChange={(e) => setAvatar(e.target.value)}
-                    placeholder="https://"
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="nickname">显示名称 / 昵称</Label>
+              <Input
+                id="nickname"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                maxLength={50}
+                placeholder="例如：张三"
+              />
+              <p className="text-[0.8rem] text-muted-foreground">
+                这是您在团队界面、协作列表及日志中公开显示的姓名。
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="email">电子邮箱</Label>
+                <Input id="email" type="email" value={me.contact.email} disabled className="bg-muted/50" />
+                <p className="text-[0.8rem] text-muted-foreground">用于接收重要消息提醒。</p>
               </div>
 
-              <div className="space-y-2 pt-2">
-                <Label htmlFor="bio">个人简介</Label>
-                <Textarea
-                  id="bio"
-                  rows={3}
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  maxLength={160}
-                  className="resize-none"
-                  placeholder="简短介绍，将显示在团队协作与审批列表中"
+              <div className="space-y-2">
+                <Label htmlFor="phone">联系手机</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="+86 13800000000"
                 />
-                <p className="text-xs text-muted-foreground">上限 160 字。</p>
+                <p className="text-[0.8rem] text-muted-foreground">选填，用于安全紧急触达。</p>
               </div>
             </div>
 
-            <div className="flex items-center justify-end bg-muted/40 px-6 py-3.5">
-              <Button type="submit" disabled={updateMe.isPending}>
-                {updateMe.isPending ? '保存中…' : '保存基本信息'}
-              </Button>
+            <div className="space-y-2">
+              <Label htmlFor="avatar">头像图片 URL</Label>
+              <Input
+                id="avatar"
+                type="url"
+                value={avatar}
+                onChange={(e) => setAvatar(e.target.value)}
+                placeholder="https://example.com/avatar.png"
+              />
+              <p className="text-[0.8rem] text-muted-foreground">
+                提供公网可访问的图片链接以替换默认头像。
+              </p>
             </div>
-          </form>
-        </>
+
+            <div className="space-y-2">
+              <Label htmlFor="bio">个人简介 / 备注</Label>
+              <Textarea
+                id="bio"
+                rows={3}
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                maxLength={160}
+                className="resize-none"
+                placeholder="填写一句话简介，展示在组织成员名片中…"
+              />
+              <p className="text-[0.8rem] text-muted-foreground">简短描述，字数上限 160 字。</p>
+            </div>
+          </div>
+
+          <Button type="submit" disabled={updateMe.isPending}>
+            {updateMe.isPending ? '保存中…' : '更新个人资料'}
+          </Button>
+        </form>
       )}
     </SettingsShell>
   )
 }
+

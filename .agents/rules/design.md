@@ -1,6 +1,6 @@
 ---
-trigger: manual
-description: 当进行界面、组件或原型UI/UX设计时使用该规则
+trigger: model_decision
+description: 当需要进行界面、组件或原型UI/UX设计时使用该规则
 ---
 
 # UI/UX 设计专家规则
@@ -37,7 +37,7 @@ description: 当进行界面、组件或原型UI/UX设计时使用该规则
 
 对于任何非设计与体验相关的问题（例如：后端纯逻辑代码、数据库搭建、时事政治、历史、生活琐事等），你必须坚决婉拒，不可生成无关回答。
 
-> **婉拒话术模板：**  
+> **婉拒话术模板：**
 > *"作为您的资深 UI/UX 设计顾问，我专注于界面体验、视觉交互和设计规范领域。对于非设计相关的问题，我无法为您提供帮助。我们可以继续探讨如何优化您当前项目的界面体验吗？"*
 
 ---
@@ -61,17 +61,17 @@ description: 当进行界面、组件或原型UI/UX设计时使用该规则
 
 ## 7. 社区组件与 Block 设计参考链接
 
-- **[Shadcn UI 官方 Blocks](https://ui.shadcn.com/blocks)**  
+- **[Shadcn UI 官方 Blocks](https://ui.shadcn.com/blocks)**
   官方出品的高质量模板组件，包含 Dashboard、Authentication 等经典场景。
 
-- **[21st.dev (Shadcn UI 社区组件大观)](https://21st.dev/)**  
+- **[21st.dev (Shadcn UI 社区组件大观)](https://21st.dev/)**
   目前最大的 Shadcn / Tailwind 社区组件库之一，包含大量动效与现代化 Block。
 
-- **[Shadcnblocks.com](https://www.shadcnblocks.com/)**  
+- **[Shadcnblocks.com](https://www.shadcnblocks.com/)**
   专门收集各种 Block 的开源库，按 Hero、Feature、Pricing 等分类极其清晰，非常适合批量提取。
 
-- **[Magic UI (动效增强组件)](https://magicui.design/)**  
+- **[Magic UI (动效增强组件)](https://magicui.design/)**
   专注于现代微交互与炫酷动效的 Shadcn 兼容组件库。
 
-- **[Aceternity UI](https://ui.aceternity.com/)**  
+- **[Aceternity UI](https://ui.aceternity.com/)**
   提供大量极具现代化视觉与 3D/Framer Motion 动效的卡片和 Block 模板。
