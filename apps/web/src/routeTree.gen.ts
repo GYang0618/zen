@@ -44,6 +44,7 @@ import { Route as AuthenticatedWorkbenchBimRouteImport } from './routes/_authent
 import { Route as AuthenticatedSystemIdentityRouteRouteImport } from './routes/_authenticated/system/_identity/route'
 import { Route as AuthenticatedOtherSettingsRouteRouteImport } from './routes/_authenticated/_other/settings/route'
 import { Route as AuthenticatedSystemIdentityUsersRouteImport } from './routes/_authenticated/system/_identity/users'
+import { Route as AuthenticatedSystemIdentityRolesV2RouteImport } from './routes/_authenticated/system/_identity/roles-v2'
 import { Route as AuthenticatedSystemIdentityRolesRouteImport } from './routes/_authenticated/system/_identity/roles'
 import { Route as AuthenticatedSystemIdentityOrganizationRouteImport } from './routes/_authenticated/system/_identity/organization'
 import { Route as AuthenticatedOtherSettingsProfileRouteImport } from './routes/_authenticated/_other/settings/profile'
@@ -242,6 +243,12 @@ const AuthenticatedSystemIdentityUsersRoute =
     path: '/users',
     getParentRoute: () => AuthenticatedSystemIdentityRouteRoute,
   } as any)
+const AuthenticatedSystemIdentityRolesV2Route =
+  AuthenticatedSystemIdentityRolesV2RouteImport.update({
+    id: '/roles-v2',
+    path: '/roles-v2',
+    getParentRoute: () => AuthenticatedSystemIdentityRouteRoute,
+  } as any)
 const AuthenticatedSystemIdentityRolesRoute =
   AuthenticatedSystemIdentityRolesRouteImport.update({
     id: '/roles',
@@ -328,6 +335,7 @@ export interface FileRoutesByFullPath {
   '/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
   '/system/organization': typeof AuthenticatedSystemIdentityOrganizationRoute
   '/system/roles': typeof AuthenticatedSystemIdentityRolesRoute
+  '/system/roles-v2': typeof AuthenticatedSystemIdentityRolesV2Route
   '/system/users': typeof AuthenticatedSystemIdentityUsersRoute
   '/system/users/$userId': typeof AuthenticatedSystemIdentityUsersUserIdRoute
 }
@@ -368,6 +376,7 @@ export interface FileRoutesByTo {
   '/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
   '/system/organization': typeof AuthenticatedSystemIdentityOrganizationRoute
   '/system/roles': typeof AuthenticatedSystemIdentityRolesRoute
+  '/system/roles-v2': typeof AuthenticatedSystemIdentityRolesV2Route
   '/system/users': typeof AuthenticatedSystemIdentityUsersRoute
   '/system/users/$userId': typeof AuthenticatedSystemIdentityUsersUserIdRoute
 }
@@ -414,6 +423,7 @@ export interface FileRoutesById {
   '/_authenticated/_other/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
   '/_authenticated/system/_identity/organization': typeof AuthenticatedSystemIdentityOrganizationRoute
   '/_authenticated/system/_identity/roles': typeof AuthenticatedSystemIdentityRolesRoute
+  '/_authenticated/system/_identity/roles-v2': typeof AuthenticatedSystemIdentityRolesV2Route
   '/_authenticated/system/_identity/users': typeof AuthenticatedSystemIdentityUsersRoute
   '/_authenticated/system/_identity/users_/$userId': typeof AuthenticatedSystemIdentityUsersUserIdRoute
 }
@@ -456,6 +466,7 @@ export interface FileRouteTypes {
     | '/settings/profile'
     | '/system/organization'
     | '/system/roles'
+    | '/system/roles-v2'
     | '/system/users'
     | '/system/users/$userId'
   fileRoutesByTo: FileRoutesByTo
@@ -496,6 +507,7 @@ export interface FileRouteTypes {
     | '/settings/profile'
     | '/system/organization'
     | '/system/roles'
+    | '/system/roles-v2'
     | '/system/users'
     | '/system/users/$userId'
   id:
@@ -541,6 +553,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_other/settings/profile'
     | '/_authenticated/system/_identity/organization'
     | '/_authenticated/system/_identity/roles'
+    | '/_authenticated/system/_identity/roles-v2'
     | '/_authenticated/system/_identity/users'
     | '/_authenticated/system/_identity/users_/$userId'
   fileRoutesById: FileRoutesById
@@ -802,6 +815,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSystemIdentityUsersRouteImport
       parentRoute: typeof AuthenticatedSystemIdentityRouteRoute
     }
+    '/_authenticated/system/_identity/roles-v2': {
+      id: '/_authenticated/system/_identity/roles-v2'
+      path: '/roles-v2'
+      fullPath: '/system/roles-v2'
+      preLoaderRoute: typeof AuthenticatedSystemIdentityRolesV2RouteImport
+      parentRoute: typeof AuthenticatedSystemIdentityRouteRoute
+    }
     '/_authenticated/system/_identity/roles': {
       id: '/_authenticated/system/_identity/roles'
       path: '/roles'
@@ -982,6 +1002,7 @@ const AuthenticatedPluginsRouteRouteWithChildren =
 interface AuthenticatedSystemIdentityRouteRouteChildren {
   AuthenticatedSystemIdentityOrganizationRoute: typeof AuthenticatedSystemIdentityOrganizationRoute
   AuthenticatedSystemIdentityRolesRoute: typeof AuthenticatedSystemIdentityRolesRoute
+  AuthenticatedSystemIdentityRolesV2Route: typeof AuthenticatedSystemIdentityRolesV2Route
   AuthenticatedSystemIdentityUsersRoute: typeof AuthenticatedSystemIdentityUsersRoute
   AuthenticatedSystemIdentityUsersUserIdRoute: typeof AuthenticatedSystemIdentityUsersUserIdRoute
 }
@@ -992,6 +1013,8 @@ const AuthenticatedSystemIdentityRouteRouteChildren: AuthenticatedSystemIdentity
       AuthenticatedSystemIdentityOrganizationRoute,
     AuthenticatedSystemIdentityRolesRoute:
       AuthenticatedSystemIdentityRolesRoute,
+    AuthenticatedSystemIdentityRolesV2Route:
+      AuthenticatedSystemIdentityRolesV2Route,
     AuthenticatedSystemIdentityUsersRoute:
       AuthenticatedSystemIdentityUsersRoute,
     AuthenticatedSystemIdentityUsersUserIdRoute:

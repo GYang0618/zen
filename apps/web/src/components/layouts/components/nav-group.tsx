@@ -133,6 +133,7 @@ function SidebarMenuCollapsible({ item, href }: { item: NavCollapsible; href: st
                     external={subItem.external}
                     onNavigate={() => setOpenMobile(false)}
                   >
+                    {subItem.icon && <subItem.icon />}
                     <span>{subItem.title}</span>
                     {subItem.external && (
                       <ExternalLink className="ms-auto size-3 opacity-60" aria-hidden />
@@ -173,6 +174,7 @@ function SidebarMenuCollapsedDropdown({ item, href }: { item: NavCollapsible; hr
                 external={sub.external}
                 className={!sub.external && checkIsActive(href, sub) ? 'bg-secondary' : ''}
               >
+                {sub.icon && <sub.icon />}
                 <span className="max-w-52 text-wrap">{sub.title}</span>
                 {sub.external && <ExternalLink className="ms-auto size-3 opacity-60" aria-hidden />}
                 {sub.badge && <span className="ms-auto text-xs">{sub.badge}</span>}
