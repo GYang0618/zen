@@ -17,9 +17,7 @@
             }
           }
         },
-        "tags": [
-          "Auth"
-        ]
+        "tags": ["Auth"]
       }
     },
     "/api/auth/login": {
@@ -38,9 +36,7 @@
             }
           }
         },
-        "tags": [
-          "Auth"
-        ]
+        "tags": ["Auth"]
       }
     },
     "/api/auth/mfa/verify": {
@@ -59,9 +55,7 @@
             }
           }
         },
-        "tags": [
-          "Auth"
-        ]
+        "tags": ["Auth"]
       }
     },
     "/api/auth/mfa/setup": {
@@ -73,9 +67,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Auth"
-        ]
+        "tags": ["Auth"]
       }
     },
     "/api/auth/mfa/enable": {
@@ -87,9 +79,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Auth"
-        ]
+        "tags": ["Auth"]
       }
     },
     "/api/auth/mfa/disable": {
@@ -101,9 +91,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Auth"
-        ]
+        "tags": ["Auth"]
       }
     },
     "/api/auth/step-up": {
@@ -115,9 +103,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Auth"
-        ]
+        "tags": ["Auth"]
       }
     },
     "/api/auth/forgot-password": {
@@ -129,9 +115,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Auth"
-        ]
+        "tags": ["Auth"]
       }
     },
     "/api/auth/reset-password": {
@@ -143,9 +127,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Auth"
-        ]
+        "tags": ["Auth"]
       }
     },
     "/api/auth/change-password": {
@@ -157,9 +139,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Auth"
-        ]
+        "tags": ["Auth"]
       }
     },
     "/api/auth/refresh": {
@@ -178,9 +158,7 @@
             }
           }
         },
-        "tags": [
-          "Auth"
-        ]
+        "tags": ["Auth"]
       }
     },
     "/api/auth/logout": {
@@ -192,9 +170,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Auth"
-        ]
+        "tags": ["Auth"]
       }
     },
     "/api/auth/me": {
@@ -213,9 +189,7 @@
             }
           }
         },
-        "tags": [
-          "Auth"
-        ]
+        "tags": ["Auth"]
       },
       "patch": {
         "operationId": "AuthController_updateMe",
@@ -232,9 +206,7 @@
             }
           }
         },
-        "tags": [
-          "Auth"
-        ]
+        "tags": ["Auth"]
       }
     },
     "/api/auth/sessions": {
@@ -246,9 +218,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Auth"
-        ]
+        "tags": ["Auth"]
       }
     },
     "/api/auth/sessions/others": {
@@ -260,9 +230,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Auth"
-        ]
+        "tags": ["Auth"]
       }
     },
     "/api/auth/sessions/{id}": {
@@ -283,9 +251,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Auth"
-        ]
+        "tags": ["Auth"]
       }
     },
     "/api/user": {
@@ -351,9 +317,7 @@
           }
         ],
         "summary": "创建用户",
-        "tags": [
-          "用户管理"
-        ]
+        "tags": ["用户管理"]
       },
       "get": {
         "description": "支持关键字、状态、角色筛选及排序，返回 items 与 pagination。",
@@ -398,12 +362,7 @@
               "type": "array",
               "items": {
                 "type": "string",
-                "enum": [
-                  "active",
-                  "inactive",
-                  "pending",
-                  "suspended"
-                ]
+                "enum": ["active", "inactive", "pending", "suspended"]
               }
             }
           },
@@ -426,12 +385,7 @@
             "in": "query",
             "description": "排序字段",
             "schema": {
-              "enum": [
-                "username",
-                "email",
-                "jobTitle",
-                "createdAt"
-              ],
+              "enum": ["username", "email", "jobTitle", "createdAt"],
               "type": "string"
             }
           },
@@ -441,10 +395,7 @@
             "in": "query",
             "description": "排序方向",
             "schema": {
-              "enum": [
-                "asc",
-                "desc"
-              ],
+              "enum": ["asc", "desc"],
               "type": "string"
             }
           }
@@ -497,9 +448,7 @@
           }
         ],
         "summary": "分页查询用户列表",
-        "tags": [
-          "用户管理"
-        ]
+        "tags": ["用户管理"]
       },
       "delete": {
         "description": "逻辑删除指定用户，禁止删除当前登录用户自身。需要二次确认令牌。",
@@ -563,9 +512,7 @@
           }
         ],
         "summary": "批量软删除用户",
-        "tags": [
-          "用户管理"
-        ]
+        "tags": ["用户管理"]
       }
     },
     "/api/user/{id}": {
@@ -632,9 +579,7 @@
           }
         ],
         "summary": "获取用户详情",
-        "tags": [
-          "用户管理"
-        ]
+        "tags": ["用户管理"]
       },
       "patch": {
         "description": "按 ID 更新用户资料；若传入 password 将重新哈希存储。",
@@ -709,9 +654,7 @@
           }
         ],
         "summary": "更新用户",
-        "tags": [
-          "用户管理"
-        ]
+        "tags": ["用户管理"]
       }
     },
     "/api/user/restore": {
@@ -777,9 +720,7 @@
           }
         ],
         "summary": "批量恢复已软删除用户",
-        "tags": [
-          "用户管理"
-        ]
+        "tags": ["用户管理"]
       }
     },
     "/api/user/status": {
@@ -845,9 +786,7 @@
           }
         ],
         "summary": "批量更新用户状态",
-        "tags": [
-          "用户管理"
-        ]
+        "tags": ["用户管理"]
       }
     },
     "/api/user/{id}/unlock": {
@@ -911,9 +850,7 @@
           }
         ],
         "summary": "解锁用户账号",
-        "tags": [
-          "用户管理"
-        ]
+        "tags": ["用户管理"]
       }
     },
     "/api/user/{id}/reset-password": {
@@ -935,9 +872,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "password"
-                ],
+                "required": ["password"],
                 "properties": {
                   "password": {
                     "type": "string"
@@ -999,9 +934,7 @@
           }
         ],
         "summary": "管理员重置用户密码并可选强制改密",
-        "tags": [
-          "用户管理"
-        ]
+        "tags": ["用户管理"]
       }
     },
     "/api/user/{id}/roles": {
@@ -1025,9 +958,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "roleIds"
-                ],
+                "required": ["roleIds"],
                 "properties": {
                   "roleIds": {
                     "type": "array",
@@ -1088,9 +1019,7 @@
           }
         ],
         "summary": "覆盖式分配用户角色",
-        "tags": [
-          "用户管理"
-        ]
+        "tags": ["用户管理"]
       }
     },
     "/api/user/{id}/organizations": {
@@ -1114,17 +1043,13 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "organizations"
-                ],
+                "required": ["organizations"],
                 "properties": {
                   "organizations": {
                     "type": "array",
                     "items": {
                       "type": "object",
-                      "required": [
-                        "organizationId"
-                      ],
+                      "required": ["organizationId"],
                       "properties": {
                         "organizationId": {
                           "type": "string"
@@ -1192,9 +1117,7 @@
           }
         ],
         "summary": "覆盖式同步用户组织归属",
-        "tags": [
-          "用户管理"
-        ]
+        "tags": ["用户管理"]
       }
     },
     "/api/user/hard": {
@@ -1260,9 +1183,7 @@
           }
         ],
         "summary": "批量物理删除用户",
-        "tags": [
-          "用户管理"
-        ]
+        "tags": ["用户管理"]
       }
     },
     "/api/health": {
@@ -1274,9 +1195,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Health"
-        ]
+        "tags": ["Health"]
       }
     },
     "/api/metrics": {
@@ -1288,9 +1207,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Health"
-        ]
+        "tags": ["Health"]
       }
     },
     "/api/role": {
@@ -1339,9 +1256,7 @@
           }
         ],
         "summary": "创建角色",
-        "tags": [
-          "角色管理"
-        ]
+        "tags": ["角色管理"]
       },
       "get": {
         "description": "支持关键字、状态、数据范围筛选。",
@@ -1388,9 +1303,7 @@
           }
         ],
         "summary": "分页查询角色列表",
-        "tags": [
-          "角色管理"
-        ]
+        "tags": ["角色管理"]
       },
       "delete": {
         "description": "禁止删除系统内置角色或仍有成员的角色。",
@@ -1448,9 +1361,7 @@
           }
         ],
         "summary": "批量删除角色",
-        "tags": [
-          "角色管理"
-        ]
+        "tags": ["角色管理"]
       }
     },
     "/api/role/permissions": {
@@ -1499,9 +1410,7 @@
           }
         ],
         "summary": "获取权限列表",
-        "tags": [
-          "角色管理"
-        ]
+        "tags": ["角色管理"]
       }
     },
     "/api/role/{id}": {
@@ -1560,9 +1469,7 @@
           }
         ],
         "summary": "获取角色详情",
-        "tags": [
-          "角色管理"
-        ]
+        "tags": ["角色管理"]
       },
       "patch": {
         "description": "更新角色基础信息与权限。",
@@ -1619,9 +1526,7 @@
           }
         ],
         "summary": "更新角色",
-        "tags": [
-          "角色管理"
-        ]
+        "tags": ["角色管理"]
       }
     },
     "/api/role/{id}/clone": {
@@ -1680,9 +1585,7 @@
           }
         ],
         "summary": "克隆角色",
-        "tags": [
-          "角色管理"
-        ]
+        "tags": ["角色管理"]
       }
     },
     "/api/role/{id}/members": {
@@ -1741,9 +1644,7 @@
           }
         ],
         "summary": "查询角色关联用户",
-        "tags": [
-          "角色管理"
-        ]
+        "tags": ["角色管理"]
       },
       "post": {
         "description": "将指定用户追加绑定到当前角色。",
@@ -1811,9 +1712,7 @@
           }
         ],
         "summary": "绑定用户到角色",
-        "tags": [
-          "角色管理"
-        ]
+        "tags": ["角色管理"]
       }
     },
     "/api/role/{id}/members/{userId}": {
@@ -1881,9 +1780,7 @@
           }
         ],
         "summary": "解绑角色用户",
-        "tags": [
-          "角色管理"
-        ]
+        "tags": ["角色管理"]
       }
     },
     "/api/role/{id}/permissions": {
@@ -1953,9 +1850,7 @@
           }
         ],
         "summary": "分配角色权限",
-        "tags": [
-          "角色管理"
-        ]
+        "tags": ["角色管理"]
       }
     },
     "/api/organization/tree": {
@@ -2003,9 +1898,7 @@
           }
         ],
         "summary": "获取组织树",
-        "tags": [
-          "组织管理"
-        ]
+        "tags": ["组织管理"]
       }
     },
     "/api/organization/posts": {
@@ -2032,9 +1925,7 @@
           }
         ],
         "summary": "岗位列表",
-        "tags": [
-          "组织管理"
-        ]
+        "tags": ["组织管理"]
       },
       "post": {
         "operationId": "OrganizationController_createPost",
@@ -2050,9 +1941,7 @@
           }
         ],
         "summary": "创建岗位",
-        "tags": [
-          "组织管理"
-        ]
+        "tags": ["组织管理"]
       }
     },
     "/api/organization/posts/{postId}": {
@@ -2079,9 +1968,7 @@
           }
         ],
         "summary": "更新岗位",
-        "tags": [
-          "组织管理"
-        ]
+        "tags": ["组织管理"]
       },
       "delete": {
         "operationId": "OrganizationController_deletePost",
@@ -2106,9 +1993,7 @@
           }
         ],
         "summary": "删除岗位",
-        "tags": [
-          "组织管理"
-        ]
+        "tags": ["组织管理"]
       }
     },
     "/api/organization/{id}/members": {
@@ -2135,9 +2020,7 @@
           }
         ],
         "summary": "组织成员列表",
-        "tags": [
-          "组织管理"
-        ]
+        "tags": ["组织管理"]
       },
       "post": {
         "operationId": "OrganizationController_upsertMember",
@@ -2162,9 +2045,7 @@
           }
         ],
         "summary": "添加或更新组织成员",
-        "tags": [
-          "组织管理"
-        ]
+        "tags": ["组织管理"]
       }
     },
     "/api/organization/{id}/members/{userId}": {
@@ -2199,9 +2080,7 @@
           }
         ],
         "summary": "移除组织成员",
-        "tags": [
-          "组织管理"
-        ]
+        "tags": ["组织管理"]
       }
     },
     "/api/organization/{id}": {
@@ -2259,9 +2138,7 @@
           }
         ],
         "summary": "获取组织详情",
-        "tags": [
-          "组织管理"
-        ]
+        "tags": ["组织管理"]
       },
       "patch": {
         "operationId": "OrganizationController_update",
@@ -2317,9 +2194,7 @@
           }
         ],
         "summary": "更新组织",
-        "tags": [
-          "组织管理"
-        ]
+        "tags": ["组织管理"]
       }
     },
     "/api/organization": {
@@ -2367,9 +2242,7 @@
           }
         ],
         "summary": "创建组织",
-        "tags": [
-          "组织管理"
-        ]
+        "tags": ["组织管理"]
       },
       "delete": {
         "operationId": "OrganizationController_remove",
@@ -2415,9 +2288,7 @@
           }
         ],
         "summary": "批量删除组织（无子节点且无成员）",
-        "tags": [
-          "组织管理"
-        ]
+        "tags": ["组织管理"]
       }
     },
     "/api/organization/{id}/move": {
@@ -2475,9 +2346,7 @@
           }
         ],
         "summary": "移动组织（变更父节点并重算 path）",
-        "tags": [
-          "组织管理"
-        ]
+        "tags": ["组织管理"]
       }
     },
     "/api/dict": {
@@ -2525,9 +2394,7 @@
           }
         ],
         "summary": "获取全部字典类型及条目",
-        "tags": [
-          "系统字典"
-        ]
+        "tags": ["系统字典"]
       }
     },
     "/api/dict/{code}": {
@@ -2584,9 +2451,7 @@
           }
         ],
         "summary": "按类型编码获取字典项",
-        "tags": [
-          "系统字典"
-        ]
+        "tags": ["系统字典"]
       }
     },
     "/api/dict/types": {
@@ -2634,9 +2499,7 @@
           }
         ],
         "summary": "创建字典类型",
-        "tags": [
-          "系统字典"
-        ]
+        "tags": ["系统字典"]
       }
     },
     "/api/dict/items": {
@@ -2684,9 +2547,7 @@
           }
         ],
         "summary": "创建字典项",
-        "tags": [
-          "系统字典"
-        ]
+        "tags": ["系统字典"]
       }
     },
     "/api/audit": {
@@ -2734,9 +2595,7 @@
           }
         ],
         "summary": "分页查询操作审计",
-        "tags": [
-          "操作审计"
-        ]
+        "tags": ["操作审计"]
       }
     },
     "/api/audit/login-events": {
@@ -2784,9 +2643,7 @@
           }
         ],
         "summary": "分页查询登录历史",
-        "tags": [
-          "操作审计"
-        ]
+        "tags": ["操作审计"]
       }
     },
     "/api/system/config/public": {
@@ -2804,9 +2661,7 @@
           }
         ],
         "summary": "公开站点配置（启动拉取）",
-        "tags": [
-          "系统配置"
-        ]
+        "tags": ["系统配置"]
       }
     },
     "/api/system/config": {
@@ -2854,9 +2709,7 @@
           }
         ],
         "summary": "获取站点配置",
-        "tags": [
-          "系统配置"
-        ]
+        "tags": ["系统配置"]
       },
       "patch": {
         "operationId": "ConfigController_update",
@@ -2902,9 +2755,7 @@
           }
         ],
         "summary": "更新站点配置",
-        "tags": [
-          "系统配置"
-        ]
+        "tags": ["系统配置"]
       }
     },
     "/api/plugins": {
@@ -2952,9 +2803,7 @@
           }
         ],
         "summary": "列出编译期插件与安装状态",
-        "tags": [
-          "插件管理"
-        ]
+        "tags": ["插件管理"]
       }
     },
     "/api/plugins/active-ids": {
@@ -3002,9 +2851,7 @@
           }
         ],
         "summary": "当前租户已启用插件 ID（供前端菜单过滤）",
-        "tags": [
-          "插件管理"
-        ]
+        "tags": ["插件管理"]
       }
     },
     "/api/plugins/{id}/activate": {
@@ -3062,9 +2909,7 @@
           }
         ],
         "summary": "启用插件",
-        "tags": [
-          "插件管理"
-        ]
+        "tags": ["插件管理"]
       }
     },
     "/api/plugins/{id}/deactivate": {
@@ -3122,9 +2967,7 @@
           }
         ],
         "summary": "停用插件",
-        "tags": [
-          "插件管理"
-        ]
+        "tags": ["插件管理"]
       }
     },
     "/api/plugins/{id}/config": {
@@ -3182,9 +3025,7 @@
           }
         ],
         "summary": "更新插件配置（含 Feature Flag）",
-        "tags": [
-          "插件管理"
-        ]
+        "tags": ["插件管理"]
       }
     },
     "/api/demo/notes": {
@@ -3202,9 +3043,7 @@
           }
         ],
         "summary": "便签列表",
-        "tags": [
-          "演示便签"
-        ]
+        "tags": ["演示便签"]
       },
       "post": {
         "operationId": "NoteController_create",
@@ -3220,9 +3059,7 @@
           }
         ],
         "summary": "创建便签",
-        "tags": [
-          "演示便签"
-        ]
+        "tags": ["演示便签"]
       }
     },
     "/api/demo/notes/{id}": {
@@ -3249,9 +3086,7 @@
           }
         ],
         "summary": "便签详情",
-        "tags": [
-          "演示便签"
-        ]
+        "tags": ["演示便签"]
       },
       "patch": {
         "operationId": "NoteController_update",
@@ -3276,9 +3111,7 @@
           }
         ],
         "summary": "更新便签",
-        "tags": [
-          "演示便签"
-        ]
+        "tags": ["演示便签"]
       },
       "delete": {
         "operationId": "NoteController_remove",
@@ -3303,9 +3136,7 @@
           }
         ],
         "summary": "删除便签",
-        "tags": [
-          "演示便签"
-        ]
+        "tags": ["演示便签"]
       }
     },
     "/api/notifications": {
@@ -3323,9 +3154,7 @@
           }
         ],
         "summary": "我的通知列表",
-        "tags": [
-          "通知中心"
-        ]
+        "tags": ["通知中心"]
       },
       "post": {
         "operationId": "NotificationController_create",
@@ -3341,9 +3170,7 @@
           }
         ],
         "summary": "创建通知",
-        "tags": [
-          "通知中心"
-        ]
+        "tags": ["通知中心"]
       }
     },
     "/api/notifications/{id}/read": {
@@ -3370,9 +3197,7 @@
           }
         ],
         "summary": "标记通知已读",
-        "tags": [
-          "通知中心"
-        ]
+        "tags": ["通知中心"]
       }
     },
     "/api/files": {
@@ -3390,9 +3215,7 @@
           }
         ],
         "summary": "我的文件列表",
-        "tags": [
-          "文件管理"
-        ]
+        "tags": ["文件管理"]
       },
       "post": {
         "operationId": "FileController_create",
@@ -3408,9 +3231,7 @@
           }
         ],
         "summary": "创建文件元数据",
-        "tags": [
-          "文件管理"
-        ]
+        "tags": ["文件管理"]
       }
     },
     "/api/files/{id}": {
@@ -3437,9 +3258,7 @@
           }
         ],
         "summary": "删除文件（软删除）",
-        "tags": [
-          "文件管理"
-        ]
+        "tags": ["文件管理"]
       }
     },
     "/api/jobs": {
@@ -3457,9 +3276,7 @@
           }
         ],
         "summary": "任务列表",
-        "tags": [
-          "任务中心"
-        ]
+        "tags": ["任务中心"]
       },
       "post": {
         "operationId": "JobController_create",
@@ -3475,9 +3292,7 @@
           }
         ],
         "summary": "创建任务",
-        "tags": [
-          "任务中心"
-        ]
+        "tags": ["任务中心"]
       }
     },
     "/api/jobs/{id}": {
@@ -3504,9 +3319,7 @@
           }
         ],
         "summary": "任务详情",
-        "tags": [
-          "任务中心"
-        ]
+        "tags": ["任务中心"]
       }
     },
     "/api/chat": {
@@ -3518,9 +3331,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Chat"
-        ]
+        "tags": ["Chat"]
       }
     },
     "/api/copilot/{path}": {
@@ -3529,96 +3340,136 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
-        "tags": [
-          "Copilot"
-        ]
+        "tags": ["Copilot"]
       },
       "post": {
         "operationId": "CopilotController_call_post",
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
-        "tags": [
-          "Copilot"
-        ]
+        "tags": ["Copilot"]
       },
       "put": {
         "operationId": "CopilotController_call_put",
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
-        "tags": [
-          "Copilot"
-        ]
+        "tags": ["Copilot"]
       },
       "delete": {
         "operationId": "CopilotController_call_delete",
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
-        "tags": [
-          "Copilot"
-        ]
+        "tags": ["Copilot"]
       },
       "patch": {
         "operationId": "CopilotController_call_patch",
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
-        "tags": [
-          "Copilot"
-        ]
+        "tags": ["Copilot"]
       },
       "options": {
         "operationId": "CopilotController_call_options",
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
-        "tags": [
-          "Copilot"
-        ]
+        "tags": ["Copilot"]
       },
       "head": {
         "operationId": "CopilotController_call_head",
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
-        "tags": [
-          "Copilot"
-        ]
+        "tags": ["Copilot"]
       },
       "search": {
         "operationId": "CopilotController_call_search",
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
           }
         },
-        "tags": [
-          "Copilot"
-        ]
+        "tags": ["Copilot"]
       }
     }
   },
@@ -3674,11 +3525,7 @@
             "example": "13800138000"
           }
         },
-        "required": [
-          "username",
-          "email",
-          "password"
-        ]
+        "required": ["username", "email", "password"]
       },
       "UserListItemSwaggerDto": {
         "type": "object",
@@ -3723,12 +3570,7 @@
           "status": {
             "type": "string",
             "description": "账号状态",
-            "enum": [
-              "active",
-              "inactive",
-              "pending",
-              "suspended"
-            ],
+            "enum": ["active", "inactive", "pending", "suspended"],
             "example": "active"
           },
           "role": {
@@ -3749,9 +3591,7 @@
           },
           "permissions": {
             "description": "权限标识列表",
-            "example": [
-              "user:read"
-            ],
+            "example": ["user:read"],
             "type": "array",
             "items": {
               "type": "string"
@@ -3812,13 +3652,7 @@
             "$ref": "#/components/schemas/UserListItemSwaggerDto"
           }
         },
-        "required": [
-          "code",
-          "message",
-          "traceId",
-          "timestamp",
-          "data"
-        ]
+        "required": ["code", "message", "traceId", "timestamp", "data"]
       },
       "ApiErrorDetailSwaggerDto": {
         "type": "object",
@@ -3841,11 +3675,7 @@
             "description": "堆栈信息（生产环境通常为空）"
           }
         },
-        "required": [
-          "name",
-          "message",
-          "stack"
-        ]
+        "required": ["name", "message", "stack"]
       },
       "ApiErrorResponseSwaggerDto": {
         "type": "object",
@@ -3886,12 +3716,16 @@
           },
           "fieldErrors": {
             "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
             "nullable": true,
             "description": "按字段分组的校验错误",
             "example": {
-              "email": [
-                "无效的邮箱格式"
-              ]
+              "email": ["无效的邮箱格式"]
             }
           },
           "formErrors": {
@@ -3939,12 +3773,7 @@
             "example": 10
           }
         },
-        "required": [
-          "total",
-          "totalPages",
-          "page",
-          "pageSize"
-        ]
+        "required": ["total", "totalPages", "page", "pageSize"]
       },
       "UserListDataSwaggerDto": {
         "type": "object",
@@ -3959,10 +3788,7 @@
             "$ref": "#/components/schemas/PageMetaSwaggerDto"
           }
         },
-        "required": [
-          "items",
-          "pagination"
-        ]
+        "required": ["items", "pagination"]
       },
       "UserListSuccessSwaggerDto": {
         "type": "object",
@@ -3991,13 +3817,7 @@
             "$ref": "#/components/schemas/UserListDataSwaggerDto"
           }
         },
-        "required": [
-          "code",
-          "message",
-          "traceId",
-          "timestamp",
-          "data"
-        ]
+        "required": ["code", "message", "traceId", "timestamp", "data"]
       },
       "UserProfileSwaggerDto": {
         "type": "object",
@@ -4024,22 +3844,12 @@
           "gender": {
             "type": "string",
             "description": "性别",
-            "enum": [
-              "male",
-              "female",
-              "unknown"
-            ],
+            "enum": ["male", "female", "unknown"],
             "nullable": true,
             "example": "unknown"
           }
         },
-        "required": [
-          "username",
-          "nickname",
-          "realName",
-          "avatar",
-          "gender"
-        ]
+        "required": ["username", "nickname", "realName", "avatar", "gender"]
       },
       "UserContactSwaggerDto": {
         "type": "object",
@@ -4054,10 +3864,7 @@
             "example": "13800138000"
           }
         },
-        "required": [
-          "email",
-          "phoneNumber"
-        ]
+        "required": ["email", "phoneNumber"]
       },
       "RoleInfoSwaggerDto": {
         "type": "object",
@@ -4079,10 +3886,7 @@
             "nullable": true
           },
           "permissions": {
-            "example": [
-              "user:read",
-              "user:write"
-            ],
+            "example": ["user:read", "user:write"],
             "type": "array",
             "items": {
               "type": "string"
@@ -4094,10 +3898,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "active",
-              "disabled"
-            ],
+            "enum": ["active", "disabled"],
             "example": "active"
           },
           "sort": {
@@ -4130,18 +3931,14 @@
         "type": "object",
         "properties": {
           "roles": {
-            "example": [
-              "admin"
-            ],
+            "example": ["admin"],
             "type": "array",
             "items": {
               "type": "string"
             }
           },
           "permissions": {
-            "example": [
-              "user:read"
-            ],
+            "example": ["user:read"],
             "type": "array",
             "items": {
               "type": "string"
@@ -4154,11 +3951,7 @@
             }
           }
         },
-        "required": [
-          "roles",
-          "permissions",
-          "roleDetails"
-        ]
+        "required": ["roles", "permissions", "roleDetails"]
       },
       "UserOrgSwaggerDto": {
         "type": "object",
@@ -4176,23 +3969,14 @@
             "nullable": true
           }
         },
-        "required": [
-          "deptId",
-          "deptName",
-          "jobTitle"
-        ]
+        "required": ["deptId", "deptName", "jobTitle"]
       },
       "UserAccountSwaggerDto": {
         "type": "object",
         "properties": {
           "status": {
             "type": "string",
-            "enum": [
-              "active",
-              "inactive",
-              "pending",
-              "suspended"
-            ]
+            "enum": ["active", "inactive", "pending", "suspended"]
           },
           "isVerified": {
             "type": "boolean",
@@ -4211,13 +3995,7 @@
             "nullable": true
           }
         },
-        "required": [
-          "status",
-          "isVerified",
-          "isLocked",
-          "lockReason",
-          "lockExpireAt"
-        ]
+        "required": ["status", "isVerified", "isLocked", "lockReason", "lockExpireAt"]
       },
       "UserSecuritySwaggerDto": {
         "type": "object",
@@ -4227,12 +4005,7 @@
           },
           "mfaType": {
             "type": "string",
-            "enum": [
-              "totp",
-              "sms",
-              "email",
-              "off"
-            ],
+            "enum": ["totp", "sms", "email", "off"],
             "nullable": true,
             "example": "off"
           },
@@ -4270,11 +4043,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "email",
-          "push",
-          "sms"
-        ]
+        "required": ["email", "push", "sms"]
       },
       "UserDashboardSwaggerDto": {
         "type": "object",
@@ -4291,10 +4060,7 @@
             }
           }
         },
-        "required": [
-          "defaultView",
-          "widgets"
-        ]
+        "required": ["defaultView", "widgets"]
       },
       "UserPreferencesSwaggerDto": {
         "type": "object",
@@ -4309,11 +4075,7 @@
           },
           "theme": {
             "type": "string",
-            "enum": [
-              "light",
-              "dark",
-              "system"
-            ],
+            "enum": ["light", "dark", "system"],
             "example": "system"
           },
           "notifications": {
@@ -4329,13 +4091,7 @@
             ]
           }
         },
-        "required": [
-          "locale",
-          "timezone",
-          "theme",
-          "notifications",
-          "dashboard"
-        ]
+        "required": ["locale", "timezone", "theme", "notifications", "dashboard"]
       },
       "UserAuditSwaggerDto": {
         "type": "object",
@@ -4460,13 +4216,7 @@
             "$ref": "#/components/schemas/UserInfoSwaggerDto"
           }
         },
-        "required": [
-          "code",
-          "message",
-          "traceId",
-          "timestamp",
-          "data"
-        ]
+        "required": ["code", "message", "traceId", "timestamp", "data"]
       },
       "DeleteUsersSwaggerDto": {
         "type": "object",
@@ -4474,18 +4224,14 @@
           "ids": {
             "description": "要操作的用户 ID 列表，至少 1 个",
             "minItems": 1,
-            "example": [
-              "f47ac10b-58cc-4372-a567-0e02b2c3d479"
-            ],
+            "example": ["f47ac10b-58cc-4372-a567-0e02b2c3d479"],
             "type": "array",
             "items": {
               "type": "string"
             }
           }
         },
-        "required": [
-          "ids"
-        ]
+        "required": ["ids"]
       },
       "UserListItemArraySuccessSwaggerDto": {
         "type": "object",
@@ -4517,22 +4263,11 @@
             }
           }
         },
-        "required": [
-          "code",
-          "message",
-          "traceId",
-          "timestamp",
-          "data"
-        ]
+        "required": ["code", "message", "traceId", "timestamp", "data"]
       },
       "UserStatusSwagger": {
         "type": "string",
-        "enum": [
-          "active",
-          "inactive",
-          "pending",
-          "suspended"
-        ],
+        "enum": ["active", "inactive", "pending", "suspended"],
         "description": "目标账号状态。管理员禁用/停用/封禁账户请使用 suspended；inactive 仅表示账号未完成激活"
       },
       "UpdateUsersStatusSwaggerDto": {
@@ -4541,9 +4276,7 @@
           "ids": {
             "description": "要更新状态的用户 ID 列表，至少 1 个",
             "minItems": 1,
-            "example": [
-              "f47ac10b-58cc-4372-a567-0e02b2c3d479"
-            ],
+            "example": ["f47ac10b-58cc-4372-a567-0e02b2c3d479"],
             "type": "array",
             "items": {
               "type": "string"
@@ -4559,10 +4292,7 @@
             ]
           }
         },
-        "required": [
-          "ids",
-          "status"
-        ]
+        "required": ["ids", "status"]
       },
       "UpdateUserSwaggerDto": {
         "type": "object",
@@ -4626,13 +4356,7 @@
             "$ref": "#/components/schemas/UserListItemSwaggerDto"
           }
         },
-        "required": [
-          "code",
-          "message",
-          "traceId",
-          "timestamp",
-          "data"
-        ]
+        "required": ["code", "message", "traceId", "timestamp", "data"]
       }
     }
   }

@@ -26,9 +26,10 @@ import type { AppConfig, LoggerConfig } from '@/config'
               res.setHeader(TRACE_ID_HEADER, traceId)
               return traceId
             },
-            customProps: (req: IncomingMessage & { id?: string }) => ({
-              traceId: req.id
-            }),
+            customProps: (req: IncomingMessage) => {
+              const id = (req as IncomingMessage & { id?: string | number }).id
+              return { traceId: id }
+            },
             transport: isProduction
               ? undefined
               : {

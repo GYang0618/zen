@@ -31,12 +31,13 @@
   },
   "dependencies": {
     "@zen/shared": "workspace:*",
-    "zod": "^4.3.6"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/node": "^22.15.3",
-    "typescript": "~5.9.3",
-    "vitest": "^3.2.4"
+    "@types/node": "^26.1.1",
+    "@typescript/native": "npm:typescript@7.0.2",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "vitest": "^4.1.10"
   },
-  "packageManager": "pnpm@10.33.0"
+  "packageManager": "pnpm@11.17.0"
 }

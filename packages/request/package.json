@@ -12,14 +12,15 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.33.0",
+  "packageManager": "pnpm@11.17.0",
   "exports": {
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "axios": "^1.14.0"
+    "axios": "^1.18.1"
   },
   "devDependencies": {
-    "typescript": "^5.9.2"
+    "@typescript/native": "npm:typescript@7.0.2",
+    "typescript": "npm:@typescript/typescript6@6.0.2"
   }
 }

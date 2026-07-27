@@ -150,8 +150,7 @@ export class AuthService {
       throw new BadRequestException('未启用 MFA')
     }
 
-    const { authenticator } = await import('otplib')
-    const ok = authenticator.verify({ token: code, secret: security.mfaSecret })
+    const ok = await this.verifyTotp(code, security.mfaSecret)
     if (!ok) throw new UnauthorizedException('验证码错误')
 
     await this.membershipService.ensureDefaultMembership(payload.sub)
@@ -171,22 +170,25 @@ export class AuthService {
   async setupMfa(userId: string): Promise<{ secret: string; otpauthUrl: string }> {
     const user = await this.userService.findOne({ id: userId })
     if (!user) throw new UnauthorizedException('用户不存在')
-    const { authenticator } = await import('otplib')
-    const secret = authenticator.generateSecret()
+    const { generateSecret, generateURI } = await import('otplib')
+    const secret = generateSecret()
     await this.userService.ensureUserDomainData(userId)
     await this.prisma.userSecurity.update({
       where: { userId },
       data: { mfaSecret: secret, mfaEnabled: false, mfaType: 'OFF' }
     })
-    const otpauthUrl = authenticator.keyuri(user.email, 'Zen Admin', secret)
+    const otpauthUrl = generateURI({
+      issuer: 'Zen Admin',
+      label: user.email,
+      secret
+    })
     return { secret, otpauthUrl }
   }
 
   async enableMfa(userId: string, code: string): Promise<void> {
     const security = await this.prisma.userSecurity.findUnique({ where: { userId } })
     if (!security?.mfaSecret) throw new BadRequestException('请先获取 MFA 密钥')
-    const { authenticator } = await import('otplib')
-    const ok = authenticator.verify({ token: code, secret: security.mfaSecret })
+    const ok = await this.verifyTotp(code, security.mfaSecret)
     if (!ok) throw new UnauthorizedException('验证码错误')
     await this.prisma.userSecurity.update({
       where: { userId },
@@ -199,8 +201,7 @@ export class AuthService {
     if (!security?.mfaEnabled || !security.mfaSecret) {
       throw new BadRequestException('MFA 未启用')
     }
-    const { authenticator } = await import('otplib')
-    const ok = authenticator.verify({ token: code, secret: security.mfaSecret })
+    const ok = await this.verifyTotp(code, security.mfaSecret)
     if (!ok) throw new UnauthorizedException('验证码错误')
     await this.prisma.userSecurity.update({
       where: { userId },
@@ -223,8 +224,7 @@ export class AuthService {
       if (!security?.mfaEnabled || !security.mfaSecret) {
         throw new BadRequestException('未启用 MFA，请使用密码确认')
       }
-      const { authenticator } = await import('otplib')
-      const ok = authenticator.verify({ token: input.mfaCode, secret: security.mfaSecret })
+      const ok = await this.verifyTotp(input.mfaCode, security.mfaSecret)
       if (!ok) throw new UnauthorizedException('验证码错误')
     } else {
       throw new BadRequestException('请提供密码或 MFA 验证码')
@@ -573,5 +573,11 @@ export class AuthService {
 
   private assertAccountActive(user: User) {
     if (user.status !== UserStatusCode.ACTIVE) throw new ForbiddenException('账号已被禁用')
+  }
+
+  private async verifyTotp(token: string, secret: string): Promise<boolean> {
+    const { verify } = await import('otplib')
+    const result = await verify({ token, secret })
+    return result.valid
   }
 }

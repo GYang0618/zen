@@ -5,16 +5,17 @@ packages:
 allowBuilds:
   '@nestjs/core': true
   '@prisma/engines': true
+  '@scarf/scarf': false
   argon2: true
   esbuild: true
   msw: true
   prisma: true
+  protobufjs: true
   unrs-resolver: true
 overrides:
-  fastify: 5.8.5
-  hono: ^4.12.18
-  three-mesh-bvh: 0.9.10
-  "@tanstack/router-generator>zod": ^3.25.76
+  fastify: 5.10.0
+  hono: ^4.12.32
+  three-mesh-bvh: 0.9.13
 # @hookform/resolvers 顶层 import "zod/v4/core" 但未声明 zod peer；pnpm 隔离下 Rolldown 解析失败
 packageExtensions:
   "@hookform/resolvers":

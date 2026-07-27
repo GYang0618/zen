@@ -2,10 +2,8 @@
   "files": [],
   "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }],
   "compilerOptions": {
-    "ignoreDeprecations": "5.0",
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
+      "@/*": ["./src/*"],
       "@zen/ui": ["../../packages/ui/src/index.ts"],
       "@zen/ui/*": ["../../packages/ui/src/*"],
       "@zen/request": ["../../packages/request/src/index.ts"],

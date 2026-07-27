@@ -23,10 +23,8 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
-    "ignoreDeprecations": "5.0",
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
+      "@/*": ["./src/*"],
       "@zen/ui": ["../../packages/ui/src/index.ts"],
       "@zen/ui/*": ["../../packages/ui/src/*"],
       "@zen/request": ["../../packages/request/src/index.ts"],
