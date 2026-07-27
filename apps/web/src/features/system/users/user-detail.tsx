@@ -235,7 +235,7 @@ export function UserDetail({ userId }: { userId: string }) {
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-4">
                     <Avatar className="size-16 border-2 border-background shadow-xs">
-                      <AvatarImage src={data.profile.avatarUrl ?? undefined} alt={displayName} />
+                      <AvatarImage src={data.profile.avatar ?? undefined} alt={displayName} />
                       <AvatarFallback className="bg-primary/10 text-primary font-bold text-xl">
                         {initials}
                       </AvatarFallback>
@@ -293,7 +293,7 @@ export function UserDetail({ userId }: { userId: string }) {
                           {data.security.mfaType ? `认证方式: ${data.security.mfaType}` : '增强账号安全性'}
                         </div>
                       </div>
-                      <Badge variant={data.security.mfaEnabled ? 'emerald' : 'outline'}>
+                      <Badge variant={data.security.mfaEnabled ? 'secondary' : 'outline'}>
                         {data.security.mfaEnabled ? (
                           <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                             <Check className="size-3" /> 已启用
@@ -547,7 +547,14 @@ export function UserDetail({ userId }: { userId: string }) {
                           <InfoGridItem
                             label="MFA 状态"
                             value={
-                              <Badge variant={data.security.mfaEnabled ? 'emerald' : 'outline'}>
+                              <Badge
+                                variant={data.security.mfaEnabled ? 'secondary' : 'outline'}
+                                className={
+                                  data.security.mfaEnabled
+                                    ? 'text-emerald-600 dark:text-emerald-400'
+                                    : undefined
+                                }
+                              >
                                 {data.security.mfaEnabled ? '已启用' : '未启用'}
                               </Badge>
                             }
