@@ -52,6 +52,7 @@ import { Route as AuthenticatedSystemIdentityOrganizationRouteImport } from './r
 import { Route as AuthenticatedSystemIdentityRolesRouteImport } from './routes/_authenticated/system/_identity/roles'
 import { Route as AuthenticatedSystemIdentityRolesV2RouteImport } from './routes/_authenticated/system/_identity/roles-v2'
 import { Route as AuthenticatedSystemIdentityUsersRouteImport } from './routes/_authenticated/system/_identity/users'
+import { Route as AuthenticatedSystemIdentityRolesV2IdRouteImport } from './routes/_authenticated/system/_identity/roles-v2_.$id'
 import { Route as AuthenticatedSystemIdentityUsersUserIdRouteImport } from './routes/_authenticated/system/_identity/users_.$userId'
 
 const authRouteRoute = authRouteRouteImport.update({
@@ -291,6 +292,12 @@ const AuthenticatedSystemIdentityUsersRoute =
     path: '/users',
     getParentRoute: () => AuthenticatedSystemIdentityRouteRoute,
   } as any)
+const AuthenticatedSystemIdentityRolesV2IdRoute =
+  AuthenticatedSystemIdentityRolesV2IdRouteImport.update({
+    id: '/roles-v2_/$id',
+    path: '/roles-v2/$id',
+    getParentRoute: () => AuthenticatedSystemIdentityRouteRoute,
+  } as any)
 const AuthenticatedSystemIdentityUsersUserIdRoute =
   AuthenticatedSystemIdentityUsersUserIdRouteImport.update({
     id: '/users_/$userId',
@@ -337,6 +344,7 @@ export interface FileRoutesByFullPath {
   '/system/roles': typeof AuthenticatedSystemIdentityRolesRoute
   '/system/roles-v2': typeof AuthenticatedSystemIdentityRolesV2Route
   '/system/users': typeof AuthenticatedSystemIdentityUsersRoute
+  '/system/roles-v2/$id': typeof AuthenticatedSystemIdentityRolesV2IdRoute
   '/system/users/$userId': typeof AuthenticatedSystemIdentityUsersUserIdRoute
 }
 export interface FileRoutesByTo {
@@ -378,6 +386,7 @@ export interface FileRoutesByTo {
   '/system/roles': typeof AuthenticatedSystemIdentityRolesRoute
   '/system/roles-v2': typeof AuthenticatedSystemIdentityRolesV2Route
   '/system/users': typeof AuthenticatedSystemIdentityUsersRoute
+  '/system/roles-v2/$id': typeof AuthenticatedSystemIdentityRolesV2IdRoute
   '/system/users/$userId': typeof AuthenticatedSystemIdentityUsersUserIdRoute
 }
 export interface FileRoutesById {
@@ -425,6 +434,7 @@ export interface FileRoutesById {
   '/_authenticated/system/_identity/roles': typeof AuthenticatedSystemIdentityRolesRoute
   '/_authenticated/system/_identity/roles-v2': typeof AuthenticatedSystemIdentityRolesV2Route
   '/_authenticated/system/_identity/users': typeof AuthenticatedSystemIdentityUsersRoute
+  '/_authenticated/system/_identity/roles-v2_/$id': typeof AuthenticatedSystemIdentityRolesV2IdRoute
   '/_authenticated/system/_identity/users_/$userId': typeof AuthenticatedSystemIdentityUsersUserIdRoute
 }
 export interface FileRouteTypes {
@@ -468,6 +478,7 @@ export interface FileRouteTypes {
     | '/system/roles'
     | '/system/roles-v2'
     | '/system/users'
+    | '/system/roles-v2/$id'
     | '/system/users/$userId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -509,6 +520,7 @@ export interface FileRouteTypes {
     | '/system/roles'
     | '/system/roles-v2'
     | '/system/users'
+    | '/system/roles-v2/$id'
     | '/system/users/$userId'
   id:
     | '__root__'
@@ -555,6 +567,7 @@ export interface FileRouteTypes {
     | '/_authenticated/system/_identity/roles'
     | '/_authenticated/system/_identity/roles-v2'
     | '/_authenticated/system/_identity/users'
+    | '/_authenticated/system/_identity/roles-v2_/$id'
     | '/_authenticated/system/_identity/users_/$userId'
   fileRoutesById: FileRoutesById
 }
@@ -871,6 +884,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSystemIdentityUsersRouteImport
       parentRoute: typeof AuthenticatedSystemIdentityRouteRoute
     }
+    '/_authenticated/system/_identity/roles-v2_/$id': {
+      id: '/_authenticated/system/_identity/roles-v2_/$id'
+      path: '/roles-v2/$id'
+      fullPath: '/system/roles-v2/$id'
+      preLoaderRoute: typeof AuthenticatedSystemIdentityRolesV2IdRouteImport
+      parentRoute: typeof AuthenticatedSystemIdentityRouteRoute
+    }
     '/_authenticated/system/_identity/users_/$userId': {
       id: '/_authenticated/system/_identity/users_/$userId'
       path: '/users/$userId'
@@ -1004,6 +1024,7 @@ interface AuthenticatedSystemIdentityRouteRouteChildren {
   AuthenticatedSystemIdentityRolesRoute: typeof AuthenticatedSystemIdentityRolesRoute
   AuthenticatedSystemIdentityRolesV2Route: typeof AuthenticatedSystemIdentityRolesV2Route
   AuthenticatedSystemIdentityUsersRoute: typeof AuthenticatedSystemIdentityUsersRoute
+  AuthenticatedSystemIdentityRolesV2IdRoute: typeof AuthenticatedSystemIdentityRolesV2IdRoute
   AuthenticatedSystemIdentityUsersUserIdRoute: typeof AuthenticatedSystemIdentityUsersUserIdRoute
 }
 
@@ -1017,6 +1038,8 @@ const AuthenticatedSystemIdentityRouteRouteChildren: AuthenticatedSystemIdentity
       AuthenticatedSystemIdentityRolesV2Route,
     AuthenticatedSystemIdentityUsersRoute:
       AuthenticatedSystemIdentityUsersRoute,
+    AuthenticatedSystemIdentityRolesV2IdRoute:
+      AuthenticatedSystemIdentityRolesV2IdRoute,
     AuthenticatedSystemIdentityUsersUserIdRoute:
       AuthenticatedSystemIdentityUsersUserIdRoute,
   }

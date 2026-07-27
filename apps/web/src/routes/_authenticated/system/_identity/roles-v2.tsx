@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { UserRoundKey } from 'lucide-react'
 
-import { Roles } from '@/features/system/roles-v2'
+import { Roles } from '@/features/system/roles-v2/roles'
 
 export const Route = createFileRoute('/_authenticated/system/_identity/roles-v2')({
   component: Roles,
