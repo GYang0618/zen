@@ -1,16 +1,32 @@
 import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+  Badge,
   Button,
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
   Tabs,
   TabsContent,
   TabsList,
-  TabsTrigger
+  TabsTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
 } from '@zen/ui'
-import { ArrowLeft, Edit, KeyRound, Shield, Snowflake, Users } from 'lucide-react'
+import {
+  ArrowLeft,
+  Building2,
+  CalendarClock,
+  Edit,
+  KeyRound,
+  Radar,
+  Shield,
+  Snowflake,
+  Users
+} from 'lucide-react'
 
 import { AppHeader, Main } from '@/components/layouts'
 
@@ -60,11 +76,11 @@ export function RoleDetail() {
           <TabsList variant="line" className="mb-4 group-data-horizontal/tabs:h-12">
             <TabsTrigger value="permissions">
               <KeyRound className="size-3.5" aria-hidden />
-              权限矩阵
+              权限矩阵 (36)
             </TabsTrigger>
             <TabsTrigger value="users">
               <Users className="size-3.5" aria-hidden />
-              关联用户
+              关联用户 (5)
             </TabsTrigger>
             <TabsTrigger value="scope">
               <Shield className="size-3.5" aria-hidden />
@@ -80,17 +96,110 @@ export function RoleDetail() {
                 <Card>
                   <CardHeader>
                     <CardTitle>基本信息</CardTitle>
-                    <CardDescription>角色信息摘要</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex flex-col gap-2">
-                      <div className="flex justify-between items-center py-1 border-b">
-                        <span>名称</span>
-                        <span className="text-muted-foreground">超级管理员</span>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground flex items-center gap-2 ">
+                          <Building2 size={14} /> 组织
+                        </span>
+                        <span className="font-medium">阿里巴巴</span>
                       </div>
-                      <div className="flex justify-between items-center py-1  border-b">
-                        <span>标识</span>
-                        <span className="text-muted-foreground">super_admin</span>
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground flex items-center gap-2 text-sm">
+                          <CalendarClock size={14} /> 有效期至
+                        </span>
+                        <span className="font-medium">无限制</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground flex items-center gap-2 text-sm">
+                          <Radar size={14} /> 数据范围
+                        </span>
+                        <span className="font-medium">
+                          <Badge className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
+                            全部数据
+                          </Badge>
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>关联成员</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-4 flex-wrap">
+                      {[...new Array(11).fill(null)].map((_, index) => (
+                        <Tooltip key={index}>
+                          <TooltipTrigger>
+                            <Avatar key={index}>
+                              <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
+                              <AvatarFallback>Mi</AvatarFallback>
+                            </Avatar>
+                          </TooltipTrigger>
+                          <TooltipContent>Miubai</TooltipContent>
+                        </Tooltip>
+                      ))}
+                      <div className="size-8 text-muted-foreground rounded-full flex justify-center items-center">
+                        +10
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>审计日志</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-5">
+                      <div className="grid grid-cols-[24px_1fr] gap-3">
+                        <div className="relative flex justify-center pt-1.5">
+                          <span className="bg-foreground size-2.5 rounded-full"></span>
+                          <span className="bg-border absolute top-5 -bottom-5.5 w-px"></span>
+                        </div>
+                        <div>
+                          <div className="flex items-baseline justify-between gap-3">
+                            <p className="text-sm font-semibold">缪白</p>
+                            <span className="text-muted-foreground shrink-0 text-xs">今天</span>
+                          </div>
+                          <p className="text-muted-foreground mt-1 text-sm leading-6">
+                            新增了创建用户、更新用户、删除用户权限
+                          </p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-[24px_1fr] gap-3">
+                        <div className="relative flex justify-center pt-1.5">
+                          <span className="bg-muted-foreground/40 size-2.5 rounded-full"></span>
+                          <span className="bg-border absolute top-5 -bottom-5.5 w-px"></span>
+                        </div>
+                        <div>
+                          <div className="flex items-baseline justify-between gap-3">
+                            <p className="text-sm font-semibold">小哀</p>
+                            <span className="text-muted-foreground shrink-0 text-xs">昨天</span>
+                          </div>
+                          <p className="text-muted-foreground mt-1 text-sm leading-6">
+                            更新了用户信息
+                          </p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-[24px_1fr] gap-3">
+                        <div className="relative flex justify-center pt-1.5">
+                          <span className="bg-muted-foreground/40 size-2.5 rounded-full"></span>
+                        </div>
+                        <div>
+                          <div className="flex items-baseline justify-between gap-3">
+                            <p className="text-sm font-semibold">小抑</p>
+                            <span className="text-muted-foreground shrink-0 text-xs">
+                              2026-07-27
+                            </span>
+                          </div>
+                          <p className="text-muted-foreground mt-1 text-sm leading-6">
+                            添加了艾米、露丝卡等成员
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
