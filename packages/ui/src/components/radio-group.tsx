@@ -1,5 +1,3 @@
-'use client'
-
 import { cn } from '@zen/ui/lib/utils'
 import { RadioGroup as RadioGroupPrimitive } from 'radix-ui'
 

@@ -1,8 +1,21 @@
-import { Button, Tabs, TabsContent, TabsList, TabsTrigger } from '@zen/ui'
-import { ArrowLeft, KeyRound, Shield, Snowflake, Trash2, Users } from 'lucide-react'
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
+} from '@zen/ui'
+import { ArrowLeft, Edit, KeyRound, Shield, Snowflake, Users } from 'lucide-react'
 
 import { AppHeader, Main } from '@/components/layouts'
 
+import { PermissionMatrix } from './components/permission-matrix'
+import { RoleMembers } from './components/role-members'
 import { RoleScope } from './components/role-scope'
 
 export function RoleDetail() {
@@ -10,7 +23,7 @@ export function RoleDetail() {
     <>
       <AppHeader />
 
-      <Main fixed className="flex flex-1 flex-col gap-4 sm:gap-6">
+      <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-4">
             <Button variant="outline" className="size-10 rounded-full">
@@ -36,15 +49,15 @@ export function RoleDetail() {
               <Snowflake />
               冻结角色
             </Button>
-            <Button variant="destructive">
-              <Trash2 />
-              冻结角色
+            <Button variant="outline">
+              <Edit />
+              编辑信息
             </Button>
           </div>
         </div>
 
         <Tabs defaultValue="permissions" className="w-full">
-          <TabsList>
+          <TabsList variant="line" className="mb-4 group-data-horizontal/tabs:h-12">
             <TabsTrigger value="permissions">
               <KeyRound className="size-3.5" aria-hidden />
               权限矩阵
@@ -60,11 +73,34 @@ export function RoleDetail() {
           </TabsList>
           <TabsContent value="permissions">
             <div className="flex gap-6">
-              <div className="flex-1  border rounded-2xl"></div>
-              <div className="w-90 bg-muted/35 flex flex-col gap-4 rounded-[28px] border border-dashed p-3 xl:self-start"></div>
+              <div className="flex-1">
+                <PermissionMatrix />
+              </div>
+              <div className="w-90 bg-muted/35 flex flex-col gap-4 rounded-[28px] border border-dashed p-3 xl:self-start">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>基本信息</CardTitle>
+                    <CardDescription>角色信息摘要</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex justify-between items-center py-1 border-b">
+                        <span>名称</span>
+                        <span className="text-muted-foreground">超级管理员</span>
+                      </div>
+                      <div className="flex justify-between items-center py-1  border-b">
+                        <span>标识</span>
+                        <span className="text-muted-foreground">super_admin</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </TabsContent>
-          <TabsContent value="users">关联用户</TabsContent>
+          <TabsContent value="users">
+            <RoleMembers />
+          </TabsContent>
           <TabsContent value="scope">
             <RoleScope />
           </TabsContent>
