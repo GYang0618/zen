@@ -49,3 +49,6 @@ pnpm-debug.log*
 .idea/
 *.swp
 *.swo
+
+.pnpm-store
+.tanstack
