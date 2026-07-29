@@ -1,14 +1,13 @@
-import { ComingSoon } from '@/components/coming-soon'
 import { createFileRoute } from '@tanstack/react-router'
 import { Sparkle } from 'lucide-react'
 
+import { SkillsFeaturePage } from '@/features/skills'
+
 export const Route = createFileRoute('/_authenticated/ai/skills')({
-  component: ComingSoon,
+  component: SkillsFeaturePage,
   staticData: {
-    title: "技能市场",
+    title: '技能市场',
     icon: Sparkle,
-    order: 3,
+    order: 3
   }
 })
-
-

@@ -40,6 +40,7 @@ import { Route as AuthenticatedPluginsJobsRouteImport } from './routes/_authenti
 import { Route as AuthenticatedPluginsNotesRouteImport } from './routes/_authenticated/plugins/notes'
 import { Route as AuthenticatedPluginsNotificationsRouteImport } from './routes/_authenticated/plugins/notifications'
 import { Route as AuthenticatedSystemIdentityRouteRouteImport } from './routes/_authenticated/system/_identity/route'
+import { Route as AuthenticatedSystemArrayDictV2RouteImport } from './routes/_authenticated/system/array-dict-v2'
 import { Route as AuthenticatedSystemConfigRouteImport } from './routes/_authenticated/system/config'
 import { Route as AuthenticatedSystemDictRouteImport } from './routes/_authenticated/system/dict'
 import { Route as AuthenticatedSystemPluginsRouteImport } from './routes/_authenticated/system/plugins'
@@ -223,6 +224,12 @@ const AuthenticatedSystemIdentityRouteRoute =
     id: '/_identity',
     getParentRoute: () => AuthenticatedSystemRouteRoute,
   } as any)
+const AuthenticatedSystemArrayDictV2Route =
+  AuthenticatedSystemArrayDictV2RouteImport.update({
+    id: '/array-dict-v2',
+    path: '/array-dict-v2',
+    getParentRoute: () => AuthenticatedSystemRouteRoute,
+  } as any)
 const AuthenticatedSystemConfigRoute =
   AuthenticatedSystemConfigRouteImport.update({
     id: '/config',
@@ -346,6 +353,7 @@ export interface FileRoutesByFullPath {
   '/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
   '/plugins/notes': typeof AuthenticatedPluginsNotesRoute
   '/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
+  '/system/array-dict-v2': typeof AuthenticatedSystemArrayDictV2Route
   '/system/config': typeof AuthenticatedSystemConfigRoute
   '/system/dict': typeof AuthenticatedSystemDictRoute
   '/system/plugins': typeof AuthenticatedSystemPluginsRoute
@@ -390,6 +398,7 @@ export interface FileRoutesByTo {
   '/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
   '/plugins/notes': typeof AuthenticatedPluginsNotesRoute
   '/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
+  '/system/array-dict-v2': typeof AuthenticatedSystemArrayDictV2Route
   '/system/config': typeof AuthenticatedSystemConfigRoute
   '/system/dict': typeof AuthenticatedSystemDictRoute
   '/system/plugins': typeof AuthenticatedSystemPluginsRoute
@@ -439,6 +448,7 @@ export interface FileRoutesById {
   '/_authenticated/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
   '/_authenticated/plugins/notes': typeof AuthenticatedPluginsNotesRoute
   '/_authenticated/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
+  '/_authenticated/system/array-dict-v2': typeof AuthenticatedSystemArrayDictV2Route
   '/_authenticated/system/config': typeof AuthenticatedSystemConfigRoute
   '/_authenticated/system/dict': typeof AuthenticatedSystemDictRoute
   '/_authenticated/system/plugins': typeof AuthenticatedSystemPluginsRoute
@@ -486,6 +496,7 @@ export interface FileRouteTypes {
     | '/plugins/jobs'
     | '/plugins/notes'
     | '/plugins/notifications'
+    | '/system/array-dict-v2'
     | '/system/config'
     | '/system/dict'
     | '/system/plugins'
@@ -530,6 +541,7 @@ export interface FileRouteTypes {
     | '/plugins/jobs'
     | '/plugins/notes'
     | '/plugins/notifications'
+    | '/system/array-dict-v2'
     | '/system/config'
     | '/system/dict'
     | '/system/plugins'
@@ -578,6 +590,7 @@ export interface FileRouteTypes {
     | '/_authenticated/plugins/jobs'
     | '/_authenticated/plugins/notes'
     | '/_authenticated/plugins/notifications'
+    | '/_authenticated/system/array-dict-v2'
     | '/_authenticated/system/config'
     | '/_authenticated/system/dict'
     | '/_authenticated/system/plugins'
@@ -824,6 +837,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/system'
       preLoaderRoute: typeof AuthenticatedSystemIdentityRouteRouteImport
+      parentRoute: typeof AuthenticatedSystemRouteRoute
+    }
+    '/_authenticated/system/array-dict-v2': {
+      id: '/_authenticated/system/array-dict-v2'
+      path: '/array-dict-v2'
+      fullPath: '/system/array-dict-v2'
+      preLoaderRoute: typeof AuthenticatedSystemArrayDictV2RouteImport
       parentRoute: typeof AuthenticatedSystemRouteRoute
     }
     '/_authenticated/system/config': {
@@ -1097,6 +1117,7 @@ const AuthenticatedSystemIdentityRouteRouteWithChildren =
 
 interface AuthenticatedSystemRouteRouteChildren {
   AuthenticatedSystemIdentityRouteRoute: typeof AuthenticatedSystemIdentityRouteRouteWithChildren
+  AuthenticatedSystemArrayDictV2Route: typeof AuthenticatedSystemArrayDictV2Route
   AuthenticatedSystemConfigRoute: typeof AuthenticatedSystemConfigRoute
   AuthenticatedSystemDictRoute: typeof AuthenticatedSystemDictRoute
   AuthenticatedSystemPluginsRoute: typeof AuthenticatedSystemPluginsRoute
@@ -1106,6 +1127,7 @@ const AuthenticatedSystemRouteRouteChildren: AuthenticatedSystemRouteRouteChildr
   {
     AuthenticatedSystemIdentityRouteRoute:
       AuthenticatedSystemIdentityRouteRouteWithChildren,
+    AuthenticatedSystemArrayDictV2Route: AuthenticatedSystemArrayDictV2Route,
     AuthenticatedSystemConfigRoute: AuthenticatedSystemConfigRoute,
     AuthenticatedSystemDictRoute: AuthenticatedSystemDictRoute,
     AuthenticatedSystemPluginsRoute: AuthenticatedSystemPluginsRoute,
