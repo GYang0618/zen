@@ -69,21 +69,21 @@ export function DataTableToolbar<TData>({
             placeholder={searchPlaceholder}
             value={localSearch}
             onChange={(event) => setLocalSearch(event.target.value)}
-            className="h-8 w-[150px] lg:w-[250px]"
+            className="h-8 w-37.5 lg:w-62.5"
           />
         ) : searchKey ? (
           <Input
             placeholder={searchPlaceholder}
             value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ''}
             onChange={(event) => table.getColumn(searchKey)?.setFilterValue(event.target.value)}
-            className="h-8 w-[150px] lg:w-[250px]"
+            className="h-8 w-37.5 lg:w-62.5"
           />
         ) : (
           <Input
             placeholder={searchPlaceholder}
             value={table.getState().globalFilter ?? ''}
             onChange={(event) => table.setGlobalFilter(event.target.value)}
-            className="h-8 w-[150px] lg:w-[250px]"
+            className="h-8 w-37.5 lg:w-62.5"
           />
         )}
         <div className="flex gap-x-2">

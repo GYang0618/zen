@@ -112,7 +112,7 @@ export function PermissionMatrix() {
     }
   ]
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <div className=" flex gap-2 items-center">
         <InputGroup className="flex-1 h-9 rounded-full">
           <InputGroupInput placeholder="全局检索权限节点，如用户、system:user:create" />
@@ -137,12 +137,12 @@ export function PermissionMatrix() {
         </div>
       </div>
 
-      {/* <div>当前已选 22 / 36项 </div> */}
+      <div className="text-sm text-muted-foreground">当前已选 22 / 36项 </div>
 
       {groups.map((group) => (
         <Card key={group.module} className="rounded-3xl">
           <CardHeader>
-            <CardTitle>用户管理</CardTitle>
+            <CardTitle>{group.module}</CardTitle>
             <CardDescription>2 / 2 项已选</CardDescription>
             <CardAction>
               <div className="flex">
@@ -176,12 +176,12 @@ export function PermissionMatrix() {
             </CardAction>
           </CardHeader>
           <CardContent>
-            <FieldGroup className="w-full grid grid-cols-1 gap-4 md:grid-cols-2">
+            <FieldGroup className="grid grid-cols-1 gap-4 @xl/content:grid-cols-2">
               {group.permissions.map((item) => (
                 <FieldLabel
                   key={item.code}
                   htmlFor={item.code}
-                  className="has-[>[data-slot=field]]:rounded-2xl"
+                  className="min-w-0 has-[>[data-slot=field]]:rounded-2xl"
                 >
                   <Field orientation="horizontal">
                     <FieldContent>

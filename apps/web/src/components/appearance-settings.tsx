@@ -1,5 +1,6 @@
-import { Button, cn, RadioGroup, useSidebar } from '@zen/ui'
+import { Button, cn, useSidebar } from '@zen/ui'
 import { CircleCheck, RotateCcw } from 'lucide-react'
+import { RadioGroup as RadioGroupPrimitive } from 'radix-ui'
 
 import {
   IconLayoutCompact,
@@ -18,7 +19,7 @@ import { useTheme } from '@/context/theme-provider'
 import type { ReactElement, SVGProps } from 'react'
 import type { Collapsible } from '@/context/layout-provider'
 
-const { Item, Root: Radio } = RadioGroup
+const { Item, Root: Radio } = RadioGroupPrimitive
 
 type AppearanceSize = 'sm' | 'lg'
 

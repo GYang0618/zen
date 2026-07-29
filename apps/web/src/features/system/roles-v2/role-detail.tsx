@@ -1,38 +1,85 @@
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
   Badge,
   Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
+  Label,
+  Separator,
+  Switch,
   Tabs,
   TabsContent,
   TabsList,
-  TabsTrigger,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger
+  TabsTrigger
 } from '@zen/ui'
 import {
   ArrowLeft,
   Building2,
   CalendarClock,
-  Edit,
+  Copy,
   KeyRound,
+  Pencil,
   Radar,
   Shield,
-  Snowflake,
   Users
 } from 'lucide-react'
 
 import { AppHeader, Main } from '@/components/layouts'
 
 import { PermissionMatrix } from './components/permission-matrix'
+import { RoleAuditTimelineCard } from './components/role-audit-timeline-card'
+import { RoleBasicInfoCard } from './components/role-basic-info-card'
 import { RoleMembers } from './components/role-members'
+import { RoleRelatedMembersCard } from './components/role-related-members-card'
 import { RoleScope } from './components/role-scope'
+
+import type { RoleBasicInfoItem } from './components/role-basic-info-card'
+import type { RoleMemberPreview } from './components/role-related-members-card'
+import type { TimelineItem } from './components/timeline'
+
+const roleBasicInfoItems: RoleBasicInfoItem[] = [
+  {
+    icon: <Building2 size={14} />,
+    label: '组织',
+    value: '阿里巴巴'
+  },
+  {
+    icon: <CalendarClock size={14} />,
+    label: '有效期至',
+    value: '无限制'
+  },
+  {
+    icon: <Radar size={14} />,
+    label: '数据范围',
+    value: (
+      <Badge className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
+        全部数据
+      </Badge>
+    )
+  }
+]
+
+const roleRelatedMembers: RoleMemberPreview[] = Array.from({ length: 11 }, (_, index) => ({
+  id: `member-${index + 1}`,
+  name: 'Miubai',
+  avatarUrl: 'https://github.com/shadcn.png',
+  fallback: 'Mi'
+}))
+
+const roleAuditTimeline: TimelineItem[] = [
+  {
+    title: '缪白',
+    timestamp: '今天',
+    description: '新增了创建用户、更新用户、删除用户权限'
+  },
+  {
+    title: '小哀',
+    timestamp: '昨天',
+    description: '更新了用户信息'
+  },
+  {
+    title: '小抑',
+    timestamp: '2026-07-27',
+    description: '添加了艾米、露丝卡等成员'
+  }
+]
 
 export function RoleDetail() {
   return (
@@ -60,14 +107,18 @@ export function RoleDetail() {
               </div>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 px-3 py-2 rounded-full border">
+              <Switch id="active" defaultChecked />
+              <Label htmlFor="active">激活</Label>
+            </div>
+            <Separator orientation="vertical" className="h-8 data-vertical:self-center" />
             <Button variant="outline">
-              <Snowflake />
-              冻结角色
+              <Pencil /> 编辑
             </Button>
+
             <Button variant="outline">
-              <Edit />
-              编辑信息
+              <Copy /> 克隆
             </Button>
           </div>
         </div>
@@ -87,132 +138,26 @@ export function RoleDetail() {
               数据边界
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="permissions">
-            <div className="flex gap-6">
-              <div className="flex-1">
+
+          <div className="flex flex-col gap-6 @5xl/content:flex-row">
+            <div className="min-w-0 flex-1">
+              <TabsContent value="permissions">
                 <PermissionMatrix />
-              </div>
-              <div className="w-90 bg-muted/35 flex flex-col gap-4 rounded-[28px] border border-dashed p-3 xl:self-start">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>基本信息</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground flex items-center gap-2 ">
-                          <Building2 size={14} /> 组织
-                        </span>
-                        <span className="font-medium">阿里巴巴</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground flex items-center gap-2 text-sm">
-                          <CalendarClock size={14} /> 有效期至
-                        </span>
-                        <span className="font-medium">无限制</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground flex items-center gap-2 text-sm">
-                          <Radar size={14} /> 数据范围
-                        </span>
-                        <span className="font-medium">
-                          <Badge className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
-                            全部数据
-                          </Badge>
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>关联成员</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center gap-4 flex-wrap">
-                      {[...new Array(11).fill(null)].map((_, index) => (
-                        <Tooltip key={index}>
-                          <TooltipTrigger>
-                            <Avatar key={index}>
-                              <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
-                              <AvatarFallback>Mi</AvatarFallback>
-                            </Avatar>
-                          </TooltipTrigger>
-                          <TooltipContent>Miubai</TooltipContent>
-                        </Tooltip>
-                      ))}
-                      <div className="size-8 text-muted-foreground rounded-full flex justify-center items-center">
-                        +10
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>审计日志</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-5">
-                      <div className="grid grid-cols-[24px_1fr] gap-3">
-                        <div className="relative flex justify-center pt-1.5">
-                          <span className="bg-foreground size-2.5 rounded-full"></span>
-                          <span className="bg-border absolute top-5 -bottom-5.5 w-px"></span>
-                        </div>
-                        <div>
-                          <div className="flex items-baseline justify-between gap-3">
-                            <p className="text-sm font-semibold">缪白</p>
-                            <span className="text-muted-foreground shrink-0 text-xs">今天</span>
-                          </div>
-                          <p className="text-muted-foreground mt-1 text-sm leading-6">
-                            新增了创建用户、更新用户、删除用户权限
-                          </p>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-[24px_1fr] gap-3">
-                        <div className="relative flex justify-center pt-1.5">
-                          <span className="bg-muted-foreground/40 size-2.5 rounded-full"></span>
-                          <span className="bg-border absolute top-5 -bottom-5.5 w-px"></span>
-                        </div>
-                        <div>
-                          <div className="flex items-baseline justify-between gap-3">
-                            <p className="text-sm font-semibold">小哀</p>
-                            <span className="text-muted-foreground shrink-0 text-xs">昨天</span>
-                          </div>
-                          <p className="text-muted-foreground mt-1 text-sm leading-6">
-                            更新了用户信息
-                          </p>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-[24px_1fr] gap-3">
-                        <div className="relative flex justify-center pt-1.5">
-                          <span className="bg-muted-foreground/40 size-2.5 rounded-full"></span>
-                        </div>
-                        <div>
-                          <div className="flex items-baseline justify-between gap-3">
-                            <p className="text-sm font-semibold">小抑</p>
-                            <span className="text-muted-foreground shrink-0 text-xs">
-                              2026-07-27
-                            </span>
-                          </div>
-                          <p className="text-muted-foreground mt-1 text-sm leading-6">
-                            添加了艾米、露丝卡等成员
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              </TabsContent>
+              <TabsContent value="users">
+                <RoleMembers />
+              </TabsContent>
+              <TabsContent value="scope">
+                <RoleScope />
+              </TabsContent>
             </div>
-          </TabsContent>
-          <TabsContent value="users">
-            <RoleMembers />
-          </TabsContent>
-          <TabsContent value="scope">
-            <RoleScope />
-          </TabsContent>
+
+            <div className="bg-muted/35 flex w-full shrink-0 flex-col gap-4 rounded-[28px] border border-dashed p-3 @5xl/content:w-90 @5xl/content:self-start">
+              <RoleBasicInfoCard items={roleBasicInfoItems} />
+              <RoleRelatedMembersCard members={roleRelatedMembers} />
+              <RoleAuditTimelineCard data={roleAuditTimeline} />
+            </div>
+          </div>
         </Tabs>
       </Main>
     </>
