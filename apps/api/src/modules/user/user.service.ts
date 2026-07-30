@@ -1,6 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { UserStatusCode } from '@prisma/client'
-import argon2 from 'argon2'
 
 import { toArray } from '@/common'
 import { applyUserListDataScope } from '@/common/auth/apply-data-scope'
@@ -9,6 +8,7 @@ import { AuthContextService } from '@/common/auth/auth-context.service'
 import { MembershipService } from '@/common/auth/membership.service'
 import { SessionService } from '@/common/auth/session.service'
 import { buildPaginationMeta, paginate } from '@/common/pagination'
+import argon2 from '@/common/utils/argon2'
 
 import { findUsersQuerySchema } from './dto/find-users-query.dto'
 import { toUserInfoResponse, toUserListItemResponse } from './user.mapper'

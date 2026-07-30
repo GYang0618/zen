@@ -9,11 +9,11 @@ import {
   UnauthorizedException
 } from '@nestjs/common'
 import { UserStatusCode } from '@prisma/client'
-import argon2 from 'argon2'
 
 import { AuthContextService } from '@/common/auth/auth-context.service'
 import { MembershipService } from '@/common/auth/membership.service'
 import { SessionService } from '@/common/auth/session.service'
+import argon2 from '@/common/utils/argon2'
 import { PrismaService } from '@/infra/prisma'
 
 import { UserService } from '../user/user.service'
