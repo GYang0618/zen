@@ -17,13 +17,6 @@ export function Organizations() {
           actions={<OrganizationsPrimaryButtons />}
         />
         <OrganizationsView />
-        {/* <OrganizationTreeCopy
-          root={organizationTree}
-          activeId={null}
-          onCreate={() => {}}
-          onMove={() => false}
-          onSelect={() => {}}
-        /> */}
       </Main>
     </OrganizationsProvider>
   )

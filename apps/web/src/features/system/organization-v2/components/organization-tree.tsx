@@ -82,8 +82,8 @@ function TreeNode({ data, onSelect }: TreeNodeProps) {
       <Item
         size="xs"
         className={cn(
-          'group/item px-2 py-1.5 hover:bg-muted/70 my-0.5',
-          isSelected && 'bg-muted/70'
+          'group/item px-2 py-1.5 hover:bg-muted/50 my-0.5',
+          isSelected && 'bg-muted/50 border-muted '
         )}
         onClick={() => onSelect?.(data)}
       >
@@ -111,9 +111,7 @@ function TreeNode({ data, onSelect }: TreeNodeProps) {
           </div>
         </ItemMedia>
         <ItemContent className="gap-0">
-          <ItemTitle>
-            {name} ({memberCount}人)
-          </ItemTitle>
+          <ItemTitle>{name}</ItemTitle>
           <ItemDescription className="text-xs">{type}</ItemDescription>
         </ItemContent>
 
