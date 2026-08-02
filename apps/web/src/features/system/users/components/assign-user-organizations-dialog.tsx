@@ -19,7 +19,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Can } from '@/components/auth/can'
-import { OrganizationPicker } from '@/features/system/components'
+import { OrganizationPicker } from '@/features/system/config/components'
 import { organizationApi } from '@/features/system/organization/api'
 
 import { useReplaceUserOrganizationsMutation } from '../mutations'

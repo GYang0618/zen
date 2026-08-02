@@ -1,6 +1,12 @@
+import { Link } from '@tanstack/react-router'
 import {
   Badge,
   Button,
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
@@ -10,64 +16,41 @@ import {
   ItemContent,
   ItemDescription,
   ItemMedia,
-  ItemTitle
+  ItemTitle,
+  Separator,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
 } from '@zen/ui'
 import {
-  Briefcase,
-  Building,
-  Building2,
   ChevronRightIcon,
-  Component,
+  ChevronsDownUp,
+  ChevronsUpDown,
   Folder,
-  FolderTree,
   GripVertical,
-  Network,
-  UserCircle,
-  Users
+  Settings
 } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 
+import { organizationIconConfig } from '../data/data'
 import { useOrganizations } from '../organizations-provider'
+import { OrganizationSideOverview } from './organizations-side-overview'
 
-import type { LucideIcon } from 'lucide-react'
 import type { Organization } from '../type'
+
+/** 与 OrganizationSideOverview 的 `w-95` 对齐 */
+const SIDE_OVERVIEW_WIDTH = '23.75rem'
+
+const sideOverviewMotion = {
+  initial: { width: 0, opacity: 0, marginLeft: 0 },
+  animate: { width: SIDE_OVERVIEW_WIDTH, opacity: 1, marginLeft: '1.5rem' },
+  exit: { width: 0, opacity: 0, marginLeft: 0 },
+  transition: { duration: 0.28, ease: [0.32, 0.72, 0, 1] as const }
+}
 
 interface TreeNodeProps {
   data: Organization
   onSelect?: (node: Organization) => void
-}
-
-const orgIconConfig: Record<string, { icon: LucideIcon; defaultColor: string }> = {
-  GROUP: { icon: Network, defaultColor: 'text-slate-700 dark:text-slate-300' },
-  COMPANY: { icon: Building2, defaultColor: 'text-blue-600 dark:text-blue-400' },
-  BRANCH: { icon: Building, defaultColor: 'text-indigo-500' },
-  CENTER: { icon: Component, defaultColor: 'text-violet-500' },
-  DEPARTMENT: { icon: FolderTree, defaultColor: 'text-amber-500' },
-  TEAM: { icon: Users, defaultColor: 'text-emerald-500' },
-  POST: { icon: Briefcase, defaultColor: 'text-rose-500' },
-  USER: { icon: UserCircle, defaultColor: 'text-slate-500' }
-}
-
-const renderOrgIcon = ({ type, className }: { type?: string; className?: string }) => {
-  // 容错处理：确保转为大写，处理空值
-  const normalizedType = (type || '').toUpperCase()
-
-  // 匹配配置，若匹配不到则使用兜底配置
-  const config = orgIconConfig[normalizedType] ?? {
-    icon: Folder,
-    defaultColor: 'text-muted-foreground'
-  }
-
-  const IconComponent = config.icon
-
-  return (
-    <IconComponent
-      className={cn(
-        'size-4 shrink-0 transition-colors', // 基础样式：固定大小、防挤压、增加颜色过渡动画
-        config.defaultColor, // 默认主题色
-        className // 允许外部传入 className 进行覆盖
-      )}
-    />
-  )
 }
 
 function TreeNode({ data, onSelect }: TreeNodeProps) {
@@ -76,6 +59,29 @@ function TreeNode({ data, onSelect }: TreeNodeProps) {
   const { currentNode } = useOrganizations()
 
   const isSelected = currentNode?.id === id
+
+  const renderOrgIcon = ({ type, className }: { type?: string; className?: string }) => {
+    // 容错处理：确保转为大写，处理空值
+    const normalizedType = (type || '').toUpperCase()
+
+    // 匹配配置，若匹配不到则使用兜底配置
+    const config = organizationIconConfig[normalizedType] ?? {
+      icon: Folder,
+      defaultColor: 'text-muted-foreground'
+    }
+
+    const IconComponent = config.icon
+
+    return (
+      <IconComponent
+        className={cn(
+          'size-4 shrink-0 transition-colors', // 基础样式：固定大小、防挤压、增加颜色过渡动画
+          config.defaultColor, // 默认主题色
+          className // 允许外部传入 className 进行覆盖
+        )}
+      />
+    )
+  }
 
   return (
     <Collapsible key={id}>
@@ -117,6 +123,29 @@ function TreeNode({ data, onSelect }: TreeNodeProps) {
 
         <ItemActions>
           <Badge className="bg-muted text-muted-foreground">{memberCount}人</Badge>
+          <Separator
+            className="h-3 opacity-0 transition-opacity duration-200 group-hover/item:opacity-100"
+            orientation="vertical"
+          />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="配置"
+                className="pointer-events-none opacity-0 transition-opacity duration-200 group-hover/item:pointer-events-auto group-hover/item:opacity-100"
+              >
+                <Link
+                  to="/system/organization-v2/$id"
+                  params={{ id }}
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <Settings />
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>配置</TooltipContent>
+          </Tooltip>
         </ItemActions>
       </Item>
 
@@ -133,18 +162,68 @@ function TreeNode({ data, onSelect }: TreeNodeProps) {
   )
 }
 
-export function OrganizationTree({
-  data,
-  onSelect
-}: {
-  data: Organization[]
-  onSelect?: (node: Organization) => void
-}) {
+export function OrganizationTree({ data }: { data: Organization[] }) {
+  const { currentNode, setCurrentNode } = useOrganizations()
+
   return (
-    <>
-      {data.map((item) => (
-        <TreeNode data={item} key={item.id} onSelect={onSelect} />
-      ))}
-    </>
+    <div className="flex">
+      <section className="min-w-0 flex-1">
+        <Card className="py-3">
+          <CardHeader>
+            <CardTitle>组织架构树</CardTitle>
+            <CardAction>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon-sm" aria-label="全部展开">
+                    <ChevronsUpDown />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>全部展开</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon-sm" aria-label="全部收起">
+                    <ChevronsDownUp />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>全部收起</TooltipContent>
+              </Tooltip>
+            </CardAction>
+          </CardHeader>
+          <CardContent className="px-2">
+            {data.map((item) => (
+              <TreeNode
+                data={item}
+                key={item.id}
+                onSelect={(node) => {
+                  if (node.id === currentNode?.id) {
+                    setCurrentNode(null)
+                  } else {
+                    setCurrentNode(node)
+                  }
+                }}
+              />
+            ))}
+          </CardContent>
+        </Card>
+      </section>
+
+      <AnimatePresence initial={false}>
+        {currentNode ? (
+          <motion.div
+            key="organization-side-overview"
+            initial={sideOverviewMotion.initial}
+            animate={sideOverviewMotion.animate}
+            exit={sideOverviewMotion.exit}
+            transition={sideOverviewMotion.transition}
+            className="shrink-0 overflow-hidden"
+          >
+            <div className="w-95">
+              <OrganizationSideOverview />
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
   )
 }

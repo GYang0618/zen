@@ -1,6 +1,6 @@
 import { cn } from '@zen/ui'
 
-import { OrganizationPicker } from '@/features/system/components'
+import { OrganizationPicker } from '@/features/system/config/components'
 
 import { dataScopeOptions } from '../data/data'
 

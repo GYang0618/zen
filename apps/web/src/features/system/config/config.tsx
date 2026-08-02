@@ -21,7 +21,7 @@ import { toast } from 'sonner'
 import { ConfigDrawer, ProfileDropdown, Search, ThemeSwitch } from '@/components'
 import { Can } from '@/components/auth/can'
 import { Header, Main } from '@/components/layouts'
-import { SystemPageHeader } from '@/features/system/components'
+import { AppPageHeader } from '@/components/layouts/app-page-header'
 
 import { useSiteConfig, useUpdateSiteConfig } from './queries'
 
@@ -59,8 +59,7 @@ export function SiteConfigPage() {
       </Header>
 
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
-        <SystemPageHeader title="站点配置" description="维护站点名称、Logo 与全局 Feature Flag" />
-
+        <AppPageHeader title="站点配置" description="维护站点名称、Logo 与全局 Feature Flag" />
         {isLoading || !data ? (
           <Skeleton className="h-72 w-full max-w-2xl rounded-xl" />
         ) : (

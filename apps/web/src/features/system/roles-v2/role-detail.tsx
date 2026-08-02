@@ -2,6 +2,12 @@ import {
   Badge,
   Button,
   Label,
+  PageHeader,
+  PageHeaderActions,
+  PageHeaderContent,
+  PageHeaderDescription,
+  PageHeaderMedia,
+  PageHeaderTitle,
   Separator,
   Switch,
   Tabs,
@@ -30,9 +36,9 @@ import { RoleMembers } from './components/role-members'
 import { RoleRelatedMembersCard } from './components/role-related-members-card'
 import { RoleScope } from './components/role-scope'
 
+import type { RoleAuditTimelineItem } from './components/role-audit-timeline-card'
 import type { RoleBasicInfoItem } from './components/role-basic-info-card'
 import type { RoleMemberPreview } from './components/role-related-members-card'
-import type { TimelineItem } from './components/timeline'
 
 const roleBasicInfoItems: RoleBasicInfoItem[] = [
   {
@@ -63,7 +69,7 @@ const roleRelatedMembers: RoleMemberPreview[] = Array.from({ length: 11 }, (_, i
   fallback: 'Mi'
 }))
 
-const roleAuditTimeline: TimelineItem[] = [
+const roleAuditTimeline: RoleAuditTimelineItem[] = [
   {
     title: '缪白',
     timestamp: '今天',
@@ -87,28 +93,30 @@ export function RoleDetail() {
       <AppHeader />
 
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-4">
-            <Button variant="outline" className="size-10 rounded-full">
-              <ArrowLeft />
-            </Button>
-            <div className="size-16 rounded-full bg-slate-100 flex items-center justify-center">
-              <Shield className="text-slate-500 dark:text-slate-50" />
-            </div>
-
-            <div className="flex min-w-0 flex-col gap-3">
-              <h1 className="text-4xl font-medium tracking-tight">超级管理员</h1>
-              <div className="flex flex-wrap items-center gap-2 text-sm">
-                <div className="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent shadow-sm bg-emerald-50 text-emerald-700 hover:bg-emerald-50">
-                  激活
-                </div>
-                <span className="text-muted-foreground">•</span>
-                <span className="text-muted-foreground">super_admin</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-3 px-3 py-2 rounded-full border">
+        <PageHeader>
+          <Button variant="outline" size="icon-lg" className="rounded-full">
+            <ArrowLeft />
+          </Button>
+          <PageHeaderMedia className="bg-slate-100 text-slate-500 dark:text-slate-50">
+            <Shield />
+          </PageHeaderMedia>
+          <PageHeaderContent>
+            <PageHeaderTitle size="lg" as="h1" className="text-4xl">
+              超级管理员
+            </PageHeaderTitle>
+            <PageHeaderDescription className="flex flex-wrap items-center gap-2 text-sm">
+              <Badge
+                variant="secondary"
+                className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50"
+              >
+                激活
+              </Badge>
+              <span>•</span>
+              <span>super_admin</span>
+            </PageHeaderDescription>
+          </PageHeaderContent>
+          <PageHeaderActions className="gap-3">
+            <div className="flex items-center gap-3 rounded-full border px-3 py-2">
               <Switch id="active" defaultChecked />
               <Label htmlFor="active">激活</Label>
             </div>
@@ -116,12 +124,11 @@ export function RoleDetail() {
             <Button variant="outline">
               <Pencil /> 编辑
             </Button>
-
             <Button variant="outline">
               <Copy /> 克隆
             </Button>
-          </div>
-        </div>
+          </PageHeaderActions>
+        </PageHeader>
 
         <Tabs defaultValue="permissions" className="w-full">
           <TabsList variant="line" className="mb-4 group-data-horizontal/tabs:h-12">

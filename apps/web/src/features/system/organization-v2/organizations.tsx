@@ -1,8 +1,9 @@
 import { AppHeader, Main } from '@/components/layouts'
-import { PageHeader } from '@/components/page-header'
+import { AppPageHeader } from '@/components/layouts/app-page-header'
 
+import { OrganizationTree } from './components/organization-tree'
 import { OrganizationsPrimaryButtons } from './components/organizations-primary-buttons'
-import { OrganizationsView } from './components/organizations-view'
+import { organizations } from './data/mock'
 import { OrganizationsProvider } from './organizations-provider'
 
 export function Organizations() {
@@ -11,12 +12,13 @@ export function Organizations() {
       <AppHeader />
 
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
-        <PageHeader
+        <AppPageHeader
           title="组织架构"
           description="企业组织架构管理，管理分公司、部门、业务中心、岗位等"
           actions={<OrganizationsPrimaryButtons />}
         />
-        <OrganizationsView />
+
+        <OrganizationTree data={organizations} />
       </Main>
     </OrganizationsProvider>
   )

@@ -1,5 +1,5 @@
 import { AppHeader, Main } from '@/components/layouts'
-import { PageHeader } from '@/components/page-header'
+import { AppPageHeader } from '@/components/layouts/app-page-header'
 
 import { RolesDialogs } from './components/roles-dialogs'
 import { RolesList } from './components/roles-list'
@@ -35,7 +35,7 @@ export function Roles() {
       <AppHeader />
 
       <Main fixed className="flex flex-1 flex-col gap-4 sm:gap-6">
-        <PageHeader
+        <AppPageHeader
           title="角色管理"
           description="管理系统中的所有角色"
           actions={<RolesPrimaryButtons />}

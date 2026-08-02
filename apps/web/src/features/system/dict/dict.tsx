@@ -27,7 +27,8 @@ import { toast } from 'sonner'
 import { ConfigDrawer, ProfileDropdown, Search, ThemeSwitch } from '@/components'
 import { Can } from '@/components/auth/can'
 import { Header, Main } from '@/components/layouts'
-import { EmptyState, SystemPageHeader } from '@/features/system/components'
+import { AppPageHeader } from '@/components/layouts/app-page-header'
+import { EmptyState } from '@/features/system/config/components'
 
 import { useCreateDictItem, useCreateDictType, useDictList } from './queries'
 
@@ -57,7 +58,7 @@ export function DictPage() {
       </Header>
 
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
-        <SystemPageHeader
+        <AppPageHeader
           title="数据字典"
           description="维护字典类型与字典项，供业务下拉与枚举复用"
           actions={

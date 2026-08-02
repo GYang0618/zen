@@ -4,7 +4,7 @@ import { Building2, ChevronRight, ChevronsDown, ChevronsUp, Plus, Search } from 
 import { useEffect, useMemo, useState } from 'react'
 
 import { Can } from '@/components/auth/can'
-import { EmptyState } from '@/features/system/components'
+import { EmptyState } from '@/features/system/config/components'
 
 import { collectExpandableIds } from './utils'
 

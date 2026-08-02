@@ -14,8 +14,8 @@ import {
 import { Search, WandSparkles } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
+import { AppPageHeader } from '@/components/layouts/app-page-header'
 import { Main } from '@/components/layouts/main'
-import { PageHeader } from '@/components/page-header'
 
 import { FeaturedSkillCard, SkillCard } from './components/skill-card'
 import { SkillDetailDialog } from './components/skill-detail-dialog'
@@ -67,7 +67,7 @@ export function SkillsFeaturePage() {
 
   return (
     <Main className="flex flex-col gap-6 py-6 @7xl/content:max-w-[1440px]">
-      <PageHeader
+      <AppPageHeader
         title="技能市场"
         description="为智能体安装可复用的专业能力。"
         actions={

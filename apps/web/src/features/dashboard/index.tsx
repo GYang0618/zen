@@ -13,6 +13,7 @@ import {
 
 import { ConfigDrawer } from '@/components/config-drawer'
 import { Header, Main, TopNav } from '@/components/layouts'
+import { AppPageHeader } from '@/components/layouts/app-page-header'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
@@ -64,12 +65,7 @@ export function Dashboard() {
           插件 Widget 槽位：启用的能力插件可通过 ContributionRegistry.widgets
           贡献工作台组件（当前为占位）。
         </div>
-        <div className="mb-2 flex items-center justify-between space-y-2">
-          <h1 className="text-2xl font-bold tracking-tight">仪表盘</h1>
-          <div className="flex items-center space-x-2">
-            <Button>导出数据</Button>
-          </div>
-        </div>
+        <AppPageHeader title="仪表盘" actions={<Button>导出数据</Button>} />
         <Tabs defaultValue="overview" className="space-y-4">
           <div className="w-full overflow-x-auto pb-2">
             <TabsList>

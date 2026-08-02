@@ -12,6 +12,11 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  PageHeader,
+  PageHeaderActions,
+  PageHeaderContent,
+  PageHeaderDescription,
+  PageHeaderTitle,
   Separator,
   Skeleton,
   Tabs,
@@ -49,7 +54,7 @@ import { toast } from 'sonner'
 import { ConfigDrawer, ProfileDropdown, Search, ThemeSwitch } from '@/components'
 import { Can } from '@/components/auth/can'
 import { Header, Main } from '@/components/layouts'
-import { EmptyState, SystemPageHeader } from '@/features/system/components'
+import { EmptyState } from '@/features/system/config/components'
 
 import { userApi } from './api'
 import { AssignUserOrganizationsDialog } from './components/assign-user-organizations-dialog'
@@ -94,7 +99,11 @@ function CopyableText({ value, label }: { value: string | null | undefined; labe
               onClick={handleCopy}
               className="inline-flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-70 transition-all hover:bg-muted hover:text-foreground hover:opacity-100 group-hover:opacity-100"
             >
-              {copied ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}
+              {copied ? (
+                <Check className="size-3.5 text-emerald-500" />
+              ) : (
+                <Copy className="size-3.5" />
+              )}
               <span className="sr-only">复制{label}</span>
             </button>
           </TooltipTrigger>
@@ -143,7 +152,9 @@ function StatusIndicator({ isLocked, status }: { isLocked: boolean; status: stri
   const isNormal = status === 'normal' || status === 'active' || status === '正常'
   return (
     <Badge variant={isNormal ? 'secondary' : 'outline'} className="gap-1.5 font-normal">
-      <span className={`size-2 rounded-full ${isNormal ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
+      <span
+        className={`size-2 rounded-full ${isNormal ? 'bg-emerald-500' : 'bg-muted-foreground'}`}
+      />
       {status || '未知状态'}
     </Badge>
   )
@@ -173,38 +184,54 @@ export function UserDetail({ userId }: { userId: string }) {
       </Header>
 
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
-        {/* Navigation & Standard System Page Header */}
         <div className="flex flex-col gap-3">
-          <Button variant="ghost" size="sm" className="w-fit -ms-2 gap-1 text-muted-foreground hover:text-foreground" asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-ms-2 w-fit gap-1 text-muted-foreground hover:text-foreground"
+            asChild
+          >
             <Link to="/system/users">
               <ArrowLeft className="size-4" />
               返回用户列表
             </Link>
           </Button>
 
-          <SystemPageHeader
-            title={displayName}
-            description="查看与管理用户基本资料、角色权限、组织归属及安全审计"
-            actions={
-              data ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <StatusIndicator isLocked={data.account.isLocked} status={data.account.status} />
-                  <Can permission={PermissionCode.ROLE_ASSIGN}>
-                    <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setRolesOpen(true)}>
-                      <Shield className="size-4" />
-                      分配角色
-                    </Button>
-                  </Can>
-                  <Can permission={PermissionCode.ORG_UPDATE}>
-                    <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setOrgsOpen(true)}>
-                      <Building2 className="size-4" />
-                      调整组织
-                    </Button>
-                  </Can>
-                </div>
-              ) : undefined
-            }
-          />
+          <PageHeader>
+            <PageHeaderContent>
+              <PageHeaderTitle>{displayName}</PageHeaderTitle>
+              <PageHeaderDescription>
+                查看与管理用户基本资料、角色权限、组织归属及安全审计
+              </PageHeaderDescription>
+            </PageHeaderContent>
+            {data ? (
+              <PageHeaderActions>
+                <StatusIndicator isLocked={data.account.isLocked} status={data.account.status} />
+                <Can permission={PermissionCode.ROLE_ASSIGN}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5"
+                    onClick={() => setRolesOpen(true)}
+                  >
+                    <Shield className="size-4" />
+                    分配角色
+                  </Button>
+                </Can>
+                <Can permission={PermissionCode.ORG_UPDATE}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5"
+                    onClick={() => setOrgsOpen(true)}
+                  >
+                    <Building2 className="size-4" />
+                    调整组织
+                  </Button>
+                </Can>
+              </PageHeaderActions>
+            ) : null}
+          </PageHeader>
         </div>
 
         {isLoading ? (
@@ -243,15 +270,21 @@ export function UserDetail({ userId }: { userId: string }) {
 
                     <div className="space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-xl font-bold tracking-tight text-foreground">{displayName}</h2>
-                        <span className="text-sm font-mono text-muted-foreground">@{data.profile.username}</span>
+                        <h2 className="text-xl font-bold tracking-tight text-foreground">
+                          {displayName}
+                        </h2>
+                        <span className="text-sm font-mono text-muted-foreground">
+                          @{data.profile.username}
+                        </span>
                       </div>
 
                       <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs text-muted-foreground">
                         {(data.org.deptName || data.org.jobTitle) && (
                           <div className="flex items-center gap-1">
                             <Briefcase className="size-3.5" />
-                            <span>{[data.org.deptName, data.org.jobTitle].filter(Boolean).join(' · ')}</span>
+                            <span>
+                              {[data.org.deptName, data.org.jobTitle].filter(Boolean).join(' · ')}
+                            </span>
                           </div>
                         )}
                         {data.contact.email && (
@@ -290,7 +323,9 @@ export function UserDetail({ userId }: { userId: string }) {
                       <div className="space-y-0.5">
                         <div className="font-medium">MFA 双因子认证</div>
                         <div className="text-xs text-muted-foreground">
-                          {data.security.mfaType ? `认证方式: ${data.security.mfaType}` : '增强账号安全性'}
+                          {data.security.mfaType
+                            ? `认证方式: ${data.security.mfaType}`
+                            : '增强账号安全性'}
                         </div>
                       </div>
                       <Badge variant={data.security.mfaEnabled ? 'secondary' : 'outline'}>
@@ -309,13 +344,17 @@ export function UserDetail({ userId }: { userId: string }) {
                         <span className="text-muted-foreground flex items-center gap-1">
                           <KeyRound className="size-3.5" /> 上次改密
                         </span>
-                        <span className="font-medium text-foreground">{formatDate(data.security.lastPasswordChange)}</span>
+                        <span className="font-medium text-foreground">
+                          {formatDate(data.security.lastPasswordChange)}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-muted-foreground flex items-center gap-1">
                           <Clock className="size-3.5" /> 最近活跃
                         </span>
-                        <span className="font-medium text-foreground">{formatDate(data.audit.lastActiveAt)}</span>
+                        <span className="font-medium text-foreground">
+                          {formatDate(data.audit.lastActiveAt)}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-muted-foreground flex items-center gap-1">
@@ -334,7 +373,9 @@ export function UserDetail({ userId }: { userId: string }) {
                           <p className="text-muted-foreground">原因: {data.account.lockReason}</p>
                         )}
                         {data.account.lockExpireAt && (
-                          <p className="text-muted-foreground">解锁时间: {formatDate(data.account.lockExpireAt)}</p>
+                          <p className="text-muted-foreground">
+                            解锁时间: {formatDate(data.account.lockExpireAt)}
+                          </p>
                         )}
                       </div>
                     )}
@@ -352,17 +393,23 @@ export function UserDetail({ userId }: { userId: string }) {
                   <CardContent className="space-y-3 text-xs">
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">创建时间</span>
-                      <span className="font-medium text-foreground">{formatDate(data.audit.createdAt)}</span>
+                      <span className="font-medium text-foreground">
+                        {formatDate(data.audit.createdAt)}
+                      </span>
                     </div>
                     <Separator />
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">最近更新</span>
-                      <span className="font-medium text-foreground">{formatDate(data.audit.updatedAt)}</span>
+                      <span className="font-medium text-foreground">
+                        {formatDate(data.audit.updatedAt)}
+                      </span>
                     </div>
                     <Separator />
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">登录重试次数</span>
-                      <span className="font-medium text-foreground">{data.security.loginAttempts ?? 0} 次</span>
+                      <span className="font-medium text-foreground">
+                        {data.security.loginAttempts ?? 0} 次
+                      </span>
                     </div>
                   </CardContent>
                 </Card>
@@ -371,7 +418,10 @@ export function UserDetail({ userId }: { userId: string }) {
               {/* Right Column: Detailed Tabs */}
               <div className="lg:col-span-2">
                 <Tabs defaultValue="profile" className="w-full">
-                  <TabsList variant="line" className="w-full justify-start border-b rounded-none p-0 h-10 gap-6">
+                  <TabsList
+                    variant="line"
+                    className="w-full justify-start border-b rounded-none p-0 h-10 gap-6"
+                  >
                     <TabsTrigger value="profile" className="gap-2 px-1">
                       <User className="size-4" />
                       基本资料
@@ -379,14 +429,20 @@ export function UserDetail({ userId }: { userId: string }) {
                     <TabsTrigger value="roles" className="gap-2 px-1">
                       <Shield className="size-4" />
                       角色权限
-                      <Badge variant="secondary" className="ms-1 size-5 p-0 justify-center rounded-full text-xs">
+                      <Badge
+                        variant="secondary"
+                        className="ms-1 size-5 p-0 justify-center rounded-full text-xs"
+                      >
                         {data.auth.roleDetails?.length || data.auth.roles?.length || 0}
                       </Badge>
                     </TabsTrigger>
                     <TabsTrigger value="orgs" className="gap-2 px-1">
                       <Building2 className="size-4" />
                       组织归属
-                      <Badge variant="secondary" className="ms-1 size-5 p-0 justify-center rounded-full text-xs">
+                      <Badge
+                        variant="secondary"
+                        className="ms-1 size-5 p-0 justify-center rounded-full text-xs"
+                      >
                         {data.organizations?.length || 0}
                       </Badge>
                     </TabsTrigger>
@@ -395,7 +451,6 @@ export function UserDetail({ userId }: { userId: string }) {
                       安全与审计
                     </TabsTrigger>
                   </TabsList>
-
 
                   {/* Tab 1: Profile Details */}
                   <TabsContent value="profile" className="mt-4 space-y-4">
@@ -406,14 +461,43 @@ export function UserDetail({ userId }: { userId: string }) {
                       </CardHeader>
                       <CardContent>
                         <div className="grid gap-3 sm:grid-cols-2">
-                          <InfoGridItem label="用户名" value={<CopyableText value={data.profile.username} label="用户名" />} icon={User} />
-                          <InfoGridItem label="昵称" value={data.profile.nickname} icon={UserCheck} />
-                          <InfoGridItem label="真实姓名" value={data.profile.realName} icon={User} />
+                          <InfoGridItem
+                            label="用户名"
+                            value={<CopyableText value={data.profile.username} label="用户名" />}
+                            icon={User}
+                          />
+                          <InfoGridItem
+                            label="昵称"
+                            value={data.profile.nickname}
+                            icon={UserCheck}
+                          />
+                          <InfoGridItem
+                            label="真实姓名"
+                            value={data.profile.realName}
+                            icon={User}
+                          />
                           <InfoGridItem label="部门" value={data.org.deptName} icon={Building2} />
                           <InfoGridItem label="职位" value={data.org.jobTitle} icon={Briefcase} />
-                          <InfoGridItem label="电子邮箱" value={<CopyableText value={data.contact.email} label="邮箱" />} icon={Mail} />
-                          <InfoGridItem label="手机号码" value={<CopyableText value={data.contact.phoneNumber} label="手机号" />} icon={Phone} />
-                          <InfoGridItem label="账号状态" value={<StatusIndicator isLocked={data.account.isLocked} status={data.account.status} />} icon={UserX} />
+                          <InfoGridItem
+                            label="电子邮箱"
+                            value={<CopyableText value={data.contact.email} label="邮箱" />}
+                            icon={Mail}
+                          />
+                          <InfoGridItem
+                            label="手机号码"
+                            value={<CopyableText value={data.contact.phoneNumber} label="手机号" />}
+                            icon={Phone}
+                          />
+                          <InfoGridItem
+                            label="账号状态"
+                            value={
+                              <StatusIndicator
+                                isLocked={data.account.isLocked}
+                                status={data.account.status}
+                              />
+                            }
+                            icon={UserX}
+                          />
                         </div>
                         {data.remark && (
                           <div className="mt-4 rounded-lg border border-border/50 bg-muted/20 p-3 text-xs">
@@ -431,21 +515,34 @@ export function UserDetail({ userId }: { userId: string }) {
                       <CardHeader className="flex flex-row items-center justify-between pb-3">
                         <div>
                           <CardTitle className="text-base">关联角色</CardTitle>
-                          <CardDescription>控制该用户在系统内的访问权限与模块访问度</CardDescription>
+                          <CardDescription>
+                            控制该用户在系统内的访问权限与模块访问度
+                          </CardDescription>
                         </div>
                         <Can permission={PermissionCode.ROLE_ASSIGN}>
-                          <Button size="sm" variant="outline" className="gap-1" onClick={() => setRolesOpen(true)}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1"
+                            onClick={() => setRolesOpen(true)}
+                          >
                             <Shield className="size-3.5" />
                             修改角色
                           </Button>
                         </Can>
                       </CardHeader>
                       <CardContent>
-                        {(data.auth.roleDetails?.length ?? 0) === 0 && data.auth.roles.length === 0 ? (
+                        {(data.auth.roleDetails?.length ?? 0) === 0 &&
+                        data.auth.roles.length === 0 ? (
                           <div className="py-8 text-center border rounded-lg border-dashed">
                             <p className="text-sm text-muted-foreground">暂无角色权限</p>
                             <Can permission={PermissionCode.ROLE_ASSIGN}>
-                              <Button size="sm" variant="link" className="mt-2" onClick={() => setRolesOpen(true)}>
+                              <Button
+                                size="sm"
+                                variant="link"
+                                className="mt-2"
+                                onClick={() => setRolesOpen(true)}
+                              >
                                 为该用户分配角色
                               </Button>
                             </Can>
@@ -468,13 +565,17 @@ export function UserDetail({ userId }: { userId: string }) {
                               >
                                 <div className="space-y-1">
                                   <div className="flex items-center justify-between gap-2">
-                                    <span className="font-semibold text-sm text-foreground">{role.name}</span>
+                                    <span className="font-semibold text-sm text-foreground">
+                                      {role.name}
+                                    </span>
                                     <Badge variant="outline" className="font-mono text-[10px]">
                                       {role.code}
                                     </Badge>
                                   </div>
                                   {role.description && (
-                                    <p className="text-xs text-muted-foreground line-clamp-2">{role.description}</p>
+                                    <p className="text-xs text-muted-foreground line-clamp-2">
+                                      {role.description}
+                                    </p>
                                   )}
                                 </div>
                               </div>
@@ -494,7 +595,12 @@ export function UserDetail({ userId }: { userId: string }) {
                           <CardDescription>查看主职与兼职的部门、岗位分配</CardDescription>
                         </div>
                         <Can permission={PermissionCode.ORG_UPDATE}>
-                          <Button size="sm" variant="outline" className="gap-1" onClick={() => setOrgsOpen(true)}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1"
+                            onClick={() => setOrgsOpen(true)}
+                          >
                             <Building2 className="size-3.5" />
                             调整组织
                           </Button>
@@ -521,7 +627,9 @@ export function UserDetail({ userId }: { userId: string }) {
                                       {org.organizationName || org.organizationId}
                                     </div>
                                     {org.postName && (
-                                      <div className="text-xs text-muted-foreground">岗位: {org.postName}</div>
+                                      <div className="text-xs text-muted-foreground">
+                                        岗位: {org.postName}
+                                      </div>
                                     )}
                                   </div>
                                 </div>
@@ -560,13 +668,35 @@ export function UserDetail({ userId }: { userId: string }) {
                             }
                             icon={ShieldCheck}
                           />
-                          <InfoGridItem label="MFA 认证类型" value={data.security.mfaType} icon={KeyRound} />
-                          <InfoGridItem label="密码过期时间" value={formatDate(data.security.passwordExpireAt)} icon={Clock} />
-                          <InfoGridItem label="上次修改密码" value={formatDate(data.security.lastPasswordChange)} icon={Clock} />
-                          <InfoGridItem label="登录失败尝试数" value={`${data.security.loginAttempts ?? 0} 次`} icon={ShieldAlert} />
+                          <InfoGridItem
+                            label="MFA 认证类型"
+                            value={data.security.mfaType}
+                            icon={KeyRound}
+                          />
+                          <InfoGridItem
+                            label="密码过期时间"
+                            value={formatDate(data.security.passwordExpireAt)}
+                            icon={Clock}
+                          />
+                          <InfoGridItem
+                            label="上次修改密码"
+                            value={formatDate(data.security.lastPasswordChange)}
+                            icon={Clock}
+                          />
+                          <InfoGridItem
+                            label="登录失败尝试数"
+                            value={`${data.security.loginAttempts ?? 0} 次`}
+                            icon={ShieldAlert}
+                          />
                           <InfoGridItem
                             label="账号锁定状态"
-                            value={data.account.isLocked ? <span className="text-destructive font-medium">已锁定</span> : '正常未锁定'}
+                            value={
+                              data.account.isLocked ? (
+                                <span className="text-destructive font-medium">已锁定</span>
+                              ) : (
+                                '正常未锁定'
+                              )
+                            }
                             icon={Lock}
                           />
                         </div>
@@ -579,11 +709,31 @@ export function UserDetail({ userId }: { userId: string }) {
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="grid gap-3 sm:grid-cols-2">
-                          <InfoGridItem label="最近登录时间" value={formatDate(data.audit.lastLoginAt)} icon={Clock} />
-                          <InfoGridItem label="最近登录 IP" value={<CopyableText value={data.audit.lastLoginIp} label="登录IP" />} icon={Globe} />
-                          <InfoGridItem label="最近活跃时间" value={formatDate(data.audit.lastActiveAt)} icon={Clock} />
-                          <InfoGridItem label="账号创建时间" value={formatDate(data.audit.createdAt)} icon={Clock} />
-                          <InfoGridItem label="信息更新时间" value={formatDate(data.audit.updatedAt)} icon={Clock} />
+                          <InfoGridItem
+                            label="最近登录时间"
+                            value={formatDate(data.audit.lastLoginAt)}
+                            icon={Clock}
+                          />
+                          <InfoGridItem
+                            label="最近登录 IP"
+                            value={<CopyableText value={data.audit.lastLoginIp} label="登录IP" />}
+                            icon={Globe}
+                          />
+                          <InfoGridItem
+                            label="最近活跃时间"
+                            value={formatDate(data.audit.lastActiveAt)}
+                            icon={Clock}
+                          />
+                          <InfoGridItem
+                            label="账号创建时间"
+                            value={formatDate(data.audit.createdAt)}
+                            icon={Clock}
+                          />
+                          <InfoGridItem
+                            label="信息更新时间"
+                            value={formatDate(data.audit.updatedAt)}
+                            icon={Clock}
+                          />
                         </div>
                       </CardContent>
                     </Card>
@@ -604,5 +754,3 @@ export function UserDetail({ userId }: { userId: string }) {
     </>
   )
 }
-
-

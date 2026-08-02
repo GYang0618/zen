@@ -5,7 +5,8 @@ import { toast } from 'sonner'
 
 import { ConfigDrawer, ConfirmDialog, ProfileDropdown, Search, ThemeSwitch } from '@/components'
 import { Header, Main } from '@/components/layouts'
-import { EmptyState, SystemPageHeader } from '@/features/system/components'
+import { AppPageHeader } from '@/components/layouts/app-page-header'
+import { EmptyState } from '@/features/system/config/components'
 
 import { RoleDetailPanel } from './components/role-detail-panel'
 import { RolesDialogs } from './components/roles-dialogs'
@@ -111,10 +112,7 @@ function RolesWorkspace() {
       </Header>
 
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
-        <SystemPageHeader
-          title="角色管理"
-          description="以主从视图配置角色权限、数据范围与关联用户"
-        />
+        <AppPageHeader title="角色管理" description="以主从视图配置角色权限、数据范围与关联用户" />
 
         <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
           <RolesSidebar

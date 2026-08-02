@@ -3,7 +3,7 @@ import { Badge, Button, cn, Input, ScrollArea, Skeleton } from '@zen/ui'
 import { Plus, Search, Shield, User } from 'lucide-react'
 
 import { Can } from '@/components/auth/can'
-import { EmptyState } from '@/features/system/components'
+import { EmptyState } from '@/features/system/config/components'
 import { getConfig } from '@/lib/config-utils'
 
 import { roleStatusConfig } from '../data/data'

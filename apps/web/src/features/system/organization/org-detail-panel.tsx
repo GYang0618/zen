@@ -23,7 +23,7 @@ import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components'
 import { Can } from '@/components/auth/can'
-import { EmptyState } from '@/features/system/components'
+import { EmptyState } from '@/features/system/config/components'
 import { userApi } from '@/features/system/users/api'
 
 import { DeptSettingsDialog } from './dept-settings-dialog'

@@ -1,7 +1,7 @@
-import { Button, Label, Skeleton, Switch } from '@zen/ui'
+import { Button, Label, Separator, Skeleton, Switch } from '@zen/ui'
 import { useEffect, useState } from 'react'
 
-import { SettingsPageHeader } from '@/features/settings/components/settings-page-header'
+import { AppPageHeader } from '@/components/layouts/app-page-header'
 import { SettingsShell } from '@/features/settings/components/settings-shell'
 import { useMeQuery, useUpdateMeMutation } from '@/features/settings/queries'
 
@@ -53,10 +53,13 @@ export function NotificationsPage() {
 
   return (
     <SettingsShell>
-      <SettingsPageHeader
-        title="通知与消息"
-        description="配置您希望接收系统消息的推送渠道与提醒方式。"
-      />
+      <div className="flex flex-col gap-6 pb-6">
+        <AppPageHeader
+          title="通知与消息"
+          description="配置您希望接收系统消息的推送渠道与提醒方式。"
+        />
+        <Separator />
+      </div>
 
       {isLoading || !me ? (
         <div className="space-y-4">
@@ -112,4 +115,3 @@ export function NotificationsPage() {
     </SettingsShell>
   )
 }
-

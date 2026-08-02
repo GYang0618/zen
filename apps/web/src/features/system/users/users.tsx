@@ -2,7 +2,7 @@ import { getRouteApi } from '@tanstack/react-router'
 
 import { ConfigDrawer, ProfileDropdown, Search, ThemeSwitch } from '@/components'
 import { Header, Main } from '@/components/layouts'
-import { SystemPageHeader } from '@/features/system/components'
+import { AppPageHeader } from '@/components/layouts/app-page-header'
 
 import { UsersDialogs } from './components/users-dialogs'
 import { UsersPrimaryButtons } from './components/users-primary-buttons'
@@ -33,7 +33,7 @@ export function Users() {
       </Header>
 
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
-        <SystemPageHeader
+        <AppPageHeader
           title="用户管理"
           description="管理系统中的所有用户，配置角色权限和组织架构"
           actions={<UsersPrimaryButtons />}

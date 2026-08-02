@@ -16,7 +16,7 @@ import { ChevronLeft, ChevronRight, History, Search, ShieldAlert } from 'lucide-
 import { useState } from 'react'
 
 import { useAuditList, useLoginEvents } from '@/features/system/audit/queries'
-import { EmptyState } from '@/features/system/components'
+import { EmptyState } from '@/features/system/config/components'
 
 import type { ReactNode } from 'react'
 

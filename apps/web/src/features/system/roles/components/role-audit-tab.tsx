@@ -2,7 +2,7 @@ import { Skeleton } from '@zen/ui'
 import { History } from 'lucide-react'
 
 import { useAuditList } from '@/features/system/audit/queries'
-import { EmptyState } from '@/features/system/components'
+import { EmptyState } from '@/features/system/config/components'
 
 type RoleAuditTabProps = {
   roleId: string

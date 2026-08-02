@@ -79,7 +79,7 @@ import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import { AppHeader, Main } from '@/components/layouts'
-import { PageHeader } from '@/components/page-header'
+import { AppPageHeader } from '@/components/layouts/app-page-header'
 
 import type { ReactNode } from 'react'
 
@@ -393,11 +393,11 @@ export function ArrayDictV2Page() {
     <>
       <AppHeader />
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
-        <PageHeader
+        <AppPageHeader
           title="数组字典 V2"
           description="独立的前端字典工作台，变更仅保留在当前会话。"
           actions={
-            <div className="flex items-center gap-2">
+            <>
               <Button variant="outline" onClick={() => setPreviewOpen(true)}>
                 <FileJson2 data-icon="inline-start" />
                 预览 JSON
@@ -406,7 +406,7 @@ export function ArrayDictV2Page() {
                 <Plus data-icon="inline-start" />
                 新建字典
               </Button>
-            </div>
+            </>
           }
         />
         <div className="grid min-w-0 gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">

@@ -6,13 +6,14 @@ import {
   Button,
   Input,
   Label,
+  Separator,
   Skeleton,
   Textarea
 } from '@zen/ui'
 import { Briefcase, Building2, CheckCircle2, Shield } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
-import { SettingsPageHeader } from '@/features/settings/components/settings-page-header'
+import { AppPageHeader } from '@/components/layouts/app-page-header'
 import { SettingsShell } from '@/features/settings/components/settings-shell'
 import { useMeQuery, useUpdateMeMutation } from '@/features/settings/queries'
 
@@ -55,10 +56,13 @@ export function ProfilePage() {
 
   return (
     <SettingsShell>
-      <SettingsPageHeader
-        title="个人资料"
-        description="管理您的个人身份标识、展示名称、头像及公开联系方式。"
-      />
+      <div className="flex flex-col gap-6 pb-6">
+        <AppPageHeader
+          title="个人资料"
+          description="管理您的个人身份标识、展示名称、头像及公开联系方式。"
+        />
+        <Separator />
+      </div>
 
       {isLoading || !me ? (
         <div className="space-y-6">
@@ -94,7 +98,10 @@ export function ProfilePage() {
                     @{me.profile.username}
                   </Badge>
                   {me.account.isVerified && (
-                    <Badge variant="outline" className="gap-1 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
+                    <Badge
+                      variant="outline"
+                      className="gap-1 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                    >
                       <CheckCircle2 className="size-3" />
                       已验证
                     </Badge>
@@ -148,7 +155,13 @@ export function ProfilePage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="email">电子邮箱</Label>
-                <Input id="email" type="email" value={me.contact.email} disabled className="bg-muted/50" />
+                <Input
+                  id="email"
+                  type="email"
+                  value={me.contact.email}
+                  disabled
+                  className="bg-muted/50"
+                />
                 <p className="text-[0.8rem] text-muted-foreground">用于接收重要消息提醒。</p>
               </div>
 
@@ -202,4 +215,3 @@ export function ProfilePage() {
     </SettingsShell>
   )
 }
-

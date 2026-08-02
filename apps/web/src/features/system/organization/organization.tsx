@@ -7,7 +7,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { ConfigDrawer, ConfirmDialog, ProfileDropdown, Search, ThemeSwitch } from '@/components'
 import { Can } from '@/components/auth/can'
 import { Header, Main } from '@/components/layouts'
-import { EmptyState, SystemPageHeader } from '@/features/system/components'
+import { AppPageHeader } from '@/components/layouts/app-page-header'
+import { EmptyState } from '@/features/system/config/components'
 
 import { Copilot } from './copilot'
 import { CreateOrganizationDialog } from './create-organization-dialog'
@@ -85,7 +86,7 @@ export function Organizations() {
       </Header>
 
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
-        <SystemPageHeader
+        <AppPageHeader
           title="组织架构"
           description="维护统一组织树、岗位编制与人员花名册"
           actions={

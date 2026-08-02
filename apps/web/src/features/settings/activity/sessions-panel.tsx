@@ -8,7 +8,7 @@ import {
   useRevokeSessionMutation,
   useSettingsSessionsQuery
 } from '@/features/settings/queries'
-import { EmptyState } from '@/features/system/components'
+import { EmptyState } from '@/features/system/config/components'
 
 import type { AuthSessionItem } from '@/features/auth/api'
 
