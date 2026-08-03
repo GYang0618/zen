@@ -27,6 +27,7 @@ import { Route as Errors404RouteImport } from './routes/errors/404'
 import { Route as Errors500RouteImport } from './routes/errors/500'
 import { Route as Errors503RouteImport } from './routes/errors/503'
 import { Route as AuthenticatedOtherSettingsRouteRouteImport } from './routes/_authenticated/_other/settings/route'
+import { Route as AuthenticatedOtherSettingsV2RouteRouteImport } from './routes/_authenticated/_other/settings-v2/route'
 import { Route as AuthenticatedWorkbenchIndexRouteImport } from './routes/_authenticated/_workbench/index'
 import { Route as AuthenticatedWorkbenchBimRouteImport } from './routes/_authenticated/_workbench/bim'
 import { Route as AuthenticatedWorkbenchChatRouteImport } from './routes/_authenticated/_workbench/chat'
@@ -44,6 +45,11 @@ import { Route as AuthenticatedSystemArrayDictV2RouteImport } from './routes/_au
 import { Route as AuthenticatedSystemConfigRouteImport } from './routes/_authenticated/system/config'
 import { Route as AuthenticatedSystemDictRouteImport } from './routes/_authenticated/system/dict'
 import { Route as AuthenticatedSystemPluginsRouteImport } from './routes/_authenticated/system/plugins'
+import { Route as AuthenticatedOtherSettingsV2AccountRouteImport } from './routes/_authenticated/_other/settings-v2/account'
+import { Route as AuthenticatedOtherSettingsV2AppearanceRouteImport } from './routes/_authenticated/_other/settings-v2/appearance'
+import { Route as AuthenticatedOtherSettingsV2NotificationsRouteImport } from './routes/_authenticated/_other/settings-v2/notifications'
+import { Route as AuthenticatedOtherSettingsV2ProfileRouteImport } from './routes/_authenticated/_other/settings-v2/profile'
+import { Route as AuthenticatedOtherSettingsV2SystemRouteImport } from './routes/_authenticated/_other/settings-v2/system'
 import { Route as AuthenticatedOtherSettingsAccountRouteImport } from './routes/_authenticated/_other/settings/account'
 import { Route as AuthenticatedOtherSettingsActivityRouteImport } from './routes/_authenticated/_other/settings/activity'
 import { Route as AuthenticatedOtherSettingsAppearanceRouteImport } from './routes/_authenticated/_other/settings/appearance'
@@ -149,6 +155,12 @@ const AuthenticatedOtherSettingsRouteRoute =
     path: '/settings',
     getParentRoute: () => AuthenticatedOtherRouteRoute,
   } as any)
+const AuthenticatedOtherSettingsV2RouteRoute =
+  AuthenticatedOtherSettingsV2RouteRouteImport.update({
+    id: '/settings-v2',
+    path: '/settings-v2',
+    getParentRoute: () => AuthenticatedOtherRouteRoute,
+  } as any)
 const AuthenticatedWorkbenchIndexRoute =
   AuthenticatedWorkbenchIndexRouteImport.update({
     id: '/',
@@ -247,6 +259,36 @@ const AuthenticatedSystemPluginsRoute =
     path: '/plugins',
     getParentRoute: () => AuthenticatedSystemRouteRoute,
   } as any)
+const AuthenticatedOtherSettingsV2AccountRoute =
+  AuthenticatedOtherSettingsV2AccountRouteImport.update({
+    id: '/account',
+    path: '/account',
+    getParentRoute: () => AuthenticatedOtherSettingsV2RouteRoute,
+  } as any)
+const AuthenticatedOtherSettingsV2AppearanceRoute =
+  AuthenticatedOtherSettingsV2AppearanceRouteImport.update({
+    id: '/appearance',
+    path: '/appearance',
+    getParentRoute: () => AuthenticatedOtherSettingsV2RouteRoute,
+  } as any)
+const AuthenticatedOtherSettingsV2NotificationsRoute =
+  AuthenticatedOtherSettingsV2NotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedOtherSettingsV2RouteRoute,
+  } as any)
+const AuthenticatedOtherSettingsV2ProfileRoute =
+  AuthenticatedOtherSettingsV2ProfileRouteImport.update({
+    id: '/profile',
+    path: '/profile',
+    getParentRoute: () => AuthenticatedOtherSettingsV2RouteRoute,
+  } as any)
+const AuthenticatedOtherSettingsV2SystemRoute =
+  AuthenticatedOtherSettingsV2SystemRouteImport.update({
+    id: '/system',
+    path: '/system',
+    getParentRoute: () => AuthenticatedOtherSettingsV2RouteRoute,
+  } as any)
 const AuthenticatedOtherSettingsAccountRoute =
   AuthenticatedOtherSettingsAccountRouteImport.update({
     id: '/account',
@@ -342,6 +384,7 @@ export interface FileRoutesByFullPath {
   '/errors/500': typeof Errors500Route
   '/errors/503': typeof Errors503Route
   '/settings': typeof AuthenticatedOtherSettingsRouteRouteWithChildren
+  '/settings-v2': typeof AuthenticatedOtherSettingsV2RouteRouteWithChildren
   '/bim': typeof AuthenticatedWorkbenchBimRoute
   '/chat': typeof AuthenticatedWorkbenchChatRoute
   '/chat-v2': typeof AuthenticatedWorkbenchChatV2Route
@@ -357,6 +400,11 @@ export interface FileRoutesByFullPath {
   '/system/config': typeof AuthenticatedSystemConfigRoute
   '/system/dict': typeof AuthenticatedSystemDictRoute
   '/system/plugins': typeof AuthenticatedSystemPluginsRoute
+  '/settings-v2/account': typeof AuthenticatedOtherSettingsV2AccountRoute
+  '/settings-v2/appearance': typeof AuthenticatedOtherSettingsV2AppearanceRoute
+  '/settings-v2/notifications': typeof AuthenticatedOtherSettingsV2NotificationsRoute
+  '/settings-v2/profile': typeof AuthenticatedOtherSettingsV2ProfileRoute
+  '/settings-v2/system': typeof AuthenticatedOtherSettingsV2SystemRoute
   '/settings/account': typeof AuthenticatedOtherSettingsAccountRoute
   '/settings/activity': typeof AuthenticatedOtherSettingsActivityRoute
   '/settings/appearance': typeof AuthenticatedOtherSettingsAppearanceRoute
@@ -387,6 +435,7 @@ export interface FileRoutesByTo {
   '/errors/500': typeof Errors500Route
   '/errors/503': typeof Errors503Route
   '/settings': typeof AuthenticatedOtherSettingsRouteRouteWithChildren
+  '/settings-v2': typeof AuthenticatedOtherSettingsV2RouteRouteWithChildren
   '/bim': typeof AuthenticatedWorkbenchBimRoute
   '/chat': typeof AuthenticatedWorkbenchChatRoute
   '/chat-v2': typeof AuthenticatedWorkbenchChatV2Route
@@ -402,6 +451,11 @@ export interface FileRoutesByTo {
   '/system/config': typeof AuthenticatedSystemConfigRoute
   '/system/dict': typeof AuthenticatedSystemDictRoute
   '/system/plugins': typeof AuthenticatedSystemPluginsRoute
+  '/settings-v2/account': typeof AuthenticatedOtherSettingsV2AccountRoute
+  '/settings-v2/appearance': typeof AuthenticatedOtherSettingsV2AppearanceRoute
+  '/settings-v2/notifications': typeof AuthenticatedOtherSettingsV2NotificationsRoute
+  '/settings-v2/profile': typeof AuthenticatedOtherSettingsV2ProfileRoute
+  '/settings-v2/system': typeof AuthenticatedOtherSettingsV2SystemRoute
   '/settings/account': typeof AuthenticatedOtherSettingsAccountRoute
   '/settings/activity': typeof AuthenticatedOtherSettingsActivityRoute
   '/settings/appearance': typeof AuthenticatedOtherSettingsAppearanceRoute
@@ -436,6 +490,7 @@ export interface FileRoutesById {
   '/errors/500': typeof Errors500Route
   '/errors/503': typeof Errors503Route
   '/_authenticated/_other/settings': typeof AuthenticatedOtherSettingsRouteRouteWithChildren
+  '/_authenticated/_other/settings-v2': typeof AuthenticatedOtherSettingsV2RouteRouteWithChildren
   '/_authenticated/system/_identity': typeof AuthenticatedSystemIdentityRouteRouteWithChildren
   '/_authenticated/_workbench/bim': typeof AuthenticatedWorkbenchBimRoute
   '/_authenticated/_workbench/chat': typeof AuthenticatedWorkbenchChatRoute
@@ -453,6 +508,11 @@ export interface FileRoutesById {
   '/_authenticated/system/dict': typeof AuthenticatedSystemDictRoute
   '/_authenticated/system/plugins': typeof AuthenticatedSystemPluginsRoute
   '/_authenticated/_workbench/': typeof AuthenticatedWorkbenchIndexRoute
+  '/_authenticated/_other/settings-v2/account': typeof AuthenticatedOtherSettingsV2AccountRoute
+  '/_authenticated/_other/settings-v2/appearance': typeof AuthenticatedOtherSettingsV2AppearanceRoute
+  '/_authenticated/_other/settings-v2/notifications': typeof AuthenticatedOtherSettingsV2NotificationsRoute
+  '/_authenticated/_other/settings-v2/profile': typeof AuthenticatedOtherSettingsV2ProfileRoute
+  '/_authenticated/_other/settings-v2/system': typeof AuthenticatedOtherSettingsV2SystemRoute
   '/_authenticated/_other/settings/account': typeof AuthenticatedOtherSettingsAccountRoute
   '/_authenticated/_other/settings/activity': typeof AuthenticatedOtherSettingsActivityRoute
   '/_authenticated/_other/settings/appearance': typeof AuthenticatedOtherSettingsAppearanceRoute
@@ -485,6 +545,7 @@ export interface FileRouteTypes {
     | '/errors/500'
     | '/errors/503'
     | '/settings'
+    | '/settings-v2'
     | '/bim'
     | '/chat'
     | '/chat-v2'
@@ -500,6 +561,11 @@ export interface FileRouteTypes {
     | '/system/config'
     | '/system/dict'
     | '/system/plugins'
+    | '/settings-v2/account'
+    | '/settings-v2/appearance'
+    | '/settings-v2/notifications'
+    | '/settings-v2/profile'
+    | '/settings-v2/system'
     | '/settings/account'
     | '/settings/activity'
     | '/settings/appearance'
@@ -530,6 +596,7 @@ export interface FileRouteTypes {
     | '/errors/500'
     | '/errors/503'
     | '/settings'
+    | '/settings-v2'
     | '/bim'
     | '/chat'
     | '/chat-v2'
@@ -545,6 +612,11 @@ export interface FileRouteTypes {
     | '/system/config'
     | '/system/dict'
     | '/system/plugins'
+    | '/settings-v2/account'
+    | '/settings-v2/appearance'
+    | '/settings-v2/notifications'
+    | '/settings-v2/profile'
+    | '/settings-v2/system'
     | '/settings/account'
     | '/settings/activity'
     | '/settings/appearance'
@@ -578,6 +650,7 @@ export interface FileRouteTypes {
     | '/errors/500'
     | '/errors/503'
     | '/_authenticated/_other/settings'
+    | '/_authenticated/_other/settings-v2'
     | '/_authenticated/system/_identity'
     | '/_authenticated/_workbench/bim'
     | '/_authenticated/_workbench/chat'
@@ -595,6 +668,11 @@ export interface FileRouteTypes {
     | '/_authenticated/system/dict'
     | '/_authenticated/system/plugins'
     | '/_authenticated/_workbench/'
+    | '/_authenticated/_other/settings-v2/account'
+    | '/_authenticated/_other/settings-v2/appearance'
+    | '/_authenticated/_other/settings-v2/notifications'
+    | '/_authenticated/_other/settings-v2/profile'
+    | '/_authenticated/_other/settings-v2/system'
     | '/_authenticated/_other/settings/account'
     | '/_authenticated/_other/settings/activity'
     | '/_authenticated/_other/settings/appearance'
@@ -748,6 +826,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOtherSettingsRouteRouteImport
       parentRoute: typeof AuthenticatedOtherRouteRoute
     }
+    '/_authenticated/_other/settings-v2': {
+      id: '/_authenticated/_other/settings-v2'
+      path: '/settings-v2'
+      fullPath: '/settings-v2'
+      preLoaderRoute: typeof AuthenticatedOtherSettingsV2RouteRouteImport
+      parentRoute: typeof AuthenticatedOtherRouteRoute
+    }
     '/_authenticated/_workbench/': {
       id: '/_authenticated/_workbench/'
       path: '/'
@@ -866,6 +951,41 @@ declare module '@tanstack/react-router' {
       fullPath: '/system/plugins'
       preLoaderRoute: typeof AuthenticatedSystemPluginsRouteImport
       parentRoute: typeof AuthenticatedSystemRouteRoute
+    }
+    '/_authenticated/_other/settings-v2/account': {
+      id: '/_authenticated/_other/settings-v2/account'
+      path: '/account'
+      fullPath: '/settings-v2/account'
+      preLoaderRoute: typeof AuthenticatedOtherSettingsV2AccountRouteImport
+      parentRoute: typeof AuthenticatedOtherSettingsV2RouteRoute
+    }
+    '/_authenticated/_other/settings-v2/appearance': {
+      id: '/_authenticated/_other/settings-v2/appearance'
+      path: '/appearance'
+      fullPath: '/settings-v2/appearance'
+      preLoaderRoute: typeof AuthenticatedOtherSettingsV2AppearanceRouteImport
+      parentRoute: typeof AuthenticatedOtherSettingsV2RouteRoute
+    }
+    '/_authenticated/_other/settings-v2/notifications': {
+      id: '/_authenticated/_other/settings-v2/notifications'
+      path: '/notifications'
+      fullPath: '/settings-v2/notifications'
+      preLoaderRoute: typeof AuthenticatedOtherSettingsV2NotificationsRouteImport
+      parentRoute: typeof AuthenticatedOtherSettingsV2RouteRoute
+    }
+    '/_authenticated/_other/settings-v2/profile': {
+      id: '/_authenticated/_other/settings-v2/profile'
+      path: '/profile'
+      fullPath: '/settings-v2/profile'
+      preLoaderRoute: typeof AuthenticatedOtherSettingsV2ProfileRouteImport
+      parentRoute: typeof AuthenticatedOtherSettingsV2RouteRoute
+    }
+    '/_authenticated/_other/settings-v2/system': {
+      id: '/_authenticated/_other/settings-v2/system'
+      path: '/system'
+      fullPath: '/settings-v2/system'
+      preLoaderRoute: typeof AuthenticatedOtherSettingsV2SystemRouteImport
+      parentRoute: typeof AuthenticatedOtherSettingsV2RouteRoute
     }
     '/_authenticated/_other/settings/account': {
       id: '/_authenticated/_other/settings/account'
@@ -1006,14 +1126,44 @@ const AuthenticatedOtherSettingsRouteRouteWithChildren =
     AuthenticatedOtherSettingsRouteRouteChildren,
   )
 
+interface AuthenticatedOtherSettingsV2RouteRouteChildren {
+  AuthenticatedOtherSettingsV2AccountRoute: typeof AuthenticatedOtherSettingsV2AccountRoute
+  AuthenticatedOtherSettingsV2AppearanceRoute: typeof AuthenticatedOtherSettingsV2AppearanceRoute
+  AuthenticatedOtherSettingsV2NotificationsRoute: typeof AuthenticatedOtherSettingsV2NotificationsRoute
+  AuthenticatedOtherSettingsV2ProfileRoute: typeof AuthenticatedOtherSettingsV2ProfileRoute
+  AuthenticatedOtherSettingsV2SystemRoute: typeof AuthenticatedOtherSettingsV2SystemRoute
+}
+
+const AuthenticatedOtherSettingsV2RouteRouteChildren: AuthenticatedOtherSettingsV2RouteRouteChildren =
+  {
+    AuthenticatedOtherSettingsV2AccountRoute:
+      AuthenticatedOtherSettingsV2AccountRoute,
+    AuthenticatedOtherSettingsV2AppearanceRoute:
+      AuthenticatedOtherSettingsV2AppearanceRoute,
+    AuthenticatedOtherSettingsV2NotificationsRoute:
+      AuthenticatedOtherSettingsV2NotificationsRoute,
+    AuthenticatedOtherSettingsV2ProfileRoute:
+      AuthenticatedOtherSettingsV2ProfileRoute,
+    AuthenticatedOtherSettingsV2SystemRoute:
+      AuthenticatedOtherSettingsV2SystemRoute,
+  }
+
+const AuthenticatedOtherSettingsV2RouteRouteWithChildren =
+  AuthenticatedOtherSettingsV2RouteRoute._addFileChildren(
+    AuthenticatedOtherSettingsV2RouteRouteChildren,
+  )
+
 interface AuthenticatedOtherRouteRouteChildren {
   AuthenticatedOtherSettingsRouteRoute: typeof AuthenticatedOtherSettingsRouteRouteWithChildren
+  AuthenticatedOtherSettingsV2RouteRoute: typeof AuthenticatedOtherSettingsV2RouteRouteWithChildren
 }
 
 const AuthenticatedOtherRouteRouteChildren: AuthenticatedOtherRouteRouteChildren =
   {
     AuthenticatedOtherSettingsRouteRoute:
       AuthenticatedOtherSettingsRouteRouteWithChildren,
+    AuthenticatedOtherSettingsV2RouteRoute:
+      AuthenticatedOtherSettingsV2RouteRouteWithChildren,
   }
 
 const AuthenticatedOtherRouteRouteWithChildren =

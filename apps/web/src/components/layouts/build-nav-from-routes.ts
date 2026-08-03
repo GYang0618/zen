@@ -174,9 +174,7 @@ function findAuthenticatedRoot(root: RouteTreeNode): RouteTreeNode | undefined {
 }
 
 function sortGroupBuckets(buckets: GroupBucket[]): GroupBucket[] {
-  return [...buckets].sort(
-    (a, b) => a.order - b.order || a.title.localeCompare(b.title, 'zh-CN')
-  )
+  return [...buckets].sort((a, b) => a.order - b.order || a.title.localeCompare(b.title, 'zh-CN'))
 }
 
 /**
@@ -219,6 +217,34 @@ export function buildNavGroupsFromRouteTree(
     title: bucket.title,
     items: bucket.entries.map((entry) => entry.item)
   }))
+}
+
+function findRouteTreeNode(root: RouteTreeNode, idOrPath: string): RouteTreeNode | undefined {
+  if (root.id === idOrPath || root.fullPath === idOrPath) return root
+  for (const child of getChildren(root)) {
+    const found = findRouteTreeNode(child, idOrPath)
+    if (found) return found
+  }
+  return undefined
+}
+
+/**
+ * 从指定父路由的子树生成扁平导航链接（如 Settings 页内二级侧栏）。
+ * 复用主侧栏的 title / icon / order / hideInMenu / permissions 约定。
+ */
+export function buildChildNavLinksFromRouteTree(
+  root: RouteTreeNode,
+  parentIdOrPath: string,
+  permissions: readonly string[] = [],
+  activePluginIds?: readonly string[]
+): NavLink[] {
+  const parent = findRouteTreeNode(root, parentIdOrPath)
+  if (!parent) return []
+
+  const entries = collectFromChildren(getChildren(parent), permissions, activePluginIds)
+  entries.sort((a, b) => a.order - b.order || a.item.title.localeCompare(b.item.title, 'zh-CN'))
+
+  return flattenToLinks(entries)
 }
 
 /** @deprecated 使用 buildNavGroupsFromRouteTree；保留扁平接口仅作兼容 */

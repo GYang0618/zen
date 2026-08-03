@@ -1,7 +1,10 @@
 import { LayoutDashboard, Shield, UserRoundCog } from 'lucide-react'
 import { describe, expect, it } from 'vitest'
 
-import { buildNavGroupsFromRouteTree } from './build-nav-from-routes'
+import {
+  buildChildNavLinksFromRouteTree,
+  buildNavGroupsFromRouteTree
+} from './build-nav-from-routes'
 
 import type { RouteTreeNode } from './build-nav-from-routes'
 
@@ -243,5 +246,28 @@ describe('buildNavGroupsFromRouteTree', () => {
     const groups = buildNavGroupsFromRouteTree(tree, [])
     expect(groups.map((g) => g.title)).toEqual(['工作台', '其他'])
     expect(groups.every((g) => g.title !== '修改密码')).toBe(true)
+  })
+})
+
+describe('buildChildNavLinksFromRouteTree', () => {
+  it('builds ordered flat links from a parent route children', () => {
+    const links = buildChildNavLinksFromRouteTree(tree, '/_authenticated/_other/settings', [])
+
+    expect(links).toEqual([
+      expect.objectContaining({ title: '个人资料', url: '/settings/profile' }),
+      expect.objectContaining({ title: '账户', url: '/settings/account' })
+    ])
+  })
+
+  it('returns empty when parent route is missing', () => {
+    expect(buildChildNavLinksFromRouteTree(tree, '/missing', [])).toEqual([])
+  })
+
+  it('respects permission gate on child links', () => {
+    const links = buildChildNavLinksFromRouteTree(tree, '/_authenticated/system/_identity', [
+      'system:user:list'
+    ])
+
+    expect(links).toEqual([expect.objectContaining({ title: '用户管理', url: '/system/users' })])
   })
 })
