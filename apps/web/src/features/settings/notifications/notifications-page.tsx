@@ -54,10 +54,7 @@ export function NotificationsPage() {
   return (
     <SettingsShell>
       <div className="flex flex-col gap-6 pb-6">
-        <AppPageHeader
-          title="通知与消息"
-          description="配置您希望接收系统消息的推送渠道与提醒方式。"
-        />
+        <AppPageHeader />
         <Separator />
       </div>
 

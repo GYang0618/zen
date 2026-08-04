@@ -16,10 +16,7 @@ export function AccountPage() {
   return (
     <SettingsShell>
       <div className="flex flex-col gap-6 pb-6">
-        <AppPageHeader
-          title="账号与安全"
-          description="更新您的登录密码凭证、双重身份验证 (2FA / MFA) 与账号认证配置。"
-        />
+        <AppPageHeader />
         <Separator />
       </div>
 

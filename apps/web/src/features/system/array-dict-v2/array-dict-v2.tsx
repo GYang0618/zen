@@ -394,8 +394,6 @@ export function ArrayDictV2Page() {
       <AppHeader />
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
         <AppPageHeader
-          title="数组字典 V2"
-          description="独立的前端字典工作台，变更仅保留在当前会话。"
           actions={
             <>
               <Button variant="outline" onClick={() => setPreviewOpen(true)}>

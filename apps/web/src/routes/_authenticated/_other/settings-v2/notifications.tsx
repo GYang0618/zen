@@ -7,6 +7,7 @@ export const Route = createFileRoute('/_authenticated/_other/settings-v2/notific
   component: SettingsNotifications,
   staticData: {
     title: '通知与消息',
+    description: '自定义系统通知、消息提醒方式及频率。',
     icon: Bell,
     order: 40
   }

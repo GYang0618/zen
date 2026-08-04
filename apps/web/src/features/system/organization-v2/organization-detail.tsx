@@ -36,7 +36,7 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
     <>
       <AppHeader />
       <Main className="flex flex-1 flex-col gap-4">
-        <PageHeader>
+        <PageHeader size="lg">
           <Button variant="outline" size="icon-lg" className="rounded-full" asChild>
             <Link to="/system/organization-v2" aria-label="返回组织管理">
               <ArrowLeft />
@@ -46,7 +46,7 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
             <Building2 />
           </PageHeaderMedia>
           <PageHeaderContent>
-            <PageHeaderTitle size="lg" as="h1" className="inline-flex flex-wrap items-center gap-3">
+            <PageHeaderTitle as="h1" className="inline-flex flex-wrap items-center gap-3">
               {organization.name}
               <Badge variant="secondary">正常</Badge>
             </PageHeaderTitle>

@@ -57,10 +57,7 @@ export function ProfilePage() {
   return (
     <SettingsShell>
       <div className="flex flex-col gap-6 pb-6">
-        <AppPageHeader
-          title="个人资料"
-          description="管理您的个人身份标识、展示名称、头像及公开联系方式。"
-        />
+        <AppPageHeader />
         <Separator />
       </div>
 

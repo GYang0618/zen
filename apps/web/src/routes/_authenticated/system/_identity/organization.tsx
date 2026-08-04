@@ -14,6 +14,7 @@ export const Route = createFileRoute('/_authenticated/system/_identity/organizat
   validateSearch: organizationSearchSchema,
   staticData: {
     title: '组织架构',
+    description: '维护统一组织树、岗位编制与人员花名册',
     icon: FolderKanban,
     order: 30,
     permissions: ['system:org:list']

@@ -87,8 +87,6 @@ export function Organizations() {
 
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
         <AppPageHeader
-          title="组织架构"
-          description="维护统一组织树、岗位编制与人员花名册"
           actions={
             <Can permission={PermissionCode.ORG_CREATE}>
               <Button onClick={() => setDialogOpen(true)}>

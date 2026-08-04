@@ -37,6 +37,8 @@ export interface RouterMeta {
   link?: string
   /** 编译期插件 ID；插件未启用时菜单与路由不可见 */
   pluginId?: string
+  /** 页面描述 */
+  description?: string
 }
 
 declare module '@tanstack/react-router' {

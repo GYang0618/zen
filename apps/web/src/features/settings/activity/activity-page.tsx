@@ -29,10 +29,10 @@ export function ActivityPage() {
   return (
     <SettingsShell>
       <div className="flex flex-col gap-6 pb-6">
-        <PageHeader className="items-center">
+        <PageHeader size="sm" className="items-center">
           <PageHeaderContent>
-            <PageHeaderTitle size="sm">安全动态</PageHeaderTitle>
-            <PageHeaderDescription className="text-sm">
+            <PageHeaderTitle>安全动态</PageHeaderTitle>
+            <PageHeaderDescription>
               {canAudit
                 ? '管理活跃登录会话，并查询您的操作审计与安全历史。'
                 : '查看并管理当前账号的活跃登录会话与设备。'}

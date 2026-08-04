@@ -93,7 +93,7 @@ export function RoleDetail() {
       <AppHeader />
 
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
-        <PageHeader>
+        <PageHeader size="lg">
           <Button variant="outline" size="icon-lg" className="rounded-full">
             <ArrowLeft />
           </Button>
@@ -101,7 +101,7 @@ export function RoleDetail() {
             <Shield />
           </PageHeaderMedia>
           <PageHeaderContent>
-            <PageHeaderTitle size="lg" as="h1" className="text-4xl">
+            <PageHeaderTitle as="h1" className="text-4xl">
               超级管理员
             </PageHeaderTitle>
             <PageHeaderDescription className="flex flex-wrap items-center gap-2 text-sm">

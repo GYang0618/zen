@@ -57,10 +57,7 @@ export function PluginsPage() {
       </Header>
 
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
-        <AppPageHeader
-          title="插件管理"
-          description="启用/停用编译期插件，并维护 Feature Flag 配置"
-        />
+        <AppPageHeader />
 
         {isLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

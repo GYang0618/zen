@@ -59,8 +59,6 @@ export function DictPage() {
 
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
         <AppPageHeader
-          title="数据字典"
-          description="维护字典类型与字典项，供业务下拉与枚举复用"
           actions={
             <Can permission={PermissionCode.DICT_MANAGE}>
               <Button onClick={() => setTypeOpen(true)}>

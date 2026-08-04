@@ -68,8 +68,6 @@ export function SkillsFeaturePage() {
   return (
     <Main className="flex flex-col gap-6 py-6 @7xl/content:max-w-[1440px]">
       <AppPageHeader
-        title="技能市场"
-        description="为智能体安装可复用的专业能力。"
         actions={
           <Button variant="outline" size="sm">
             <WandSparkles data-icon="inline-start" />

@@ -33,11 +33,7 @@ export function Users() {
       </Header>
 
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
-        <AppPageHeader
-          title="用户管理"
-          description="管理系统中的所有用户，配置角色权限和组织架构"
-          actions={<UsersPrimaryButtons />}
-        />
+        <AppPageHeader actions={<UsersPrimaryButtons />} />
         <UsersTable
           data={users}
           isLoading={isLoading}
