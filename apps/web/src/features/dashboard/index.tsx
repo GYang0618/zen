@@ -65,7 +65,7 @@ export function Dashboard() {
           插件 Widget 槽位：启用的能力插件可通过 ContributionRegistry.widgets
           贡献工作台组件（当前为占位）。
         </div>
-        <AppPageHeader title="仪表盘" actions={<Button>导出数据</Button>} />
+        <AppPageHeader actions={<Button>导出数据</Button>} />
         <Tabs defaultValue="overview" className="space-y-4">
           <div className="w-full overflow-x-auto pb-2">
             <TabsList>

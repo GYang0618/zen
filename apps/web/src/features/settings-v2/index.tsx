@@ -10,8 +10,9 @@ import { useAuthStore } from '@/stores'
 import { SidebarNav } from './components/sidebar-nav'
 
 import type { RouteTreeNode } from '@/components/layouts/build-nav-from-routes'
+import type { AppPath } from '@/types/router'
 
-const SETTINGS_V2_ROUTE_ID = '/_authenticated/_other/settings-v2'
+const SETTINGS_V2_PATH = '/settings-v2' satisfies AppPath
 
 export function Settings() {
   const router = useRouter()
@@ -21,7 +22,7 @@ export function Settings() {
     () =>
       buildChildNavLinksFromRouteTree(
         router.routeTree as RouteTreeNode,
-        SETTINGS_V2_ROUTE_ID,
+        SETTINGS_V2_PATH,
         permissions
       ).map((item) => ({
         title: item.title,
@@ -37,10 +38,7 @@ export function Settings() {
       <AppHeader />
 
       <Main fixed>
-        <AppPageHeader
-          title="设置"
-          description="管理您的个人资料、账号安全凭证、系统界面外观与通知提醒。"
-        />
+        <AppPageHeader from={SETTINGS_V2_PATH} />
         <Separator className="my-4 lg:my-6" />
 
         <div className="flex gap-12">

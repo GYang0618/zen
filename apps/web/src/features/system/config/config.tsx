@@ -59,7 +59,7 @@ export function SiteConfigPage() {
       </Header>
 
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
-        <AppPageHeader title="站点配置" description="维护站点名称、Logo 与全局 Feature Flag" />
+        <AppPageHeader />
         {isLoading || !data ? (
           <Skeleton className="h-72 w-full max-w-2xl rounded-xl" />
         ) : (

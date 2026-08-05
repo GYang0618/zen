@@ -12,11 +12,7 @@ export function Organizations() {
       <AppHeader />
 
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
-        <AppPageHeader
-          title="组织架构"
-          description="企业组织架构管理，管理分公司、部门、业务中心、岗位等"
-          actions={<OrganizationsPrimaryButtons />}
-        />
+        <AppPageHeader actions={<OrganizationsPrimaryButtons />} />
 
         <OrganizationTree data={organizations} />
       </Main>

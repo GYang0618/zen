@@ -35,11 +35,7 @@ export function Roles() {
       <AppHeader />
 
       <Main fixed className="flex flex-1 flex-col gap-4 sm:gap-6">
-        <AppPageHeader
-          title="角色管理"
-          description="管理系统中的所有角色"
-          actions={<RolesPrimaryButtons />}
-        />
+        <AppPageHeader actions={<RolesPrimaryButtons />} />
         <RolesList data={roles} />
       </Main>
 

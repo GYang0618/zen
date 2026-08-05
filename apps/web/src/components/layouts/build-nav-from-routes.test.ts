@@ -251,7 +251,7 @@ describe('buildNavGroupsFromRouteTree', () => {
 
 describe('buildChildNavLinksFromRouteTree', () => {
   it('builds ordered flat links from a parent route children', () => {
-    const links = buildChildNavLinksFromRouteTree(tree, '/_authenticated/_other/settings', [])
+    const links = buildChildNavLinksFromRouteTree(tree, '/settings', [])
 
     expect(links).toEqual([
       expect.objectContaining({ title: '个人资料', url: '/settings/profile' }),
@@ -260,13 +260,16 @@ describe('buildChildNavLinksFromRouteTree', () => {
   })
 
   it('returns empty when parent route is missing', () => {
-    expect(buildChildNavLinksFromRouteTree(tree, '/missing', [])).toEqual([])
+    expect(buildChildNavLinksFromRouteTree(tree, '/errors/404', [])).toEqual([])
   })
 
   it('respects permission gate on child links', () => {
-    const links = buildChildNavLinksFromRouteTree(tree, '/_authenticated/system/_identity', [
-      'system:user:list'
-    ])
+    // pathless layout 与父级共享 fullPath，需用 route id 定位（断言为 AppPath）
+    const links = buildChildNavLinksFromRouteTree(
+      tree,
+      '/_authenticated/system/_identity' as '/system',
+      ['system:user:list']
+    )
 
     expect(links).toEqual([expect.objectContaining({ title: '用户管理', url: '/system/users' })])
   })

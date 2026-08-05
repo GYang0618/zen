@@ -20,6 +20,7 @@ export const Route = createFileRoute('/_authenticated/system/_identity/users')({
   validateSearch: usersSearchSchema,
   staticData: {
     title: '用户管理',
+    description: '管理系统中的所有用户，配置角色权限和组织架构',
     icon: UserRoundCog,
     order: 10,
     permissions: ['system:user:list']

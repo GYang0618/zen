@@ -1,12 +1,32 @@
 import { cn } from '@zen/ui/lib/utils'
-import { cva } from 'class-variance-authority'
+import { createContext, useContext } from 'react'
 
-import type { VariantProps } from 'class-variance-authority'
 import type * as React from 'react'
 
-function PageHeader({ className, ...props }: React.ComponentProps<'div'>) {
+type PageHeaderSize = 'sm' | 'default' | 'lg'
+
+const PAGE_HEADER_TITLE_AS: Record<PageHeaderSize, 'h1' | 'h2' | 'h3'> = {
+  sm: 'h3',
+  default: 'h2',
+  lg: 'h1'
+}
+
+const PageHeaderSizeContext = createContext<PageHeaderSize>('default')
+
+function PageHeader({
+  className,
+  size = 'default',
+  ...props
+}: React.ComponentProps<'div'> & { size?: PageHeaderSize }) {
   return (
-    <div data-slot="page-header" className={cn('flex items-start gap-4', className)} {...props} />
+    <PageHeaderSizeContext.Provider value={size}>
+      <div
+        data-slot="page-header"
+        data-size={size}
+        className={cn('group/page-header flex items-start gap-4', className)}
+        {...props}
+      />
+    </PageHeaderSizeContext.Provider>
   )
 }
 
@@ -27,39 +47,32 @@ function PageHeaderContent({ className, ...props }: React.ComponentProps<'div'>)
   return (
     <div
       data-slot="page-header-content"
-      className={cn('flex min-w-0 flex-1 flex-col gap-1', className)}
+      className={cn('flex  min-w-0 flex-1 flex-col gap-1', className)}
       {...props}
     />
   )
 }
 
-const pageHeaderTitleVariants = cva('tracking-tight text-foreground', {
-  variants: {
-    size: {
-      sm: 'text-lg font-semibold',
-      default: 'text-2xl font-bold',
-      lg: 'text-3xl font-medium'
-    }
-  },
-  defaultVariants: {
-    size: 'default'
-  }
-})
-
 function PageHeaderTitle({
   className,
-  size = 'default',
-  as: Comp = 'h2',
+  as,
   ...props
-}: React.ComponentProps<'h2'> &
-  VariantProps<typeof pageHeaderTitleVariants> & {
-    as?: 'h1' | 'h2' | 'h3'
-  }) {
+}: React.ComponentProps<'h2'> & {
+  as?: 'h1' | 'h2' | 'h3'
+}) {
+  const size = useContext(PageHeaderSizeContext)
+  const Comp = as ?? PAGE_HEADER_TITLE_AS[size]
+
   return (
     <Comp
       data-slot="page-header-title"
-      data-size={size}
-      className={cn(pageHeaderTitleVariants({ size }), className)}
+      className={cn(
+        'tracking-tight text-foreground',
+        'text-2xl font-bold',
+        'group-data-[size=sm]/page-header:text-lg group-data-[size=sm]/page-header:font-semibold',
+        'group-data-[size=lg]/page-header:text-3xl group-data-[size=lg]/page-header:font-medium',
+        className
+      )}
       {...props}
     />
   )
@@ -69,7 +82,12 @@ function PageHeaderDescription({ className, ...props }: React.ComponentProps<'p'
   return (
     <p
       data-slot="page-header-description"
-      className={cn('text-muted-foreground', className)}
+      className={cn(
+        'text-base text-muted-foreground',
+        'group-data-[size=sm]/page-header:text-sm',
+        'group-data-[size=lg]/page-header:text-lg',
+        className
+      )}
       {...props}
     />
   )

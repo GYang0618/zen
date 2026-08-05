@@ -1,6 +1,6 @@
 import { hasAnyPermission } from '@zen/shared'
 
-import type { RouterMeta } from '@/types/router'
+import type { AppPath, RouterMeta } from '@/types/router'
 import type { NavCollapsible, NavGroup, NavItem, NavLink } from './types'
 
 const DEFAULT_ORDER = 100
@@ -219,7 +219,7 @@ export function buildNavGroupsFromRouteTree(
   }))
 }
 
-function findRouteTreeNode(root: RouteTreeNode, idOrPath: string): RouteTreeNode | undefined {
+function findRouteTreeNode(root: RouteTreeNode, idOrPath: AppPath): RouteTreeNode | undefined {
   if (root.id === idOrPath || root.fullPath === idOrPath) return root
   for (const child of getChildren(root)) {
     const found = findRouteTreeNode(child, idOrPath)
@@ -234,7 +234,7 @@ function findRouteTreeNode(root: RouteTreeNode, idOrPath: string): RouteTreeNode
  */
 export function buildChildNavLinksFromRouteTree(
   root: RouteTreeNode,
-  parentIdOrPath: string,
+  parentIdOrPath: AppPath,
   permissions: readonly string[] = [],
   activePluginIds?: readonly string[]
 ): NavLink[] {

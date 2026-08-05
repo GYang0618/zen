@@ -1,20 +1,28 @@
-import { useRouter } from '@tanstack/react-router'
+import { useMatches, useRouter } from '@tanstack/react-router'
 import {
   Button,
   PageHeader,
   PageHeaderActions,
   PageHeaderContent,
   PageHeaderDescription,
-  PageHeaderMedia,
   PageHeaderTitle
 } from '@zen/ui'
 import { ArrowLeft } from 'lucide-react'
 
 import type { ReactNode } from 'react'
+import type { AppPath } from '@/types/router'
 
 interface AppPageHeaderProps {
-  title: string
+  /** 覆盖路由 `staticData.title`；未传时读取 `from` 或当前叶子路由 */
+  title?: string
+  size?: 'sm' | 'default' | 'lg'
+  /** 覆盖路由 `staticData.description`；未传时读取 `from` 或当前叶子路由 */
   description?: string
+  /**
+   * 指定读取 `staticData` 的路由路径（`AppPath`，如 layout 的 fullPath）。
+   * 未传时默认取当前叶子路由。
+   */
+  from?: AppPath
   media?: ReactNode
   back?: boolean
   actions?: ReactNode
@@ -23,13 +31,22 @@ interface AppPageHeaderProps {
 export function AppPageHeader({
   title,
   description,
-  media,
+  size = 'default',
+  from,
   back = false,
   actions
 }: AppPageHeaderProps) {
   const router = useRouter()
+  const matches = useMatches()
+  const routeMeta = from
+    ? matches.find((match) => match.fullPath === from || match.pathname === from)?.staticData
+    : matches.at(-1)?.staticData
+
+  const resolvedTitle = title ?? routeMeta?.title
+  const resolvedDescription = description ?? routeMeta?.description
+
   return (
-    <PageHeader>
+    <PageHeader size={size}>
       {back && (
         <Button
           variant="outline"
@@ -40,10 +57,11 @@ export function AppPageHeader({
           <ArrowLeft />
         </Button>
       )}
-      {media && <PageHeaderMedia>{media}</PageHeaderMedia>}
       <PageHeaderContent>
-        <PageHeaderTitle>{title}</PageHeaderTitle>
-        {description ? <PageHeaderDescription>{description}</PageHeaderDescription> : null}
+        {resolvedTitle ? <PageHeaderTitle>{resolvedTitle}</PageHeaderTitle> : null}
+        {resolvedDescription ? (
+          <PageHeaderDescription>{resolvedDescription}</PageHeaderDescription>
+        ) : null}
       </PageHeaderContent>
       {actions && <PageHeaderActions>{actions}</PageHeaderActions>}
     </PageHeader>

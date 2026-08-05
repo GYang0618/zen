@@ -112,7 +112,7 @@ function RolesWorkspace() {
       </Header>
 
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
-        <AppPageHeader title="角色管理" description="以主从视图配置角色权限、数据范围与关联用户" />
+        <AppPageHeader />
 
         <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
           <RolesSidebar
