@@ -19,3 +19,23 @@ export interface OrganizationMember {
   phoneNumber: string
   level: string
 }
+
+export interface Position {
+  id: number
+  code: string
+  name: string
+  description: string
+}
+
+export interface ActivityItem {
+  who: string
+  action: string
+  avatar: string
+  description: string
+  timestamp: string
+}
+
+export interface ActivityGroup {
+  group: string
+  items: ActivityItem[]
+}

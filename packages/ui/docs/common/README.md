@@ -9,7 +9,7 @@
 | 组件 | 说明 | 文档 |
 |------|------|------|
 | **PageHeader** | 页面内容区页头（列表 / 详情） | [page-header.md](./page-header.md) |
-| **Timeline** | 时间节点 / 审计时间线复合组件 | [timeline.md](./timeline.md) |
+| **Timeline** | 竖向时间线 / 活动流 | [timeline.md](./timeline.md) |
 | **GradientText** | 渐变流动文字 | [text-effect.md](./text-effect.md) |
 | **TypingText** | 打字机效果文字 | [text-effect.md](./text-effect.md) |
 

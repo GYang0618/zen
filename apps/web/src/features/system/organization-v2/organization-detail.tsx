@@ -18,10 +18,12 @@ import { ArrowLeft, Briefcase, Building2, Camera, History, Pencil, Users } from 
 
 import { AppHeader, Main } from '@/components/layouts'
 
+import { OrganizationActivity } from './components/organization-activity'
 import { OrganizationDetailSideOverview } from './components/organization-detail-side-overview'
 import { OrganizationMembers } from './components/organization-members'
+import { OrganizationPositions } from './components/organization-positions'
 import { flattenOrganizations, organizationTree } from './data'
-import { organizationMembers } from './data/mock'
+import { organizationActivities, organizationMembers, organizationPositions } from './data/mock'
 
 type OrganizationDetailProps = {
   organizationId: string
@@ -77,23 +79,27 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
               <Users className="size-3.5" aria-hidden />
               成员 ({organizationMembers.length})
             </TabsTrigger>
-            <TabsTrigger value="posts">
+            <TabsTrigger value="positions">
               <Briefcase className="size-3.5" aria-hidden />
-              岗位/编制 (5)
+              岗位/编制 ({organizationPositions.length})
             </TabsTrigger>
             <TabsTrigger value="changes">
               <History className="size-3.5" aria-hidden />
-              组织变更
+              活动
             </TabsTrigger>
           </TabsList>
 
           <div className="flex flex-col gap-6 @5xl/content:flex-row">
             <div className="min-w-0 flex-1">
               <TabsContent value="members">
-                <OrganizationMembers items={organizationMembers} />
+                <OrganizationMembers data={organizationMembers} />
               </TabsContent>
-              <TabsContent value="posts">岗位/编制</TabsContent>
-              <TabsContent value="changes">组织变更</TabsContent>
+              <TabsContent value="positions">
+                <OrganizationPositions data={organizationPositions} />
+              </TabsContent>
+              <TabsContent value="changes">
+                <OrganizationActivity data={organizationActivities} />
+              </TabsContent>
             </div>
 
             <OrganizationDetailSideOverview />

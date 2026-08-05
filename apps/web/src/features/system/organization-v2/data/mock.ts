@@ -1,6 +1,12 @@
 import { fakerZH_CN as faker } from '@faker-js/faker'
 
-import type { Organization, OrganizationMember } from '../type'
+import type {
+  ActivityGroup,
+  ActivityItem,
+  Organization,
+  OrganizationMember,
+  Position
+} from '../type'
 
 faker.seed(20260801)
 
@@ -170,3 +176,95 @@ export const organizationMembers: OrganizationMember[] = Array.from(
   { length: 30 },
   createOrganizationMember
 )
+
+const POSITION_NAMES = [
+  '高级前端工程师',
+  '后端平台工程师',
+  '产品经理',
+  '资深设计师',
+  '项目经理',
+  '数据工程师',
+  '质量保障工程师',
+  '运维工程师'
+] as const
+
+const POSITION_DESCRIPTIONS = [
+  '负责核心业务产品的前端架构设计与落地交付。',
+  '负责平台服务稳定性、可扩展性与研发效能提升。',
+  '负责产品规划、需求拆解与跨团队协同推进。',
+  '负责体验设计、设计系统建设与交互方案输出。',
+  '负责项目节奏管理、风险识别与交付质量把控。',
+  '负责数据模型设计、指标建设与分析能力支撑。'
+] as const
+
+faker.seed(20260803)
+
+function createPosition(index: number): Position {
+  const name = faker.helpers.arrayElement(POSITION_NAMES)
+
+  return {
+    id: index + 1,
+    code: `POS-${faker.string.numeric(4)}`,
+    name,
+    description: faker.helpers.arrayElement(POSITION_DESCRIPTIONS)
+  }
+}
+
+export const organizationPositions: Position[] = Array.from({ length: 8 }, (_, index) =>
+  createPosition(index)
+)
+
+const ACTIVITY_ACTIONS = [
+  '加入了组织',
+  '调整了岗位',
+  '更新了组织信息',
+  '创建了子部门',
+  '移交了管理权限',
+  '停用了岗位编制',
+  '完成了成员调岗',
+  '归档了组织快照'
+] as const
+
+const ACTIVITY_DESCRIPTIONS = [
+  '从「客户成功中心」调入本组织，岗位变更为产品经理。',
+  '岗位由「前端工程师」调整为「高级前端工程师」，职级同步更新。',
+  '更新了组织编码、负责人与对外展示名称。',
+  '在本组织下新建「效能工程组」，并完成编制初始化。',
+  '将组织管理员权限移交给新负责人，原管理员保留查看权限。',
+  '停用空编岗位，释放编制额度供其他团队使用。',
+  '完成跨部门调岗审批，成员已同步至目标组织花名册。',
+  '生成组织快照，记录当时成员结构与岗位编制情况。'
+] as const
+
+const ACTIVITY_GROUP_LABELS = ['今天', '昨天', '本周', '更早'] as const
+
+faker.seed(20260804)
+
+function createActivityItem(): ActivityItem {
+  const who = faker.person.fullName()
+  const action = faker.helpers.arrayElement(ACTIVITY_ACTIONS)
+  const hour = faker.number.int({ min: 8, max: 20 })
+  const minute = faker.number.int({ min: 0, max: 59 })
+
+  return {
+    who,
+    action,
+    avatar: faker.image.avatar(),
+    description: faker.helpers.arrayElement(ACTIVITY_DESCRIPTIONS),
+    timestamp: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+  }
+}
+
+function createActivityGroup(group: string, count: number): ActivityGroup {
+  return {
+    group,
+    items: Array.from({ length: count }, createActivityItem)
+  }
+}
+
+export const organizationActivities: ActivityGroup[] = [
+  createActivityGroup(ACTIVITY_GROUP_LABELS[0], 3),
+  createActivityGroup(ACTIVITY_GROUP_LABELS[1], 2),
+  createActivityGroup(ACTIVITY_GROUP_LABELS[2], 4),
+  createActivityGroup(ACTIVITY_GROUP_LABELS[3], 3)
+]

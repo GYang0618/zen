@@ -4,6 +4,7 @@ import {
   CardHeader,
   CardTitle,
   Timeline,
+  TimelineConnector,
   TimelineContent,
   TimelineDescription,
   TimelineHeader,
@@ -31,11 +32,16 @@ export function RoleAuditTimelineCard({ data }: { data: RoleAuditTimelineItem[] 
       <CardContent>
         <Timeline>
           {data.map((item, index) => (
-            <TimelineItem
-              key={`${item.title}-${item.timestamp}`}
-              active={item.active ?? index === 0}
-            >
-              <TimelineIndicator />
+            <TimelineItem key={`${item.title}-${item.timestamp}`}>
+              <TimelineIndicator
+                dotClassName={
+                  (item.active ?? index === 0)
+                    ? 'size-2.5 rounded-full bg-foreground border-0'
+                    : undefined
+                }
+                aria-hidden
+              />
+              <TimelineConnector />
               <TimelineContent>
                 <TimelineHeader>
                   <TimelineTitle className="font-semibold">{item.title}</TimelineTitle>

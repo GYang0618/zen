@@ -19,12 +19,13 @@ import {
   Separator,
   Timeline,
   TimelineActions,
+  TimelineConnector,
   TimelineContent,
   TimelineDescription,
+  TimelineGroup,
   TimelineHeader,
   TimelineIndicator,
   TimelineItem,
-  TimelineMarker,
   TimelineTimestamp,
   TimelineTitle
 } from '@zen/ui'
@@ -148,13 +149,14 @@ function OrganizationTimelineEvent({
   connector?: boolean
 }) {
   return (
-    <TimelineItem connector={connector}>
+    <TimelineItem>
       <TimelineIndicator>
         <Avatar className="size-6">
           <AvatarImage src={avatarSrc} alt={avatarAlt} />
           <AvatarFallback>{avatarAlt.slice(0, 2)}</AvatarFallback>
         </Avatar>
       </TimelineIndicator>
+      {connector ? <TimelineConnector /> : null}
       <TimelineContent>
         <TimelineHeader>
           <TimelineTitle>
@@ -194,59 +196,88 @@ function OrganizationTimelineCard() {
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <Timeline>
-          <TimelineMarker>May 20, 2025</TimelineMarker>
-          <OrganizationTimelineEvent
-            name="Olivia Rhye"
-            action="changed status"
-            time="2:30 PM"
-            avatarSrc="/avatars/avatar-1.png"
-            avatarAlt="Olivia Rhye"
-            badges={[
-              { label: 'To Do', variant: 'secondary' },
-              { label: 'In Progress', variant: 'primary' }
-            ]}
-          />
-          <OrganizationTimelineEvent
-            name="Olivia Rhye"
-            action="updated labels"
-            time="2:28 PM"
-            avatarSrc="/avatars/avatar-1.png"
-            avatarAlt="Olivia Rhye"
-            badges={[
-              { label: 'workflow', variant: 'secondary' },
-              { label: 'assignment', variant: 'primary' }
-            ]}
-          />
-          <OrganizationTimelineEvent
-            name="Noah Kim"
-            action="added a comment"
-            time="10:24 AM"
-            avatarSrc="/avatars/avatar-4.png"
-            avatarAlt="Noah Kim"
-            connector={false}
-          />
-          <TimelineMarker>May 18, 2025</TimelineMarker>
-          <OrganizationTimelineEvent
-            name="Noah Kim"
-            action="moved subtask"
-            time="4:15 PM"
-            avatarSrc="/avatars/avatar-4.png"
-            avatarAlt="Noah Kim"
-            description="Build team-based assignee suggestions"
-            badges={[
-              { label: 'To Do', variant: 'secondary' },
-              { label: 'Done', variant: 'primary' }
-            ]}
-            connector={false}
-          />
-          <TimelineMarker>May 16, 2025</TimelineMarker>
-          <OrganizationTimelineEvent
-            name="Olivia Rhye"
-            action="created the issue"
-            time="9:41 AM"
-            avatarSrc="/avatars/avatar-1.png"
-            avatarAlt="Olivia Rhye"
-          />
+          <TimelineGroup>
+            <TimelineItem>
+              <TimelineIndicator />
+              <TimelineConnector />
+              <TimelineContent>
+                <TimelineTitle className="py-0.5 font-semibold">May 20, 2025</TimelineTitle>
+              </TimelineContent>
+            </TimelineItem>
+
+            <OrganizationTimelineEvent
+              name="Olivia Rhye"
+              action="changed status"
+              time="2:30 PM"
+              avatarSrc="/avatars/avatar-1.png"
+              avatarAlt="Olivia Rhye"
+              badges={[
+                { label: 'To Do', variant: 'secondary' },
+                { label: 'In Progress', variant: 'primary' }
+              ]}
+            />
+            <OrganizationTimelineEvent
+              name="Olivia Rhye"
+              action="updated labels"
+              time="2:28 PM"
+              avatarSrc="/avatars/avatar-1.png"
+              avatarAlt="Olivia Rhye"
+              badges={[
+                { label: 'workflow', variant: 'secondary' },
+                { label: 'assignment', variant: 'primary' }
+              ]}
+            />
+            <OrganizationTimelineEvent
+              name="Noah Kim"
+              action="added a comment"
+              time="10:24 AM"
+              avatarSrc="/avatars/avatar-4.png"
+              avatarAlt="Noah Kim"
+              connector={false}
+            />
+          </TimelineGroup>
+
+          <TimelineGroup>
+            <TimelineItem>
+              <TimelineIndicator />
+              <TimelineConnector />
+              <TimelineContent>
+                <TimelineTitle className="py-0.5 font-semibold">May 18, 2025</TimelineTitle>
+              </TimelineContent>
+            </TimelineItem>
+
+            <OrganizationTimelineEvent
+              name="Noah Kim"
+              action="moved subtask"
+              time="4:15 PM"
+              avatarSrc="/avatars/avatar-4.png"
+              avatarAlt="Noah Kim"
+              description="Build team-based assignee suggestions"
+              badges={[
+                { label: 'To Do', variant: 'secondary' },
+                { label: 'Done', variant: 'primary' }
+              ]}
+              connector={false}
+            />
+          </TimelineGroup>
+
+          <TimelineGroup>
+            <TimelineItem>
+              <TimelineIndicator />
+              <TimelineConnector />
+              <TimelineContent>
+                <TimelineTitle className="py-0.5 font-semibold">May 16, 2025</TimelineTitle>
+              </TimelineContent>
+            </TimelineItem>
+
+            <OrganizationTimelineEvent
+              name="Olivia Rhye"
+              action="created the issue"
+              time="9:41 AM"
+              avatarSrc="/avatars/avatar-1.png"
+              avatarAlt="Olivia Rhye"
+            />
+          </TimelineGroup>
         </Timeline>
       </CardContent>
     </Card>
