@@ -7,6 +7,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  cn,
   Field,
   FieldDescription,
   FieldLabel,
@@ -18,11 +19,9 @@ import {
   Progress,
   Separator,
   Timeline,
-  TimelineActions,
   TimelineConnector,
   TimelineContent,
   TimelineDescription,
-  TimelineGroup,
   TimelineHeader,
   TimelineIndicator,
   TimelineItem,
@@ -104,7 +103,7 @@ function OrganizationInfoCard() {
   )
 }
 
-function OrganizationMembersCard() {
+function OrganizationPositionsCard() {
   return (
     <Card>
       <CardHeader>
@@ -129,155 +128,60 @@ function OrganizationMembersCard() {
   )
 }
 
-function OrganizationTimelineEvent({
-  name,
-  action,
-  time,
-  avatarSrc,
-  avatarAlt,
-  description,
-  badges,
-  connector = true
-}: {
-  name: string
-  action: string
-  time: string
-  avatarSrc: string
-  avatarAlt: string
-  description?: string
-  badges?: Array<{ label: string; variant: 'secondary' | 'primary' }>
-  connector?: boolean
-}) {
-  return (
-    <TimelineItem>
-      <TimelineIndicator>
-        <Avatar className="size-6">
-          <AvatarImage src={avatarSrc} alt={avatarAlt} />
-          <AvatarFallback>{avatarAlt.slice(0, 2)}</AvatarFallback>
-        </Avatar>
-      </TimelineIndicator>
-      {connector ? <TimelineConnector /> : null}
-      <TimelineContent>
-        <TimelineHeader>
-          <TimelineTitle>
-            <span className="font-medium">{name}</span>{' '}
-            <span className="font-normal">{action}</span>
-          </TimelineTitle>
-          <TimelineTimestamp className="text-sm">{time}</TimelineTimestamp>
-        </TimelineHeader>
-        {description ? (
-          <TimelineDescription className="leading-5">{description}</TimelineDescription>
-        ) : null}
-        {badges && badges.length > 0 ? (
-          <TimelineActions className="mt-1">
-            {badges.map((badge) => (
-              <Badge
-                key={`${badge.variant}-${badge.label}`}
-                variant="secondary"
-                className={
-                  badge.variant === 'primary' ? 'h-6 bg-primary/10 px-2 text-primary' : 'h-6 px-2'
-                }
-              >
-                {badge.label}
-              </Badge>
-            ))}
-          </TimelineActions>
-        ) : null}
-      </TimelineContent>
-    </TimelineItem>
-  )
-}
-
 function OrganizationTimelineCard() {
+  const data = [
+    {
+      time: '2026-08-03',
+      title: '组织合并',
+      description: '部门A合并到本部门'
+    },
+    {
+      time: '2026-08-02',
+      title: '负责人变更',
+      description: '周明远变更为艾米丽'
+    },
+    {
+      time: '2026-08-01',
+      title: '部门名称变更',
+      description: '部门名称从“A部门”变更为“B部门”'
+    },
+    {
+      time: '2026-07-31',
+      title: '创建组织',
+      creator: '周明远',
+      avatar: 'https://github.com/maxleiter.png'
+    }
+  ]
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>最近变更</CardTitle>
+      <CardHeader className="flex justify-between">
+        <CardTitle>组织变更</CardTitle>
+        <span>近期</span>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <Timeline>
-          <TimelineGroup>
-            <TimelineItem>
-              <TimelineIndicator />
+          {data.map((item, index) => (
+            <TimelineItem key={item.time}>
+              <TimelineIndicator className={cn(index !== 0 && 'bg-primary border-none')}>
+                {item.avatar && (
+                  <Avatar>
+                    <AvatarImage src={item.avatar} />
+                    <AvatarFallback>{item.creator?.[0]}</AvatarFallback>
+                  </Avatar>
+                )}
+              </TimelineIndicator>
               <TimelineConnector />
               <TimelineContent>
-                <TimelineTitle className="py-0.5 font-semibold">May 20, 2025</TimelineTitle>
+                <TimelineHeader>
+                  <TimelineTitle>{item.title}</TimelineTitle>
+                  <TimelineTimestamp>{item.time}</TimelineTimestamp>
+                </TimelineHeader>
+
+                <TimelineDescription>{item.description}</TimelineDescription>
               </TimelineContent>
             </TimelineItem>
-
-            <OrganizationTimelineEvent
-              name="Olivia Rhye"
-              action="changed status"
-              time="2:30 PM"
-              avatarSrc="/avatars/avatar-1.png"
-              avatarAlt="Olivia Rhye"
-              badges={[
-                { label: 'To Do', variant: 'secondary' },
-                { label: 'In Progress', variant: 'primary' }
-              ]}
-            />
-            <OrganizationTimelineEvent
-              name="Olivia Rhye"
-              action="updated labels"
-              time="2:28 PM"
-              avatarSrc="/avatars/avatar-1.png"
-              avatarAlt="Olivia Rhye"
-              badges={[
-                { label: 'workflow', variant: 'secondary' },
-                { label: 'assignment', variant: 'primary' }
-              ]}
-            />
-            <OrganizationTimelineEvent
-              name="Noah Kim"
-              action="added a comment"
-              time="10:24 AM"
-              avatarSrc="/avatars/avatar-4.png"
-              avatarAlt="Noah Kim"
-              connector={false}
-            />
-          </TimelineGroup>
-
-          <TimelineGroup>
-            <TimelineItem>
-              <TimelineIndicator />
-              <TimelineConnector />
-              <TimelineContent>
-                <TimelineTitle className="py-0.5 font-semibold">May 18, 2025</TimelineTitle>
-              </TimelineContent>
-            </TimelineItem>
-
-            <OrganizationTimelineEvent
-              name="Noah Kim"
-              action="moved subtask"
-              time="4:15 PM"
-              avatarSrc="/avatars/avatar-4.png"
-              avatarAlt="Noah Kim"
-              description="Build team-based assignee suggestions"
-              badges={[
-                { label: 'To Do', variant: 'secondary' },
-                { label: 'Done', variant: 'primary' }
-              ]}
-              connector={false}
-            />
-          </TimelineGroup>
-
-          <TimelineGroup>
-            <TimelineItem>
-              <TimelineIndicator />
-              <TimelineConnector />
-              <TimelineContent>
-                <TimelineTitle className="py-0.5 font-semibold">May 16, 2025</TimelineTitle>
-              </TimelineContent>
-            </TimelineItem>
-
-            <OrganizationTimelineEvent
-              name="Olivia Rhye"
-              action="created the issue"
-              time="9:41 AM"
-              avatarSrc="/avatars/avatar-1.png"
-              avatarAlt="Olivia Rhye"
-            />
-          </TimelineGroup>
+          ))}
         </Timeline>
       </CardContent>
     </Card>
@@ -288,7 +192,7 @@ export function OrganizationDetailSideOverview() {
   return (
     <aside className="bg-muted/35 flex w-full shrink-0 flex-col gap-4 rounded-[28px] border border-dashed p-3 @5xl/content:w-90 @5xl/content:self-start">
       <OrganizationInfoCard />
-      <OrganizationMembersCard />
+      <OrganizationPositionsCard />
       <OrganizationTimelineCard />
     </aside>
   )

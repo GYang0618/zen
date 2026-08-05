@@ -49,7 +49,7 @@ Timeline
 | `Timeline` | 时间线容器 |
 | `TimelineGroup` | 分组容器（组与组之间断开） |
 | `TimelineItem` | 一条时间线条目 |
-| `TimelineIndicator` | 左侧节点；无 `children` 时渲染默认点，可用 `dotClassName` 改样式 |
+| `TimelineIndicator` | 左侧节点；无 `children` 时自身即默认点，`className` 可改 `bg` / `border`；有 `children` 时作为容器直接渲染子节点 |
 | `TimelineConnector` | 从当前节点向下的竖线 |
 | `TimelineContent` | 右侧内容区 |
 | `TimelineSide` | 可选左侧时间/日期列 |
@@ -73,15 +73,12 @@ Timeline
 </Timeline>
 ```
 
-## 示例 2：实心彩色点（只改 `dotClassName`）
+## 示例 2：实心彩色点（`className` 改默认点）
 
 ```tsx
 <Timeline>
   <TimelineItem>
-    <TimelineIndicator
-      dotClassName="size-2.5 rounded-full bg-orange-500 border-0"
-      aria-hidden
-    />
+    <TimelineIndicator className="bg-orange-500 border-0" aria-hidden />
     <TimelineConnector />
     <TimelineContent>
       <TimelineTitle>Review window opened</TimelineTitle>
@@ -119,10 +116,8 @@ Timeline
 ```tsx
 <Timeline>
   <TimelineItem>
-    <TimelineIndicator>
-      <span className="flex size-6 items-center justify-center rounded-full bg-background ring-4 ring-background">
-        <Icon className="size-4 text-muted-foreground" />
-      </span>
+    <TimelineIndicator className="size-6">
+      <Icon className="size-4 text-muted-foreground" />
     </TimelineIndicator>
     <TimelineConnector />
     <TimelineContent>

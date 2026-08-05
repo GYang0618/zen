@@ -140,11 +140,11 @@ export function PermissionMatrix() {
       <div className="text-sm text-muted-foreground">当前已选 22 / 36项 </div>
 
       {groups.map((group) => (
-        <Card key={group.module} className="rounded-3xl">
+        <Card key={group.module} className="group rounded-3xl">
           <CardHeader>
             <CardTitle>{group.module}</CardTitle>
             <CardDescription>2 / 2 项已选</CardDescription>
-            <CardAction>
+            <CardAction className="group-hover:opacity-100 opacity-0 transition-opacity duration-300">
               <div className="flex">
                 <Tooltip>
                   <TooltipTrigger>

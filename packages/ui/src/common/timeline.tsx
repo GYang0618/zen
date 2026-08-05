@@ -51,46 +51,25 @@ function TimelineSide({ className, ...props }: React.ComponentProps<'div'>) {
   )
 }
 
-function TimelineIndicator({
-  className,
-  children,
-  dotClassName,
-  ...props
-}: React.ComponentProps<'div'> & {
-  /**
-   * 仅在没有 children（即渲染默认空心/实心点）时生效。
-   * 用于直接配置 dot 的 `bg` / `size` / `border` 等样式，
-   * 避免在业务侧再手写一个 `<span />`。
-   */
-  dotClassName?: string
-}) {
+function TimelineIndicator({ className, children, ...props }: React.ComponentProps<'div'>) {
   const isDefaultDot = children == null
 
   return (
     <div
       data-slot="timeline-indicator"
       className={cn(
-        'relative z-10 mt-0.5 col-start-2 row-start-1 flex justify-self-center',
-        // 仅空心默认点需要下移，贴齐 text-sm 字帽；Avatar / Icon 等自定义节点顶齐即可
-        isDefaultDot && 'mt-1.5',
+        // 定位 + ring 盖住连接线，形成节点上下空隙
+        'relative z-10 col-start-2 row-start-1 justify-self-center rounded-full bg-background ring-4 ring-background',
+        isDefaultDot
+          ? // 无 children：自身即默认点
+            'mt-1.5 size-2.5 border-2 border-border'
+          : // 有 children：作为定位容器直接渲染子节点
+            'mt-0.5 inline-flex shrink-0 items-center justify-center',
         className
       )}
       {...props}
     >
-      {/* ring-background 盖住连接线，形成节点上下的小段空隙 */}
-      <span className="inline-flex shrink-0 items-center justify-center rounded-full bg-background ring-4 ring-background">
-        {children ?? (
-          <span
-            data-slot="timeline-indicator-dot"
-            className={cn(
-              'size-2.5 rounded-full border-2 border-border bg-background',
-              // dotClassName 在后面，确保可覆盖 border-0 / bg / size
-              dotClassName
-            )}
-            aria-hidden
-          />
-        )}
-      </span>
+      {children}
     </div>
   )
 }

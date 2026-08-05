@@ -34,11 +34,7 @@ export function RoleAuditTimelineCard({ data }: { data: RoleAuditTimelineItem[] 
           {data.map((item, index) => (
             <TimelineItem key={`${item.title}-${item.timestamp}`}>
               <TimelineIndicator
-                dotClassName={
-                  (item.active ?? index === 0)
-                    ? 'size-2.5 rounded-full bg-foreground border-0'
-                    : undefined
-                }
+                className={(item.active ?? index === 0) ? 'bg-foreground border-0' : undefined}
                 aria-hidden
               />
               <TimelineConnector />
