@@ -1,13 +1,17 @@
-import { Separator } from '@zen/ui'
+import { FieldGroup, FieldSeparator } from '@zen/ui'
 
-import { AppPageHeader } from '@/components/layouts/app-page-header'
+import { SectionContent } from '../components/section-content'
+import { MfaSection } from './mfa-section'
+import { PasswordForm } from './password-form'
 
 export function SettingsAccount() {
   return (
-    <>
-      <AppPageHeader size="sm" />
-      <Separator className="my-4 flex-none" />
-      <div>Account</div>
-    </>
+    <SectionContent>
+      <FieldGroup>
+        <PasswordForm />
+        <FieldSeparator />
+        <MfaSection />
+      </FieldGroup>
+    </SectionContent>
   )
 }

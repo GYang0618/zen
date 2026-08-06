@@ -37,17 +37,16 @@ export function Settings() {
       {/* ===== Top Heading ===== */}
       <AppHeader />
 
-      <Main fixed>
+      <Main>
         <AppPageHeader from={SETTINGS_V2_PATH} />
-        <Separator className="my-4 lg:my-6" />
+        <Separator className="my-4 flex-none lg:my-6" />
 
-        <div className="flex gap-12">
-          <aside className="w-1/5">
+        <div className="flex min-h-0 flex-1 flex-col gap-12 overflow-y-auto lg:flex-row">
+          <aside className="lg:w-1/5">
             <SidebarNav items={sidebarNavItems} />
           </aside>
-          <div className="flex-1">
-            <Outlet />
-          </div>
+
+          <Outlet />
         </div>
       </Main>
     </>
