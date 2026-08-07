@@ -1,0 +1,10 @@
+/**
+ * Theme style: mira
+ * Selector: data-style="mira"
+ * 官方组件主圆角: rounded-md（紧凑、高密度）
+ * @see https://ui.shadcn.com/create
+ */
+
+[data-style='mira'] {
+  --radius: 0.45rem;
+}

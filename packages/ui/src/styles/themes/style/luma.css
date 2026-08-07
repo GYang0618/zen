@@ -1,0 +1,10 @@
+/**
+ * Theme style: luma
+ * Selector: data-style="luma"
+ * 官方组件主圆角: rounded-4xl（现代、流体）
+ * @see https://ui.shadcn.com/create
+ */
+
+[data-style='luma'] {
+  --radius: 0.875rem;
+}

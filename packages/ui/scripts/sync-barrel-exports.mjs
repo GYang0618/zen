@@ -26,7 +26,8 @@ const SECTIONS = [
   { dir: 'components', label: 'Components (shadcn)' },
   { dir: 'common', label: 'Common (自研)' },
   { dir: 'hooks', label: 'Hooks' },
-  { dir: 'lib', label: 'Lib' }
+  { dir: 'lib', label: 'Lib' },
+  { dir: 'themes', label: 'Themes' }
 ]
 
 /** @param {string} filePath */

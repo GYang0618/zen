@@ -57,3 +57,7 @@ export * from './hooks/use-mobile'
 // Lib
 
 export * from './lib/utils'
+
+// Themes
+
+export * from './themes/catalog'

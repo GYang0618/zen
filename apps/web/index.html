@@ -5,6 +5,93 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>web</title>
+    <script>
+      ;(function () {
+        try {
+          var root = document.documentElement
+          var baseMatch = document.cookie.match(/(?:^|; )vite-ui-base-color=([^;]*)/)
+          var brandMatch = document.cookie.match(/(?:^|; )vite-ui-brand-color=([^;]*)/)
+          var styleMatch = document.cookie.match(/(?:^|; )vite-ui-style=([^;]*)/)
+          var fontMatch = document.cookie.match(/(?:^|; )vite-ui-font=([^;]*)/)
+          var legacyFontMatch = document.cookie.match(/(?:^|; )font=([^;]*)/)
+          var base = baseMatch ? decodeURIComponent(baseMatch[1]) : 'slate'
+          var brand = brandMatch ? decodeURIComponent(brandMatch[1]) : 'slate'
+          var style = styleMatch ? decodeURIComponent(styleMatch[1]) : 'nova'
+          var font = fontMatch
+            ? decodeURIComponent(fontMatch[1])
+            : legacyFontMatch
+              ? decodeURIComponent(legacyFontMatch[1])
+              : 'geist'
+          var bases = [
+            'slate',
+            'neutral',
+            'stone',
+            'zinc',
+            'mauve',
+            'olive',
+            'mist',
+            'taupe'
+          ]
+          var brands = [
+            'slate',
+            'neutral',
+            'amber',
+            'blue',
+            'cyan',
+            'emerald',
+            'fuchsia',
+            'green',
+            'indigo',
+            'lime',
+            'orange',
+            'pink',
+            'purple',
+            'red',
+            'rose',
+            'sky',
+            'teal',
+            'violet',
+            'yellow'
+          ]
+          var styles = ['nova', 'vega', 'maia', 'lyra', 'mira', 'luma', 'sera', 'rhea']
+          var fonts = [
+            'geist',
+            'inter',
+            'noto-sans',
+            'nunito-sans',
+            'figtree',
+            'roboto',
+            'raleway',
+            'dm-sans',
+            'public-sans',
+            'outfit',
+            'oxanium',
+            'manrope',
+            'space-grotesk',
+            'montserrat',
+            'ibm-plex-sans',
+            'source-sans-3',
+            'instrument-sans',
+            'jetbrains-mono',
+            'geist-mono',
+            'noto-serif',
+            'roboto-slab',
+            'merriweather',
+            'lora',
+            'playfair-display',
+            'eb-garamond',
+            'instrument-serif'
+          ]
+          if (base === 'default') base = 'slate'
+          if (brand === 'default' || brand === 'zinc') brand = 'slate'
+          if (font === 'system') font = 'geist'
+          root.setAttribute('data-base-color', bases.indexOf(base) >= 0 ? base : 'slate')
+          root.setAttribute('data-brand-color', brands.indexOf(brand) >= 0 ? brand : 'slate')
+          root.setAttribute('data-style', styles.indexOf(style) >= 0 ? style : 'nova')
+          root.setAttribute('data-font', fonts.indexOf(font) >= 0 ? font : 'geist')
+        } catch (_) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

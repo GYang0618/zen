@@ -1,0 +1,10 @@
+/**
+ * Theme style: sera
+ * Selector: data-style="sera"
+ * 官方组件主圆角: rounded-none（编辑风格、硬朗）
+ * @see https://ui.shadcn.com/create
+ */
+
+[data-style='sera'] {
+  --radius: 0;
+}

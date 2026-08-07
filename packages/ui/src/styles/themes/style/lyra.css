@@ -1,0 +1,10 @@
+/**
+ * Theme style: lyra
+ * Selector: data-style="lyra"
+ * 官方组件主圆角: rounded-none（方正、锐利）
+ * @see https://ui.shadcn.com/create
+ */
+
+[data-style='lyra'] {
+  --radius: 0;
+}

@@ -3,6 +3,10 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "./theme.css";
+@import "./themes/base/index.css";
+@import "./themes/accent/index.css";
+@import "./themes/style/index.css";
+@import "./themes/font/index.css";
 
 @source "../**/*.{ts,tsx}";
 
@@ -15,8 +19,9 @@
     scrollbar-color: var(--border) transparent;
   }
   html {
-    @apply overflow-x-hidden;
+    @apply overflow-x-hidden font-sans;
   }
+
   body {
     @apply min-h-svh w-full bg-background text-foreground has-[div[data-variant='inset']]:bg-sidebar;
   }

@@ -12,19 +12,31 @@ import {
 import { Settings } from 'lucide-react'
 
 import { LayoutConfig, SidebarConfig, ThemeConfig } from '@/components/appearance-settings'
+import { useBaseColor } from '@/context/base-color-provider'
+import { useBrandColor } from '@/context/brand-color-provider'
+import { useFont } from '@/context/font-provider'
 import { useLayout } from '@/context/layout-provider'
 import { useTheme } from '@/context/theme-provider'
+import { useUiStyle } from '@/context/ui-style-provider'
 
 export function ConfigDrawer() {
   const { setOpen } = useSidebar()
 
   const { resetTheme } = useTheme()
+  const { resetBaseColor } = useBaseColor()
+  const { resetBrandColor } = useBrandColor()
+  const { resetFont } = useFont()
+  const { resetStyle } = useUiStyle()
   const { resetLayout } = useLayout()
 
   const handleReset = () => {
     setOpen(true)
 
     resetTheme()
+    resetBaseColor()
+    resetBrandColor()
+    resetFont()
+    resetStyle()
     resetLayout()
   }
 

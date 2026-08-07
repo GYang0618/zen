@@ -1,0 +1,20 @@
+/**
+ * Auto-barrel for visual styles.
+ *
+ * 新增样式:
+ * 1. 新建 `{name}.css`（主要覆盖 --radius 等造型 token）
+ * 2. 在本文件追加 `@import "./{name}.css";`
+ * 3. 同步更新 `src/themes/catalog.ts` 的 STYLE_THEME_IDS
+ *
+ * 顺序与官方 create Style 菜单一致；`nova` 仍为系统默认（:root）。
+ * @see https://ui.shadcn.com/create
+ */
+
+@import "./nova.css";
+@import "./vega.css";
+@import "./maia.css";
+@import "./lyra.css";
+@import "./mira.css";
+@import "./luma.css";
+@import "./sera.css";
+@import "./rhea.css";

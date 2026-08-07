@@ -41,7 +41,7 @@ export function Settings() {
         <AppPageHeader from={SETTINGS_V2_PATH} />
         <Separator className="my-4 flex-none lg:my-6" />
 
-        <div className="flex min-h-0 flex-1 flex-col gap-12 overflow-y-auto lg:flex-row">
+        <div className="flex min-h-0 flex-1 flex-col gap-12 lg:flex-row">
           <aside className="lg:w-1/5">
             <SidebarNav items={sidebarNavItems} />
           </aside>

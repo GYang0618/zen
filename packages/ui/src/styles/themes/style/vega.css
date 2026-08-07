@@ -1,0 +1,10 @@
+/**
+ * Theme style: vega
+ * Selector: data-style="vega"
+ * 官方组件主圆角: rounded-md（经典、偏硬）
+ * @see https://ui.shadcn.com/create
+ */
+
+[data-style='vega'] {
+  --radius: 0.5rem;
+}

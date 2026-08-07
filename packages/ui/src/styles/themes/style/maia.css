@@ -1,0 +1,10 @@
+/**
+ * Theme style: maia
+ * Selector: data-style="maia"
+ * 官方组件主圆角: rounded-4xl（柔和、大圆角）
+ * @see https://ui.shadcn.com/create
+ */
+
+[data-style='maia'] {
+  --radius: 1.25rem;
+}

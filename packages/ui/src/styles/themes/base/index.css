@@ -1,0 +1,19 @@
+/**
+ * Auto-barrel for base themes.
+ *
+ * 新增主题:
+ * 1. 新建 `{name}.css`（light + .dark 两套变量）
+ * 2. 在本文件追加 `@import "./{name}.css";`
+ * 3. 同步更新 `src/themes/catalog.ts` 的 BASE_THEME_IDS
+ *
+ * `slate` 为系统默认主题，须排在最前（绑定 :root）。
+ */
+
+@import "./slate.css";
+@import "./neutral.css";
+@import "./mauve.css";
+@import "./mist.css";
+@import "./olive.css";
+@import "./stone.css";
+@import "./taupe.css";
+@import "./zinc.css";

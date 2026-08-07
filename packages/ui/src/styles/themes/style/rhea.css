@@ -1,0 +1,10 @@
+/**
+ * Theme style: rhea
+ * Selector: data-style="rhea"
+ * 官方组件主圆角: rounded-2xl（胶囊感、紧凑 Luma）
+ * @see https://ui.shadcn.com/docs/changelog/2026-05-rhea
+ */
+
+[data-style='rhea'] {
+  --radius: 1rem;
+}

@@ -1,0 +1,148 @@
+/**
+ * shadcn/ui 官方字体（Vite：@fontsource-variable）
+ * @see https://ui.shadcn.com/create
+ * @see https://github.com/shadcn-ui/ui/blob/main/apps/v4/lib/font-definitions.ts
+ */
+
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/noto-sans";
+@import "@fontsource-variable/nunito-sans";
+@import "@fontsource-variable/figtree";
+@import "@fontsource-variable/roboto";
+@import "@fontsource-variable/raleway";
+@import "@fontsource-variable/dm-sans";
+@import "@fontsource-variable/public-sans";
+@import "@fontsource-variable/outfit";
+@import "@fontsource-variable/oxanium";
+@import "@fontsource-variable/manrope";
+@import "@fontsource-variable/space-grotesk";
+@import "@fontsource-variable/montserrat";
+@import "@fontsource-variable/ibm-plex-sans";
+@import "@fontsource-variable/source-sans-3";
+@import "@fontsource-variable/instrument-sans";
+@import "@fontsource-variable/jetbrains-mono";
+@import "@fontsource-variable/geist-mono";
+@import "@fontsource-variable/noto-serif";
+@import "@fontsource-variable/roboto-slab";
+@import "@fontsource-variable/merriweather";
+@import "@fontsource-variable/lora";
+@import "@fontsource-variable/playfair-display";
+@import "@fontsource-variable/eb-garamond";
+@import "@fontsource/instrument-serif";
+
+/**
+ * 运行时 body 字体：统一写入 --font-family-sans（由 @theme --font-sans 引用）
+ * mono / serif 选为正文时同样映射到 sans token，与 create 预览行为一致。
+ * Geist 为 radix-nova 默认，绑定 :root。
+ */
+
+:root,
+[data-font='geist'] {
+  --font-family-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-font='inter'] {
+  --font-family-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-font='noto-sans'] {
+  --font-family-sans: 'Noto Sans Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-font='nunito-sans'] {
+  --font-family-sans: 'Nunito Sans Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-font='figtree'] {
+  --font-family-sans: 'Figtree Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-font='roboto'] {
+  --font-family-sans: 'Roboto Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-font='raleway'] {
+  --font-family-sans: 'Raleway Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-font='dm-sans'] {
+  --font-family-sans: 'DM Sans Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-font='public-sans'] {
+  --font-family-sans: 'Public Sans Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-font='outfit'] {
+  --font-family-sans: 'Outfit Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-font='oxanium'] {
+  --font-family-sans: 'Oxanium Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-font='manrope'] {
+  --font-family-sans: 'Manrope Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-font='space-grotesk'] {
+  --font-family-sans: 'Space Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-font='montserrat'] {
+  --font-family-sans: 'Montserrat Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-font='ibm-plex-sans'] {
+  --font-family-sans: 'IBM Plex Sans Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-font='source-sans-3'] {
+  --font-family-sans: 'Source Sans 3 Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-font='instrument-sans'] {
+  --font-family-sans: 'Instrument Sans Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-font='jetbrains-mono'] {
+  --font-family-sans: 'JetBrains Mono Variable', ui-monospace, monospace;
+}
+
+[data-font='geist-mono'] {
+  --font-family-sans: 'Geist Mono Variable', ui-monospace, monospace;
+}
+
+[data-font='noto-serif'] {
+  --font-family-sans: 'Noto Serif Variable', ui-serif, Georgia, serif;
+}
+
+[data-font='roboto-slab'] {
+  --font-family-sans: 'Roboto Slab Variable', ui-serif, Georgia, serif;
+}
+
+[data-font='merriweather'] {
+  --font-family-sans: 'Merriweather Variable', ui-serif, Georgia, serif;
+}
+
+[data-font='lora'] {
+  --font-family-sans: 'Lora Variable', ui-serif, Georgia, serif;
+}
+
+[data-font='playfair-display'] {
+  --font-family-sans: 'Playfair Display Variable', ui-serif, Georgia, serif;
+}
+
+[data-font='eb-garamond'] {
+  --font-family-sans: 'EB Garamond Variable', ui-serif, Georgia, serif;
+}
+
+[data-font='instrument-serif'] {
+  --font-family-sans: 'Instrument Serif', ui-serif, Georgia, serif;
+}
+
+:root {
+  --font-family-mono: 'Geist Mono Variable', ui-monospace, monospace;
+  --font-family-serif: 'Noto Serif Variable', ui-serif, Georgia, serif;
+}

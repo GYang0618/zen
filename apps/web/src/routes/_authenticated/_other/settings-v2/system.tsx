@@ -7,7 +7,7 @@ export const Route = createFileRoute('/_authenticated/_other/settings-v2/system'
   component: SettingsSystem,
   staticData: {
     title: '系统',
-    description: '管理你的系统设置、权限配置与数据备份恢复。',
+    description: '管理你的系统logo、名称、版权等信息。',
     icon: MonitorCog,
     order: 50
   }

@@ -1,56 +1,115 @@
+import {
+  DEFAULT_FONT_THEME_ID,
+  FONT_THEME_IDS,
+  isFontThemeId
+} from '@zen/ui'
 import { createContext, useContext, useEffect, useState } from 'react'
 
-import { fonts } from '@/config/fonts'
 import { getCookie, removeCookie, setCookie } from '@/lib/cookies'
 
-type Font = (typeof fonts)[number]
+import type { FontThemeId } from '@zen/ui'
 
-const FONT_COOKIE_NAME = 'font'
-const FONT_COOKIE_MAX_AGE = 60 * 60 * 24 * 365 // 1 year
+/**
+ * 与 shadcn/ui create「Font」预设对齐。
+ * 默认 `geist`，与 components.json `radix-nova` 一致。
+ * @see https://ui.shadcn.com/create
+ */
+export const FONTS = FONT_THEME_IDS
+export type Font = FontThemeId
 
-type FontContextType = {
+const DEFAULT_FONT: Font = DEFAULT_FONT_THEME_ID
+const FONT_COOKIE_NAME = 'vite-ui-font'
+const LEGACY_FONT_COOKIE_NAME = 'font'
+const FONT_COOKIE_MAX_AGE = 60 * 60 * 24 * 365
+const FONT_ATTR = 'data-font'
+
+/** 旧版字体 cookie → 官方 Font ID */
+const LEGACY_FONT_MAP: Record<string, Font> = {
+  system: 'geist',
+  inter: 'inter',
+  manrope: 'manrope'
+}
+
+function resolveFont(value: string | undefined, fallback: Font): Font {
+  if (isFontThemeId(value)) return value
+  if (value && value in LEGACY_FONT_MAP) return LEGACY_FONT_MAP[value]!
+  return fallback
+}
+
+/** 纯 DOM 副作用：仅设置属性，字体由 CSS 层处理 */
+export function applyFont(font: Font) {
+  document.documentElement.setAttribute(FONT_ATTR, font)
+}
+
+type FontProviderProps = {
+  children: React.ReactNode
+  defaultFont?: Font
+  storageKey?: string
+}
+
+type FontProviderState = {
+  defaultFont: Font
   font: Font
   setFont: (font: Font) => void
   resetFont: () => void
 }
 
-const FontContext = createContext<FontContextType | null>(null)
+const initialState: FontProviderState = {
+  defaultFont: DEFAULT_FONT,
+  font: DEFAULT_FONT,
+  setFont: () => undefined,
+  resetFont: () => undefined
+}
 
-export function FontProvider({ children }: { children: React.ReactNode }) {
-  const [font, _setFont] = useState<Font>(() => {
-    const savedFont = getCookie(FONT_COOKIE_NAME)
-    return fonts.includes(savedFont as Font) ? (savedFont as Font) : fonts[0]
+const FontContext = createContext<FontProviderState>(initialState)
+
+export function FontProvider({
+  children,
+  defaultFont = DEFAULT_FONT,
+  storageKey = FONT_COOKIE_NAME
+}: FontProviderProps) {
+  const [font, setFontState] = useState<Font>(() => {
+    const saved = getCookie(storageKey) ?? getCookie(LEGACY_FONT_COOKIE_NAME)
+    return resolveFont(saved, defaultFont)
   })
 
   useEffect(() => {
-    const applyFont = (font: string) => {
-      const root = document.documentElement
-      root.classList.forEach((cls) => {
-        if (cls.startsWith('font-')) root.classList.remove(cls)
-      })
-      root.classList.add(`font-${font}`)
-    }
-
     applyFont(font)
   }, [font])
 
-  const setFont = (font: Font) => {
-    setCookie(FONT_COOKIE_NAME, font, FONT_COOKIE_MAX_AGE)
-    _setFont(font)
+  const setFont = (next: Font) => {
+    setCookie(storageKey, next, FONT_COOKIE_MAX_AGE)
+    removeCookie(LEGACY_FONT_COOKIE_NAME)
+    setFontState(next)
   }
 
   const resetFont = () => {
-    removeCookie(FONT_COOKIE_NAME)
-    _setFont(fonts[0])
+    removeCookie(storageKey)
+    removeCookie(LEGACY_FONT_COOKIE_NAME)
+    setFontState(defaultFont)
   }
 
-  return <FontContext value={{ font, setFont, resetFont }}>{children}</FontContext>
+  return (
+    <FontContext
+      value={{
+        defaultFont,
+        font,
+        setFont,
+        resetFont
+      }}
+    >
+      {children}
+    </FontContext>
+  )
 }
 
-export const useFont = () => {
+// eslint-disable-next-line react-refresh/only-export-components
+export function useFont() {
   const context = useContext(FontContext)
+
   if (!context) {
     throw new Error('useFont must be used within a FontProvider')
   }
+
   return context
 }

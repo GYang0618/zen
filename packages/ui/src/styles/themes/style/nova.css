@@ -1,0 +1,11 @@
+/**
+ * Theme style: nova（系统默认，对应 components.json radix-nova）
+ * Selector: :root / data-style="nova"
+ * 官方组件主圆角: rounded-lg；默认 --radius: 0.625rem
+ * @see https://ui.shadcn.com/create
+ */
+
+:root,
+[data-style='nova'] {
+  --radius: 0.625rem;
+}

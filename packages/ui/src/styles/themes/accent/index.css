@@ -1,0 +1,30 @@
+/**
+ * Auto-barrel for accent themes.
+ *
+ * 新增主题:
+ * 1. 新建 `{name}.css`（light + .dark 两套变量）
+ * 2. 在本文件追加 `@import "./{name}.css";`
+ * 3. 同步更新 `src/themes/catalog.ts` 的 ACCENT_THEME_CSS_IDS
+ *
+ * `slate` 为系统默认 Theme，须排在最前。
+ * `neutral` 无独立 CSS：表示不覆盖，沿用当前 Base Color。
+ */
+
+@import "./slate.css";
+@import "./amber.css";
+@import "./blue.css";
+@import "./cyan.css";
+@import "./emerald.css";
+@import "./fuchsia.css";
+@import "./green.css";
+@import "./indigo.css";
+@import "./lime.css";
+@import "./orange.css";
+@import "./pink.css";
+@import "./purple.css";
+@import "./red.css";
+@import "./rose.css";
+@import "./sky.css";
+@import "./teal.css";
+@import "./violet.css";
+@import "./yellow.css";
