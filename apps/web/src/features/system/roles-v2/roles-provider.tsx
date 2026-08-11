@@ -11,6 +11,7 @@ type RoleFormInput = {
   name: string
   code: string
   icon: Role['icon']
+  iconColor: Role['iconColor']
   description: string
   expiredAt: string | null
 }
@@ -47,6 +48,7 @@ export function RolesProvider({ children }: { children: React.ReactNode }) {
       name: input.name,
       code: input.code,
       icon: input.icon,
+      iconColor: input.iconColor,
       description: input.description,
       permissions: [],
       memberCount: 0,
@@ -73,6 +75,7 @@ export function RolesProvider({ children }: { children: React.ReactNode }) {
           ...role,
           name: input.name,
           icon: input.icon,
+          iconColor: input.iconColor,
           description: input.description,
           expiredAt: input.expiredAt,
           updatedAt: now

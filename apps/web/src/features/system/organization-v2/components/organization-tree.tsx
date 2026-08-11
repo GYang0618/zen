@@ -31,8 +31,9 @@ import {
   Settings
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
+import { useMemo, useState } from 'react'
 
-import { organizationIconConfig } from '../data/data'
+import { organizationIconConfig, organizationTypeLabels } from '../data/data'
 import { useOrganizations } from '../organizations-provider'
 import { OrganizationSideOverview } from './organizations-side-overview'
 
@@ -48,77 +49,85 @@ const sideOverviewMotion = {
   transition: { duration: 0.28, ease: [0.32, 0.72, 0, 1] as const }
 }
 
+function collectExpandableIds(nodes: Organization[]): string[] {
+  return nodes.flatMap((node) => [
+    ...(node.children?.length ? [node.id] : []),
+    ...collectExpandableIds(node.children ?? [])
+  ])
+}
+
 interface TreeNodeProps {
   data: Organization
+  expandedIds: Set<string>
+  onExpandedChange: (id: string, open: boolean) => void
   onSelect?: (node: Organization) => void
 }
 
-function TreeNode({ data, onSelect }: TreeNodeProps) {
+function TreeNode({ data, expandedIds, onExpandedChange, onSelect }: TreeNodeProps) {
   const { id, name, type, memberCount, children } = data
-  const hasChildren = children && children.length > 0
+  const hasChildren = Boolean(children?.length)
   const { currentNode } = useOrganizations()
+  const open = expandedIds.has(id)
 
   const isSelected = currentNode?.id === id
 
   const renderOrgIcon = ({ type, className }: { type?: string; className?: string }) => {
-    // 容错处理：确保转为大写，处理空值
     const normalizedType = (type || '').toUpperCase()
-
-    // 匹配配置，若匹配不到则使用兜底配置
     const config = organizationIconConfig[normalizedType] ?? {
       icon: Folder,
       defaultColor: 'text-muted-foreground'
     }
-
     const IconComponent = config.icon
 
     return (
       <IconComponent
-        className={cn(
-          'size-4 shrink-0 transition-colors', // 基础样式：固定大小、防挤压、增加颜色过渡动画
-          config.defaultColor, // 默认主题色
-          className // 允许外部传入 className 进行覆盖
-        )}
+        className={cn('size-4 shrink-0 transition-colors', config.defaultColor, className)}
       />
     )
   }
 
   return (
-    <Collapsible key={id}>
+    <Collapsible
+      open={hasChildren ? open : undefined}
+      onOpenChange={hasChildren ? (nextOpen) => onExpandedChange(id, nextOpen) : undefined}
+    >
       <Item
         size="xs"
         className={cn(
-          'group/item px-2 py-1.5 hover:bg-muted/50 my-0.5',
-          isSelected && 'bg-muted/50 border-muted '
+          'group/item my-0.5 px-2 py-1.5 hover:bg-muted/50',
+          isSelected && 'border-muted bg-muted/50'
         )}
         onClick={() => onSelect?.(data)}
       >
         <ItemMedia>
           <Button
             variant="ghost"
-            className="pointer-events-none text-muted-foreground/50 hover:text-muted-foreground size-7 opacity-0 transition-opacity duration-200 hover:cursor-grab group-hover/item:pointer-events-auto group-hover/item:opacity-100"
+            className="pointer-events-none size-7 text-muted-foreground/50 opacity-0 transition-opacity duration-200 hover:cursor-grab hover:text-muted-foreground group-hover/item:pointer-events-auto group-hover/item:opacity-100"
           >
             <GripVertical />
           </Button>
 
-          {hasChildren && (
+          {hasChildren ? (
             <CollapsibleTrigger asChild>
               <Button
                 variant="ghost"
                 className="group size-7"
                 onClick={(event) => event.stopPropagation()}
+                aria-label={open ? `收起${name}` : `展开${name}`}
               >
                 <ChevronRightIcon className="transition-transform group-data-[state=open]:rotate-90" />
               </Button>
             </CollapsibleTrigger>
-          )}
-          <div className="size-8 bg-muted rounded-lg flex justify-center items-center text-muted-foreground">
+          ) : null}
+          <div className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
             {renderOrgIcon({ type })}
           </div>
         </ItemMedia>
         <ItemContent className="gap-0">
           <ItemTitle>{name}</ItemTitle>
-          <ItemDescription className="text-xs">{type}</ItemDescription>
+          <ItemDescription className="text-xs">
+            {organizationTypeLabels[type] ?? type}
+          </ItemDescription>
         </ItemContent>
 
         <ItemActions>
@@ -134,6 +143,7 @@ function TreeNode({ data, onSelect }: TreeNodeProps) {
                 size="icon"
                 aria-label="配置"
                 className="pointer-events-none opacity-0 transition-opacity duration-200 group-hover/item:pointer-events-auto group-hover/item:opacity-100"
+                asChild
               >
                 <Link
                   to="/system/organization-v2/$id"
@@ -149,21 +159,38 @@ function TreeNode({ data, onSelect }: TreeNodeProps) {
         </ItemActions>
       </Item>
 
-      {hasChildren && (
+      {hasChildren ? (
         <CollapsibleContent className="ml-9">
           <div className="flex flex-col gap-1">
-            {children.map((child) => (
-              <TreeNode data={child} onSelect={onSelect} key={child.id} />
+            {children?.map((child) => (
+              <TreeNode
+                data={child}
+                key={child.id}
+                expandedIds={expandedIds}
+                onExpandedChange={onExpandedChange}
+                onSelect={onSelect}
+              />
             ))}
           </div>
         </CollapsibleContent>
-      )}
+      ) : null}
     </Collapsible>
   )
 }
 
-export function OrganizationTree({ data }: { data: Organization[] }) {
-  const { currentNode, setCurrentNode } = useOrganizations()
+export function OrganizationTree() {
+  const { currentNode, setCurrentNode, organizations } = useOrganizations()
+  const expandableIds = useMemo(() => collectExpandableIds(organizations), [organizations])
+  const [expandedIds, setExpandedIds] = useState(() => new Set(expandableIds))
+
+  const handleExpandedChange = (id: string, nextOpen: boolean) => {
+    setExpandedIds((current) => {
+      const next = new Set(current)
+      if (nextOpen) next.add(id)
+      else next.delete(id)
+      return next
+    })
+  }
 
   return (
     <div className="flex">
@@ -174,7 +201,13 @@ export function OrganizationTree({ data }: { data: Organization[] }) {
             <CardAction>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon-sm" aria-label="全部展开">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="全部展开"
+                    onClick={() => setExpandedIds(new Set(expandableIds))}
+                  >
                     <ChevronsUpDown />
                   </Button>
                 </TooltipTrigger>
@@ -182,7 +215,13 @@ export function OrganizationTree({ data }: { data: Organization[] }) {
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon-sm" aria-label="全部收起">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="全部收起"
+                    onClick={() => setExpandedIds(new Set())}
+                  >
                     <ChevronsDownUp />
                   </Button>
                 </TooltipTrigger>
@@ -191,10 +230,12 @@ export function OrganizationTree({ data }: { data: Organization[] }) {
             </CardAction>
           </CardHeader>
           <CardContent className="px-2">
-            {data.map((item) => (
+            {organizations.map((item) => (
               <TreeNode
                 data={item}
                 key={item.id}
+                expandedIds={expandedIds}
+                onExpandedChange={handleExpandedChange}
                 onSelect={(node) => {
                   if (node.id === currentNode?.id) {
                     setCurrentNode(null)

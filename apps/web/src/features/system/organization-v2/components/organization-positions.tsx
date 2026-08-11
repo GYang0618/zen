@@ -1,3 +1,4 @@
+import { zodResolver } from '@hookform/resolvers/zod'
 import {
   Avatar,
   AvatarFallback,
@@ -5,73 +6,272 @@ import {
   AvatarGroupCount,
   AvatarImage,
   Badge,
+  Button,
   Card,
   CardContent,
   CardHeader,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
   Field,
+  FieldError,
+  FieldGroup,
   FieldLabel,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
   Progress,
-  Separator
+  Separator,
+  Textarea
 } from '@zen/ui'
-import { CalendarDays, PanelsTopLeft } from 'lucide-react'
+import { BriefcaseBusiness, CalendarDays, PanelsTopLeft, Plus, Search } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Controller, useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import { z } from 'zod'
 
 import type { Position } from '../type'
 
+const positionFormSchema = z.object({
+  name: z.string().trim().min(1, '岗位名称不能为空').max(50, '岗位名称不能超过50个字符'),
+  code: z
+    .string()
+    .trim()
+    .min(2, '岗位编码至少需要2个字符')
+    .max(30, '岗位编码不能超过30个字符')
+    .regex(/^POS-\d{4}$/i, '岗位编码格式为 POS-四位数字，如 POS-1001'),
+  description: z.string().trim().min(1, '岗位描述不能为空').max(200, '岗位描述不能超过200个字符')
+})
+
+type PositionFormValues = z.infer<typeof positionFormSchema>
+
+function matchesPosition(position: Position, keyword: string): boolean {
+  const q = keyword.trim().toLowerCase()
+  if (!q) return true
+  return [position.name, position.code, position.description].join(' ').toLowerCase().includes(q)
+}
+
 export function OrganizationPositions({ data }: { data: Position[] }) {
+  const [positions, setPositions] = useState<Position[]>(data)
+  const [keyword, setKeyword] = useState('')
+  const [addOpen, setAddOpen] = useState(false)
+
+  const form = useForm<PositionFormValues>({
+    resolver: zodResolver(positionFormSchema),
+    defaultValues: {
+      name: '',
+      code: '',
+      description: ''
+    }
+  })
+
+  const filteredPositions = useMemo(
+    () => positions.filter((item) => matchesPosition(item, keyword)),
+    [keyword, positions]
+  )
+
+  const handleOpenAdd = () => {
+    form.reset({
+      name: '',
+      code: `POS-${String(Math.floor(Math.random() * 9000) + 1000)}`,
+      description: ''
+    })
+    setAddOpen(true)
+  }
+
+  const handleSubmit = form.handleSubmit((values) => {
+    const code = values.code.trim().toUpperCase()
+    if (positions.some((item) => item.code.toLowerCase() === code.toLowerCase())) {
+      form.setError('code', { message: '岗位编码已存在' })
+      return
+    }
+
+    const next: Position = {
+      id: Date.now(),
+      code,
+      name: values.name.trim(),
+      description: values.description.trim()
+    }
+    setPositions((prev) => [next, ...prev])
+    setAddOpen(false)
+    toast.success(`已添加岗位「${next.name}」`)
+  })
+
   return (
-    <div className="@container">
-      <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2 @2xl:grid-cols-3 @4xl:grid-cols-4">
-        {data.map((item) => (
-          <Card key={item.id} className="gap-3">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <div className="size-8 rounded-lg bg-muted-foreground/10 flex items-center justify-center">
-                    <PanelsTopLeft className="size-4" />
+    <div className="@container flex flex-col gap-4">
+      <section className="flex flex-wrap items-center gap-3">
+        <InputGroup className="max-w-sm min-w-56 flex-1">
+          <InputGroupInput
+            placeholder="搜索岗位名称、编码或描述"
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+          />
+          <InputGroupAddon>
+            <Search />
+          </InputGroupAddon>
+        </InputGroup>
+        <Button type="button" onClick={handleOpenAdd}>
+          <Plus />
+          添加岗位
+        </Button>
+      </section>
+
+      {filteredPositions.length ? (
+        <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2 @2xl:grid-cols-3 @4xl:grid-cols-4">
+          {filteredPositions.map((item) => (
+            <Card key={item.id} className="gap-3">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <div className="flex size-8 items-center justify-center rounded-lg bg-muted-foreground/10">
+                      <PanelsTopLeft className="size-4" />
+                    </div>
+                    <span className="text-xs">{item.code}</span>
                   </div>
-                  <span className="text-xs">{item.code}</span>
+                  <Badge variant="outline">招聘中</Badge>
                 </div>
-                <Badge variant="outline">招聘中</Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <h2 className="font-semibold text-base">{item.name}</h2>
-              <p className="text-muted-foreground mt-1">资深 · P6</p>
-              <p className="text-muted-foreground mt-3 line-clamp-2 min-h-10 text-sm leading-5">
-                {item.description}
-              </p>
-              <div className="flex item-center justify-between mt-2">
-                <span className="flex items-center gap-2 text-muted-foreground">
-                  <CalendarDays className="size-4" /> 2026-08-0{' '}
-                </span>
-                <AvatarGroup className="grayscale">
-                  <Avatar size="sm">
-                    <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
-                    <AvatarFallback>CN</AvatarFallback>
-                  </Avatar>
-                  <Avatar size="sm">
-                    <AvatarImage src="https://github.com/maxleiter.png" alt="@maxleiter" />
-                    <AvatarFallback>LR</AvatarFallback>
-                  </Avatar>
-                  <Avatar size="sm">
-                    <AvatarImage src="https://github.com/evilrabbit.png" alt="@evilrabbit" />
-                    <AvatarFallback>ER</AvatarFallback>
-                  </Avatar>
-                  <AvatarGroupCount>+3</AvatarGroupCount>
-                </AvatarGroup>
-              </div>
-              <Separator className="mt-4 mb-3" />
-              <Field>
-                <FieldLabel>
-                  <span className="text-sm">10%</span>
-                  <span className="text-muted-foreground text-xs ml-auto">1/10 在岗 · 9 空缺</span>
-                </FieldLabel>
-                <Progress value={40} />
-              </Field>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardHeader>
+              <CardContent>
+                <h2 className="text-base font-semibold">{item.name}</h2>
+                <p className="mt-1 text-muted-foreground">资深 · P6</p>
+                <p className="mt-3 line-clamp-2 min-h-10 text-sm leading-5 text-muted-foreground">
+                  {item.description}
+                </p>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-muted-foreground">
+                    <CalendarDays className="size-4" /> 2026-08-0{' '}
+                  </span>
+                  <AvatarGroup className="grayscale">
+                    <Avatar size="sm">
+                      <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
+                      <AvatarFallback>CN</AvatarFallback>
+                    </Avatar>
+                    <Avatar size="sm">
+                      <AvatarImage src="https://github.com/maxleiter.png" alt="@maxleiter" />
+                      <AvatarFallback>LR</AvatarFallback>
+                    </Avatar>
+                    <Avatar size="sm">
+                      <AvatarImage src="https://github.com/evilrabbit.png" alt="@evilrabbit" />
+                      <AvatarFallback>ER</AvatarFallback>
+                    </Avatar>
+                    <AvatarGroupCount>+3</AvatarGroupCount>
+                  </AvatarGroup>
+                </div>
+                <Separator className="mt-4 mb-3" />
+                <Field>
+                  <FieldLabel>
+                    <span className="text-sm">10%</span>
+                    <span className="ml-auto text-xs text-muted-foreground">1/10 在岗 · 9 空缺</span>
+                  </FieldLabel>
+                  <Progress value={40} />
+                </Field>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Empty className="border border-dashed">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <BriefcaseBusiness />
+            </EmptyMedia>
+            <EmptyTitle>{positions.length ? '未找到匹配岗位' : '暂无岗位'}</EmptyTitle>
+            <EmptyDescription>
+              {positions.length
+                ? '尝试调整搜索关键词，或添加新的岗位编制'
+                : '你可点击下方按钮添加岗位'}
+            </EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent className="flex-row justify-center gap-2">
+            <Button type="button" onClick={handleOpenAdd}>
+              <Plus />
+              添加岗位
+            </Button>
+          </EmptyContent>
+        </Empty>
+      )}
+
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>添加岗位</DialogTitle>
+          </DialogHeader>
+
+          <form id="add-position-form" className="flex flex-col gap-4" onSubmit={handleSubmit}>
+            <FieldGroup>
+              <Controller
+                name="name"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid || undefined}>
+                    <FieldLabel htmlFor="position-name">岗位名称</FieldLabel>
+                    <Input
+                      {...field}
+                      id="position-name"
+                      placeholder="例如：高级前端工程师"
+                      aria-invalid={fieldState.invalid || undefined}
+                    />
+                    {fieldState.error ? <FieldError>{fieldState.error.message}</FieldError> : null}
+                  </Field>
+                )}
+              />
+
+              <Controller
+                name="code"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid || undefined}>
+                    <FieldLabel htmlFor="position-code">岗位编码</FieldLabel>
+                    <Input
+                      {...field}
+                      id="position-code"
+                      placeholder="例如：POS-1001"
+                      aria-invalid={fieldState.invalid || undefined}
+                    />
+                    {fieldState.error ? <FieldError>{fieldState.error.message}</FieldError> : null}
+                  </Field>
+                )}
+              />
+
+              <Controller
+                name="description"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid || undefined}>
+                    <FieldLabel htmlFor="position-description">岗位描述</FieldLabel>
+                    <Textarea
+                      {...field}
+                      id="position-description"
+                      placeholder="简要说明岗位职责"
+                      rows={3}
+                      aria-invalid={fieldState.invalid || undefined}
+                    />
+                    {fieldState.error ? <FieldError>{fieldState.error.message}</FieldError> : null}
+                  </Field>
+                )}
+              />
+            </FieldGroup>
+          </form>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setAddOpen(false)}>
+              取消
+            </Button>
+            <Button type="submit" form="add-position-form">
+              确认添加
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

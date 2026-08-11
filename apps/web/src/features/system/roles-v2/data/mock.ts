@@ -1,6 +1,6 @@
 import { fakerZH_CN as faker } from '@faker-js/faker'
 
-import { ROLE_ICONS } from './data'
+import { ROLE_ICON_COLOR_VALUES, ROLE_ICONS } from './data'
 
 import type { Role } from '../type'
 
@@ -84,6 +84,7 @@ function createRole(
     name: preset.name,
     code: preset.code,
     icon: faker.helpers.arrayElement(ROLE_ICONS),
+    iconColor: faker.helpers.arrayElement(ROLE_ICON_COLOR_VALUES),
     description: createDescription(),
     permissions: faker.helpers.arrayElements(
       [...PERMISSION_POOL],

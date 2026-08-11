@@ -1,5 +1,4 @@
 import {
-  Briefcase,
   Building,
   Building2,
   Component,
@@ -10,6 +9,27 @@ import {
 } from 'lucide-react'
 
 import type { LucideIcon } from 'lucide-react'
+
+export const ORG_TYPES = {
+  GROUP: 'GROUP',
+  COMPANY: 'COMPANY',
+  BRANCH: 'BRANCH',
+  CENTER: 'CENTER',
+  DEPARTMENT: 'DEPARTMENT',
+  TEAM: 'TEAM'
+} as const
+
+export type OrgType = (typeof ORG_TYPES)[keyof typeof ORG_TYPES]
+
+export const organizationTypeLabels: Record<string, string> = {
+  GROUP: '集团',
+  COMPANY: '公司',
+  BRANCH: '分公司',
+  CENTER: '中心',
+  DEPARTMENT: '部门',
+  TEAM: '小组'
+}
+
 export const organizationIconConfig: Record<string, { icon: LucideIcon; defaultColor: string }> = {
   GROUP: { icon: Network, defaultColor: 'text-slate-700 dark:text-slate-300' },
   COMPANY: { icon: Building2, defaultColor: 'text-blue-600 dark:text-blue-400' },
@@ -17,6 +37,19 @@ export const organizationIconConfig: Record<string, { icon: LucideIcon; defaultC
   CENTER: { icon: Component, defaultColor: 'text-violet-500' },
   DEPARTMENT: { icon: FolderTree, defaultColor: 'text-amber-500' },
   TEAM: { icon: Users, defaultColor: 'text-emerald-500' },
-  POST: { icon: Briefcase, defaultColor: 'text-rose-500' },
   USER: { icon: UserCircle, defaultColor: 'text-slate-500' }
 } as const
+
+/** 根据上级组织类型，返回可创建的下级类型（岗位由组织详情统一关联，不作为组织类型） */
+export function allowedChildTypes(parentType: string): OrgType[] {
+  if (parentType === ORG_TYPES.GROUP) return [ORG_TYPES.COMPANY, ORG_TYPES.CENTER]
+  if (parentType === ORG_TYPES.COMPANY) return [ORG_TYPES.BRANCH, ORG_TYPES.CENTER]
+  if (parentType === ORG_TYPES.BRANCH) return [ORG_TYPES.CENTER, ORG_TYPES.DEPARTMENT]
+  if (parentType === ORG_TYPES.CENTER) return [ORG_TYPES.DEPARTMENT, ORG_TYPES.TEAM]
+  if (parentType === ORG_TYPES.DEPARTMENT) return [ORG_TYPES.TEAM]
+  return []
+}
+
+export function getOrganizationTypeLabel(type: string): string {
+  return organizationTypeLabels[type] ?? type
+}

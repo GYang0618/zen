@@ -29,65 +29,88 @@ import {
   User
 } from 'lucide-react'
 
+import { getOrganizationTypeLabel } from '../data/data'
+import { useOrganizations } from '../organizations-provider'
+import { findOrganization, formatBudget, formatEffectiveDate } from '../utils'
+
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 interface CoreField {
   label: string
-  value: string | ReactNode
+  value: string | number | ReactNode
   icon: LucideIcon
 }
+
 export function OrganizationSideOverview() {
+  const { currentNode, organizations, setOpen } = useOrganizations()
+
+  if (!currentNode) return null
+
+  const parent = currentNode.parentId
+    ? findOrganization(organizations, currentNode.parentId)
+    : undefined
+
   const coreFields: CoreField[] = [
     {
       label: '编码',
-      value: 'ORG-0001',
+      value: currentNode.code,
       icon: IdCard
     },
     {
       label: '上级组织',
-      value: '集团',
+      value: parent?.name ?? '根节点',
       icon: FolderTree
     },
     {
       label: '成员',
-      value: 218,
+      value: currentNode.memberCount,
       icon: User
     },
     {
       label: '岗位',
-      value: 56,
+      value: currentNode.positionCount,
       icon: Briefcase
     },
     {
       label: '成本预算',
-      value: '1000000¥',
+      value: formatBudget(currentNode.budget),
       icon: BadgeJapaneseYen
     },
     {
       label: '生效日期',
-      value: '2026年08月01日',
+      value: formatEffectiveDate(currentNode.effectiveDate),
       icon: Calendar
     }
   ]
+
+  const leader = currentNode.leader
+
   return (
-    <aside className="h-max p-5 xl:p-6 border border-border/60 rounded-3xl bg-muted/30 space-y-6">
+    <aside className="h-max space-y-6 rounded-3xl border border-border/60 bg-muted/30 p-5 xl:p-6">
       <Card className="rounded-2xl bg-background/80">
         <CardHeader>
           <CardTitle>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 font-bold">
-                <Building2 />
-                <h2 className="text-xl"> 耀世集团</h2>
-                <Badge variant="secondary">集团</Badge>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-3 font-bold">
+                <Building2 className="shrink-0" />
+                <h2 className="truncate text-xl">{currentNode.name}</h2>
+                <Badge variant="secondary">{getOrganizationTypeLabel(currentNode.type)}</Badge>
               </div>
 
-              <Button variant="ghost" size="icon-sm">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="编辑组织基础信息"
+                onClick={() => setOpen('edit')}
+              >
                 <Pencil />
               </Button>
             </div>
           </CardTitle>
-          <CardDescription>一家专注于科技创新和多元业务发展的综合性企业集团。</CardDescription>
+          <CardDescription>
+            {currentNode.description || '暂未填写组织描述'}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5 bg-background/80">
           <Separator />
@@ -95,13 +118,13 @@ export function OrganizationSideOverview() {
             {coreFields.map((field) => {
               const Icon = field.icon
               return (
-                <div key={field.label} className="flex items-center justify-between">
-                  <span className="text-muted-foreground flex items-center gap-2 text-sm">
+                <div key={field.label} className="flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Icon className="size-4" /> {field.label}
                   </span>
 
-                  {typeof field.value === 'string' ? (
-                    <span className="font-medium">{field.value}</span>
+                  {typeof field.value === 'string' || typeof field.value === 'number' ? (
+                    <span className="text-right font-medium">{field.value}</span>
                   ) : (
                     field.value
                   )}
@@ -117,38 +140,51 @@ export function OrganizationSideOverview() {
           <CardTitle>
             <div className="flex items-center justify-between">
               <h2>负责人</h2>
-              <Button variant="ghost" size="icon-sm">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="编辑负责人"
+                onClick={() => setOpen('edit-leader')}
+              >
                 <Pencil />
               </Button>
             </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Item className="p-0 mb-5">
-            <ItemMedia>
-              <Avatar className="size-14">
-                <AvatarImage src="https://github.com/maxleiter.png" />
-                <AvatarFallback>CN</AvatarFallback>
-              </Avatar>
-            </ItemMedia>
-            <ItemContent>
-              <ItemTitle className="text-xl">
-                布莱克·亨特
-                <span className="size-2 rounded-full bg-green-400 ml-1"></span>
-              </ItemTitle>
-              <ItemDescription>CEO · 执行董事长</ItemDescription>
-            </ItemContent>
-          </Item>
-          <div className="grid gap-3 text-sm">
-            <div className="flex items-center gap-2">
-              <Phone className="size-4" />
-              <span>13800138000</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Mail className="size-4" />
-              <span>brent.hunter@example.com</span>
-            </div>
-          </div>
+          {leader ? (
+            <>
+              <Item className="mb-5 p-0">
+                <ItemMedia>
+                  <Avatar className="size-14">
+                    <AvatarImage src={leader.avatar} alt={leader.name} />
+                    <AvatarFallback>{leader.name.slice(0, 1)}</AvatarFallback>
+                  </Avatar>
+                </ItemMedia>
+                <ItemContent>
+                  <ItemTitle className="text-xl">
+                    {leader.name}
+                    {leader.online ? (
+                      <span className="ml-1 size-2 rounded-full bg-green-400" />
+                    ) : null}
+                  </ItemTitle>
+                  <ItemDescription>{leader.title}</ItemDescription>
+                </ItemContent>
+              </Item>
+              <div className="grid gap-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <Phone className="size-4" />
+                  <span>{leader.phone}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="size-4" />
+                  <span>{leader.email}</span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">暂未指定负责人</p>
+          )}
         </CardContent>
       </Card>
 
@@ -157,19 +193,18 @@ export function OrganizationSideOverview() {
           <CardTitle>
             <div className="flex items-center justify-between">
               <h2>办公地点</h2>
-              <Button variant="ghost" size="icon-sm">
+              <Button variant="ghost" size="icon-sm" aria-label="编辑办公地点" disabled>
                 <Pencil />
               </Button>
             </div>
           </CardTitle>
         </CardHeader>
 
-        <CardContent className=" space-y-5">
-          <div className="h-40 rounded-xl bg-muted"></div>
+        <CardContent className="space-y-5">
+          <div className="h-40 rounded-xl bg-muted" />
           <Separator />
-          <div className="text-muted-foreground space-y-1">
-            <p>江苏省南京市</p>
-            <p>栖霞区仙林大道100号</p>
+          <div className="space-y-1 text-muted-foreground">
+            <p>暂未配置办公地点</p>
           </div>
         </CardContent>
       </Card>

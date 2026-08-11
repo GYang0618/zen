@@ -22,16 +22,17 @@ import {
 } from '@zen/ui'
 import { CalendarIcon, Loader2, UserShield } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import { ROLE_ICONS } from '../data/data'
+import { ROLE_ICON_COLOR_VALUES, ROLE_ICONS } from '../data/data'
 import { useRoles } from '../roles-provider'
+import { RoleIconColorPicker } from './role-icon-color-picker'
 import { RoleIconPicker } from './role-icon-picker'
 
 import type { RoleIconName } from '../data/data'
-import type { Role } from '../type'
+import type { Role, RoleIconColor } from '../type'
 
 interface RoleActionDialogProps {
   currentRow?: Role
@@ -60,6 +61,7 @@ const roleFormSchema = z.object({
     .max(50, '角色编码不能超过50个字符')
     .regex(/^[a-z][a-z0-9_]*$/, '角色编码仅支持小写字母、数字和下划线，且以字母开头'),
   icon: z.enum(ROLE_ICONS).nullable(),
+  iconColor: z.enum(ROLE_ICON_COLOR_VALUES).nullable(),
   description: z.string().trim().max(200, '角色描述不能超过200个字符'),
   expiredAt: z.date().nullable()
 })
@@ -74,6 +76,7 @@ const defaultValues: RoleFormValues = {
   name: '',
   code: '',
   icon: null,
+  iconColor: null,
   description: '',
   expiredAt: null
 }
@@ -97,6 +100,13 @@ function toFormIcon(icon: Role['icon']): RoleIconName | null {
   return (ROLE_ICONS as readonly string[]).includes(icon) ? (icon as RoleIconName) : null
 }
 
+function toFormIconColor(iconColor: Role['iconColor']): RoleIconColor | null {
+  if (!iconColor) return null
+  return (ROLE_ICON_COLOR_VALUES as readonly string[]).includes(iconColor)
+    ? iconColor
+    : null
+}
+
 export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionDialogProps) {
   const { addRole, updateRole, hasRoleCode } = useRoles()
   const isEdit = !!currentRow
@@ -107,6 +117,7 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
     resolver: zodResolver(isEdit ? editRoleFormSchema : roleFormSchema),
     defaultValues
   })
+  const iconColor = useWatch({ control: form.control, name: 'iconColor' })
 
   useEffect(() => {
     if (!open) return
@@ -116,6 +127,7 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
         name: currentRow.name,
         code: currentRow.code,
         icon: toFormIcon(currentRow.icon),
+        iconColor: toFormIconColor(currentRow.iconColor),
         description: currentRow.description,
         expiredAt: parseExpiredAt(currentRow.expiredAt)
       })
@@ -145,6 +157,7 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
         name: values.name.trim(),
         code,
         icon: values.icon,
+        iconColor: values.iconColor,
         description: values.description.trim(),
         expiredAt: formatExpiredAt(values.expiredAt)
       })
@@ -173,6 +186,7 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
       const updated = updateRole(currentRow.id, {
         name: values.name.trim(),
         icon: values.icon,
+        iconColor: values.iconColor,
         description: values.description.trim(),
         expiredAt: formatExpiredAt(values.expiredAt)
       })
@@ -261,10 +275,30 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
                     <RoleIconPicker
                       id="role-icon"
                       value={field.value}
+                      color={iconColor}
                       onValueChange={field.onChange}
                       aria-invalid={fieldState.invalid}
                     />
                     <FieldDescription>可选。为角色选择一个标识图标。</FieldDescription>
+                    {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                  </FieldContent>
+                </Field>
+              )}
+            />
+            <Controller
+              name="iconColor"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="role-icon-color">图标颜色</FieldLabel>
+                  <FieldContent>
+                    <RoleIconColorPicker
+                      id="role-icon-color"
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      aria-invalid={fieldState.invalid}
+                    />
+                    <FieldDescription>可选。点选可切换，再点一次可清除。</FieldDescription>
                     {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
                   </FieldContent>
                 </Field>

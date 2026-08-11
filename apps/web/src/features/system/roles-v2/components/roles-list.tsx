@@ -28,7 +28,7 @@ import { toast } from 'sonner'
 
 import { FacetedFilter } from '@/components/faceted-filter'
 
-import { roleStatusConfig, roleStatusOptions } from '../data/data'
+import { getRoleIconColorClassName, roleStatusConfig, roleStatusOptions } from '../data/data'
 import { useRoles } from '../roles-provider'
 
 import type { Role } from '../type'
@@ -95,19 +95,22 @@ export function RolesList({ data }: { data: Role[] }) {
                     params={{ id: item.id }}
                     className="flex flex-1 gap-3"
                   >
-                    <div className="size-12 rounded-full bg-muted-foreground/15 flex items-center justify-center">
-                      <DynamicIcon name={item.icon ?? 'shield'} className="text-muted-foreground" />
+                    <div
+                      className={cn(
+                        'flex size-12 items-center justify-center rounded-full',
+                        getRoleIconColorClassName(item.iconColor)
+                      )}
+                    >
+                      <DynamicIcon name={item.icon ?? 'shield'} />
                     </div>
                     <div className="flex-1">
                       <h2 className="text-foreground text-sm font-semibold flex items-center gap-2">
                         {item.name}
-                      </h2>
-                      <div className="flex gap-2 text-xs text-muted-foreground mt-1">
-                        {item.code}
                         <Badge className={cn('border', roleStatusConfig[item.status].className)}>
                           {roleStatusConfig[item.status].label}
                         </Badge>
-                      </div>
+                      </h2>
+                      <div className="text-xs text-muted-foreground mt-1">{item.code}</div>
                       <div className="mt-1 ">
                         <Badge variant="secondary">
                           {item.expiredAt ? `过期时间：${item.expiredAt}` : '长期有效'}

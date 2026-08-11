@@ -130,14 +130,21 @@ export function RoleMembers() {
 
   const filteredAvailableMembers = useMemo(() => {
     const keyword = addKeyword.trim().toLowerCase()
-    if (!keyword) return availableMembers
+    const filtered = keyword
+      ? availableMembers.filter(
+          (member) =>
+            member.username.toLowerCase().includes(keyword) ||
+            member.email.toLowerCase().includes(keyword)
+        )
+      : availableMembers
 
-    return availableMembers.filter(
-      (member) =>
-        member.username.toLowerCase().includes(keyword) ||
-        member.email.toLowerCase().includes(keyword)
-    )
-  }, [addKeyword, availableMembers])
+    // 未绑定排前，已绑定排后
+    return [...filtered].sort((a, b) => {
+      const aBound = boundIdSet.has(a.id) ? 1 : 0
+      const bBound = boundIdSet.has(b.id) ? 1 : 0
+      return aBound - bBound
+    })
+  }, [addKeyword, availableMembers, boundIdSet])
 
   return (
     <Card className="rounded-3xl">

@@ -3,13 +3,15 @@ import { ChevronsUpDown, Shapes } from 'lucide-react'
 import { DynamicIcon } from 'lucide-react/dynamic'
 import { useState } from 'react'
 
-import { ROLE_ICONS } from '../data/data'
+import { getRoleIconColorClassName, ROLE_ICONS } from '../data/data'
 
 import type { RoleIconName } from '../data/data'
+import type { RoleIconColor } from '../type'
 
 type RoleIconPickerProps = {
   id?: string
   value: RoleIconName | null
+  color?: RoleIconColor | null
   onValueChange: (value: RoleIconName | null) => void
   'aria-invalid'?: boolean
 }
@@ -17,6 +19,7 @@ type RoleIconPickerProps = {
 export function RoleIconPicker({
   id,
   value,
+  color = null,
   onValueChange,
   'aria-invalid': ariaInvalid
 }: RoleIconPickerProps) {
@@ -35,7 +38,14 @@ export function RoleIconPicker({
         >
           <span className="flex min-w-0 items-center gap-2">
             {value ? (
-              <DynamicIcon name={value} className="size-4 shrink-0" aria-hidden />
+              <span
+                className={cn(
+                  'flex size-6 shrink-0 items-center justify-center rounded-full',
+                  getRoleIconColorClassName(color)
+                )}
+              >
+                <DynamicIcon name={value} className="size-3.5" aria-hidden />
+              </span>
             ) : (
               <Shapes className="size-4 shrink-0" aria-hidden />
             )}

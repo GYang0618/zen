@@ -1,3 +1,4 @@
+import { useRouter } from '@tanstack/react-router'
 import {
   Badge,
   Button,
@@ -89,13 +90,19 @@ const roleAuditTimeline: RoleAuditTimelineItem[] = [
 ]
 
 export function RoleDetail() {
+  const router = useRouter()
   return (
     <>
       <AppHeader />
 
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
         <PageHeader size="lg">
-          <Button variant="outline" size="icon-lg" className="rounded-full">
+          <Button
+            variant="outline"
+            size="icon-lg"
+            className="rounded-full"
+            onClick={() => router.history.back()}
+          >
             <ArrowLeft />
           </Button>
           <PageHeaderMedia className="bg-slate-100 text-slate-500 dark:text-slate-50">

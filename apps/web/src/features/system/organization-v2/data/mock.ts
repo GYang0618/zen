@@ -1,26 +1,19 @@
 import { fakerZH_CN as faker } from '@faker-js/faker'
 
+import { ORG_TYPES } from './data'
+
 import type {
   ActivityGroup,
   ActivityItem,
   Organization,
+  OrganizationLeader,
   OrganizationMember,
+  OrganizationUserOption,
   Position
 } from '../type'
+import type { OrgType } from './data'
 
 faker.seed(20260801)
-
-const ORG_TYPES = {
-  GROUP: 'GROUP',
-  COMPANY: 'COMPANY',
-  BRANCH: 'BRANCH',
-  CENTER: 'CENTER',
-  DEPARTMENT: 'DEPARTMENT',
-  TEAM: 'TEAM',
-  POST: 'POST'
-} as const
-
-type OrgType = (typeof ORG_TYPES)[keyof typeof ORG_TYPES]
 
 const CENTER_NAMES = [
   '产品研发中心',
@@ -65,8 +58,43 @@ const POST_NAMES = [
   '运营专员'
 ] as const
 
+const LEADER_TITLES = [
+  '首席执行官',
+  '执行董事长',
+  '副总裁',
+  '中心负责人',
+  '部门负责人',
+  '组长',
+  '岗位负责人'
+] as const
+
 function sumMemberCount(nodes: Organization[]): number {
   return nodes.reduce((sum, node) => sum + node.memberCount, 0)
+}
+
+function sumPositionCount(nodes: Organization[]): number {
+  return nodes.reduce((sum, node) => sum + node.positionCount, 0)
+}
+
+function createLeader(): OrganizationLeader {
+  const name = faker.person.fullName()
+  return {
+    id: faker.string.uuid(),
+    name,
+    title: faker.helpers.arrayElement(LEADER_TITLES),
+    avatar: faker.image.avatar(),
+    email: faker.internet.email({ firstName: name.slice(0, 1) }).toLowerCase(),
+    phone: faker.phone.number({ style: 'national' }),
+    online: faker.datatype.boolean()
+  }
+}
+
+function createCode(type: OrgType, name: string): string {
+  const slug = name
+    .replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, '')
+    .slice(0, 6)
+  const prefix = type.toLowerCase().slice(0, 3)
+  return `${prefix}_${faker.string.alphanumeric({ length: 6, casing: 'lower' })}_${slug.length}`
 }
 
 function createNode(
@@ -76,13 +104,25 @@ function createNode(
   children?: Organization[]
 ): Organization {
   const id = faker.string.uuid()
+  const hasChildren = Boolean(children?.length)
+
   return {
     id,
     name,
+    code: createCode(type, name),
     type,
+    description: faker.company.catchPhrase(),
+    effectiveDate: faker.date.past({ years: 3 }).toISOString().slice(0, 10),
     parentId,
     children,
-    memberCount: children?.length ? sumMemberCount(children) : faker.number.int({ min: 3, max: 48 })
+    memberCount: hasChildren
+      ? sumMemberCount(children ?? [])
+      : faker.number.int({ min: 3, max: 48 }),
+    positionCount: hasChildren
+      ? sumPositionCount(children ?? [])
+      : faker.number.int({ min: 1, max: 12 }),
+    budget: faker.number.int({ min: 50_000, max: 5_000_000 }),
+    leader: createLeader()
   }
 }
 
@@ -90,21 +130,14 @@ function withChildren(node: Organization, children: Organization[]): Organizatio
   return {
     ...node,
     children,
-    memberCount: sumMemberCount(children)
+    memberCount: sumMemberCount(children),
+    positionCount: sumPositionCount(children)
   }
-}
-
-function createPosts(parentId: string): Organization[] {
-  const names = faker.helpers.arrayElements([...POST_NAMES], faker.number.int({ min: 1, max: 3 }))
-  return names.map((name) => createNode(name, ORG_TYPES.POST, parentId))
 }
 
 function createTeams(parentId: string): Organization[] {
   const names = faker.helpers.arrayElements([...TEAM_NAMES], faker.number.int({ min: 1, max: 2 }))
-  return names.map((name) => {
-    const team = createNode(name, ORG_TYPES.TEAM, parentId)
-    return withChildren(team, createPosts(team.id))
-  })
+  return names.map((name) => createNode(name, ORG_TYPES.TEAM, parentId))
 }
 
 function createDepartments(parentId: string): Organization[] {
@@ -142,10 +175,49 @@ function createCompanies(parentId: string): Organization[] {
 
 function createOrganizationTree(): Organization[] {
   const group = createNode('曜石科技集团', ORG_TYPES.GROUP, undefined)
-  return [withChildren(group, createCompanies(group.id))]
+  return [
+    {
+      ...withChildren(group, createCompanies(group.id)),
+      description: '一家专注于科技创新和多元业务发展的综合性企业集团。',
+      code: 'group_yaoshi',
+      budget: 12_800_000,
+      leader: {
+        id: 'u-leader-root',
+        name: '布莱克·亨特',
+        title: 'CEO · 执行董事长',
+        avatar: 'https://github.com/maxleiter.png',
+        email: 'brent.hunter@example.com',
+        phone: '13800138000',
+        online: true
+      }
+    }
+  ]
 }
 
 export const organizations: Organization[] = createOrganizationTree()
+
+faker.seed(20260805)
+
+export const organizationUsers: OrganizationUserOption[] = Array.from({ length: 20 }, () => {
+  const name = faker.person.fullName()
+  return {
+    id: faker.string.uuid(),
+    name,
+    title: faker.helpers.arrayElement(LEADER_TITLES),
+    avatar: faker.image.avatar(),
+    email: faker.internet.email({ firstName: name.slice(0, 1) }).toLowerCase(),
+    phone: faker.phone.number({ style: 'national' })
+  }
+}).concat([
+  {
+    id: 'u-leader-root',
+    name: '布莱克·亨特',
+    title: 'CEO · 执行董事长',
+    avatar: 'https://github.com/maxleiter.png',
+    email: 'brent.hunter@example.com',
+    phone: '13800138000'
+  }
+])
 
 const POST_STATUSES = ['在职', '试用期', '休假', '离职'] as const
 const LEVELS = ['P4', 'P5', 'P6', 'P7', 'P8', 'M1', 'M2', 'M3'] as const
