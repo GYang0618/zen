@@ -1,8 +1,8 @@
 import { LangGraphAgent } from './langgraph-runtime-agent'
 
 const agents = {
-  default: { url: 'http://localhost:3600', graphId: 'default_agent' },
-  plan: { url: 'http://localhost:3600', graphId: 'plan_agent' }
+  default: { url: 'http://127.0.0.1:3600', graphId: 'default_agent' },
+  plan: { url: 'http://127.0.0.1:3600', graphId: 'plan_agent' }
 } as const
 
 import { ACCESS_TOKEN_CONFIGURABLE_KEY } from '@zen/shared'

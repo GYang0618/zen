@@ -1,11 +1,11 @@
 import { cn, RadioGroupItem } from '@zen/ui'
 import { Check } from 'lucide-react'
 
+import type { ReactElement, SVGProps } from 'react'
 import type { BaseColor } from '@/context/base-color-provider'
 import type { BrandColor } from '@/context/brand-color-provider'
 import type { Font } from '@/context/font-provider'
 import type { UiStyle } from '@/context/ui-style-provider'
-import type { ReactElement, SVGProps } from 'react'
 
 export type AppearanceOption = {
   value: string
@@ -388,7 +388,7 @@ export function AppearanceIconRadio({
       htmlFor={optionId}
       className="group/appearance-option flex cursor-pointer flex-col items-center gap-1.5"
     >
-      <div className="rounded-lg border-2 transition-all duration-200 ease-in group-has-data-checked/appearance-option:border-primary group-has-data-checked/appearance-option:bg-primary/5 dark:group-has-data-checked/appearance-option:border-primary/30 dark:group-has-data-checked/appearance-option:bg-primary/10">
+      <div className="rounded-lg border-2 transition-all duration-200 ease-in group-has-data-checked/appearance-option:border-primary group-has-data-checked/appearance-option:bg-primary/5 dark:group-has-data-checked/appearance-option:border-primary/30 dark:group-has-data-checked/appearance-option:bg-primary/10 overflow-hidden">
         <option.icon
           className={
             tintIcon
@@ -403,13 +403,7 @@ export function AppearanceIconRadio({
   )
 }
 
-function ColorSwatchRadio({
-  name,
-  option
-}: {
-  name: string
-  option: ColorSwatchOption
-}) {
+function ColorSwatchRadio({ name, option }: { name: string; option: ColorSwatchOption }) {
   const optionId = `${name}-${option.value}`
 
   return (

@@ -44,6 +44,7 @@ import { Route as AuthenticatedSystemIdentityRouteRouteImport } from './routes/_
 import { Route as AuthenticatedSystemArrayDictV2RouteImport } from './routes/_authenticated/system/array-dict-v2'
 import { Route as AuthenticatedSystemConfigRouteImport } from './routes/_authenticated/system/config'
 import { Route as AuthenticatedSystemDictRouteImport } from './routes/_authenticated/system/dict'
+import { Route as AuthenticatedSystemIconSetRouteImport } from './routes/_authenticated/system/icon-set'
 import { Route as AuthenticatedSystemPluginsRouteImport } from './routes/_authenticated/system/plugins'
 import { Route as AuthenticatedOtherSettingsV2AccountRouteImport } from './routes/_authenticated/_other/settings-v2/account'
 import { Route as AuthenticatedOtherSettingsV2AppearanceRouteImport } from './routes/_authenticated/_other/settings-v2/appearance'
@@ -253,6 +254,12 @@ const AuthenticatedSystemDictRoute = AuthenticatedSystemDictRouteImport.update({
   path: '/dict',
   getParentRoute: () => AuthenticatedSystemRouteRoute,
 } as any)
+const AuthenticatedSystemIconSetRoute =
+  AuthenticatedSystemIconSetRouteImport.update({
+    id: '/icon-set',
+    path: '/icon-set',
+    getParentRoute: () => AuthenticatedSystemRouteRoute,
+  } as any)
 const AuthenticatedSystemPluginsRoute =
   AuthenticatedSystemPluginsRouteImport.update({
     id: '/plugins',
@@ -399,6 +406,7 @@ export interface FileRoutesByFullPath {
   '/system/array-dict-v2': typeof AuthenticatedSystemArrayDictV2Route
   '/system/config': typeof AuthenticatedSystemConfigRoute
   '/system/dict': typeof AuthenticatedSystemDictRoute
+  '/system/icon-set': typeof AuthenticatedSystemIconSetRoute
   '/system/plugins': typeof AuthenticatedSystemPluginsRoute
   '/settings-v2/account': typeof AuthenticatedOtherSettingsV2AccountRoute
   '/settings-v2/appearance': typeof AuthenticatedOtherSettingsV2AppearanceRoute
@@ -450,6 +458,7 @@ export interface FileRoutesByTo {
   '/system/array-dict-v2': typeof AuthenticatedSystemArrayDictV2Route
   '/system/config': typeof AuthenticatedSystemConfigRoute
   '/system/dict': typeof AuthenticatedSystemDictRoute
+  '/system/icon-set': typeof AuthenticatedSystemIconSetRoute
   '/system/plugins': typeof AuthenticatedSystemPluginsRoute
   '/settings-v2/account': typeof AuthenticatedOtherSettingsV2AccountRoute
   '/settings-v2/appearance': typeof AuthenticatedOtherSettingsV2AppearanceRoute
@@ -506,6 +515,7 @@ export interface FileRoutesById {
   '/_authenticated/system/array-dict-v2': typeof AuthenticatedSystemArrayDictV2Route
   '/_authenticated/system/config': typeof AuthenticatedSystemConfigRoute
   '/_authenticated/system/dict': typeof AuthenticatedSystemDictRoute
+  '/_authenticated/system/icon-set': typeof AuthenticatedSystemIconSetRoute
   '/_authenticated/system/plugins': typeof AuthenticatedSystemPluginsRoute
   '/_authenticated/_workbench/': typeof AuthenticatedWorkbenchIndexRoute
   '/_authenticated/_other/settings-v2/account': typeof AuthenticatedOtherSettingsV2AccountRoute
@@ -560,6 +570,7 @@ export interface FileRouteTypes {
     | '/system/array-dict-v2'
     | '/system/config'
     | '/system/dict'
+    | '/system/icon-set'
     | '/system/plugins'
     | '/settings-v2/account'
     | '/settings-v2/appearance'
@@ -611,6 +622,7 @@ export interface FileRouteTypes {
     | '/system/array-dict-v2'
     | '/system/config'
     | '/system/dict'
+    | '/system/icon-set'
     | '/system/plugins'
     | '/settings-v2/account'
     | '/settings-v2/appearance'
@@ -666,6 +678,7 @@ export interface FileRouteTypes {
     | '/_authenticated/system/array-dict-v2'
     | '/_authenticated/system/config'
     | '/_authenticated/system/dict'
+    | '/_authenticated/system/icon-set'
     | '/_authenticated/system/plugins'
     | '/_authenticated/_workbench/'
     | '/_authenticated/_other/settings-v2/account'
@@ -943,6 +956,13 @@ declare module '@tanstack/react-router' {
       path: '/dict'
       fullPath: '/system/dict'
       preLoaderRoute: typeof AuthenticatedSystemDictRouteImport
+      parentRoute: typeof AuthenticatedSystemRouteRoute
+    }
+    '/_authenticated/system/icon-set': {
+      id: '/_authenticated/system/icon-set'
+      path: '/icon-set'
+      fullPath: '/system/icon-set'
+      preLoaderRoute: typeof AuthenticatedSystemIconSetRouteImport
       parentRoute: typeof AuthenticatedSystemRouteRoute
     }
     '/_authenticated/system/plugins': {
@@ -1270,6 +1290,7 @@ interface AuthenticatedSystemRouteRouteChildren {
   AuthenticatedSystemArrayDictV2Route: typeof AuthenticatedSystemArrayDictV2Route
   AuthenticatedSystemConfigRoute: typeof AuthenticatedSystemConfigRoute
   AuthenticatedSystemDictRoute: typeof AuthenticatedSystemDictRoute
+  AuthenticatedSystemIconSetRoute: typeof AuthenticatedSystemIconSetRoute
   AuthenticatedSystemPluginsRoute: typeof AuthenticatedSystemPluginsRoute
 }
 
@@ -1280,6 +1301,7 @@ const AuthenticatedSystemRouteRouteChildren: AuthenticatedSystemRouteRouteChildr
     AuthenticatedSystemArrayDictV2Route: AuthenticatedSystemArrayDictV2Route,
     AuthenticatedSystemConfigRoute: AuthenticatedSystemConfigRoute,
     AuthenticatedSystemDictRoute: AuthenticatedSystemDictRoute,
+    AuthenticatedSystemIconSetRoute: AuthenticatedSystemIconSetRoute,
     AuthenticatedSystemPluginsRoute: AuthenticatedSystemPluginsRoute,
   }
 

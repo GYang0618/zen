@@ -17,8 +17,33 @@ import {
 import { PlusCircle } from 'lucide-react'
 import { useState } from 'react'
 
-export function FacetedFilter({ options }: { options: { label: string; value: string }[] }) {
-  const [selectedValues, setSelectedValues] = useState<Set<string>>(new Set())
+interface FacetedFilterProps {
+  options: { label: string; value: string }[]
+  title?: string
+  value?: string[]
+  defaultValue?: string[]
+  onValueChange?: (value: string[]) => void
+}
+
+export function FacetedFilter({
+  options,
+  title = '状态',
+  value,
+  defaultValue,
+  onValueChange
+}: FacetedFilterProps) {
+  const [uncontrolledValue, setUncontrolledValue] = useState<Set<string>>(
+    () => new Set(defaultValue)
+  )
+  const isControlled = value !== undefined
+  const selectedValues = isControlled ? new Set(value) : uncontrolledValue
+
+  const updateSelectedValues = (next: Set<string>) => {
+    if (!isControlled) {
+      setUncontrolledValue(next)
+    }
+    onValueChange?.(Array.from(next))
+  }
 
   const selectedOptions = options.filter((option) => selectedValues.has(option.value))
 
@@ -27,8 +52,8 @@ export function FacetedFilter({ options }: { options: { label: string; value: st
       <PopoverTrigger>
         <Button variant="outline" className="border-dashed">
           <PlusCircle />
-          状态
-          {selectedValues?.size > 0 && (
+          {title}
+          {selectedValues.size > 0 && (
             <>
               <Separator orientation="vertical" className="mx-2 h-4" />
               <Badge variant="secondary" className="rounded-sm px-1 font-normal lg:hidden">
@@ -66,15 +91,13 @@ export function FacetedFilter({ options }: { options: { label: string; value: st
                     key={option.value}
                     value={option.value}
                     onSelect={() => {
-                      setSelectedValues((prev) => {
-                        const next = new Set(prev)
-                        if (isSelected) {
-                          next.delete(option.value)
-                        } else {
-                          next.add(option.value)
-                        }
-                        return next
-                      })
+                      const next = new Set(selectedValues)
+                      if (isSelected) {
+                        next.delete(option.value)
+                      } else {
+                        next.add(option.value)
+                      }
+                      updateSelectedValues(next)
                     }}
                   >
                     <Field orientation="horizontal">
@@ -91,7 +114,7 @@ export function FacetedFilter({ options }: { options: { label: string; value: st
                 <CommandSeparator />
                 <CommandGroup>
                   <CommandItem
-                    onSelect={() => setSelectedValues(new Set())}
+                    onSelect={() => updateSelectedValues(new Set())}
                     className="justify-center text-center"
                   >
                     清除筛选

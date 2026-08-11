@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core'
 import cookieParser from 'cookie-parser'
+import { json, urlencoded } from 'express'
 import { Logger } from 'nestjs-pino'
 
 import { CONFIG_NAMESPACES } from '@/config'
@@ -8,10 +9,17 @@ import { AppModule } from './app.module'
 import { setupSwagger } from './swagger/setup-swagger'
 
 import type { AppConfig, SecurityConfig, SwaggerConfig } from '@/config'
+import type { NextFunction, Request, Response } from 'express'
+
+/** Copilot 会回传完整对话历史，默认 100kb 不够 */
+const COPILOT_JSON_BODY_LIMIT = '10mb'
+const DEFAULT_JSON_BODY_LIMIT = '100kb'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    bufferLogs: true
+    bufferLogs: true,
+    // 关闭内置 parser，便于仅对 copilot 提高 JSON limit
+    bodyParser: false
   })
 
   const logger = app.get(Logger)
@@ -30,6 +38,17 @@ async function bootstrap() {
   if (normalizedPrefix) {
     app.setGlobalPrefix(normalizedPrefix)
   }
+
+  const copilotBasePath = normalizedPrefix ? `/${normalizedPrefix}/copilot` : '/copilot'
+  const defaultJsonParser = json({ limit: DEFAULT_JSON_BODY_LIMIT })
+  const copilotJsonParser = json({ limit: COPILOT_JSON_BODY_LIMIT })
+
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const path = req.originalUrl.split('?')[0] ?? ''
+    const isCopilot = path === copilotBasePath || path.startsWith(`${copilotBasePath}/`)
+    return (isCopilot ? copilotJsonParser : defaultJsonParser)(req, res, next)
+  })
+  app.use(urlencoded({ extended: true }))
 
   app.enableCors(securityCfg.cors)
 

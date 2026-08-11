@@ -19,6 +19,7 @@ import {
   ArrowLeft,
   Building2,
   CalendarClock,
+  Columns3,
   Copy,
   KeyRound,
   Pencil,
@@ -135,6 +136,10 @@ export function RoleDetail() {
             <TabsTrigger value="permissions">
               <KeyRound className="size-3.5" aria-hidden />
               权限矩阵 (36)
+            </TabsTrigger>
+            <TabsTrigger value="fields">
+              <Columns3 className="size-3.5" aria-hidden />
+              字段权限 (36)
             </TabsTrigger>
             <TabsTrigger value="users">
               <Users className="size-3.5" aria-hidden />
