@@ -108,9 +108,7 @@ export function OrganizationSideOverview() {
               </Button>
             </div>
           </CardTitle>
-          <CardDescription>
-            {currentNode.description || '暂未填写组织描述'}
-          </CardDescription>
+          <CardDescription>{currentNode.description || '暂未填写组织描述'}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5 bg-background/80">
           <Separator />
@@ -185,27 +183,6 @@ export function OrganizationSideOverview() {
           ) : (
             <p className="text-sm text-muted-foreground">暂未指定负责人</p>
           )}
-        </CardContent>
-      </Card>
-
-      <Card className="rounded-2xl bg-background/80">
-        <CardHeader>
-          <CardTitle>
-            <div className="flex items-center justify-between">
-              <h2>办公地点</h2>
-              <Button variant="ghost" size="icon-sm" aria-label="编辑办公地点" disabled>
-                <Pencil />
-              </Button>
-            </div>
-          </CardTitle>
-        </CardHeader>
-
-        <CardContent className="space-y-5">
-          <div className="h-40 rounded-xl bg-muted" />
-          <Separator />
-          <div className="space-y-1 text-muted-foreground">
-            <p>暂未配置办公地点</p>
-          </div>
         </CardContent>
       </Card>
     </aside>

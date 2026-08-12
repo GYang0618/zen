@@ -6,6 +6,7 @@ import {
   findOrganization,
   flattenOrganizations,
   insertOrganizationChild,
+  moveOrganizationInTree,
   removeOrganizationFromTree,
   updateOrganizationInTree
 } from './utils'
@@ -37,6 +38,7 @@ type OrganizationsContextType = {
     input: Omit<OrganizationBasicInput, 'code'> & { code?: string }
   ) => Organization | undefined
   updateOrganizationLeader: (id: string, leader: OrganizationLeader) => Organization | undefined
+  moveOrganization: (activeId: string, overId: string) => boolean
   hasOrganizationCode: (code: string, excludeId?: string) => boolean
   getParentOptions: (excludeId?: string) => Organization[]
 }
@@ -78,7 +80,8 @@ export function OrganizationsProvider({ children }: { children: React.ReactNode 
   }
 
   const addOrganization = (input: OrganizationBasicInput): Organization => {
-    const parent = findOrganization(organizations, input.parentId) ?? rootOrganization
+    // 未选择上级组织时视为新建根节点（如与「集团」同级），不再默认挂载到首个根节点下
+    const parent = input.parentId ? findOrganization(organizations, input.parentId) : undefined
     const next: Organization = {
       id: crypto.randomUUID(),
       name: input.name,
@@ -118,7 +121,7 @@ export function OrganizationsProvider({ children }: { children: React.ReactNode 
     let nextTree: Organization[]
     let updated: Organization
 
-    if (parentChanged && nextParentId) {
+    if (parentChanged) {
       const { tree, removed } = removeOrganizationFromTree(organizations, id)
       if (!removed) return undefined
       updated = {
@@ -127,10 +130,13 @@ export function OrganizationsProvider({ children }: { children: React.ReactNode 
         type: input.type,
         description: input.description,
         effectiveDate: input.effectiveDate,
-        parentId: nextParentId,
+        parentId: nextParentId || undefined,
         leader: input.leader ?? removed.leader
       }
-      nextTree = insertOrganizationChild(tree, nextParentId, updated)
+      // 未指定上级组织时，视为新建为顶层根节点
+      nextTree = nextParentId
+        ? insertOrganizationChild(tree, nextParentId, updated)
+        : [...tree, updated]
     } else {
       nextTree = updateOrganizationInTree(organizations, id, (node) => {
         updated = {
@@ -148,6 +154,14 @@ export function OrganizationsProvider({ children }: { children: React.ReactNode 
     setOrganizations(nextTree)
     refreshCurrentNode(nextTree, id)
     return updated!
+  }
+
+  const moveOrganization = (activeId: string, overId: string): boolean => {
+    const nextTree = moveOrganizationInTree(organizations, activeId, overId)
+    if (!nextTree) return false
+    setOrganizations(nextTree)
+    refreshCurrentNode(nextTree, activeId)
+    return true
   }
 
   const updateOrganizationLeader = (
@@ -176,6 +190,7 @@ export function OrganizationsProvider({ children }: { children: React.ReactNode 
         addOrganization,
         updateOrganization,
         updateOrganizationLeader,
+        moveOrganization,
         hasOrganizationCode,
         getParentOptions
       }}

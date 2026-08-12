@@ -34,7 +34,7 @@ export function OrganizationLeaderSelect({
   const selected = organizationUsers.find((user) => user.id === value)
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover modal open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           id={id}

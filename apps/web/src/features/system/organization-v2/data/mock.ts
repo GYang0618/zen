@@ -273,12 +273,17 @@ faker.seed(20260803)
 
 function createPosition(index: number): Position {
   const name = faker.helpers.arrayElement(POSITION_NAMES)
+  const headcount = faker.number.int({ min: 3, max: 12 })
+  const activeCount = faker.number.int({ min: 0, max: headcount })
 
   return {
     id: index + 1,
     code: `POS-${faker.string.numeric(4)}`,
     name,
-    description: faker.helpers.arrayElement(POSITION_DESCRIPTIONS)
+    description: faker.helpers.arrayElement(POSITION_DESCRIPTIONS),
+    level: faker.helpers.arrayElement(LEVELS),
+    headcount,
+    activeCount
   }
 }
 

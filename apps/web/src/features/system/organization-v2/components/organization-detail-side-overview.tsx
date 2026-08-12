@@ -157,7 +157,7 @@ function OrganizationTimelineCard() {
     <Card>
       <CardHeader className="flex justify-between">
         <CardTitle>组织变更</CardTitle>
-        <span>近期</span>
+        <span>近7天</span>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <Timeline>

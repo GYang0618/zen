@@ -30,6 +30,11 @@ import {
   InputGroupAddon,
   InputGroupInput,
   Progress,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Separator,
   Textarea
 } from '@zen/ui'
@@ -40,6 +45,7 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 
 import type { Position } from '../type'
+import { formatPositionLevel, POSITION_LEVEL_OPTIONS } from '../utils'
 
 const positionFormSchema = z.object({
   name: z.string().trim().min(1, '岗位名称不能为空').max(50, '岗位名称不能超过50个字符'),
@@ -49,6 +55,8 @@ const positionFormSchema = z.object({
     .min(2, '岗位编码至少需要2个字符')
     .max(30, '岗位编码不能超过30个字符')
     .regex(/^POS-\d{4}$/i, '岗位编码格式为 POS-四位数字，如 POS-1001'),
+  level: z.string().trim().min(1, '请选择岗位职级'),
+  headcount: z.coerce.number().int().min(1, '岗位人数至少为 1').max(999, '岗位人数不能超过 999'),
   description: z.string().trim().min(1, '岗位描述不能为空').max(200, '岗位描述不能超过200个字符')
 })
 
@@ -57,7 +65,7 @@ type PositionFormValues = z.infer<typeof positionFormSchema>
 function matchesPosition(position: Position, keyword: string): boolean {
   const q = keyword.trim().toLowerCase()
   if (!q) return true
-  return [position.name, position.code, position.description].join(' ').toLowerCase().includes(q)
+  return [position.name, position.code, position.description, position.level].join(' ').toLowerCase().includes(q)
 }
 
 export function OrganizationPositions({ data }: { data: Position[] }) {
@@ -70,6 +78,8 @@ export function OrganizationPositions({ data }: { data: Position[] }) {
     defaultValues: {
       name: '',
       code: '',
+      level: 'P6',
+      headcount: 1,
       description: ''
     }
   })
@@ -83,6 +93,8 @@ export function OrganizationPositions({ data }: { data: Position[] }) {
     form.reset({
       name: '',
       code: `POS-${String(Math.floor(Math.random() * 9000) + 1000)}`,
+      level: 'P6',
+      headcount: 1,
       description: ''
     })
     setAddOpen(true)
@@ -99,7 +111,10 @@ export function OrganizationPositions({ data }: { data: Position[] }) {
       id: Date.now(),
       code,
       name: values.name.trim(),
-      description: values.description.trim()
+      description: values.description.trim(),
+      level: values.level,
+      headcount: values.headcount,
+      activeCount: 0
     }
     setPositions((prev) => [next, ...prev])
     setAddOpen(false)
@@ -127,7 +142,12 @@ export function OrganizationPositions({ data }: { data: Position[] }) {
 
       {filteredPositions.length ? (
         <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2 @2xl:grid-cols-3 @4xl:grid-cols-4">
-          {filteredPositions.map((item) => (
+          {filteredPositions.map((item) => {
+            const vacancy = Math.max(item.headcount - item.activeCount, 0)
+            const fillRate =
+              item.headcount > 0 ? Math.round((item.activeCount / item.headcount) * 100) : 0
+
+            return (
             <Card key={item.id} className="gap-3">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -142,7 +162,7 @@ export function OrganizationPositions({ data }: { data: Position[] }) {
               </CardHeader>
               <CardContent>
                 <h2 className="text-base font-semibold">{item.name}</h2>
-                <p className="mt-1 text-muted-foreground">资深 · P6</p>
+                <p className="mt-1 text-muted-foreground">{formatPositionLevel(item.level)}</p>
                 <p className="mt-3 line-clamp-2 min-h-10 text-sm leading-5 text-muted-foreground">
                   {item.description}
                 </p>
@@ -169,14 +189,17 @@ export function OrganizationPositions({ data }: { data: Position[] }) {
                 <Separator className="mt-4 mb-3" />
                 <Field>
                   <FieldLabel>
-                    <span className="text-sm">10%</span>
-                    <span className="ml-auto text-xs text-muted-foreground">1/10 在岗 · 9 空缺</span>
+                    <span className="text-sm">{fillRate}%</span>
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {item.activeCount}/{item.headcount} 在岗 · {vacancy} 空缺
+                    </span>
                   </FieldLabel>
-                  <Progress value={40} />
+                  <Progress value={fillRate} />
                 </Field>
               </CardContent>
             </Card>
-          ))}
+            )
+          })}
         </div>
       ) : (
         <Empty className="border border-dashed">
@@ -241,6 +264,51 @@ export function OrganizationPositions({ data }: { data: Position[] }) {
                   </Field>
                 )}
               />
+
+              <div className="grid grid-cols-2 gap-4">
+                <Controller
+                  name="level"
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid || undefined}>
+                      <FieldLabel>岗位职级</FieldLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger aria-invalid={fieldState.invalid || undefined}>
+                          <SelectValue placeholder="选择职级" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {POSITION_LEVEL_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {fieldState.error ? <FieldError>{fieldState.error.message}</FieldError> : null}
+                    </Field>
+                  )}
+                />
+
+                <Controller
+                  name="headcount"
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid || undefined}>
+                      <FieldLabel htmlFor="position-headcount">岗位人数</FieldLabel>
+                      <Input
+                        id="position-headcount"
+                        type="number"
+                        min={1}
+                        max={999}
+                        value={field.value}
+                        onChange={(event) => field.onChange(event.target.value)}
+                        aria-invalid={fieldState.invalid || undefined}
+                      />
+                      {fieldState.error ? <FieldError>{fieldState.error.message}</FieldError> : null}
+                    </Field>
+                  )}
+                />
+              </div>
 
               <Controller
                 name="description"

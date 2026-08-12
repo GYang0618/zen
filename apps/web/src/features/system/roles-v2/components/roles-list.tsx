@@ -50,7 +50,7 @@ export function RolesList({ data }: { data: Role[] }) {
     return matchesStatus && matchesKeyword
   })
 
-  const openDialog = (type: 'edit' | 'delete', role: Role) => {
+  const openDialog = (type: 'edit' | 'delete' | 'clone', role: Role) => {
     setCurrentRow(role)
     setOpen(type)
   }
@@ -135,8 +135,8 @@ export function RolesList({ data }: { data: Role[] }) {
                             <ShieldCheck /> 激活角色
                           </DropdownMenuItem>
                         ) : null}
-                        <DropdownMenuItem>
-                          <Copy /> 克隆策略
+                        <DropdownMenuItem onClick={() => openDialog('clone', item)}>
+                          <Copy /> 克隆角色
                         </DropdownMenuItem>
                       </DropdownMenuGroup>
                       <DropdownMenuSeparator />

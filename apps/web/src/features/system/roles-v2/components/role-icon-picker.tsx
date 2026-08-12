@@ -1,4 +1,4 @@
-import { Button, cn, Popover, PopoverContent, PopoverTrigger } from '@zen/ui'
+import { Button, cn, Popover, PopoverContent, PopoverTrigger, ScrollArea } from '@zen/ui'
 import { ChevronsUpDown, Shapes } from 'lucide-react'
 import { DynamicIcon } from 'lucide-react/dynamic'
 import { useState } from 'react'
@@ -26,7 +26,7 @@ export function RoleIconPicker({
   const [open, setOpen] = useState(false)
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover modal open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           id={id}
@@ -54,35 +54,25 @@ export function RoleIconPicker({
           <ChevronsUpDown data-icon="inline-end" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-72 p-2" align="start">
-        <ul className="grid grid-cols-6 gap-1">
-          {ROLE_ICONS.map((iconName) => {
-            const selected = value === iconName
+      <PopoverContent className="w-(--radix-popover-trigger-width) p-2" align="start">
+        <ScrollArea type="hover">
+          <div className="max-h-50 flex gap-1 flex-wrap">
+            {ROLE_ICONS.map((iconName) => (
+              <Button
+                key={iconName}
+                size="icon"
+                variant={value === iconName ? 'default' : 'ghost'}
+                onClick={() => {
+                  onValueChange(iconName)
+                  setOpen(false)
+                }}
+              >
+                <DynamicIcon name={iconName} className="size-5" aria-hidden />
+              </Button>
+            ))}
+          </div>
+        </ScrollArea>
 
-            return (
-              <li key={iconName}>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  title={iconName}
-                  aria-label={iconName}
-                  aria-pressed={selected}
-                  className={cn(
-                    'size-full aspect-square',
-                    selected && 'bg-muted-foreground/20 text-primary'
-                  )}
-                  onClick={() => {
-                    onValueChange(iconName)
-                    setOpen(false)
-                  }}
-                >
-                  <DynamicIcon name={iconName} className="size-5" aria-hidden />
-                </Button>
-              </li>
-            )
-          })}
-        </ul>
         {value ? (
           <div className="mt-1 border-t pt-1">
             <Button

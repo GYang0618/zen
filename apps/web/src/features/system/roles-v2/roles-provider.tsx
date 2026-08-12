@@ -16,6 +16,14 @@ type RoleFormInput = {
   expiredAt: string | null
 }
 
+/** 克隆角色的表单输入：仅复制权限配置，不复制关联成员 */
+type RoleCloneInput = {
+  name: string
+  code: string
+  description: string
+  expiredAt: string | null
+}
+
 type RolesContextType = {
   open: RolesDialogType | null
   setOpen: (str: RolesDialogType | null) => void
@@ -26,6 +34,7 @@ type RolesContextType = {
   updateRole: (id: string, input: Omit<RoleFormInput, 'code'>) => Role | undefined
   deleteRole: (id: string) => void
   activateRole: (id: string) => Role | undefined
+  cloneRole: (id: string, input: RoleCloneInput) => Role | undefined
   hasRoleCode: (code: string, excludeId?: string) => boolean
 }
 
@@ -110,6 +119,33 @@ export function RolesProvider({ children }: { children: React.ReactNode }) {
     return activated
   }
 
+  /** 克隆角色：复制来源角色的权限配置（含图标等展示信息），但不复制其关联成员 */
+  const cloneRole = (id: string, input: RoleCloneInput): Role | undefined => {
+    const source = roles.find((role) => role.id === id)
+    if (!source) return undefined
+
+    const now = new Date().toISOString()
+    const cloned: Role = {
+      id: crypto.randomUUID(),
+      name: input.name,
+      code: input.code,
+      icon: source.icon,
+      iconColor: source.iconColor,
+      description: input.description,
+      permissions: [...source.permissions],
+      memberCount: 0,
+      latestMembers: [],
+      status: 'active',
+      expiredAt: input.expiredAt,
+      createdAt: now,
+      updatedAt: null,
+      lockedAt: null
+    }
+
+    setRoles((prev) => [cloned, ...prev])
+    return cloned
+  }
+
   return (
     <RolesContext
       value={{
@@ -122,6 +158,7 @@ export function RolesProvider({ children }: { children: React.ReactNode }) {
         updateRole,
         deleteRole,
         activateRole,
+        cloneRole,
         hasRoleCode
       }}
     >

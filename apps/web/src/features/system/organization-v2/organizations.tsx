@@ -11,10 +11,12 @@ export function Organizations() {
     <OrganizationsProvider>
       <AppHeader />
 
-      <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
+      <Main className="flex flex-1 flex-col gap-4 sm:gap-6 ">
         <AppPageHeader actions={<OrganizationsPrimaryButtons />} />
 
-        <OrganizationTree />
+        <div className="flex-1">
+          <OrganizationTree />
+        </div>
       </Main>
 
       <OrganizationsDialogs />

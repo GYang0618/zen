@@ -1,4 +1,12 @@
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
   Avatar,
   AvatarBadge,
   AvatarFallback,
@@ -11,6 +19,11 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   Empty,
   EmptyContent,
   EmptyDescription,
@@ -30,13 +43,29 @@ import {
   ScrollArea,
   Separator
 } from '@zen/ui'
-import { CheckCircle, Mail, Phone, Search, UserPlus, UserRoundArrowLeft } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import {
+  CheckCircle,
+  Ellipsis,
+  Mail,
+  Phone,
+  Search,
+  UserPlus,
+  UserRoundArrowLeft,
+  UserRoundMinus
+} from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import { organizationUsers } from '../data/mock'
 
 import type { OrganizationMember, OrganizationUserOption } from '../type'
+
+type MemberRemoval = {
+  member: OrganizationMember
+  originalIndex: number
+  previousMemberId?: string
+  nextMemberId?: string
+}
 
 function toMember(user: OrganizationUserOption): OrganizationMember {
   return {
@@ -56,10 +85,35 @@ function toMember(user: OrganizationUserOption): OrganizationMember {
 function matchesMember(member: OrganizationMember, keyword: string): boolean {
   const q = keyword.trim().toLowerCase()
   if (!q) return true
-  return [member.nickname, member.username, member.email, member.post, member.level, member.phoneNumber]
+  return [
+    member.nickname,
+    member.username,
+    member.email,
+    member.post,
+    member.level,
+    member.phoneNumber
+  ]
     .join(' ')
     .toLowerCase()
     .includes(q)
+}
+
+function restoreMember(
+  members: OrganizationMember[],
+  removal: MemberRemoval
+): OrganizationMember[] {
+  if (members.some((member) => member.id === removal.member.id)) return members
+
+  const nextIndex = members.findIndex((member) => member.id === removal.nextMemberId)
+  const previousIndex = members.findIndex((member) => member.id === removal.previousMemberId)
+  const insertIndex =
+    nextIndex >= 0
+      ? nextIndex
+      : previousIndex >= 0
+        ? previousIndex + 1
+        : Math.min(removal.originalIndex, members.length)
+
+  return [...members.slice(0, insertIndex), removal.member, ...members.slice(insertIndex)]
 }
 
 export function OrganizationMembers({ data }: { data: OrganizationMember[] }) {
@@ -67,6 +121,11 @@ export function OrganizationMembers({ data }: { data: OrganizationMember[] }) {
   const [keyword, setKeyword] = useState('')
   const [addOpen, setAddOpen] = useState(false)
   const [addKeyword, setAddKeyword] = useState('')
+  const [memberToRemove, setMemberToRemove] = useState<MemberRemoval | null>(null)
+
+  const removalMessage = memberToRemove
+    ? `确定将「${memberToRemove.member.nickname}」移出当前组织吗？此操作不会删除其账号或影响其在其他组织中的成员关系。`
+    : ''
 
   const memberKeySet = useMemo(() => {
     const keys = new Set<string>()
@@ -77,8 +136,11 @@ export function OrganizationMembers({ data }: { data: OrganizationMember[] }) {
     return keys
   }, [members])
 
-  const isUserBound = (user: OrganizationUserOption) =>
-    memberKeySet.has(user.id) || memberKeySet.has(user.email.toLowerCase())
+  const isUserBound = useCallback(
+    (user: OrganizationUserOption) =>
+      memberKeySet.has(user.id) || memberKeySet.has(user.email.toLowerCase()),
+    [memberKeySet]
+  )
 
   const filteredMembers = useMemo(
     () => members.filter((member) => matchesMember(member, keyword)),
@@ -97,7 +159,7 @@ export function OrganizationMembers({ data }: { data: OrganizationMember[] }) {
       : organizationUsers
 
     return [...filtered].sort((a, b) => Number(isUserBound(a)) - Number(isUserBound(b)))
-  }, [addKeyword, memberKeySet])
+  }, [addKeyword, isUserBound])
 
   const handleOpenAdd = () => {
     setAddKeyword('')
@@ -106,9 +168,37 @@ export function OrganizationMembers({ data }: { data: OrganizationMember[] }) {
 
   const handleBindMember = (user: OrganizationUserOption) => {
     if (isUserBound(user)) return
-    setMembers((prev) => [...prev, toMember(user)])
+    setMembers((prev) => [toMember(user), ...prev])
     setAddOpen(false)
     toast.success(`已添加成员「${user.name}」`)
+  }
+
+  const handleRequestRemoveMember = (member: OrganizationMember) => {
+    const originalIndex = members.findIndex((item) => item.id === member.id)
+    if (originalIndex < 0) return
+
+    setMemberToRemove({
+      member,
+      originalIndex,
+      previousMemberId: members[originalIndex - 1]?.id,
+      nextMemberId: members[originalIndex + 1]?.id
+    })
+  }
+
+  const handleRemoveMember = () => {
+    if (!memberToRemove) return
+
+    const removal = memberToRemove
+    setMembers((prev) => prev.filter((member) => member.id !== removal.member.id))
+    setMemberToRemove(null)
+    toast.success(`已将成员「${removal.member.nickname}」移出当前组织`, {
+      action: {
+        label: '撤销',
+        onClick: () => {
+          setMembers((prev) => restoreMember(prev, removal))
+        }
+      }
+    })
   }
 
   return (
@@ -133,7 +223,33 @@ export function OrganizationMembers({ data }: { data: OrganizationMember[] }) {
       {filteredMembers.length ? (
         <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2 @2xl:grid-cols-3 @4xl:grid-cols-4">
           {filteredMembers.map((item) => (
-            <Card key={item.id} className="rounded-2xl bg-background/80">
+            <Card key={item.id} className="relative rounded-2xl bg-background/80">
+              <div className="absolute top-2 right-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`打开${item.nickname}的成员操作`}
+                    >
+                      <Ellipsis />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-36">
+                    <DropdownMenuGroup>
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onSelect={() => handleRequestRemoveMember(item)}
+                      >
+                        <UserRoundMinus />
+                        移除成员
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
               <CardContent>
                 <div className="flex flex-col items-center justify-center gap-3">
                   <Avatar className="size-14">
@@ -157,7 +273,7 @@ export function OrganizationMembers({ data }: { data: OrganizationMember[] }) {
                     </div>
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground dark:text-zinc-400">
                       <CheckCircle className="size-3.5 text-green-500" />
-                      Available
+                      已激活
                     </span>
                   </div>
                 </div>
@@ -184,9 +300,7 @@ export function OrganizationMembers({ data }: { data: OrganizationMember[] }) {
             </EmptyMedia>
             <EmptyTitle>{members.length ? '未找到匹配成员' : '暂无成员'}</EmptyTitle>
             <EmptyDescription>
-              {members.length
-                ? '尝试调整搜索关键词，或添加新的成员'
-                : '你可点击下方按钮添加成员'}
+              {members.length ? '尝试调整搜索关键词，或添加新的成员' : '你可点击下方按钮添加成员'}
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent className="flex-row justify-center gap-2">
@@ -258,6 +372,26 @@ export function OrganizationMembers({ data }: { data: OrganizationMember[] }) {
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={Boolean(memberToRemove)}
+        onOpenChange={(open) => {
+          if (!open) setMemberToRemove(null)
+        }}
+      >
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>移除成员</AlertDialogTitle>
+            <AlertDialogDescription>{removalMessage}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleRemoveMember}>
+              移除成员
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

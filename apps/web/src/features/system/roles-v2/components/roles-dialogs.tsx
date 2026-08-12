@@ -1,5 +1,6 @@
 import { useRoles } from '../roles-provider'
 import { RoleActionDialog } from './role-action-dialog'
+import { RoleCloneDialog } from './role-clone-dialog'
 import { RoleDeleteDialog } from './role-delete-dialog'
 
 export function RolesDialogs() {
@@ -32,6 +33,15 @@ export function RolesDialogs() {
     setOpen('delete')
   }
 
+  const handleCloneOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      setOpen(null)
+      setTimeout(() => setCurrentRow(null), 300)
+      return
+    }
+    setOpen('clone')
+  }
+
   return (
     <>
       <RoleActionDialog open={open === 'add'} onOpenChange={handleAddOpenChange} />
@@ -49,6 +59,12 @@ export function RolesDialogs() {
             currentRow={currentRow}
             open={open === 'delete'}
             onOpenChange={handleDeleteOpenChange}
+          />
+          <RoleCloneDialog
+            key={`clone-${currentRow.id}`}
+            currentRow={currentRow}
+            open={open === 'clone'}
+            onOpenChange={handleCloneOpenChange}
           />
         </>
       ) : null}

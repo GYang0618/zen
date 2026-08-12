@@ -41,6 +41,9 @@ export interface Position {
   code: string
   name: string
   description: string
+  level: string
+  headcount: number
+  activeCount: number
 }
 
 export interface ActivityItem {

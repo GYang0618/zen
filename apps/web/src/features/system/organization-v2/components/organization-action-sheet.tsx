@@ -32,10 +32,16 @@ import { Controller, useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import { allowedChildTypes, getOrganizationTypeLabel, ORG_TYPES } from '../data/data'
+import {
+  allowedChildTypes,
+  getOrganizationTypeLabel,
+  ORG_TYPES,
+  ROOT_ORGANIZATION_TYPES
+} from '../data/data'
 import { organizationUsers } from '../data/mock'
 import { useOrganizations } from '../organizations-provider'
 import { OrganizationLeaderSelect } from './organization-leader-select'
+import { OrganizationParentSelect } from './organization-parent-select'
 
 import type { Organization, OrganizationLeader } from '../type'
 
@@ -112,6 +118,7 @@ export function OrganizationActionSheet({
     hasOrganizationCode,
     getParentOptions,
     currentNode,
+    organizations,
     rootOrganization
   } = useOrganizations()
   const isEdit = Boolean(currentRow)
@@ -123,6 +130,16 @@ export function OrganizationActionSheet({
     if (isEdit) return options
     return options.filter((option) => allowedChildTypes(option.type).length > 0)
   }, [getParentOptions, isEdit, currentRow?.id])
+
+  const selectableParentIds = useMemo(
+    () => new Set(parentOptions.map((option) => option.id)),
+    [parentOptions]
+  )
+
+  const parentExcludeIds = useMemo(() => {
+    if (!isEdit || !currentRow) return undefined
+    return new Set([currentRow.id])
+  }, [currentRow, isEdit])
 
   const form = useForm<OrganizationFormValues>({
     resolver: zodResolver(organizationFormSchema),
@@ -139,19 +156,29 @@ export function OrganizationActionSheet({
 
   const parentId = useWatch({ control: form.control, name: 'parentId' })
   const selectedParent = parentOptions.find((option) => option.id === parentId)
+  const isRootEdit = isEdit && !currentRow?.parentId
+
+  /** 未选择上级组织时，视为新建根节点，可选类型限定为集团 / 公司 / 中心 */
   const childTypes = useMemo(() => {
-    if (isEdit && currentRow && !currentRow.parentId) {
+    if (isRootEdit && currentRow) {
       return [currentRow.type]
     }
-    if (isEdit && currentRow) {
-      const options = allowedChildTypes(selectedParent?.type ?? ORG_TYPES.GROUP)
-      if (!options.includes(currentRow.type as (typeof options)[number])) {
-        return [currentRow.type, ...options]
-      }
-      return options.length ? options : [currentRow.type]
+
+    const baseTypes = selectedParent
+      ? allowedChildTypes(selectedParent.type)
+      : ROOT_ORGANIZATION_TYPES
+
+    if (
+      isEdit &&
+      currentRow &&
+      !baseTypes.includes(currentRow.type as (typeof baseTypes)[number])
+    ) {
+      return [currentRow.type, ...baseTypes]
     }
-    return selectedParent ? allowedChildTypes(selectedParent.type) : [ORG_TYPES.DEPARTMENT]
-  }, [isEdit, currentRow, selectedParent])
+
+    if (baseTypes.length) return baseTypes
+    return isEdit && currentRow ? [currentRow.type] : [ORG_TYPES.DEPARTMENT]
+  }, [isRootEdit, isEdit, currentRow, selectedParent])
 
   useEffect(() => {
     if (!open) return
@@ -171,7 +198,7 @@ export function OrganizationActionSheet({
       const parent =
         preferred && allowedChildTypes(preferred.type).length > 0
           ? preferred
-          : parentOptions[0] ?? rootOrganization
+          : (parentOptions[0] ?? rootOrganization)
       const nextTypes = parent ? allowedChildTypes(parent.type) : [ORG_TYPES.DEPARTMENT]
       form.reset({
         name: '',
@@ -197,16 +224,10 @@ export function OrganizationActionSheet({
     }
   }, [open, isEdit, childTypes, form])
 
-  const isRootEdit = isEdit && !currentRow?.parentId
-
   const handleCreateSubmit = (values: OrganizationFormValues) => {
     const code = values.code.trim()
     if (hasOrganizationCode(code)) {
       form.setError('code', { message: '组织编码已存在' })
-      return
-    }
-    if (!values.parentId) {
-      form.setError('parentId', { message: '请选择上级组织' })
       return
     }
 
@@ -230,11 +251,6 @@ export function OrganizationActionSheet({
 
   const handleUpdateSubmit = (values: OrganizationFormValues) => {
     if (!currentRow) return
-
-    if (!isRootEdit && !values.parentId) {
-      form.setError('parentId', { message: '请选择上级组织' })
-      return
-    }
 
     setIsSubmitting(true)
     try {
@@ -340,24 +356,19 @@ export function OrganizationActionSheet({
                       </>
                     ) : (
                       <>
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger id="organization-parent" className="w-full">
-                            <SelectValue placeholder="选择上级组织" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectGroup>
-                              {parentOptions.map((option) => (
-                                <SelectItem key={option.id} value={option.id}>
-                                  {option.name} · {getOrganizationTypeLabel(option.type)}
-                                </SelectItem>
-                              ))}
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
+                        <OrganizationParentSelect
+                          id="organization-parent"
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          tree={organizations}
+                          excludeIds={parentExcludeIds}
+                          selectableIds={selectableParentIds}
+                          aria-invalid={fieldState.invalid}
+                        />
                         <FieldDescription>
                           {currentNode && !isEdit
-                            ? `默认挂载到当前选中的「${currentNode.name}」下。`
-                            : '未选中节点时默认挂载到根节点下。'}
+                            ? `默认挂载到当前选中的「${currentNode.name}」下，清空后将新建为根节点。`
+                            : '留空将新建为根节点，可选类型为集团、公司或中心。'}
                         </FieldDescription>
                       </>
                     )}

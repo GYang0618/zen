@@ -8,7 +8,6 @@ import {
   PageHeaderDescription,
   PageHeaderMedia,
   PageHeaderTitle,
-  Separator,
   Tabs,
   TabsContent,
   TabsList,
@@ -69,7 +68,6 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
               <Camera />
               组织快照
             </Button>
-            <Separator orientation="vertical" className="mx-1 h-8" />
           </PageHeaderActions>
         </PageHeader>
 
