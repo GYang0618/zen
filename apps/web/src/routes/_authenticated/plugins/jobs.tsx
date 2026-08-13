@@ -1,22 +1,25 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
-import { Cuboid } from 'lucide-react'
+/* eslint-disable */
+/**
+ * 本文件由 `zen-plugin generate` 自动生成，请勿手工编辑。
+ */
+import { createFileRoute } from '@tanstack/react-router'
+import { ListTodo } from 'lucide-react'
+import { JobsPage } from '@zen/plugin-jobs/web'
 
-import { JobsFeaturePage } from '@/features/plugins/jobs'
-import { fetchActivePluginIds } from '@/features/system/plugins/api'
+import { PluginPageShell } from '@/features/plugins/plugin-page-shell'
+import { requireActivePlugin } from '@/lib/plugins/require-active-plugin'
 
 export const Route = createFileRoute('/_authenticated/plugins/jobs')({
-  beforeLoad: async () => {
-    const ids = await fetchActivePluginIds()
-    if (!ids.includes('jobs')) {
-      throw redirect({ to: '/errors/403', replace: true })
-    }
+  beforeLoad: () => requireActivePlugin('jobs'),
+  component: function PluginRoutePage() {
+    return <PluginPageShell page={JobsPage} />
   },
-  component: JobsFeaturePage,
   staticData: {
-    title: '任务中心',
-    icon: Cuboid,
+    title: "任务中心",
+    icon: ListTodo,
     order: 130,
-    permissions: ['job:task:list'],
+    permissions: ["job:task:list"],
     pluginId: 'jobs'
   }
 })
+

@@ -1,6 +1,5 @@
 import { AUDIT_PERMISSIONS } from '../audit/permissions'
 import { SESSION_PERMISSIONS } from '../auth/permissions'
-import { CONFIG_PERMISSIONS } from '../config/permissions'
 import { DICT_PERMISSIONS } from '../dict/permissions'
 import { ORG_PERMISSIONS, POST_PERMISSIONS } from '../organization/permissions'
 import { PLUGIN_PERMISSIONS } from '../plugin/permissions'
@@ -18,8 +17,7 @@ export const PermissionCode = {
   ...AUDIT_PERMISSIONS.codes,
   ...DICT_PERMISSIONS.codes,
   ...PLUGIN_PERMISSIONS.codes,
-  ...SESSION_PERMISSIONS.codes,
-  ...CONFIG_PERMISSIONS.codes
+  ...SESSION_PERMISSIONS.codes
 } as const satisfies Record<string, (typeof KERNEL_PERMISSION_CATALOG)[number]['code']>
 
 export type PermissionCodeValue = (typeof PermissionCode)[keyof typeof PermissionCode]

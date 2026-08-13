@@ -8,5 +8,10 @@ function OrganizationDetailRoute() {
 }
 
 export const Route = createFileRoute('/_authenticated/system/_identity/organization-v2_/$id')({
-  component: OrganizationDetailRoute
+  component: OrganizationDetailRoute,
+  staticData: {
+    title: '组织详情',
+    hideInMenu: true,
+    permissions: ['system:org:list']
+  }
 })

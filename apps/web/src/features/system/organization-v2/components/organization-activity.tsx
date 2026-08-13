@@ -14,17 +14,66 @@ import {
   TimelineTitle
 } from '@zen/ui'
 
-import type { ActivityGroup } from '../type'
+import { useOrganizationActivities } from '../queries'
 
-type OrganizationActivityProps = {
-  data: ActivityGroup[]
+import type { ActivityGroup, OrganizationActivity } from '../type'
+
+function formatActivityTime(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date)
 }
 
-export function OrganizationActivity({ data }: OrganizationActivityProps) {
+function formatActivityDay(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat('zh-CN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  }).format(date)
+}
+
+function groupActivities(items: OrganizationActivity[]): ActivityGroup[] {
+  const groups = new Map<string, ActivityGroup>()
+
+  for (const item of items) {
+    const groupKey = formatActivityDay(item.createdAt)
+    const existing = groups.get(groupKey) ?? { group: groupKey, items: [] }
+    existing.items.push({
+      who: item.actor.name,
+      action: item.action,
+      avatar: item.actor.avatar ?? '',
+      description: item.description,
+      timestamp: formatActivityTime(item.createdAt)
+    })
+    groups.set(groupKey, existing)
+  }
+
+  return [...groups.values()]
+}
+
+const ACTIVITY_PAGE = { page: 1, pageSize: 50 } as const
+
+export function OrganizationActivity({ organizationId }: { organizationId: string }) {
+  const { data, isLoading } = useOrganizationActivities(organizationId, ACTIVITY_PAGE)
+  const groups = groupActivities(data?.items ?? [])
+
+  if (isLoading) {
+    return <p className="py-8 text-center text-sm text-muted-foreground">加载活动…</p>
+  }
+
+  if (!groups.length) {
+    return <p className="py-8 text-center text-sm text-muted-foreground">暂无活动记录</p>
+  }
+
   return (
     <section>
       <Timeline>
-        {data.map((group) => (
+        {groups.map((group) => (
           <TimelineGroup key={group.group}>
             <TimelineItem>
               <TimelineIndicator />
@@ -35,10 +84,10 @@ export function OrganizationActivity({ data }: OrganizationActivityProps) {
             </TimelineItem>
 
             {group.items.map((item) => (
-              <TimelineItem key={`${group.group}-${item.who}-${item.timestamp}-${item.action}`}>
+              <TimelineItem key={`${group.group}-${item.who}-${item.timestamp}-${item.action}-${item.description}`}>
                 <TimelineIndicator>
                   <Avatar>
-                    <AvatarImage src={item.avatar} alt={item.who} />
+                    <AvatarImage src={item.avatar || undefined} alt={item.who} />
                     <AvatarFallback>{item.who.slice(0, 2)}</AvatarFallback>
                   </Avatar>
                 </TimelineIndicator>

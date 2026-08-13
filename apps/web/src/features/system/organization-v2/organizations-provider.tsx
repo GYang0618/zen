@@ -1,28 +1,33 @@
 import { useDialogState } from '@zen/ui'
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 
-import { organizations as initialOrganizations } from './data/mock'
+import {
+  useChangeOrganizationParent,
+  useCreateOrganization,
+  useOrganizationTree,
+  useUpdateOrganization,
+  useUpdateOrganizationLeader
+} from './queries'
 import {
   findOrganization,
   flattenOrganizations,
-  insertOrganizationChild,
-  moveOrganizationInTree,
-  removeOrganizationFromTree,
-  updateOrganizationInTree
+  validateOrganizationDrop
 } from './utils'
 
-import type { Organization, OrganizationLeader } from './type'
+import type { Organization } from './type'
+import type { Organization as SharedOrganization, OrganizationType } from '@zen/shared'
 
 export type OrganizationsDialogType = 'add' | 'edit' | 'edit-leader'
 
 export type OrganizationBasicInput = {
   name: string
   code: string
-  type: string
+  type: OrganizationType
   description: string
   effectiveDate: string
-  parentId: string
-  leader?: OrganizationLeader
+  parentId: string | null
+  leaderId?: string | null
 }
 
 type OrganizationsContextType = {
@@ -32,13 +37,17 @@ type OrganizationsContextType = {
   setCurrentNode: (node: Organization | null) => void
   organizations: Organization[]
   rootOrganization: Organization | undefined
-  addOrganization: (input: OrganizationBasicInput) => Organization
+  isLoading: boolean
+  addOrganization: (input: OrganizationBasicInput) => Promise<SharedOrganization>
   updateOrganization: (
     id: string,
-    input: Omit<OrganizationBasicInput, 'code'> & { code?: string }
-  ) => Organization | undefined
-  updateOrganizationLeader: (id: string, leader: OrganizationLeader) => Organization | undefined
-  moveOrganization: (activeId: string, overId: string) => boolean
+    input: Omit<OrganizationBasicInput, 'code' | 'leaderId'> & { code?: string }
+  ) => Promise<SharedOrganization | undefined>
+  updateOrganizationLeader: (
+    id: string,
+    leaderId: string | null
+  ) => Promise<SharedOrganization>
+  moveOrganization: (activeId: string, overId: string) => Promise<boolean>
   hasOrganizationCode: (code: string, excludeId?: string) => boolean
   getParentOptions: (excludeId?: string) => Organization[]
 }
@@ -48,18 +57,19 @@ const OrganizationsContext = createContext<OrganizationsContextType | null>(null
 export function OrganizationsProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useDialogState<OrganizationsDialogType>(null)
   const [currentNode, setCurrentNode] = useState<Organization | null>(null)
-  const [organizations, setOrganizations] = useState<Organization[]>(initialOrganizations)
+
+  const { data: organizations = [], isLoading } = useOrganizationTree()
+  const createOrganization = useCreateOrganization()
+  const updateOrganizationMutation = useUpdateOrganization()
+  const updateLeaderMutation = useUpdateOrganizationLeader()
+  const changeParentMutation = useChangeOrganizationParent()
 
   const rootOrganization = organizations[0]
 
-  const refreshCurrentNode = (nextTree: Organization[], preferredId?: string) => {
-    const targetId = preferredId ?? currentNode?.id
-    if (!targetId) {
-      setCurrentNode(null)
-      return
-    }
-    setCurrentNode(findOrganization(nextTree, targetId) ?? null)
-  }
+  const resolvedCurrentNode = useMemo(() => {
+    if (!currentNode) return null
+    return findOrganization(organizations, currentNode.id) ?? null
+  }, [currentNode, organizations])
 
   const hasOrganizationCode = (code: string, excludeId?: string) =>
     flattenOrganizations(organizations).some(
@@ -79,103 +89,64 @@ export function OrganizationsProvider({ children }: { children: React.ReactNode 
     return flat.filter((org) => !excluded.has(org.id))
   }
 
-  const addOrganization = (input: OrganizationBasicInput): Organization => {
-    // 未选择上级组织时视为新建根节点（如与「集团」同级），不再默认挂载到首个根节点下
-    const parent = input.parentId ? findOrganization(organizations, input.parentId) : undefined
-    const next: Organization = {
-      id: crypto.randomUUID(),
+  const addOrganization = async (input: OrganizationBasicInput) => {
+    return createOrganization.mutateAsync({
       name: input.name,
       code: input.code,
       type: input.type,
-      description: input.description,
+      parentId: input.parentId,
+      description: input.description || undefined,
       effectiveDate: input.effectiveDate,
-      parentId: parent?.id,
-      memberCount: 0,
-      positionCount: 0,
-      budget: 0,
-      leader: input.leader,
-      children: []
-    }
-
-    if (!parent) {
-      const tree = [...organizations, next]
-      setOrganizations(tree)
-      return next
-    }
-
-    const tree = insertOrganizationChild(organizations, parent.id, next)
-    setOrganizations(tree)
-    return next
+      leaderId: input.leaderId ?? null
+    })
   }
 
-  const updateOrganization = (
+  const updateOrganization = async (
     id: string,
-    input: Omit<OrganizationBasicInput, 'code'> & { code?: string }
-  ): Organization | undefined => {
+    input: Omit<OrganizationBasicInput, 'code' | 'leaderId'> & { code?: string }
+  ) => {
     const current = findOrganization(organizations, id)
     if (!current) return undefined
 
     const nextParentId = input.parentId
-    const parentChanged = nextParentId !== (current.parentId ?? '')
-
-    let nextTree: Organization[]
-    let updated: Organization
+    const parentChanged = (nextParentId ?? null) !== (current.parentId ?? null)
 
     if (parentChanged) {
-      const { tree, removed } = removeOrganizationFromTree(organizations, id)
-      if (!removed) return undefined
-      updated = {
-        ...removed,
-        name: input.name,
-        type: input.type,
-        description: input.description,
-        effectiveDate: input.effectiveDate,
-        parentId: nextParentId || undefined,
-        leader: input.leader ?? removed.leader
-      }
-      // 未指定上级组织时，视为新建为顶层根节点
-      nextTree = nextParentId
-        ? insertOrganizationChild(tree, nextParentId, updated)
-        : [...tree, updated]
-    } else {
-      nextTree = updateOrganizationInTree(organizations, id, (node) => {
-        updated = {
-          ...node,
-          name: input.name,
-          type: input.type,
-          description: input.description,
-          effectiveDate: input.effectiveDate,
-          leader: input.leader ?? node.leader
-        }
-        return updated
+      await changeParentMutation.mutateAsync({
+        id,
+        data: { parentId: nextParentId }
       })
     }
 
-    setOrganizations(nextTree)
-    refreshCurrentNode(nextTree, id)
-    return updated!
-  }
-
-  const moveOrganization = (activeId: string, overId: string): boolean => {
-    const nextTree = moveOrganizationInTree(organizations, activeId, overId)
-    if (!nextTree) return false
-    setOrganizations(nextTree)
-    refreshCurrentNode(nextTree, activeId)
-    return true
-  }
-
-  const updateOrganizationLeader = (
-    id: string,
-    leader: OrganizationLeader
-  ): Organization | undefined => {
-    let updated: Organization | undefined
-    const nextTree = updateOrganizationInTree(organizations, id, (node) => {
-      updated = { ...node, leader }
-      return updated
+    return updateOrganizationMutation.mutateAsync({
+      id,
+      data: {
+        name: input.name,
+        type: input.type,
+        description: input.description || null,
+        effectiveDate: input.effectiveDate
+      }
     })
-    setOrganizations(nextTree)
-    refreshCurrentNode(nextTree, id)
-    return updated
+  }
+
+  const moveOrganization = async (activeId: string, overId: string): Promise<boolean> => {
+    const validation = validateOrganizationDrop(organizations, activeId, overId)
+    if (!validation.isValid) return false
+
+    try {
+      await changeParentMutation.mutateAsync({
+        id: activeId,
+        data: { parentId: validation.destinationParentId }
+      })
+      toast.success('组织已移动')
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  const updateOrganizationLeader = async (id: string, leaderId: string | null) => {
+    return updateLeaderMutation.mutateAsync({ id, data: { leaderId } })
   }
 
   return (
@@ -183,10 +154,11 @@ export function OrganizationsProvider({ children }: { children: React.ReactNode 
       value={{
         open,
         setOpen,
-        currentNode,
+        currentNode: resolvedCurrentNode,
         setCurrentNode,
         organizations,
         rootOrganization,
+        isLoading,
         addOrganization,
         updateOrganization,
         updateOrganizationLeader,

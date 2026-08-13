@@ -31,7 +31,7 @@ export class UserTool {
     schema: createUserSchema
   })
 
-  getUserTool = tool(async ({ id }) => await this.userService.getUserInfoByUserId(id), {
+  getUserTool = tool(async ({ id }) => await this.userService.getUserById(id), {
     name: 'get_user',
     description: '根据用户 ID 查询单个用户详情',
     schema: userIdSchema

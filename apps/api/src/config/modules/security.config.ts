@@ -17,7 +17,7 @@ export const securityConfig = registerConfig('security', (env) => ({
     /** 允许的请求方法（包含预检请求） */
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     /** 允许的请求头 */
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-step-up-token']
   },
   /** 限流配置 */
   throttle: {

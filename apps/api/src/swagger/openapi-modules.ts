@@ -10,7 +10,6 @@ export const OPENAPI_REQUIRED_MODULE_NAMES = [
   'OrganizationModule',
   'DictModule',
   'AuditModule',
-  'SystemConfigModule',
   'PluginModule',
   'PluginsModule',
   'ChatModule',

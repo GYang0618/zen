@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
-import { UserStatusCode } from '@prisma/client'
+import { Gender, UserStatusCode } from '@prisma/client'
 
 import { toArray } from '@/common'
 import { applyUserListDataScope } from '@/common/auth/apply-data-scope'
@@ -11,11 +11,11 @@ import { buildPaginationMeta, paginate } from '@/common/pagination'
 import argon2 from '@/common/utils/argon2'
 
 import { findUsersQuerySchema } from './dto/find-users-query.dto'
-import { toUserInfoResponse, toUserListItemResponse } from './user.mapper'
+import { toUserInfoResponse, toUserListItemResponse, toUserResponse } from './user.mapper'
 import { UserRepository } from './user.repository'
 
 import type { Prisma } from '@prisma/client'
-import type { AuthContext } from '@zen/shared'
+import type { AuthContext, UserGender } from '@zen/shared'
 import type { AssignUserRolesDto } from './dto/assign-user-roles.dto'
 import type { CreateUserDto } from './dto/create-user.dto'
 import type {
@@ -30,7 +30,8 @@ import type { UpdateUsersStatusDto } from './dto/update-users-status.dto'
 import type {
   UserInfoResponse,
   UserListItemResponse,
-  UserListResponse
+  UserListResponse,
+  UserResponse
 } from './responses/user.response'
 
 const DEFAULT_ROLE_CODE = 'user'
@@ -46,20 +47,44 @@ export class UserService {
     @Inject(AuthContextService) private readonly authContextService: AuthContextService
   ) {}
 
-  async create(data: CreateUserDto): Promise<UserListItemResponse> {
+  async create(data: CreateUserDto): Promise<UserResponse> {
     const hashedPassword = await argon2.hash(data.password)
     const created = await this.userRepo.create({
       username: data.username,
       email: data.email,
       phoneNumber: data.phoneNumber,
       nickname: data.nickname,
-      password: hashedPassword
+      password: hashedPassword,
+      profile: {
+        create: {
+          realName: data.realName ?? null,
+          gender: toGenderCode(data.gender),
+          remark: data.remark ?? null
+        }
+      }
     })
 
     await this.userRepo.ensureDomainData(created.id)
     await this.membershipService.ensureDefaultMembership(created.id)
-    await this.assignRoleByCode(created.id, DEFAULT_ROLE_CODE)
-    return this.getUserListItemByUserId(created.id)
+
+    if (data.roleIds && data.roleIds.length > 0) {
+      await this.replaceUserRoles(created.id, data.roleIds, { revokeSessions: false })
+    } else {
+      await this.assignRoleByCode(created.id, DEFAULT_ROLE_CODE)
+    }
+
+    if (data.organizations && data.organizations.length > 0) {
+      await this.syncOrganizations(created.id, data.organizations, { revokeSessions: false })
+    }
+
+    await this.auditService.write({
+      action: 'system.user.created',
+      resource: 'user',
+      resourceId: created.id,
+      diff: { username: data.username, email: data.email }
+    })
+
+    return this.getUserById(created.id)
   }
 
   findOne(where: Prisma.UserWhereUniqueInput) {
@@ -73,6 +98,15 @@ export class UserService {
     if (!user) throw new NotFoundException('用户不存在')
 
     return toUserInfoResponse(user)
+  }
+
+  async getUserById(userId: string): Promise<UserResponse> {
+    await this.userRepo.ensureDomainData(userId)
+
+    const user = await this.userRepo.findActiveWithDomainById(userId)
+    if (!user) throw new NotFoundException('用户不存在')
+
+    return toUserResponse(user)
   }
 
   async updateMe(
@@ -157,35 +191,55 @@ export class UserService {
   }
 
   private async getUserListItemByUserId(userId: string): Promise<UserListItemResponse> {
-    await this.userRepo.ensureDomainData(userId)
-
-    const user = await this.userRepo.findActiveWithDomainById(userId)
-    if (!user) throw new NotFoundException('用户不存在')
-
-    return toUserListItemResponse(user)
+    return this.getUserById(userId)
   }
 
-  async update(id: string, data: UpdateUserDto): Promise<UserListItemResponse> {
+  async update(id: string, data: UpdateUserDto): Promise<UserResponse> {
     const existingUser = await this.userRepo.findActiveWithDomainById(id)
     if (!existingUser) {
       throw new NotFoundException('用户不存在')
     }
 
-    const { password, ...rest } = data
-    const nextData: Prisma.UserUpdateInput = { ...rest }
-
-    const maybeStatus = (data as { status?: UserStatus }).status
-    if (typeof maybeStatus === 'string') {
-      nextData.status = toUserStatusCode(maybeStatus)
+    const profileUpdate: Prisma.UserProfileUpdateInput = {
+      ...(data.realName !== undefined ? { realName: data.realName } : {}),
+      ...(data.gender !== undefined ? { gender: toGenderCode(data.gender) } : {}),
+      ...(data.remark !== undefined ? { remark: data.remark } : {}),
+      ...(data.avatar !== undefined ? { avatar: data.avatar } : {})
     }
+    const hasProfileUpdate = Object.keys(profileUpdate).length > 0
 
-    if (typeof password === 'string') {
-      nextData.password = await argon2.hash(password)
-    }
+    await this.userRepo.update(
+      { id },
+      {
+        ...(data.email !== undefined ? { email: data.email } : {}),
+        ...(data.nickname !== undefined ? { nickname: data.nickname } : {}),
+        ...(data.phoneNumber !== undefined ? { phoneNumber: data.phoneNumber } : {}),
+        ...(hasProfileUpdate
+          ? {
+              profile: {
+                upsert: {
+                  create: {
+                    realName: data.realName ?? null,
+                    gender: toGenderCode(data.gender),
+                    remark: data.remark ?? null,
+                    avatar: data.avatar ?? null
+                  },
+                  update: profileUpdate
+                }
+              }
+            }
+          : {})
+      }
+    )
 
-    const updated = await this.userRepo.update({ id }, nextData)
-    await this.userRepo.ensureDomainData(updated.id)
-    return this.getUserListItemByUserId(updated.id)
+    await this.userRepo.ensureDomainData(id)
+    await this.auditService.write({
+      action: 'system.user.updated',
+      resource: 'user',
+      resourceId: id,
+      diff: data
+    })
+    return this.getUserById(id)
   }
 
   /** 供内部（AuthService）使用，更新登录安全相关字段 */
@@ -200,14 +254,14 @@ export class UserService {
       throw new BadRequestException('page 和 pageSize 必须同时传入')
     }
 
-    const { keyword, status, role, page, pageSize, sortBy, sortOrder } = findUsersQuerySchema.parse(
-      query ?? {}
-    )
+    const { keyword, status, role, organizationId, page, pageSize, sortBy, sortOrder } =
+      findUsersQuerySchema.parse(query ?? {})
     const where = this.buildFindUsersWhere(
       {
         keyword,
         status: toArray(status),
-        role: toArray(role)
+        role: toArray(role),
+        organizationId
       },
       auth
     )
@@ -388,12 +442,33 @@ export class UserService {
     await this.userRepo.upsertUserRole(userId, role.id)
   }
 
-  async assignRoles(userId: string, payload: AssignUserRolesDto): Promise<UserInfoResponse> {
+  async assignRoles(userId: string, payload: AssignUserRolesDto): Promise<UserResponse> {
     const existing = await this.userRepo.findActiveWithDomainById(userId)
     if (!existing) throw new NotFoundException('用户不存在')
+    await this.replaceUserRoles(userId, payload.roleIds, {
+      currentCodes: existing.roles.map((item) => item.role.code),
+      revokeSessions: true
+    })
+    return this.getUserById(userId)
+  }
 
+  async replaceOrganizations(
+    userId: string,
+    payload: ReplaceUserOrganizationsDto
+  ): Promise<UserResponse> {
+    const existing = await this.userRepo.findActiveWithDomainById(userId)
+    if (!existing) throw new NotFoundException('用户不存在')
+    await this.syncOrganizations(userId, payload.organizations, { revokeSessions: true })
+    return this.getUserById(userId)
+  }
+
+  private async replaceUserRoles(
+    userId: string,
+    roleIdsInput: string[],
+    options: { currentCodes?: string[]; revokeSessions: boolean }
+  ) {
     const roleIds = [
-      ...new Set(payload.roleIds.map((id) => id.trim()).filter((id): id is string => id.length > 0))
+      ...new Set(roleIdsInput.map((id) => id.trim()).filter((id): id is string => id.length > 0))
     ]
     if (roleIds.length === 0) {
       throw new BadRequestException('至少需要一个角色')
@@ -404,8 +479,8 @@ export class UserService {
       throw new BadRequestException('部分角色不存在或已禁用')
     }
 
-    const currentCodes = existing.roles.map((item) => item.role.code)
     const nextCodes = roles.map((role) => role.code)
+    const currentCodes = options.currentCodes ?? []
     const removingSuperAdmin =
       currentCodes.includes(SUPER_ADMIN_ROLE_CODE) && !nextCodes.includes(SUPER_ADMIN_ROLE_CODE)
     if (removingSuperAdmin) {
@@ -423,19 +498,17 @@ export class UserService {
       diff: { roleIds, roleCodes: nextCodes }
     })
     await this.authContextService.bumpPermVer()
-    await this.sessionService.revokeAllForUser(userId)
-
-    return this.getUserInfoByUserId(userId)
+    if (options.revokeSessions) {
+      await this.sessionService.revokeAllForUser(userId)
+    }
   }
 
-  async replaceOrganizations(
+  private async syncOrganizations(
     userId: string,
-    payload: ReplaceUserOrganizationsDto
-  ): Promise<UserInfoResponse> {
-    const existing = await this.userRepo.findActiveWithDomainById(userId)
-    if (!existing) throw new NotFoundException('用户不存在')
-
-    const organizations = payload.organizations.map((item) => ({
+    input: ReplaceUserOrganizationsDto['organizations'],
+    options: { revokeSessions: boolean }
+  ) {
+    const organizations = input.map((item) => ({
       organizationId: item.organizationId.trim(),
       isPrimary: item.isPrimary ?? false,
       postId: item.postId ?? null
@@ -452,7 +525,7 @@ export class UserService {
       if (primaryCount > 1) {
         throw new BadRequestException('主职组织最多只能有一个')
       }
-      if (primaryCount === 0 && organizations.length > 0) {
+      if (primaryCount === 0) {
         organizations[0].isPrimary = true
       }
 
@@ -486,9 +559,9 @@ export class UserService {
       diff: { organizations }
     })
     await this.authContextService.bumpPermVer()
-    await this.sessionService.revokeAllForUser(userId)
-
-    return this.getUserInfoByUserId(userId)
+    if (options.revokeSessions) {
+      await this.sessionService.revokeAllForUser(userId)
+    }
   }
 
   private buildFindUsersWhere(
@@ -496,10 +569,11 @@ export class UserService {
       keyword?: string
       status?: UserStatus[]
       role?: string[]
+      organizationId?: string
     },
     auth?: AuthContext
   ): Prisma.UserWhereInput {
-    const { keyword, status, role } = params
+    const { keyword, status, role, organizationId } = params
     const conditions: Prisma.UserWhereInput[] = []
 
     if (keyword) {
@@ -509,7 +583,8 @@ export class UserService {
           { email: { contains: keyword, mode } },
           { username: { contains: keyword, mode } },
           { nickname: { contains: keyword, mode } },
-          { phoneNumber: { contains: keyword, mode } }
+          { phoneNumber: { contains: keyword, mode } },
+          { profile: { is: { realName: { contains: keyword, mode } } } }
         ]
       })
     }
@@ -520,6 +595,12 @@ export class UserService {
 
     if (role && role.length > 0) {
       conditions.push({ roles: { some: { role: { code: { in: role } } } } })
+    }
+
+    if (organizationId) {
+      conditions.push({
+        organizations: { some: { organizationId, leftAt: null } }
+      })
     }
 
     conditions.push({ deletedAt: null })
@@ -545,32 +626,19 @@ function toUserStatusCode(status: UserStatus): UserStatusCode {
   return USER_STATUS_CODE_MAP[status]
 }
 
-const USERS_SORT_FIELD_MAP: Record<UsersSortBy, Prisma.UserOrderByWithRelationInput> = {
-  username: { username: 'asc' },
-  email: { email: 'asc' },
-  jobTitle: { profile: { jobTitle: 'asc' } },
-  createdAt: { createdAt: 'asc' }
+function toGenderCode(gender?: UserGender | null): Gender {
+  if (gender === 'male') return Gender.MALE
+  if (gender === 'female') return Gender.FEMALE
+  return Gender.UNKNOWN
 }
 
 function buildUsersOrderBy(
   sortBy?: UsersSortBy,
   sortOrder?: UsersSortOrder
 ): Prisma.UserOrderByWithRelationInput {
-  if (!sortBy) return { createdAt: 'desc' }
-  const direction = sortOrder ?? 'asc'
-  const base = USERS_SORT_FIELD_MAP[sortBy]
-
-  if ('profile' in base) {
-    return { profile: { jobTitle: direction } }
-  }
-
-  if ('username' in base) {
-    return { username: direction }
-  }
-
-  if ('email' in base) {
-    return { email: direction }
-  }
-
+  const direction = sortOrder ?? (sortBy ? 'asc' : 'desc')
+  if (sortBy === 'username') return { username: direction }
+  if (sortBy === 'email') return { email: direction }
+  if (sortBy === 'lastLoginAt') return { audit: { lastLoginAt: direction } }
   return { createdAt: direction }
 }

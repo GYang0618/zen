@@ -37,6 +37,7 @@
     "@zen/plugin-files": "workspace:*",
     "@zen/plugin-jobs": "workspace:*",
     "@zen/plugin-notifications": "workspace:*",
+    "@zen/plugin-registry": "workspace:*",
     "@zen/request": "workspace:*",
     "@zen/shared": "workspace:*",
     "@zen/ui": "workspace:*",

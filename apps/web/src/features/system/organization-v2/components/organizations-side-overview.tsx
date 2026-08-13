@@ -17,7 +17,6 @@ import {
   Separator
 } from '@zen/ui'
 import {
-  BadgeJapaneseYen,
   Briefcase,
   Building2,
   Calendar,
@@ -31,7 +30,7 @@ import {
 
 import { getOrganizationTypeLabel } from '../data/data'
 import { useOrganizations } from '../organizations-provider'
-import { findOrganization, formatBudget, formatEffectiveDate } from '../utils'
+import { findOrganization, formatEffectiveDate } from '../utils'
 
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
@@ -71,11 +70,6 @@ export function OrganizationSideOverview() {
       label: '岗位',
       value: currentNode.positionCount,
       icon: Briefcase
-    },
-    {
-      label: '成本预算',
-      value: formatBudget(currentNode.budget),
-      icon: BadgeJapaneseYen
     },
     {
       label: '生效日期',
@@ -155,28 +149,23 @@ export function OrganizationSideOverview() {
               <Item className="mb-5 p-0">
                 <ItemMedia>
                   <Avatar className="size-14">
-                    <AvatarImage src={leader.avatar} alt={leader.name} />
+                    <AvatarImage src={leader.avatar ?? undefined} alt={leader.name} />
                     <AvatarFallback>{leader.name.slice(0, 1)}</AvatarFallback>
                   </Avatar>
                 </ItemMedia>
                 <ItemContent>
-                  <ItemTitle className="text-xl">
-                    {leader.name}
-                    {leader.online ? (
-                      <span className="ml-1 size-2 rounded-full bg-green-400" />
-                    ) : null}
-                  </ItemTitle>
-                  <ItemDescription>{leader.title}</ItemDescription>
+                  <ItemTitle className="text-xl">{leader.name}</ItemTitle>
+                  <ItemDescription>{leader.title || '—'}</ItemDescription>
                 </ItemContent>
               </Item>
               <div className="grid gap-3 text-sm">
                 <div className="flex items-center gap-2">
                   <Phone className="size-4" />
-                  <span>{leader.phone}</span>
+                  <span>{leader.phone || '—'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Mail className="size-4" />
-                  <span>{leader.email}</span>
+                  <span>{leader.email || '—'}</span>
                 </div>
               </div>
             </>

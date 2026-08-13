@@ -1,0 +1,55 @@
+{
+  "name": "@zen/plugin-registry",
+  "version": "0.1.0",
+  "private": true,
+  "description": "编译期插件聚合层：catalog / api / web / config / lifecycle",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./catalog": {
+      "types": "./src/catalog.ts",
+      "default": "./src/catalog.ts"
+    },
+    "./api": {
+      "types": "./src/api.ts",
+      "default": "./src/api.ts"
+    },
+    "./web": {
+      "types": "./src/web.ts",
+      "default": "./src/web.ts"
+    },
+    "./config": {
+      "types": "./src/config.ts",
+      "default": "./src/config.ts"
+    },
+    "./lifecycle": {
+      "types": "./src/lifecycle.ts",
+      "default": "./src/lifecycle.ts"
+    }
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc --noEmit",
+    "check-types": "tsc --noEmit",
+    "lint": "biome check --write ."
+  },
+  "dependencies": {
+    "@zen/plugin-demo-notes": "workspace:*",
+    "@zen/plugin-files": "workspace:*",
+    "@zen/plugin-jobs": "workspace:*",
+    "@zen/plugin-notifications": "workspace:*",
+    "@zen/plugin-sdk": "workspace:*",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "@typescript/native": "npm:typescript@7.0.2",
+    "typescript": "npm:@typescript/typescript6@6.0.2"
+  },
+  "packageManager": "pnpm@11.17.0"
+}

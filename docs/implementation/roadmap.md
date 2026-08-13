@@ -116,10 +116,10 @@ Phase 0 完成。
 
 ### 本批已交付
 
-- `@zen/shared`：`PermissionCode` / `AuthContext` / 权限判断工具 / Organization / Dict / SiteConfig schema
+- `@zen/shared`：`PermissionCode` / `AuthContext` / 权限判断工具 / Organization / Dict schema
 - Prisma：`Tenant`、`AuditLog`、`DictType`/`DictItem`、`Session`、`Membership`、`Post`；Department 表已删除
-- 后端：AuthContext + PermissionGuard；Session 列表/撤销；Membership；Organization CRUD/树/成员/岗位；DataScope；Dict / Audit / SystemConfig API；角色赋权 `permVer` bump + 相关会话失效
-- 前端：用户/角色/组织（含成员岗位）/会话/字典/审计/站点配置；菜单单源；路由权限 beforeLoad；`Can` 组件
+- 后端：AuthContext + PermissionGuard；Session 列表/撤销；Membership；Organization CRUD/树/成员/岗位；DataScope；Dict / Audit API；角色赋权 `permVer` bump + 相关会话失效
+- 前端：用户/角色/组织（含成员岗位）/会话/字典/审计；菜单单源；路由权限 beforeLoad；`Can` 组件
 
 ---
 

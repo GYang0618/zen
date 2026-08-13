@@ -1,4 +1,5 @@
 export * from './activate'
 export * from './constants'
 export * from './deactivate'
+export * from './lifecycle'
 export * from './notification.schema'

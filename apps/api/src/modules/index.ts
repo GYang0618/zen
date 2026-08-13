@@ -1,7 +1,6 @@
 export { AuditModule } from './audit/audit.module'
 export { AuthModule } from './auth/auth.module'
 export { ChatModule } from './chat/chat.module'
-export { SystemConfigModule } from './config/config.module'
 export { CopilotModule } from './copilot/copilot.module'
 export { DictModule } from './dict/dict.module'
 export { HealthModule } from './health/health.module'

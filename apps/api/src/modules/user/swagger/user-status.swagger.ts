@@ -9,8 +9,8 @@ export enum UserStatusSwagger {
 export enum UsersSortBySwagger {
   USERNAME = 'username',
   EMAIL = 'email',
-  JOB_TITLE = 'jobTitle',
-  CREATED_AT = 'createdAt'
+  CREATED_AT = 'createdAt',
+  LAST_LOGIN_AT = 'lastLoginAt'
 }
 
 export enum UsersSortOrderSwagger {

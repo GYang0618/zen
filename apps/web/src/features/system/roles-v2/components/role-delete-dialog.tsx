@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { useDeleteRolesMutation } from '@/features/system/roles/mutations'
+import { useDeleteRolesMutation } from '@/features/system/roles-v2/mutations'
 
 import type { Role } from '@zen/shared'
 

@@ -30,6 +30,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Plugin check (validate + generate --check)
+        run: pnpm run plugin:check
+
       - name: Lint
         run: pnpm run lint
 
@@ -44,9 +47,6 @@ jobs:
 
       - name: Build
         run: pnpm run build
-
-      - name: Plugin validate
-        run: pnpm run plugin:validate
 
       - name: Docs link check
         run: pnpm run docs:check-links

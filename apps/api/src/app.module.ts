@@ -14,7 +14,6 @@ import {
   OrganizationModule,
   PluginModule,
   RoleModule,
-  SystemConfigModule,
   UserModule
 } from '@/modules'
 import { PluginsModule } from '@/plugins.module'
@@ -32,7 +31,6 @@ import { PluginsModule } from '@/plugins.module'
     OrganizationModule,
     DictModule,
     AuditModule,
-    SystemConfigModule,
     PluginModule,
     PluginsModule,
     ChatModule,

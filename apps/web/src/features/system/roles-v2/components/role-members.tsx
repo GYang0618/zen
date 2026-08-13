@@ -35,12 +35,12 @@ import { toast } from 'sonner'
 
 import { Can } from '@/components/auth/can'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { EmptyState } from '@/features/system/config/components'
+import { EmptyState } from '@/components/empty-state'
 import {
   useAddRoleMembersMutation,
   useRemoveRoleMemberMutation
-} from '@/features/system/roles/mutations'
-import { useRoleMembersQuery } from '@/features/system/roles/queries'
+} from '@/features/system/roles-v2/mutations'
+import { useRoleMembersQuery } from '@/features/system/roles-v2/queries'
 import { useUsersQuery } from '@/features/system/users/queries'
 
 import type { RoleMember } from '@zen/shared'

@@ -1,11 +1,11 @@
+import { toApiOrganizationType } from '@/modules/organization/organization.mapper'
+
 import type { Gender, MfaType, Prisma, Theme, UserStatusCode } from '@prisma/client'
-import type { UserStatus } from '@zen/shared'
+import type { User, UserGender, UserMfaType, UserRolePreview, UserStatus } from '@zen/shared'
 import type {
   RoleInfoResponse,
-  UserGender,
   UserInfoResponse,
   UserListItemResponse,
-  UserMfaType,
   UserTheme
 } from './responses/user.response'
 import type { UserWithDomain } from './user.repository'
@@ -36,15 +36,15 @@ const USER_STATUS_MAP: Record<UserStatusCode, UserStatus> = {
   SUSPENDED: 'suspended'
 }
 
-function toUserStatus(status: UserStatusCode): UserStatus {
+export function toUserStatus(status: UserStatusCode): UserStatus {
   return USER_STATUS_MAP[status]
 }
 
-function toGender(gender?: Gender): UserInfoResponse['profile']['gender'] {
-  return gender ? GENDER_MAP[gender] : null
+function toGender(gender?: Gender | null): UserGender {
+  return gender ? GENDER_MAP[gender] : 'unknown'
 }
 
-function toMfaType(mfaType?: MfaType): NonNullable<UserInfoResponse['security']>['mfaType'] {
+function toMfaType(mfaType?: MfaType | null): UserMfaType {
   return mfaType ? MFA_TYPE_MAP[mfaType] : 'off'
 }
 
@@ -69,6 +69,18 @@ function toDashboardSettings(
 function toMeta(raw?: Prisma.JsonValue | null): Record<string, unknown> | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
   return raw as Record<string, unknown>
+}
+
+function toRolePreview(roles: UserWithDomain['roles']): UserRolePreview[] {
+  return roles.map(({ role }) => ({
+    id: role.id,
+    code: role.code,
+    name: role.name,
+    icon: role.icon ?? null,
+    iconColor: role.iconColor ?? null,
+    kind: role.kind === 'SYSTEM' ? 'system' : 'custom',
+    status: role.status === 'ACTIVE' ? 'active' : 'disabled'
+  }))
 }
 
 function toRoleDetails(roles: UserWithDomain['roles']): RoleInfoResponse[] {
@@ -96,8 +108,53 @@ function collectPermissions(roleDetails: RoleInfoResponse[]): string[] {
   return Array.from(permissionSet)
 }
 
-function getPrimaryRoleCode(roles: UserWithDomain['roles']): string | null {
-  return roles[0]?.role.code ?? null
+function toOrganizations(user: UserWithDomain): User['organizations'] {
+  return user.organizations.map((item) => ({
+    organizationId: item.organizationId,
+    organizationName: item.organization.name,
+    organizationCode: item.organization.code,
+    organizationType: toApiOrganizationType(item.organization.type),
+    isPrimary: item.isPrimary,
+    postId: item.postId ?? null,
+    postName: item.post?.name ?? null,
+    postLevel: item.post?.level ?? null,
+    joinedAt: item.joinedAt?.toISOString() ?? null
+  }))
+}
+
+export function toUserResponse(user: UserWithDomain): User {
+  const { profile, security, audit } = user
+
+  return {
+    id: user.id,
+    username: user.username,
+    nickname: user.nickname ?? null,
+    realName: profile?.realName ?? null,
+    avatar: profile?.avatar ?? null,
+    gender: toGender(profile?.gender),
+    email: user.email,
+    phoneNumber: user.phoneNumber ?? null,
+    status: toUserStatus(user.status),
+    isLocked: user.isLocked,
+    lockExpireAt: user.lockExpireAt?.toISOString() ?? null,
+    roles: toRolePreview(user.roles),
+    organizations: toOrganizations(user),
+    mfaEnabled: security?.mfaEnabled ?? false,
+    mfaType: toMfaType(security?.mfaType),
+    mustChangePassword: security?.mustChangePassword ?? false,
+    lastPasswordChange: security?.lastPasswordChange?.toISOString() ?? null,
+    loginAttempts: user.loginAttempts,
+    lastLoginAt: audit?.lastLoginAt?.toISOString() ?? null,
+    lastLoginIp: audit?.lastLoginIp ?? null,
+    lastActiveAt: audit?.lastActiveAt?.toISOString() ?? null,
+    remark: profile?.remark ?? null,
+    createdAt: user.createdAt.toISOString(),
+    updatedAt: user.updatedAt.toISOString()
+  }
+}
+
+export function toUserListItemResponse(user: UserWithDomain): UserListItemResponse {
+  return toUserResponse(user)
 }
 
 export function toUserInfoResponse(user: UserWithDomain): UserInfoResponse {
@@ -105,6 +162,7 @@ export function toUserInfoResponse(user: UserWithDomain): UserInfoResponse {
   const primaryOrg = organizations.find((item) => item.isPrimary) ?? organizations[0]
   const roleDetails = toRoleDetails(roles)
   const permissions = collectPermissions(roleDetails)
+  const primaryPostName = primaryOrg?.post?.name ?? null
 
   return {
     id: user.id,
@@ -127,7 +185,7 @@ export function toUserInfoResponse(user: UserWithDomain): UserInfoResponse {
     org: {
       deptId: primaryOrg?.organizationId ?? null,
       deptName: primaryOrg?.organization.name ?? null,
-      jobTitle: profile?.jobTitle ?? null
+      jobTitle: primaryPostName ?? profile?.jobTitle ?? null
     },
     organizations: organizations.map((item) => ({
       organizationId: item.organizationId,
@@ -173,28 +231,5 @@ export function toUserInfoResponse(user: UserWithDomain): UserInfoResponse {
     },
     remark: profile?.remark ?? null,
     meta: toMeta(profile?.meta)
-  }
-}
-
-export function toUserListItemResponse(user: UserWithDomain): UserListItemResponse {
-  const { profile, roles } = user
-  const primaryOrg = user.organizations.find((item) => item.isPrimary) ?? user.organizations[0]
-
-  return {
-    id: user.id,
-    username: user.username,
-    nickname: user.nickname ?? null,
-    realName: profile?.realName ?? null,
-    avatar: profile?.avatar ?? null,
-    email: user.email,
-    phoneNumber: user.phoneNumber ?? null,
-    status: toUserStatus(user.status),
-    role: getPrimaryRoleCode(roles),
-    deptName: primaryOrg?.organization.name ?? null,
-    jobTitle: profile?.jobTitle ?? null,
-    permissions: collectPermissions(toRoleDetails(roles)),
-    isLocked: user.isLocked,
-    createdAt: user.createdAt.toISOString(),
-    updatedAt: user.updatedAt.toISOString()
   }
 }

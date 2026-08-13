@@ -11,7 +11,7 @@ describe('files manifest', () => {
     expect(parsed.success).toBe(true)
     if (parsed.success) {
       expect(parsed.data.id).toBe('files')
-      expect(parsed.data.contributions.permissions.length).toBe(2)
+      expect(parsed.data.permissions.length).toBe(2)
     }
   })
 })

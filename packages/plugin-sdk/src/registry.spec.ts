@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { applyDataScope, applyOrgScopedResourceDataScope } from './apply-data-scope'
 import { ContributionRegistry, filterActiveRegistryEntries } from './registry'
 import { topologicalSort } from './topo-sort'
-import { isPlatformCompatible, validateManifestObject } from './validate'
+import { isPlatformCompatible, resolvePluginEntry, validateManifestObject } from './validate'
 
 import type { AuthContext } from '@zen/shared'
 import type { PluginRegistryEntry } from './types'
@@ -20,6 +20,21 @@ function baseAuth(overrides: Partial<AuthContext> = {}): AuthContext {
     primaryOrgId: 'org1',
     primaryOrgPath: '/t1/org1/',
     permVer: 1,
+    ...overrides
+  }
+}
+
+function demoEntry(overrides: Partial<PluginRegistryEntry> = {}): PluginRegistryEntry {
+  return {
+    id: 'demo',
+    name: 'Demo',
+    version: '0.1.0',
+    platformVersion: '^0.1.0',
+    dependsOn: [],
+    permissions: [{ code: 'demo:note:list', name: 'list', module: 'demo' }],
+    routes: [],
+    api: { entry: './api', export: 'DemoModule' },
+    packageDir: 'plugins/demo',
     ...overrides
   }
 }
@@ -61,37 +76,91 @@ describe('validateManifestObject', () => {
       version: '0.1.0',
       platformVersion: '^0.1.0',
       dependsOn: [],
-      contributions: {
-        permissions: [{ code: 'system:user:list', name: 'x', module: 'demo' }]
-      }
+      permissions: [{ code: 'system:user:list', name: 'x', module: 'demo' }],
+      routes: []
     })
     expect(issues.some((issue) => issue.message.includes('内核保留前缀'))).toBe(true)
   })
-})
 
-describe('ContributionRegistry', () => {
-  const entries: PluginRegistryEntry[] = [
-    {
+  it('拒绝未知 icon', () => {
+    const issues = validateManifestObject({
+      id: 'demo',
+      name: 'Demo',
+      version: '0.1.0',
+      platformVersion: '^0.1.0',
+      dependsOn: [],
+      permissions: [],
+      routes: [
+        {
+          id: 'demo-home',
+          path: '/plugins/demo',
+          entry: './src/page',
+          componentExport: 'Page',
+          title: 'Demo',
+          icon: 'not-a-real-icon'
+        }
+      ]
+    })
+    expect(issues.some((issue) => issue.message.includes('未知 icon'))).toBe(true)
+  })
+
+  it('拒绝未声明的 route.permissions', () => {
+    const issues = validateManifestObject({
       id: 'demo',
       name: 'Demo',
       version: '0.1.0',
       platformVersion: '^0.1.0',
       dependsOn: [],
       permissions: [{ code: 'demo:note:list', name: 'list', module: 'demo' }],
-      contributions: { apiModule: './api' },
-      packageDir: 'plugins/demo'
-    }
-  ]
+      routes: [
+        {
+          id: 'demo-home',
+          path: '/plugins/demo',
+          entry: './src/page',
+          componentExport: 'Page',
+          title: 'Demo',
+          icon: 'sticky-note',
+          permissions: ['demo:note:delete']
+        }
+      ]
+    })
+    expect(issues.some((issue) => issue.message.includes('未在本插件 permissions 中声明'))).toBe(
+      true
+    )
+  })
+})
 
-  it('停用后贡献点不可见', () => {
+describe('resolvePluginEntry', () => {
+  it('拒绝逃逸插件目录的入口', () => {
+    const result = resolvePluginEntry(process.cwd(), '../../etc/passwd')
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.message).toMatch(/逃逸/)
+    }
+  })
+})
+
+describe('ContributionRegistry', () => {
+  const entries: PluginRegistryEntry[] = [demoEntry()]
+
+  it('fail-closed：默认 inactive，启用后贡献点可见', () => {
     const registry = new ContributionRegistry()
     registry.loadFromRegistry(entries)
+    expect(registry.getActivePermissions()).toHaveLength(0)
+    expect(registry.getActiveApiModules()).toHaveLength(0)
+
+    registry.setStatus('demo', 'active')
     expect(registry.getActivePermissions()).toHaveLength(1)
+    expect(registry.getActiveApiModules()).toHaveLength(1)
 
     registry.setStatus('demo', 'inactive')
     expect(registry.getActivePermissions()).toHaveLength(0)
-    expect(registry.getActiveApiModules()).toHaveLength(0)
     expect(filterActiveRegistryEntries(entries, new Map([['demo', 'inactive']]))).toHaveLength(0)
+  })
+
+  it('filterActiveRegistryEntries 缺省 status 为 inactive', () => {
+    expect(filterActiveRegistryEntries(entries, new Map())).toHaveLength(0)
+    expect(filterActiveRegistryEntries(entries, new Map([['demo', 'active']]))).toHaveLength(1)
   })
 })
 

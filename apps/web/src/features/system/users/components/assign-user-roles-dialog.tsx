@@ -21,27 +21,28 @@ import { toast } from 'sonner'
 import { PasswordInput } from '@/components'
 import { Can } from '@/components/auth/can'
 import { authApi } from '@/features/auth/api'
-import { useRolesQuery } from '@/features/system/roles/queries'
 
 import { useAssignUserRolesMutation } from '../mutations'
+import { useRoleOptionsQuery } from '../queries'
+import { getUserDisplayName } from '../utils'
 
-import type { UserInfo } from '../api'
+import type { User } from '@zen/shared'
 
 type AssignUserRolesDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  user: UserInfo
+  user: User
 }
 
 export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRolesDialogProps) {
-  const { data, isLoading } = useRolesQuery({ page: 1, pageSize: 200 })
+  const { data, isLoading } = useRoleOptionsQuery(open)
   const { mutateAsync: assignRoles, isPending } = useAssignUserRolesMutation()
   const [roleIds, setRoleIds] = useState<string[]>([])
   const [password, setPassword] = useState('')
 
   useEffect(() => {
     if (!open) return
-    setRoleIds(user.auth.roleDetails.map((role) => role.id))
+    setRoleIds(user.roles.map((role) => role.id))
     setPassword('')
   }, [open, user])
 
@@ -74,7 +75,7 @@ export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRo
         <DialogHeader>
           <DialogTitle>分配角色</DialogTitle>
           <DialogDescription>
-            为 {user.profile.nickname || user.profile.username} 覆盖式分配角色，需二次确认。
+            为 {getUserDisplayName(user)} 覆盖式分配角色，需二次确认。
           </DialogDescription>
         </DialogHeader>
 
@@ -82,7 +83,7 @@ export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRo
           <Skeleton className="h-40 w-full" />
         ) : (
           <ScrollArea className="h-56 rounded-md border p-3">
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               {(data?.items ?? []).map((role) => (
                 <div key={role.id} className="flex items-start gap-2">
                   <Checkbox
@@ -92,7 +93,7 @@ export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRo
                   />
                   <div className="grid gap-0.5 leading-none">
                     <Label htmlFor={`assign-role-${role.id}`}>{role.name}</Label>
-                    <p className="text-xs text-muted-foreground">{role.code}</p>
+                    <p className="font-mono text-xs text-muted-foreground">{role.code}</p>
                   </div>
                 </div>
               ))}
@@ -100,7 +101,7 @@ export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRo
           </ScrollArea>
         )}
 
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <Label>登录密码（二次确认）</Label>
           <PasswordInput
             value={password}

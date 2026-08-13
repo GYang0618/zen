@@ -29,6 +29,8 @@
       "@zen/ui/*": ["../../packages/ui/src/*"],
       "@zen/request": ["../../packages/request/src/index.ts"],
       "@zen/shared": ["../../packages/shared/src/index.ts"],
+      "@zen/plugin-registry": ["../../packages/plugin-registry/src/index.ts"],
+      "@zen/plugin-registry/*": ["../../packages/plugin-registry/src/*"],
       "@zen/plugin-demo-notes/web": ["../../plugins/demo-notes/src/web/index.ts"],
       "@zen/plugin-notifications/web": ["../../plugins/notifications/src/web/index.ts"],
       "@zen/plugin-files/web": ["../../plugins/files/src/web/index.ts"],

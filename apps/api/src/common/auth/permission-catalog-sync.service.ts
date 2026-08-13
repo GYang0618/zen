@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
-import { PermissionStatus, PluginInstallStatus } from '@prisma/client'
+import { PermissionStatus } from '@prisma/client'
 import { PLUGIN_REGISTRY } from '@zen/plugin-sdk'
 import {
   createPluginPermissionEntry,
@@ -97,30 +97,20 @@ export class PermissionCatalogSyncService implements OnModuleInit, OnModuleDestr
     )
   }
 
-  private async resolveCatalog(tenantId: string): Promise<PermissionCatalogEntry[]> {
-    const installations = await this.prisma.pluginInstallation.findMany({
-      where: { tenantId },
-      select: { pluginId: true, status: true }
-    })
-    const activePluginIds = new Set(
-      installations
-        .filter((item) => item.status === PluginInstallStatus.ACTIVE)
-        .map((item) => item.pluginId)
-    )
-
-    const pluginEntries = PLUGIN_REGISTRY.map((plugin) => {
-      const active = activePluginIds.has(plugin.id)
-      return plugin.permissions.map((permission) =>
+  private async resolveCatalog(_tenantId: string): Promise<PermissionCatalogEntry[]> {
+    // 权限定义与租户启停分离：目录始终注册编译期权限；可用性由 Guard / 菜单过滤。
+    const pluginEntries = PLUGIN_REGISTRY.map((plugin) =>
+      plugin.permissions.map((permission) =>
         createPluginPermissionEntry({
           pluginId: plugin.id,
           pluginName: plugin.name,
           code: permission.code,
           name: permission.name,
           description: permission.description,
-          status: active ? 'active' : 'deprecated'
+          status: 'active'
         })
       )
-    })
+    )
 
     return definePermissionCatalog([KERNEL_PERMISSION_CATALOG, ...pluginEntries])
   }

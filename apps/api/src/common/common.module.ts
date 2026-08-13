@@ -19,6 +19,7 @@ import { PermissionGuard } from './guards/permission.guard'
 import { PluginActiveGuard } from './guards/plugin-active.guard'
 import { StepUpGuard } from './guards/step-up.guard'
 import { TransformInterceptor } from './interceptors/transform.interceptor'
+import { TenantPluginStateService } from '@/modules/plugin/tenant-plugin-state.service'
 
 import type { AuthConfig, SecurityConfig } from '@/config'
 
@@ -50,6 +51,7 @@ import type { AuthConfig, SecurityConfig } from '@/config'
     SessionService,
     MembershipService,
     PermissionCatalogSyncService,
+    TenantPluginStateService,
     {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter
@@ -89,7 +91,8 @@ import type { AuthConfig, SecurityConfig } from '@/config'
     AuditService,
     SessionService,
     MembershipService,
-    PermissionCatalogSyncService
+    PermissionCatalogSyncService,
+    TenantPluginStateService
   ]
 })
 export class CommonModule {}

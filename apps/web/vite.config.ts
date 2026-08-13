@@ -27,19 +27,7 @@ export default defineConfig(({ mode }) => {
       cesium()
     ],
     resolve: {
-      tsconfigPaths: true,
-      alias: {
-        '@zen/plugin-demo-notes/web': path.resolve(
-          monorepoRoot,
-          'plugins/demo-notes/src/web/index.ts'
-        ),
-        '@zen/plugin-notifications/web': path.resolve(
-          monorepoRoot,
-          'plugins/notifications/src/web/index.ts'
-        ),
-        '@zen/plugin-files/web': path.resolve(monorepoRoot, 'plugins/files/src/web/index.ts'),
-        '@zen/plugin-jobs/web': path.resolve(monorepoRoot, 'plugins/jobs/src/web/index.ts')
-      }
+      tsconfigPaths: true
     },
     server: {
       port: 3000,

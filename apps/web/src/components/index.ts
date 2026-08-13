@@ -1,6 +1,7 @@
 export { CommandMenu } from './command-menu'
 export { ConfigDrawer } from './config-drawer'
 export { ConfirmDialog } from './confirm-dialog'
+export { EmptyState } from './empty-state'
 export { LongText } from './long-text'
 export { PasswordInput } from './password-input'
 export { ProfileDropdown } from './profile-dropdown'

@@ -1,30 +1,31 @@
-import type { OrganizationType, RecordStatus } from '@prisma/client'
-import type { OrganizationStatus as ApiStatus, OrganizationType as ApiType } from '@zen/shared'
+import type { OrganizationType, UserStatusCode } from '@prisma/client'
+import type { OrganizationType as ApiType, OrganizationMember, Position } from '@zen/shared'
 import type { OrganizationWithRelations } from './organization.repository'
 import type { OrganizationResponse } from './responses/organization.response'
 
 const TYPE_TO_API: Record<OrganizationType, ApiType> = {
+  GROUP: 'group',
   COMPANY: 'company',
   BRANCH: 'branch',
+  CENTER: 'center',
   DEPARTMENT: 'department',
   TEAM: 'team'
 }
 
 const TYPE_FROM_API: Record<ApiType, OrganizationType> = {
+  group: 'GROUP',
   company: 'COMPANY',
   branch: 'BRANCH',
+  center: 'CENTER',
   department: 'DEPARTMENT',
   team: 'TEAM'
 }
 
-const STATUS_TO_API: Record<RecordStatus, ApiStatus> = {
+const USER_STATUS_TO_API: Record<UserStatusCode, OrganizationMember['accountStatus']> = {
   ACTIVE: 'active',
-  DISABLED: 'disabled'
-}
-
-const STATUS_FROM_API: Record<ApiStatus, RecordStatus> = {
-  active: 'ACTIVE',
-  disabled: 'DISABLED'
+  INACTIVE: 'inactive',
+  PENDING: 'pending',
+  SUSPENDED: 'suspended'
 }
 
 export function toApiOrganizationType(type: OrganizationType): ApiType {
@@ -35,31 +36,78 @@ export function fromApiOrganizationType(type: ApiType): OrganizationType {
   return TYPE_FROM_API[type]
 }
 
-export function toApiOrganizationStatus(status: RecordStatus): ApiStatus {
-  return STATUS_TO_API[status]
-}
-
-export function fromApiOrganizationStatus(status: ApiStatus): RecordStatus {
-  return STATUS_FROM_API[status]
-}
-
 export function toOrganizationResponse(org: OrganizationWithRelations): OrganizationResponse {
+  const leader = org.leader
   return {
     id: org.id,
     code: org.code,
     name: org.name,
     type: toApiOrganizationType(org.type),
     parentId: org.parentId,
-    leaderId: org.leaderId,
-    leaderName: org.leader?.nickname ?? org.leader?.username ?? null,
     description: org.description ?? null,
-    status: toApiOrganizationStatus(org.status),
-    sort: org.sort ?? 0,
-    path: org.path,
-    level: org.level,
+    effectiveDate: org.effectiveDate.toISOString().slice(0, 10),
+    leader: leader
+      ? {
+          id: leader.id,
+          name: leader.profile?.realName ?? leader.nickname ?? leader.username,
+          title: leader.profile?.jobTitle ?? null,
+          avatar: leader.profile?.avatar ?? null,
+          email: leader.email,
+          phone: leader.phoneNumber
+        }
+      : null,
     memberCount: org._count.users,
-    childrenCount: org._count.children,
+    positionCount: org._count.posts,
     createdAt: org.createdAt.toISOString(),
     updatedAt: org.updatedAt.toISOString()
+  }
+}
+
+export function toOrganizationMemberResponse(row: {
+  user: {
+    id: string
+    username: string
+    nickname: string | null
+    email: string
+    phoneNumber: string | null
+    status: UserStatusCode
+    profile: { avatar: string | null } | null
+  }
+  post: { name: string; level: string } | null
+  organization: { name: string }
+}): OrganizationMember {
+  return {
+    id: row.user.id,
+    avatar: row.user.profile?.avatar ?? null,
+    username: row.user.username,
+    nickname: row.user.nickname,
+    post: row.post?.name ?? null,
+    organization: row.organization.name,
+    accountStatus: USER_STATUS_TO_API[row.user.status],
+    email: row.user.email,
+    phoneNumber: row.user.phoneNumber,
+    level: row.post?.level ?? null
+  }
+}
+
+export function toPositionResponse(row: {
+  id: string
+  code: string
+  name: string
+  description: string | null
+  level: string
+  headcount: number
+  createdAt: Date
+  _count: { users: number }
+}): Position {
+  return {
+    id: row.id,
+    code: row.code,
+    name: row.name,
+    description: row.description,
+    level: row.level,
+    headcount: row.headcount,
+    activeCount: row._count.users,
+    createdAt: row.createdAt.toISOString()
   }
 }

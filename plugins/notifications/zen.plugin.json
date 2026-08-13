@@ -4,26 +4,38 @@
   "version": "0.1.0",
   "platformVersion": "^0.1.0",
   "dependsOn": [],
-  "contributions": {
-    "permissions": [
-      {
-        "code": "notif:message:list",
-        "name": "查看通知列表",
-        "module": "notif",
-        "description": "查看当前用户通知列表"
-      },
-      {
-        "code": "notif:message:manage",
-        "name": "管理通知",
-        "module": "notif",
-        "description": "创建通知"
-      }
-    ],
-    "routes": "./src/web/routes",
-    "apiModule": "./src/api/notifications.module"
+  "permissions": [
+    {
+      "code": "notif:message:list",
+      "name": "查看通知列表",
+      "module": "notif",
+      "description": "查看当前用户通知列表"
+    },
+    {
+      "code": "notif:message:manage",
+      "name": "管理通知",
+      "module": "notif",
+      "description": "创建通知"
+    }
+  ],
+  "api": {
+    "entry": "./src/api/notifications.module",
+    "export": "NotificationsModule"
   },
+  "routes": [
+    {
+      "id": "notifications-home",
+      "path": "/plugins/notifications",
+      "entry": "./src/web/pages/notifications-page",
+      "componentExport": "NotificationsPage",
+      "title": "通知中心",
+      "icon": "bell",
+      "order": 110,
+      "permissions": ["notif:message:list"]
+    }
+  ],
   "lifecycle": {
-    "activate": "./src/activate.ts",
-    "deactivate": "./src/deactivate.ts"
+    "entry": "./src/lifecycle.ts",
+    "export": "lifecycle"
   }
 }

@@ -42,7 +42,6 @@ import { Route as AuthenticatedPluginsNotesRouteImport } from './routes/_authent
 import { Route as AuthenticatedPluginsNotificationsRouteImport } from './routes/_authenticated/plugins/notifications'
 import { Route as AuthenticatedSystemIdentityRouteRouteImport } from './routes/_authenticated/system/_identity/route'
 import { Route as AuthenticatedSystemArrayDictV2RouteImport } from './routes/_authenticated/system/array-dict-v2'
-import { Route as AuthenticatedSystemConfigRouteImport } from './routes/_authenticated/system/config'
 import { Route as AuthenticatedSystemDictRouteImport } from './routes/_authenticated/system/dict'
 import { Route as AuthenticatedSystemIconSetRouteImport } from './routes/_authenticated/system/icon-set'
 import { Route as AuthenticatedSystemPluginsRouteImport } from './routes/_authenticated/system/plugins'
@@ -56,7 +55,6 @@ import { Route as AuthenticatedOtherSettingsActivityRouteImport } from './routes
 import { Route as AuthenticatedOtherSettingsAppearanceRouteImport } from './routes/_authenticated/_other/settings/appearance'
 import { Route as AuthenticatedOtherSettingsNotificationsRouteImport } from './routes/_authenticated/_other/settings/notifications'
 import { Route as AuthenticatedOtherSettingsProfileRouteImport } from './routes/_authenticated/_other/settings/profile'
-import { Route as AuthenticatedSystemIdentityOrganizationRouteImport } from './routes/_authenticated/system/_identity/organization'
 import { Route as AuthenticatedSystemIdentityOrganizationV2RouteImport } from './routes/_authenticated/system/_identity/organization-v2'
 import { Route as AuthenticatedSystemIdentityRolesRouteImport } from './routes/_authenticated/system/_identity/roles'
 import { Route as AuthenticatedSystemIdentityUsersRouteImport } from './routes/_authenticated/system/_identity/users'
@@ -242,12 +240,6 @@ const AuthenticatedSystemArrayDictV2Route =
     path: '/array-dict-v2',
     getParentRoute: () => AuthenticatedSystemRouteRoute,
   } as any)
-const AuthenticatedSystemConfigRoute =
-  AuthenticatedSystemConfigRouteImport.update({
-    id: '/config',
-    path: '/config',
-    getParentRoute: () => AuthenticatedSystemRouteRoute,
-  } as any)
 const AuthenticatedSystemDictRoute = AuthenticatedSystemDictRouteImport.update({
   id: '/dict',
   path: '/dict',
@@ -325,12 +317,6 @@ const AuthenticatedOtherSettingsProfileRoute =
     path: '/profile',
     getParentRoute: () => AuthenticatedOtherSettingsRouteRoute,
   } as any)
-const AuthenticatedSystemIdentityOrganizationRoute =
-  AuthenticatedSystemIdentityOrganizationRouteImport.update({
-    id: '/organization',
-    path: '/organization',
-    getParentRoute: () => AuthenticatedSystemIdentityRouteRoute,
-  } as any)
 const AuthenticatedSystemIdentityOrganizationV2Route =
   AuthenticatedSystemIdentityOrganizationV2RouteImport.update({
     id: '/organization-v2',
@@ -397,7 +383,6 @@ export interface FileRoutesByFullPath {
   '/plugins/notes': typeof AuthenticatedPluginsNotesRoute
   '/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
   '/system/array-dict-v2': typeof AuthenticatedSystemArrayDictV2Route
-  '/system/config': typeof AuthenticatedSystemConfigRoute
   '/system/dict': typeof AuthenticatedSystemDictRoute
   '/system/icon-set': typeof AuthenticatedSystemIconSetRoute
   '/system/plugins': typeof AuthenticatedSystemPluginsRoute
@@ -411,7 +396,6 @@ export interface FileRoutesByFullPath {
   '/settings/appearance': typeof AuthenticatedOtherSettingsAppearanceRoute
   '/settings/notifications': typeof AuthenticatedOtherSettingsNotificationsRoute
   '/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
-  '/system/organization': typeof AuthenticatedSystemIdentityOrganizationRoute
   '/system/organization-v2': typeof AuthenticatedSystemIdentityOrganizationV2Route
   '/system/roles': typeof AuthenticatedSystemIdentityRolesRoute
   '/system/users': typeof AuthenticatedSystemIdentityUsersRoute
@@ -448,7 +432,6 @@ export interface FileRoutesByTo {
   '/plugins/notes': typeof AuthenticatedPluginsNotesRoute
   '/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
   '/system/array-dict-v2': typeof AuthenticatedSystemArrayDictV2Route
-  '/system/config': typeof AuthenticatedSystemConfigRoute
   '/system/dict': typeof AuthenticatedSystemDictRoute
   '/system/icon-set': typeof AuthenticatedSystemIconSetRoute
   '/system/plugins': typeof AuthenticatedSystemPluginsRoute
@@ -462,7 +445,6 @@ export interface FileRoutesByTo {
   '/settings/appearance': typeof AuthenticatedOtherSettingsAppearanceRoute
   '/settings/notifications': typeof AuthenticatedOtherSettingsNotificationsRoute
   '/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
-  '/system/organization': typeof AuthenticatedSystemIdentityOrganizationRoute
   '/system/organization-v2': typeof AuthenticatedSystemIdentityOrganizationV2Route
   '/system/roles': typeof AuthenticatedSystemIdentityRolesRoute
   '/system/users': typeof AuthenticatedSystemIdentityUsersRoute
@@ -504,7 +486,6 @@ export interface FileRoutesById {
   '/_authenticated/plugins/notes': typeof AuthenticatedPluginsNotesRoute
   '/_authenticated/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
   '/_authenticated/system/array-dict-v2': typeof AuthenticatedSystemArrayDictV2Route
-  '/_authenticated/system/config': typeof AuthenticatedSystemConfigRoute
   '/_authenticated/system/dict': typeof AuthenticatedSystemDictRoute
   '/_authenticated/system/icon-set': typeof AuthenticatedSystemIconSetRoute
   '/_authenticated/system/plugins': typeof AuthenticatedSystemPluginsRoute
@@ -519,7 +500,6 @@ export interface FileRoutesById {
   '/_authenticated/_other/settings/appearance': typeof AuthenticatedOtherSettingsAppearanceRoute
   '/_authenticated/_other/settings/notifications': typeof AuthenticatedOtherSettingsNotificationsRoute
   '/_authenticated/_other/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
-  '/_authenticated/system/_identity/organization': typeof AuthenticatedSystemIdentityOrganizationRoute
   '/_authenticated/system/_identity/organization-v2': typeof AuthenticatedSystemIdentityOrganizationV2Route
   '/_authenticated/system/_identity/roles': typeof AuthenticatedSystemIdentityRolesRoute
   '/_authenticated/system/_identity/users': typeof AuthenticatedSystemIdentityUsersRoute
@@ -558,7 +538,6 @@ export interface FileRouteTypes {
     | '/plugins/notes'
     | '/plugins/notifications'
     | '/system/array-dict-v2'
-    | '/system/config'
     | '/system/dict'
     | '/system/icon-set'
     | '/system/plugins'
@@ -572,7 +551,6 @@ export interface FileRouteTypes {
     | '/settings/appearance'
     | '/settings/notifications'
     | '/settings/profile'
-    | '/system/organization'
     | '/system/organization-v2'
     | '/system/roles'
     | '/system/users'
@@ -609,7 +587,6 @@ export interface FileRouteTypes {
     | '/plugins/notes'
     | '/plugins/notifications'
     | '/system/array-dict-v2'
-    | '/system/config'
     | '/system/dict'
     | '/system/icon-set'
     | '/system/plugins'
@@ -623,7 +600,6 @@ export interface FileRouteTypes {
     | '/settings/appearance'
     | '/settings/notifications'
     | '/settings/profile'
-    | '/system/organization'
     | '/system/organization-v2'
     | '/system/roles'
     | '/system/users'
@@ -664,7 +640,6 @@ export interface FileRouteTypes {
     | '/_authenticated/plugins/notes'
     | '/_authenticated/plugins/notifications'
     | '/_authenticated/system/array-dict-v2'
-    | '/_authenticated/system/config'
     | '/_authenticated/system/dict'
     | '/_authenticated/system/icon-set'
     | '/_authenticated/system/plugins'
@@ -679,7 +654,6 @@ export interface FileRouteTypes {
     | '/_authenticated/_other/settings/appearance'
     | '/_authenticated/_other/settings/notifications'
     | '/_authenticated/_other/settings/profile'
-    | '/_authenticated/system/_identity/organization'
     | '/_authenticated/system/_identity/organization-v2'
     | '/_authenticated/system/_identity/roles'
     | '/_authenticated/system/_identity/users'
@@ -931,13 +905,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSystemArrayDictV2RouteImport
       parentRoute: typeof AuthenticatedSystemRouteRoute
     }
-    '/_authenticated/system/config': {
-      id: '/_authenticated/system/config'
-      path: '/config'
-      fullPath: '/system/config'
-      preLoaderRoute: typeof AuthenticatedSystemConfigRouteImport
-      parentRoute: typeof AuthenticatedSystemRouteRoute
-    }
     '/_authenticated/system/dict': {
       id: '/_authenticated/system/dict'
       path: '/dict'
@@ -1028,13 +995,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/settings/profile'
       preLoaderRoute: typeof AuthenticatedOtherSettingsProfileRouteImport
       parentRoute: typeof AuthenticatedOtherSettingsRouteRoute
-    }
-    '/_authenticated/system/_identity/organization': {
-      id: '/_authenticated/system/_identity/organization'
-      path: '/organization'
-      fullPath: '/system/organization'
-      preLoaderRoute: typeof AuthenticatedSystemIdentityOrganizationRouteImport
-      parentRoute: typeof AuthenticatedSystemIdentityRouteRoute
     }
     '/_authenticated/system/_identity/organization-v2': {
       id: '/_authenticated/system/_identity/organization-v2'
@@ -1230,7 +1190,6 @@ const AuthenticatedPluginsRouteRouteWithChildren =
   )
 
 interface AuthenticatedSystemIdentityRouteRouteChildren {
-  AuthenticatedSystemIdentityOrganizationRoute: typeof AuthenticatedSystemIdentityOrganizationRoute
   AuthenticatedSystemIdentityOrganizationV2Route: typeof AuthenticatedSystemIdentityOrganizationV2Route
   AuthenticatedSystemIdentityRolesRoute: typeof AuthenticatedSystemIdentityRolesRoute
   AuthenticatedSystemIdentityUsersRoute: typeof AuthenticatedSystemIdentityUsersRoute
@@ -1241,8 +1200,6 @@ interface AuthenticatedSystemIdentityRouteRouteChildren {
 
 const AuthenticatedSystemIdentityRouteRouteChildren: AuthenticatedSystemIdentityRouteRouteChildren =
   {
-    AuthenticatedSystemIdentityOrganizationRoute:
-      AuthenticatedSystemIdentityOrganizationRoute,
     AuthenticatedSystemIdentityOrganizationV2Route:
       AuthenticatedSystemIdentityOrganizationV2Route,
     AuthenticatedSystemIdentityRolesRoute:
@@ -1265,7 +1222,6 @@ const AuthenticatedSystemIdentityRouteRouteWithChildren =
 interface AuthenticatedSystemRouteRouteChildren {
   AuthenticatedSystemIdentityRouteRoute: typeof AuthenticatedSystemIdentityRouteRouteWithChildren
   AuthenticatedSystemArrayDictV2Route: typeof AuthenticatedSystemArrayDictV2Route
-  AuthenticatedSystemConfigRoute: typeof AuthenticatedSystemConfigRoute
   AuthenticatedSystemDictRoute: typeof AuthenticatedSystemDictRoute
   AuthenticatedSystemIconSetRoute: typeof AuthenticatedSystemIconSetRoute
   AuthenticatedSystemPluginsRoute: typeof AuthenticatedSystemPluginsRoute
@@ -1276,7 +1232,6 @@ const AuthenticatedSystemRouteRouteChildren: AuthenticatedSystemRouteRouteChildr
     AuthenticatedSystemIdentityRouteRoute:
       AuthenticatedSystemIdentityRouteRouteWithChildren,
     AuthenticatedSystemArrayDictV2Route: AuthenticatedSystemArrayDictV2Route,
-    AuthenticatedSystemConfigRoute: AuthenticatedSystemConfigRoute,
     AuthenticatedSystemDictRoute: AuthenticatedSystemDictRoute,
     AuthenticatedSystemIconSetRoute: AuthenticatedSystemIconSetRoute,
     AuthenticatedSystemPluginsRoute: AuthenticatedSystemPluginsRoute,

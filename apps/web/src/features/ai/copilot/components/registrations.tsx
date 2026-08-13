@@ -1,4 +1,4 @@
-import { useOrganizationTreeView, useRolesTable, useUsersTable } from '../generative-ui'
+import { useUsersTable } from '../generative-ui'
 import { useNavigateTool, useQueryRouteTool, useThemeTool } from '../tools'
 
 function useCopilotSharedRegistry() {
@@ -15,7 +15,5 @@ export function PopupChatRegistrations() {
 export function ChatRegistrations() {
   useCopilotSharedRegistry()
   useUsersTable()
-  useRolesTable()
-  useOrganizationTreeView()
   return null
 }

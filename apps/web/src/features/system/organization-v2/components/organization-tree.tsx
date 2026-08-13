@@ -280,7 +280,8 @@ function TreeNode({
 }
 
 export function OrganizationTree() {
-  const { currentNode, setCurrentNode, organizations, moveOrganization } = useOrganizations()
+  const { currentNode, setCurrentNode, organizations, moveOrganization, isLoading } =
+    useOrganizations()
   const expandableIds = useMemo(() => collectExpandableIds(organizations), [organizations])
   const [expandedIds, setExpandedIds] = useState(
     () => new Set(collectExpandedIdsToDepth(organizations, DEFAULT_ORGANIZATION_TREE_EXPAND_DEPTH))
@@ -367,19 +368,18 @@ export function OrganizationTree() {
       return
     }
 
-    const moved = moveOrganization(activeId, overId)
-    if (moved) {
-      const { destinationParentId } = validation
-      if (destinationParentId) {
+    void moveOrganization(activeId, overId).then((moved) => {
+      if (moved) {
+        const { destinationParentId } = validation
         setExpandedIds((current) => {
           const next = new Set(current)
           next.add(destinationParentId)
           return next
         })
+      } else {
+        setPreviewOrganizations(snapshot)
       }
-    } else {
-      setPreviewOrganizations(snapshot)
-    }
+    })
 
     // 清理稳定落点，避免下一次拖拽误用
     lastStableOverIdRef.current = null
@@ -472,54 +472,62 @@ export function OrganizationTree() {
             </CardAction>
           </CardHeader>
           <CardContent className="px-2">
-            <DragDropProvider
-              onDragStart={(event) => {
-                const source = event.operation.source
-                if (!source) return
-                organizationsSnapshotRef.current = organizations
-                setPreviewOrganizations(organizations)
-                setIsDragging(true)
-                setActiveId(String(source.id))
-                setDragOverId(null)
-                setDropValidation(null)
-                lastStableOverIdRef.current = null
-                // 拖拽开始后先进入抑制态；拖拽结束时会刷新时间窗
-                suppressSelectUntilRef.current = Date.now() + 1000
-              }}
-              onDragOver={handleDragOver}
-              onDragEnd={handleDragEnd}
-            >
-              {displayOrganizations.map((item, index) => (
-                <TreeNode
-                  data={item}
-                  key={item.id}
-                  index={index}
-                  expandedIds={expandedIds}
-                  onExpandedChange={handleExpandedChange}
-                  activeDragId={activeId}
-                  dragOverId={dragOverId}
-                  dropValidation={dropValidation}
-                  canAcceptDraggable={canAcceptOrganizationDrop}
-                  onSelect={(node) => {
-                    if (Date.now() < suppressSelectUntilRef.current) return
-                    if (node.id === currentNode?.id) {
-                      setCurrentNode(null)
-                    } else {
-                      setCurrentNode(node)
-                    }
-                  }}
-                />
-              ))}
-
-              <DragOverlay dropAnimation={null}>
-                {(source) => {
-                  const node = findOrganization(displayOrganizations, String(source.id))
-                  return node ? (
-                    <TreeNodePreview data={node} isBlocked={isDragging && !dragOverId} />
-                  ) : null
+            {isLoading ? (
+              <p className="px-4 py-8 text-center text-sm text-muted-foreground">加载组织树…</p>
+            ) : displayOrganizations.length === 0 ? (
+              <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+                暂无组织，请先创建根组织
+              </p>
+            ) : (
+              <DragDropProvider
+                onDragStart={(event) => {
+                  const source = event.operation.source
+                  if (!source) return
+                  organizationsSnapshotRef.current = organizations
+                  setPreviewOrganizations(organizations)
+                  setIsDragging(true)
+                  setActiveId(String(source.id))
+                  setDragOverId(null)
+                  setDropValidation(null)
+                  lastStableOverIdRef.current = null
+                  // 拖拽开始后先进入抑制态；拖拽结束时会刷新时间窗
+                  suppressSelectUntilRef.current = Date.now() + 1000
                 }}
-              </DragOverlay>
-            </DragDropProvider>
+                onDragOver={handleDragOver}
+                onDragEnd={handleDragEnd}
+              >
+                {displayOrganizations.map((item, index) => (
+                  <TreeNode
+                    data={item}
+                    key={item.id}
+                    index={index}
+                    expandedIds={expandedIds}
+                    onExpandedChange={handleExpandedChange}
+                    activeDragId={activeId}
+                    dragOverId={dragOverId}
+                    dropValidation={dropValidation}
+                    canAcceptDraggable={canAcceptOrganizationDrop}
+                    onSelect={(node) => {
+                      if (Date.now() < suppressSelectUntilRef.current) return
+                      if (node.id === currentNode?.id) {
+                        setCurrentNode(null)
+                      } else {
+                        setCurrentNode(node)
+                      }
+                    }}
+                  />
+                ))}
+
+                <DragOverlay dropAnimation={null}>
+                  {(source) => {
+                    const node = findOrganization(displayOrganizations, String(source.id))
+                    return node ? (
+                      <TreeNodePreview data={node} isBlocked={isDragging && !dragOverId} />
+                    ) : null
+                  }}
+                </DragOverlay>
+              </DragDropProvider>
+            )}
           </CardContent>
         </Card>
       </section>

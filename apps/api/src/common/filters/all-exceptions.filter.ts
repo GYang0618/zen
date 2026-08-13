@@ -45,6 +45,12 @@ function normalizeHttpExceptionMessage(exception: HttpException): string {
   return exception.message || '请求错误'
 }
 
+function extractHttpExceptionReason(exception: HttpException): string | null {
+  const response = exception.getResponse()
+  if (!isRecord(response)) return null
+  return typeof response.reason === 'string' && response.reason.trim() ? response.reason : null
+}
+
 function serializeError(
   exception: unknown
 ): { name: string | null; message: string | null; stack: string | null } | null {
@@ -118,6 +124,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     const body: ApiErrorResponse = {
       code: statusCode,
+      reason: isHttpException ? extractHttpExceptionReason(exception) : null,
       message,
       path: request.url,
       traceId,

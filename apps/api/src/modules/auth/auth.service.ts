@@ -455,26 +455,8 @@ export class AuthService {
   }
 
   private async issueSessionFromListItem(user: UserListItemResponse): Promise<IssueSessionResult> {
-    const permVer = await this.authContextService.readPermVer()
-    const tokens = this.tokenService.generateTokenPair(user.id, user.email, permVer)
-
-    return {
-      refreshToken: tokens.refreshToken,
-      session: {
-        accessToken: tokens.accessToken,
-        mustChangePassword: false,
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          nickname: user.nickname ?? null,
-          avatar: user.avatar ?? null,
-          phoneNumber: user.phoneNumber ?? null,
-          role: user.role,
-          permissions: user.permissions
-        } satisfies AuthSessionResponse['user']
-      }
-    }
+    const userInfo = await this.userService.getUserInfoByUserId(user.id)
+    return this.issueSession(user.id, userInfo)
   }
 
   async createRefreshSession(

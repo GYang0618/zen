@@ -3,7 +3,6 @@ import {
   Badge,
   Button,
   PageHeader,
-  PageHeaderActions,
   PageHeaderContent,
   PageHeaderDescription,
   PageHeaderMedia,
@@ -13,7 +12,8 @@ import {
   TabsList,
   TabsTrigger
 } from '@zen/ui'
-import { ArrowLeft, Briefcase, Building2, Camera, History, Pencil, Users } from 'lucide-react'
+import { ArrowLeft, Briefcase, Building2, History, Users } from 'lucide-react'
+import { useState } from 'react'
 
 import { AppHeader, Main } from '@/components/layouts'
 
@@ -21,17 +21,51 @@ import { OrganizationActivity } from './components/organization-activity'
 import { OrganizationDetailSideOverview } from './components/organization-detail-side-overview'
 import { OrganizationMembers } from './components/organization-members'
 import { OrganizationPositions } from './components/organization-positions'
-import { flattenOrganizations, organizationTree } from './data'
-import { organizationActivities, organizationMembers, organizationPositions } from './data/mock'
+import { getOrganizationTypeLabel } from './data/data'
+import { useOrganizationDetail } from './queries'
 
 type OrganizationDetailProps = {
   organizationId: string
 }
 
+type OrganizationDetailTab = 'members' | 'positions' | 'changes'
+
 export function OrganizationDetail({ organizationId }: OrganizationDetailProps) {
-  const organization =
-    flattenOrganizations(organizationTree).find((item) => item.id === organizationId) ??
-    organizationTree
+  const { data: organization, isLoading, isError } = useOrganizationDetail(organizationId)
+  const [activeTab, setActiveTab] = useState<OrganizationDetailTab>('members')
+
+  const handleTabChange = (value: string) => {
+    if (value === 'members' || value === 'positions' || value === 'changes') {
+      setActiveTab(value)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <>
+        <AppHeader />
+        <Main className="flex flex-1 flex-col gap-4">
+          <p className="py-12 text-center text-sm text-muted-foreground">加载组织详情…</p>
+        </Main>
+      </>
+    )
+  }
+
+  if (isError || !organization) {
+    return (
+      <>
+        <AppHeader />
+        <Main className="flex flex-1 flex-col gap-4">
+          <div className="flex flex-col items-center gap-3 py-12">
+            <p className="text-sm text-muted-foreground">组织不存在或无权访问</p>
+            <Button variant="outline" asChild>
+              <Link to="/system/organization-v2">返回组织管理</Link>
+            </Button>
+          </div>
+        </Main>
+      </>
+    )
+  }
 
   return (
     <>
@@ -49,37 +83,29 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
           <PageHeaderContent>
             <PageHeaderTitle as="h1" className="inline-flex flex-wrap items-center gap-3">
               {organization.name}
-              <Badge variant="secondary">正常</Badge>
+              <Badge variant="secondary">{getOrganizationTypeLabel(organization.type)}</Badge>
             </PageHeaderTitle>
             <PageHeaderDescription className="flex flex-wrap items-center gap-2 text-sm">
               <span>{organization.code}</span>
-              <span>•</span>
-              <span>{organization.type}</span>
-              <span>•</span>
-              <span>{organization.description}</span>
+              {organization.description ? (
+                <>
+                  <span>•</span>
+                  <span>{organization.description}</span>
+                </>
+              ) : null}
             </PageHeaderDescription>
           </PageHeaderContent>
-          <PageHeaderActions>
-            <Button variant="outline">
-              <Pencil />
-              编辑
-            </Button>
-            <Button variant="outline">
-              <Camera />
-              组织快照
-            </Button>
-          </PageHeaderActions>
         </PageHeader>
 
-        <Tabs defaultValue="members">
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList variant="line" className="mb-4 group-data-horizontal/tabs:h-12">
             <TabsTrigger value="members">
               <Users className="size-3.5" aria-hidden />
-              成员 ({organizationMembers.length})
+              成员 ({organization.memberCount})
             </TabsTrigger>
             <TabsTrigger value="positions">
               <Briefcase className="size-3.5" aria-hidden />
-              岗位/编制 ({organizationPositions.length})
+              岗位/编制 ({organization.positionCount})
             </TabsTrigger>
             <TabsTrigger value="changes">
               <History className="size-3.5" aria-hidden />
@@ -90,17 +116,23 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
           <div className="flex flex-col gap-6 @5xl/content:flex-row">
             <div className="min-w-0 flex-1">
               <TabsContent value="members">
-                <OrganizationMembers data={organizationMembers} />
+                {activeTab === 'members' ? (
+                  <OrganizationMembers organizationId={organizationId} />
+                ) : null}
               </TabsContent>
               <TabsContent value="positions">
-                <OrganizationPositions data={organizationPositions} />
+                {activeTab === 'positions' ? (
+                  <OrganizationPositions organizationId={organizationId} />
+                ) : null}
               </TabsContent>
               <TabsContent value="changes">
-                <OrganizationActivity data={organizationActivities} />
+                {activeTab === 'changes' ? (
+                  <OrganizationActivity organizationId={organizationId} />
+                ) : null}
               </TabsContent>
             </div>
 
-            <OrganizationDetailSideOverview />
+            <OrganizationDetailSideOverview organization={organization} />
           </div>
         </Tabs>
       </Main>

@@ -25,6 +25,8 @@ Zen 需要「平台基础 + 插件扩展业务」。可选模型包括：
 - 不提供第三方代码沙箱、签名市场或真正热卸载 JS 模块（第一阶段）。
 - 启停通过 `plugin_installations` + Registry 过滤实现「逻辑停用」，不是从磁盘热加载。
 - Schema / Migration **集中**在 `apps/api/prisma`；卸载**不**自动回滚表结构。
+- Manifest v2 + `@zen/plugin-registry` + 宿主 codegen：新增插件只改 `plugins/<id>`，不手改宿主聚合文件。
+- 缺省安装状态 fail-closed（无记录 = inactive）。
 
 ## 理由
 

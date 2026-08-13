@@ -1,6 +1,5 @@
 export * from './audit'
 export * from './auth'
-export * from './config'
 export * from './copilot'
 export * from './dict'
 export * from './organization'

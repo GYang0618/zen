@@ -1,1 +1,0 @@
-export { SiteConfigPage } from './config'

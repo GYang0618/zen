@@ -1,9 +1,14 @@
-import type { User } from '../user'
-
-export type AuthSessionUser = Pick<
-  User,
-  'id' | 'username' | 'nickname' | 'phoneNumber' | 'email' | 'role' | 'permissions' | 'avatar'
->
+export type AuthSessionUser = {
+  id: string
+  username: string
+  nickname: string | null
+  phoneNumber: string | null
+  email: string
+  /** 主角色编码，兼容会话载荷 */
+  role: string | null
+  permissions: string[]
+  avatar: string | null
+}
 
 export type AuthSession = {
   accessToken: string

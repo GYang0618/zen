@@ -1,5 +1,5 @@
 import { useUsers } from '../users-provider'
-import { UsersActionDialog } from './users-action-dialog'
+import { UserActionSheet } from './user-action-sheet'
 import { UsersDeleteDialog } from './users-delete-dialog'
 import { UsersResetPasswordDialog } from './users-reset-password-dialog'
 
@@ -33,11 +33,11 @@ export function UsersDialogs() {
 
   return (
     <>
-      <UsersActionDialog key="user-add" open={open === 'add'} onOpenChange={handleAddOpenChange} />
+      <UserActionSheet key="user-add" open={open === 'add'} onOpenChange={handleAddOpenChange} />
 
-      {currentRow && (
+      {currentRow ? (
         <>
-          <UsersActionDialog
+          <UserActionSheet
             key={`user-edit-${currentRow.id}`}
             open={open === 'edit'}
             onOpenChange={handleEditOpenChange}
@@ -58,7 +58,7 @@ export function UsersDialogs() {
             currentRow={currentRow}
           />
         </>
-      )}
+      ) : null}
     </>
   )
 }

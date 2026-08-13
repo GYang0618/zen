@@ -1,6 +1,6 @@
 import {
-  BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException
@@ -10,31 +10,49 @@ import { applyOrganizationTreeDataScope } from '@/common/auth/apply-data-scope'
 import { AuditService } from '@/common/auth/audit.service'
 import { AuthContextService } from '@/common/auth/auth-context.service'
 import { SessionService } from '@/common/auth/session.service'
-import { RoleRepository } from '@/modules/role/role.repository'
+import { paginate } from '@/common/pagination/paginate.util'
 
 import {
-  fromApiOrganizationStatus,
   fromApiOrganizationType,
-  toOrganizationResponse
+  toApiOrganizationType,
+  toOrganizationMemberResponse,
+  toOrganizationResponse,
+  toPositionResponse
 } from './organization.mapper'
 import { OrganizationRepository } from './organization.repository'
+import { assertValidParentType, canBeChildOf, throwMoveRejection } from './organization.rules'
 
 import type { Prisma } from '@prisma/client'
-import type { AuthContext, OrganizationTreeNode } from '@zen/shared'
+import type { AuthContext, OrganizationActivity, OrganizationTreeNode } from '@zen/shared'
 import type {
+  AddOrganizationMemberDto,
+  ChangeOrganizationParentDto,
   CreateOrganizationDto,
-  DeleteOrganizationsDto,
-  MoveOrganizationDto,
-  UpdateOrganizationDto
+  CreatePositionDto,
+  OrganizationActivitiesQueryDto,
+  UpdateOrganizationDto,
+  UpdateOrganizationLeaderDto
 } from './dto'
+import type { OrganizationWithRelations } from './organization.repository'
 import type {
+  OrganizationActivitiesResponse,
+  OrganizationMemberResponse,
   OrganizationResponse,
-  OrganizationTreeResponse
+  OrganizationTreeResponse,
+  PositionResponse
 } from './responses/organization.response'
 
+const NAME_COLLATOR = new Intl.Collator('zh-CN', {
+  numeric: true,
+  sensitivity: 'base'
+})
+
 function buildPath(parentPath: string | null | undefined, id: string): string {
-  const prefix = parentPath && parentPath.length > 0 ? parentPath : '/'
-  return `${prefix}${id}/`
+  return `${parentPath || '/'}${id}/`
+}
+
+function toDate(value: string): Date {
+  return new Date(`${value}T00:00:00.000Z`)
 }
 
 @Injectable()
@@ -43,17 +61,12 @@ export class OrganizationService {
     @Inject(OrganizationRepository) private readonly orgRepo: OrganizationRepository,
     @Inject(AuditService) private readonly auditService: AuditService,
     @Inject(AuthContextService) private readonly authContextService: AuthContextService,
-    @Inject(SessionService) private readonly sessionService: SessionService,
-    @Inject(RoleRepository) private readonly roleRepo: RoleRepository
+    @Inject(SessionService) private readonly sessionService: SessionService
   ) {}
 
-  async getTree(auth?: AuthContext): Promise<OrganizationTreeResponse> {
-    const scopeWhere = auth
-      ? (applyOrganizationTreeDataScope(auth) as Prisma.OrganizationWhereInput)
-      : {}
-    const rows = await this.orgRepo.findMany(scopeWhere)
+  async getTree(auth: AuthContext): Promise<OrganizationTreeResponse> {
+    const rows = await this.orgRepo.findMany(this.scope(auth))
     const nodes = new Map<string, OrganizationTreeNode>()
-
     for (const row of rows) {
       nodes.set(row.id, { ...toOrganizationResponse(row), children: [] })
     }
@@ -62,367 +75,312 @@ export class OrganizationService {
     for (const row of rows) {
       const node = nodes.get(row.id)
       if (!node) continue
-      if (row.parentId && nodes.has(row.parentId)) {
-        nodes.get(row.parentId)?.children.push(node)
-      } else {
-        roots.push(node)
-      }
+      const parent = row.parentId ? nodes.get(row.parentId) : undefined
+      if (parent) parent.children.push(node)
+      else roots.push(node)
     }
-
-    return roots
+    return this.sortTree(roots)
   }
 
-  async findOne(id: string): Promise<OrganizationResponse> {
-    const org = await this.orgRepo.findById(id)
-    if (!org) throw new NotFoundException('组织不存在')
-    return toOrganizationResponse(org)
+  async findOne(id: string, auth: AuthContext): Promise<OrganizationResponse> {
+    return toOrganizationResponse(await this.requireVisible(id, auth))
   }
 
-  async create(data: CreateOrganizationDto): Promise<OrganizationResponse> {
-    const existing = await this.orgRepo.findByCode(data.code)
-    if (existing) throw new ConflictException('组织编码已存在')
-
-    let parentPath: string | null = null
-    let level = 1
-    if (data.parentId) {
-      const parent = await this.orgRepo.findById(data.parentId)
-      if (!parent) throw new NotFoundException('父组织不存在')
-      parentPath = parent.path
-      level = parent.level + 1
+  async create(data: CreateOrganizationDto, auth: AuthContext): Promise<OrganizationResponse> {
+    if (await this.orgRepo.findByCode(data.code)) {
+      throw new ConflictException('组织编码已存在')
     }
+
+    const parent = data.parentId ? await this.requireVisible(data.parentId, auth) : null
+    assertValidParentType(data.type, parent ? toApiOrganizationType(parent.type) : null)
+    await this.assertActiveUser(data.leaderId)
 
     const created = await this.orgRepo.create({
       code: data.code,
       name: data.name,
-      type: fromApiOrganizationType(data.type ?? 'department'),
+      type: fromApiOrganizationType(data.type),
       description: data.description,
-      sort: data.sort,
-      level,
-      parent: data.parentId ? { connect: { id: data.parentId } } : undefined,
+      effectiveDate: toDate(data.effectiveDate),
+      level: parent ? parent.level + 1 : 1,
+      parent: parent ? { connect: { id: parent.id } } : undefined,
       leader: data.leaderId ? { connect: { id: data.leaderId } } : undefined
     })
-
-    const path = buildPath(parentPath, created.id)
-    const updated = await this.orgRepo.update(created.id, { path })
-
-    await this.auditService.write({
-      action: 'system.org.created',
-      resource: 'organization',
-      resourceId: updated.id,
-      diff: { code: updated.code, name: updated.name }
+    const updated = await this.orgRepo.update(created.id, {
+      path: buildPath(parent?.path, created.id)
     })
-
+    await this.writeAudit(auth, updated.id, 'system.organization.created', {
+      code: updated.code,
+      name: updated.name
+    })
     return toOrganizationResponse(updated)
   }
 
-  async update(id: string, data: UpdateOrganizationDto): Promise<OrganizationResponse> {
-    const existing = await this.orgRepo.findById(id)
-    if (!existing) throw new NotFoundException('组织不存在')
-
-    if (data.parentId !== undefined && data.parentId !== existing.parentId) {
-      throw new BadRequestException('请使用移动接口变更父组织')
-    }
+  async update(
+    id: string,
+    data: UpdateOrganizationDto,
+    auth: AuthContext
+  ): Promise<OrganizationResponse> {
+    const existing = await this.requireVisible(id, auth)
+    if (data.type) await this.assertTypeChange(existing, data.type)
 
     const updated = await this.orgRepo.update(id, {
       name: data.name,
-      description: data.description,
-      sort: data.sort,
       type: data.type ? fromApiOrganizationType(data.type) : undefined,
-      status: data.status ? fromApiOrganizationStatus(data.status) : undefined,
-      leader:
-        data.leaderId === undefined
-          ? undefined
-          : data.leaderId === null
-            ? { disconnect: true }
-            : { connect: { id: data.leaderId } }
+      description: data.description,
+      effectiveDate: data.effectiveDate ? toDate(data.effectiveDate) : undefined
     })
-
-    await this.auditService.write({
-      action: 'system.org.updated',
-      resource: 'organization',
-      resourceId: id,
-      diff: data
-    })
-
+    await this.writeAudit(auth, id, 'system.organization.updated', data)
     return toOrganizationResponse(updated)
   }
 
-  async move(id: string, payload: MoveOrganizationDto): Promise<OrganizationResponse> {
-    const existing = await this.orgRepo.findById(id)
-    if (!existing) throw new NotFoundException('组织不存在')
-    if (!existing.path) throw new BadRequestException('组织路径未初始化，无法移动')
+  async updateLeader(
+    id: string,
+    data: UpdateOrganizationLeaderDto,
+    auth: AuthContext
+  ): Promise<OrganizationResponse> {
+    await this.requireVisible(id, auth)
+    await this.assertActiveUser(data.leaderId)
+    const updated = await this.orgRepo.update(id, {
+      leader: data.leaderId === null ? { disconnect: true } : { connect: { id: data.leaderId } }
+    })
+    await this.writeAudit(auth, id, 'system.organization.leader_updated', data)
+    return toOrganizationResponse(updated)
+  }
 
-    if (payload.parentId === id) {
-      throw new BadRequestException('不能将组织移动到自身之下')
+  async changeParent(
+    id: string,
+    data: ChangeOrganizationParentDto,
+    auth: AuthContext
+  ): Promise<OrganizationResponse> {
+    const existing = await this.requireVisible(id, auth)
+    if (data.parentId === existing.parentId) {
+      throwMoveRejection('ORG_MOVE_SAME_PARENT', '已在该组织下')
     }
-
-    let parentPath: string | null = null
-    let parentLevel = 0
-    if (payload.parentId) {
-      const parent = await this.orgRepo.findById(payload.parentId)
-      if (!parent) throw new NotFoundException('目标父组织不存在')
-      if (parent.path?.startsWith(existing.path)) {
-        throw new BadRequestException('不能将组织移动到其子节点之下')
-      }
-      parentPath = parent.path
-      parentLevel = parent.level
+    if (data.parentId === id) {
+      throwMoveRejection('ORG_MOVE_TO_SELF', '不能将组织移动到自身之下')
     }
+    await this.assertSubtreeManageable(existing.path, auth)
 
-    const oldPrefix = existing.path
-    const newPath = buildPath(parentPath, id)
-    const levelDelta = parentLevel + 1 - existing.level
+    const parent = data.parentId ? await this.requireVisible(data.parentId, auth) : null
+    if (parent?.path?.startsWith(existing.path ?? `/${id}/`)) {
+      throwMoveRejection('ORG_MOVE_TO_DESCENDANT', '不能将组织移动到其下级组织中')
+    }
+    assertValidParentType(
+      toApiOrganizationType(existing.type),
+      parent ? toApiOrganizationType(parent.type) : null
+    )
 
+    const oldPrefix = existing.path ?? `/${id}/`
+    const newPath = buildPath(parent?.path, id)
+    const levelDelta = (parent?.level ?? 0) + 1 - existing.level
     const descendants = await this.orgRepo.findDescendantsByPathPrefix(oldPrefix)
-    const updates = descendants.map((item) => {
-      const suffix = item.path?.slice(oldPrefix.length) ?? ''
-      return {
-        id: item.id,
-        path: `${newPath}${suffix}`,
-        level: item.level + levelDelta,
-        ...(item.id === id ? { parentId: payload.parentId } : {})
-      }
-    })
+    await this.orgRepo.updateManyPaths(
+      descendants.map((node) => ({
+        id: node.id,
+        path: `${newPath}${node.path?.slice(oldPrefix.length) ?? ''}`,
+        level: node.level + levelDelta,
+        ...(node.id === id ? { parentId: data.parentId } : {})
+      }))
+    )
 
-    await this.orgRepo.updateManyPaths(updates)
-
-    const moved = await this.orgRepo.findById(id)
-    if (!moved) throw new NotFoundException('组织不存在')
-
-    await this.auditService.write({
-      action: 'system.org.moved',
-      resource: 'organization',
-      resourceId: id,
-      diff: { parentId: payload.parentId, path: moved.path }
-    })
-
-    return toOrganizationResponse(moved)
-  }
-
-  async remove(payload: DeleteOrganizationsDto): Promise<OrganizationResponse[]> {
-    const ids = [...new Set(payload.ids)]
-    const orgs = await this.orgRepo.findManyByIds(ids)
-    if (orgs.length !== ids.length) {
-      throw new NotFoundException('部分组织不存在')
-    }
-
-    const withChildren = orgs.filter((org) => org._count.children > 0)
-    if (withChildren.length > 0) {
-      throw new BadRequestException('存在子组织的节点不可删除，请先删除或移动子节点')
-    }
-
-    const withMembers = orgs.filter((org) => org._count.users > 0)
-    if (withMembers.length > 0) {
-      throw new BadRequestException('存在成员的组织不可删除，请先移除成员')
-    }
-
-    for (const org of orgs) {
-      const roleRefs = await this.roleRepo.countRolesReferencingOrg(org.id)
-      if (roleRefs > 0) {
-        throw new BadRequestException(
-          `组织「${org.name}」仍被 ${roleRefs} 个角色的自定义数据范围引用，请先调整角色后再删除`
-        )
-      }
-    }
-
-    await this.orgRepo.deleteManyByIds(ids)
-    await this.auditService.write({
-      action: 'system.org.deleted',
-      resource: 'organization',
-      diff: { ids }
-    })
-
-    return orgs.map(toOrganizationResponse)
-  }
-
-  async listMembers(organizationId: string) {
-    const org = await this.orgRepo.findById(organizationId)
-    if (!org) throw new NotFoundException('组织不存在')
-    const rows = await this.orgRepo.listMembers(organizationId)
-    return rows.map((row) => ({
-      userId: row.userId,
-      username: row.user.username,
-      nickname: row.user.nickname,
-      email: row.user.email,
-      isPrimary: row.isPrimary,
-      postId: row.postId,
-      postName: row.post?.name ?? null,
-      joinedAt: row.joinedAt?.toISOString() ?? null
-    }))
-  }
-
-  async upsertMember(
-    organizationId: string,
-    payload: { userId: string; isPrimary?: boolean; postId?: string | null }
-  ) {
-    const org = await this.orgRepo.findById(organizationId)
-    if (!org) throw new NotFoundException('组织不存在')
-
-    const user = await this.orgRepo.findActiveUserById(payload.userId)
-    if (!user) throw new NotFoundException('用户不存在')
-
-    if (payload.postId) {
-      const post = await this.orgRepo.findPostById(payload.postId)
-      if (!post || post.organizationId !== organizationId) {
-        throw new BadRequestException('岗位不属于该组织')
-      }
-    }
-
-    const row = await this.orgRepo.upsertMember({
-      organizationId,
-      userId: payload.userId,
-      isPrimary: payload.isPrimary ?? false,
-      postId: payload.postId
-    })
-
-    await this.auditService.write({
-      action: 'system.org.member_upserted',
-      resource: 'organization',
-      resourceId: organizationId,
-      diff: payload
-    })
+    await this.writeAudit(auth, id, 'system.organization.parent_changed', data)
     await this.authContextService.bumpPermVer()
-    await this.sessionService.revokeAllForUser(payload.userId)
+    return toOrganizationResponse(await this.requireVisible(id, auth))
+  }
 
+  async listMembers(id: string, auth: AuthContext): Promise<OrganizationMemberResponse[]> {
+    await this.requireVisible(id, auth)
+    return (await this.orgRepo.listMembers(id)).map(toOrganizationMemberResponse)
+  }
+
+  async addMember(
+    id: string,
+    data: AddOrganizationMemberDto,
+    auth: AuthContext
+  ): Promise<OrganizationMemberResponse> {
+    await this.requireVisible(id, auth)
+    await this.assertActiveUser(data.userId)
+    const member = await this.orgRepo.addMember(id, data.userId)
+    await this.writeAudit(auth, id, 'system.organization.member_added', data)
+    await this.refreshUserAccess(data.userId)
+    return toOrganizationMemberResponse(member)
+  }
+
+  async removeMember(id: string, userId: string, auth: AuthContext): Promise<void> {
+    await this.requireVisible(id, auth)
+    const result = await this.orgRepo.removeMember(id, userId)
+    if (result.count === 0) throw new NotFoundException('组织成员不存在')
+    await this.writeAudit(auth, id, 'system.organization.member_removed', { userId })
+    await this.refreshUserAccess(userId)
+  }
+
+  async listPositions(id: string, auth: AuthContext): Promise<PositionResponse[]> {
+    await this.requireVisible(id, auth)
+    return (await this.orgRepo.listPositions(id)).map(toPositionResponse)
+  }
+
+  async createPosition(
+    id: string,
+    data: CreatePositionDto,
+    auth: AuthContext
+  ): Promise<PositionResponse> {
+    await this.requireVisible(id, auth)
+    if (await this.orgRepo.findPostByCode(data.code)) {
+      throw new ConflictException('岗位编码已存在')
+    }
+    const position = await this.orgRepo.createPosition({
+      code: data.code,
+      name: data.name,
+      description: data.description,
+      level: data.level,
+      headcount: data.headcount,
+      organization: { connect: { id } }
+    })
+    await this.writeAudit(auth, id, 'system.organization.position_created', {
+      positionId: position.id,
+      ...data
+    })
+    return toPositionResponse(position)
+  }
+
+  async listActivities(
+    id: string,
+    query: OrganizationActivitiesQueryDto,
+    auth: AuthContext
+  ): Promise<OrganizationActivitiesResponse> {
+    await this.requireVisible(id, auth)
+    const page = await paginate({
+      page: query.page,
+      pageSize: query.pageSize,
+      count: () => this.orgRepo.countActivities(auth.tenantId, id),
+      findMany: (pagination) => this.orgRepo.listActivities(auth.tenantId, id, pagination)
+    })
+    const actorIds = [
+      ...new Set(page.items.flatMap((item) => (item.actorId ? [item.actorId] : [])))
+    ]
+    const actors = new Map(
+      (await this.orgRepo.findActivityActors(actorIds)).map((user) => [user.id, user])
+    )
     return {
-      userId: row.userId,
-      username: row.user.username,
-      nickname: row.user.nickname,
-      email: row.user.email,
-      isPrimary: row.isPrimary,
-      postId: row.postId,
-      postName: row.post?.name ?? null,
-      joinedAt: row.joinedAt?.toISOString() ?? null
+      pagination: page.pagination,
+      items: page.items.map((item) => this.toActivity(item, actors.get(item.actorId ?? '')))
     }
   }
 
-  async removeMember(organizationId: string, userId: string) {
-    const result = await this.orgRepo.removeMember(organizationId, userId)
-    if (result.count === 0) throw new NotFoundException('成员不存在')
-    await this.auditService.write({
-      action: 'system.org.member_removed',
-      resource: 'organization',
-      resourceId: organizationId,
-      diff: { userId }
-    })
+  private scope(auth: AuthContext): Prisma.OrganizationWhereInput {
+    return applyOrganizationTreeDataScope(auth) as Prisma.OrganizationWhereInput
+  }
+
+  private async requireVisible(id: string, auth: AuthContext) {
+    const organization = await this.orgRepo.findByIdInScope(id, this.scope(auth))
+    if (!organization) throw new NotFoundException('组织不存在或不可访问')
+    return organization
+  }
+
+  private async assertActiveUser(userId: string | null | undefined): Promise<void> {
+    if (!userId) return
+    if (!(await this.orgRepo.findActiveUserById(userId))) {
+      throw new NotFoundException('用户不存在或不可用')
+    }
+  }
+
+  private async assertSubtreeManageable(path: string | null, auth: AuthContext): Promise<void> {
+    if (!path) throw new ConflictException('组织路径未初始化')
+    const [total, visible] = await Promise.all([
+      this.orgRepo.countDescendantsByPathPrefix(path),
+      this.orgRepo.countDescendantsByPathPrefix(path, this.scope(auth))
+    ])
+    if (total !== visible) {
+      throw new ForbiddenException({
+        message: '无权移动包含不可管理下级的组织',
+        reason: 'ORG_MOVE_OUT_OF_SCOPE'
+      })
+    }
+  }
+
+  private async assertTypeChange(
+    existing: OrganizationWithRelations,
+    nextType: UpdateOrganizationDto['type']
+  ): Promise<void> {
+    if (!nextType) return
+    const parent = existing.parentId ? await this.orgRepo.findById(existing.parentId) : null
+    assertValidParentType(nextType, parent ? toApiOrganizationType(parent.type) : null)
+    const children = await this.orgRepo.findChildrenTypes(existing.id)
+    if (children.some((child) => !canBeChildOf(toApiOrganizationType(child.type), nextType))) {
+      throw new ConflictException('新组织类型与现有下级组织不兼容')
+    }
+  }
+
+  private sortTree(nodes: OrganizationTreeNode[]): OrganizationTreeNode[] {
+    return nodes
+      .map((node) => ({ ...node, children: this.sortTree(node.children) }))
+      .sort(
+        (left, right) =>
+          NAME_COLLATOR.compare(left.name, right.name) || left.id.localeCompare(right.id)
+      )
+  }
+
+  private async refreshUserAccess(userId: string): Promise<void> {
     await this.authContextService.bumpPermVer()
     await this.sessionService.revokeAllForUser(userId)
   }
 
-  async listPosts(organizationId?: string) {
-    const rows = await this.orgRepo.listPosts(organizationId)
-    return rows.map((row) => this.toPostResponse(row))
-  }
-
-  async createPost(payload: {
-    code: string
-    name: string
-    organizationId: string
-    description?: string
-    grade?: string
-    headcount?: number
-    sort?: number
-  }) {
-    const org = await this.orgRepo.findById(payload.organizationId)
-    if (!org) throw new NotFoundException('组织不存在')
-    const existing = await this.orgRepo.findPostByCode(payload.code)
-    if (existing) throw new ConflictException('岗位编码已存在')
-
-    const created = await this.orgRepo.createPost({
-      code: payload.code,
-      name: payload.name,
-      description: payload.description,
-      grade: payload.grade,
-      headcount: payload.headcount ?? 1,
-      sort: payload.sort,
-      organization: { connect: { id: payload.organizationId } }
-    })
-
-    await this.auditService.write({
-      action: 'system.post.created',
-      resource: 'post',
-      resourceId: created.id,
-      diff: payload
-    })
-
-    return this.toPostResponse(created)
-  }
-
-  async updatePost(
-    id: string,
-    payload: {
-      name?: string
-      description?: string
-      grade?: string
-      headcount?: number
-      sort?: number
-      status?: 'active' | 'disabled'
-    }
+  private writeAudit(
+    auth: AuthContext,
+    resourceId: string,
+    action: string,
+    diff?: Prisma.InputJsonValue
   ) {
-    const existing = await this.orgRepo.findPostById(id)
-    if (!existing) throw new NotFoundException('岗位不存在')
-
-    const updated = await this.orgRepo.updatePost(id, {
-      name: payload.name,
-      description: payload.description,
-      grade: payload.grade,
-      headcount: payload.headcount,
-      sort: payload.sort,
-      status:
-        payload.status === undefined
-          ? undefined
-          : payload.status === 'active'
-            ? 'ACTIVE'
-            : 'DISABLED'
+    return this.auditService.write({
+      tenantId: auth.tenantId,
+      actorId: auth.userId,
+      action,
+      resource: 'organization',
+      resourceId,
+      diff
     })
-
-    await this.auditService.write({
-      action: 'system.post.updated',
-      resource: 'post',
-      resourceId: id,
-      diff: payload
-    })
-
-    return this.toPostResponse(updated)
   }
 
-  private toPostResponse(row: {
-    id: string
-    code: string
-    name: string
-    organizationId: string
-    description: string | null
-    grade: string | null
-    headcount: number
-    status: 'ACTIVE' | 'DISABLED'
-    sort: number | null
-    createdAt: Date
-    updatedAt: Date
-    _count?: { users: number }
-  }) {
+  private toActivity(
+    item: {
+      id: string
+      actorId: string | null
+      action: string
+      diff: Prisma.JsonValue | null
+      createdAt: Date
+    },
+    actor:
+      | {
+          id: string
+          username: string
+          nickname: string | null
+          profile: { realName: string | null; avatar: string | null } | null
+        }
+      | undefined
+  ): OrganizationActivity {
     return {
-      id: row.id,
-      code: row.code,
-      name: row.name,
-      organizationId: row.organizationId,
-      description: row.description,
-      grade: row.grade,
-      headcount: row.headcount,
-      filledCount: row._count?.users ?? 0,
-      status: row.status === 'ACTIVE' ? ('active' as const) : ('disabled' as const),
-      sort: row.sort ?? 0,
-      createdAt: row.createdAt.toISOString(),
-      updatedAt: row.updatedAt.toISOString()
+      id: item.id,
+      actor: {
+        id: actor?.id ?? item.actorId,
+        name: actor?.profile?.realName ?? actor?.nickname ?? actor?.username ?? '系统',
+        avatar: actor?.profile?.avatar ?? null
+      },
+      action: item.action,
+      description: this.describeActivity(item.action),
+      createdAt: item.createdAt.toISOString()
     }
   }
 
-  async deletePost(id: string) {
-    const existing = await this.orgRepo.findPostById(id)
-    if (!existing) throw new NotFoundException('岗位不存在')
-    await this.orgRepo.deletePost(id)
-    await this.auditService.write({
-      action: 'system.post.deleted',
-      resource: 'post',
-      resourceId: id
-    })
+  private describeActivity(action: string): string {
+    const descriptions: Record<string, string> = {
+      'system.organization.created': '创建了组织',
+      'system.organization.updated': '更新了组织信息',
+      'system.organization.leader_updated': '变更了组织负责人',
+      'system.organization.parent_changed': '调整了组织上级',
+      'system.organization.member_added': '添加了组织成员',
+      'system.organization.member_removed': '移除了组织成员',
+      'system.organization.position_created': '创建了岗位'
+    }
+    return descriptions[action] ?? '更新了组织'
   }
 }

@@ -14,7 +14,7 @@ import {
   Separator
 } from '@zen/ui'
 
-import { OrganizationPicker } from '@/features/system/config/components'
+import { OrganizationPicker } from '@/features/system/organization/organization-picker'
 
 import { dataScopeOptions } from '../data/data'
 

@@ -1,12 +1,10 @@
 import { Body, Controller, Delete, Get, Inject, Param, Post } from '@nestjs/common'
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger'
+import { CurrentAuth, RequirePermission, RequirePlugin, ZodValidationPipe } from '@zen/plugin-sdk/nest'
 
 import { FILE_PERMISSIONS, FILES_PLUGIN_ID } from '../constants'
 import { createFileSchema } from '../file.schema'
-import { CurrentAuth } from './current-auth'
 import { FileService } from './file.service'
-import { RequirePermission, RequirePlugin } from './nest-decorators'
-import { ZodValidationPipe } from './zod-validation.pipe'
 
 import type { AuthContext } from '@zen/shared'
 import type { CreateFileInput, StoredFileDto } from '../file.schema'

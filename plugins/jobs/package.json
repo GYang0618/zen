@@ -18,6 +18,10 @@
       "types": "./src/web/index.ts",
       "import": "./src/web/index.ts",
       "default": "./src/web/index.ts"
+    },
+    "./lifecycle": {
+      "types": "./dist/lifecycle.d.ts",
+      "default": "./dist/lifecycle.js"
     }
   },
   "files": [

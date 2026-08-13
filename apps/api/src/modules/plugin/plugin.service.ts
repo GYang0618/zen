@@ -1,4 +1,10 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common'
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException
+} from '@nestjs/common'
 import { PluginInstallStatus } from '@prisma/client'
 import { filterActiveRegistryEntries, PLUGIN_REGISTRY } from '@zen/plugin-sdk'
 import { DEFAULT_TENANT_ID } from '@zen/shared'
@@ -6,10 +12,18 @@ import { DEFAULT_TENANT_ID } from '@zen/shared'
 import { AuditService } from '@/common/auth/audit.service'
 import { AuthContextService } from '@/common/auth/auth-context.service'
 import { PermissionCatalogSyncService } from '@/common/auth/permission-catalog-sync.service'
+import { PLUGIN_CONFIG_SCHEMAS } from '@/generated/plugin-config.gen'
+import { PLUGIN_LIFECYCLE_HOOKS } from '@/generated/plugin-lifecycle.gen'
 import { PrismaService } from '@/infra/prisma'
 
+import { TenantPluginStateService } from './tenant-plugin-state.service'
+
 import type { Prisma } from '@prisma/client'
-import type { PluginRegistryEntry, PluginInstallStatus as SdkStatus } from '@zen/plugin-sdk'
+import type {
+  PluginContext,
+  PluginRegistryEntry,
+  PluginInstallStatus as SdkStatus
+} from '@zen/plugin-sdk'
 import type { PluginListItemResponse, PluginListResponse } from './responses/plugin.response'
 
 @Injectable()
@@ -19,7 +33,8 @@ export class PluginService {
     @Inject(AuditService) private readonly auditService: AuditService,
     @Inject(PermissionCatalogSyncService)
     private readonly permissionCatalogSync: PermissionCatalogSyncService,
-    @Inject(AuthContextService) private readonly authContextService: AuthContextService
+    @Inject(AuthContextService) private readonly authContextService: AuthContextService,
+    @Inject(TenantPluginStateService) private readonly pluginState: TenantPluginStateService
   ) {}
 
   async list(tenantId = DEFAULT_TENANT_ID): Promise<PluginListResponse> {
@@ -48,12 +63,7 @@ export class PluginService {
   }
 
   async listActiveRegistryEntries(tenantId = DEFAULT_TENANT_ID): Promise<PluginRegistryEntry[]> {
-    const installations = await this.prisma.pluginInstallation.findMany({
-      where: { tenantId }
-    })
-    const statusMap = new Map<string, SdkStatus>(
-      installations.map((item) => [item.pluginId, toSdkStatus(item.status) ?? 'inactive'])
-    )
+    const statusMap = await this.pluginState.getStatusMap(tenantId)
     for (const entry of PLUGIN_REGISTRY) {
       if (!statusMap.has(entry.id)) {
         statusMap.set(entry.id, 'inactive')
@@ -64,13 +74,17 @@ export class PluginService {
 
   async activate(pluginId: string, tenantId = DEFAULT_TENANT_ID): Promise<PluginListItemResponse> {
     const entry = findRegistryEntry(pluginId)
+    await this.assertDependenciesActive(entry, tenantId)
+
+    const defaults = this.parseConfig(pluginId, {})
     const installation = await this.prisma.pluginInstallation.upsert({
       where: { tenantId_pluginId: { tenantId, pluginId } },
       create: {
         tenantId,
         pluginId,
         version: entry.version,
-        status: PluginInstallStatus.ACTIVE
+        status: PluginInstallStatus.ACTIVE,
+        config: defaults as Prisma.InputJsonValue
       },
       update: {
         status: PluginInstallStatus.ACTIVE,
@@ -78,13 +92,14 @@ export class PluginService {
       }
     })
 
+    await this.runLifecycle(pluginId, 'onEnable', tenantId, installation.config)
     await this.auditService.write({
       action: 'system.plugin.activated',
       resource: 'plugin',
       resourceId: pluginId,
       diff: { version: entry.version }
     })
-    await this.syncPermissionCatalog()
+    await this.afterStateChange(tenantId)
 
     return toListItem(entry, installation)
   }
@@ -101,18 +116,21 @@ export class PluginService {
       throw new NotFoundException('插件尚未安装')
     }
 
+    await this.assertNoActiveDependents(pluginId, tenantId)
+
     const installation = await this.prisma.pluginInstallation.update({
       where: { tenantId_pluginId: { tenantId, pluginId } },
       data: { status: PluginInstallStatus.INACTIVE }
     })
 
+    await this.runLifecycle(pluginId, 'onDisable', tenantId, installation.config)
     await this.auditService.write({
       action: 'system.plugin.deactivated',
       resource: 'plugin',
       resourceId: pluginId,
       diff: { version: entry.version }
     })
-    await this.syncPermissionCatalog()
+    await this.afterStateChange(tenantId)
 
     return toListItem(entry, installation)
   }
@@ -130,24 +148,104 @@ export class PluginService {
       throw new NotFoundException('插件尚未安装，请先启用')
     }
 
-    const configJson = config as Prisma.InputJsonValue
+    const parsed = this.parseConfig(pluginId, config)
     const installation = await this.prisma.pluginInstallation.update({
       where: { tenantId_pluginId: { tenantId, pluginId } },
-      data: { config: configJson }
+      data: { config: parsed as Prisma.InputJsonValue }
     })
 
     await this.auditService.write({
       action: 'system.plugin.config_updated',
       resource: 'plugin',
       resourceId: pluginId,
-      diff: configJson
+      diff: parsed as Prisma.InputJsonValue
     })
+    this.pluginState.invalidate(tenantId)
 
     return toListItem(entry, installation)
   }
 
-  private async syncPermissionCatalog() {
-    await this.permissionCatalogSync.syncCatalog()
+  private parseConfig(pluginId: string, config: Record<string, unknown>): Record<string, unknown> {
+    const schema = PLUGIN_CONFIG_SCHEMAS[pluginId as keyof typeof PLUGIN_CONFIG_SCHEMAS]
+    if (!schema) {
+      if (Object.keys(config).length > 0) {
+        throw new BadRequestException(`插件 ${pluginId} 不接受配置`)
+      }
+      return {}
+    }
+
+    const result = schema.safeParse(config)
+    if (!result.success) {
+      throw new BadRequestException({
+        message: '插件配置校验失败',
+        issues: result.error.issues.map((issue) => ({
+          path: issue.path.join('.'),
+          message: issue.message
+        }))
+      })
+    }
+
+    return result.data as Record<string, unknown>
+  }
+
+  private async assertDependenciesActive(entry: PluginRegistryEntry, tenantId: string) {
+    if (entry.dependsOn.length === 0) return
+    const missing: string[] = []
+    for (const dep of entry.dependsOn) {
+      const active = await this.pluginState.isActive(dep, tenantId)
+      if (!active) missing.push(dep)
+    }
+    if (missing.length > 0) {
+      throw new ConflictException({
+        message: '依赖插件未启用',
+        missingDependencies: missing
+      })
+    }
+  }
+
+  private async assertNoActiveDependents(pluginId: string, tenantId: string) {
+    const dependents = PLUGIN_REGISTRY.filter((entry) =>
+      (entry.dependsOn as readonly string[]).includes(pluginId)
+    )
+    const activeDependents: string[] = []
+    for (const dependent of dependents) {
+      if (await this.pluginState.isActive(dependent.id, tenantId)) {
+        activeDependents.push(dependent.id)
+      }
+    }
+    if (activeDependents.length > 0) {
+      throw new ConflictException({
+        message: '存在依赖此插件的已启用插件，无法停用',
+        activeDependents
+      })
+    }
+  }
+
+  private async runLifecycle(
+    pluginId: string,
+    hook: 'onEnable' | 'onDisable',
+    tenantId: string,
+    config: unknown
+  ) {
+    const hooks = PLUGIN_LIFECYCLE_HOOKS[pluginId as keyof typeof PLUGIN_LIFECYCLE_HOOKS]
+    const fn = hooks?.[hook]
+    if (!fn) return
+
+    const ctx: PluginContext = {
+      tenantId,
+      config,
+      logger: {
+        info: (message, meta) => console.info(`[plugin:${pluginId}] ${message}`, meta ?? {}),
+        warn: (message, meta) => console.warn(`[plugin:${pluginId}] ${message}`, meta ?? {}),
+        error: (message, meta) => console.error(`[plugin:${pluginId}] ${message}`, meta ?? {})
+      }
+    }
+    await fn(ctx)
+  }
+
+  private async afterStateChange(tenantId: string) {
+    this.pluginState.invalidate(tenantId)
+    await this.permissionCatalogSync.syncCatalog(tenantId)
     await this.authContextService.bumpPermVer()
   }
 }

@@ -18,3 +18,30 @@ export const REQUIRE_PERMISSIONS_KEY = 'requirePermissions'
 
 /** Nest PluginActiveGuard 读取的 metadata key */
 export const REQUIRE_PLUGIN_ID_KEY = 'requirePluginId'
+
+/** 插件路由 path：`/plugins/<kebab-segment>` */
+export const PLUGIN_ROUTE_PATH_PATTERN = /^\/plugins\/[a-z0-9-]+$/
+
+/** 入口解析时尝试的扩展名 */
+export const PLUGIN_ENTRY_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx'] as const
+
+/**
+ * 允许的插件 icon key（lucide kebab-case）。
+ * 未知 icon 在校验阶段报 error。
+ */
+export const ALLOWED_PLUGIN_ICONS = [
+  'bell',
+  'briefcase',
+  'file',
+  'files',
+  'folder',
+  'folder-kanban',
+  'jobs',
+  'list-todo',
+  'notifications',
+  'sticky-note'
+] as const
+
+export type AllowedPluginIcon = (typeof ALLOWED_PLUGIN_ICONS)[number]
+
+export const ALLOWED_PLUGIN_ICON_SET: ReadonlySet<string> = new Set(ALLOWED_PLUGIN_ICONS)

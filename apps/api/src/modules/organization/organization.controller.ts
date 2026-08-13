@@ -12,7 +12,7 @@ import {
   Query,
   UsePipes
 } from '@nestjs/common'
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger'
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger'
 import { PermissionCode } from '@zen/shared'
 
 import { CurrentAuth } from '@/common/decorators/current-auth.decorator'
@@ -21,34 +21,31 @@ import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
 import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '@/common/swagger'
 
 import {
+  addOrganizationMemberSchema,
+  changeOrganizationParentSchema,
   createOrganizationSchema,
-  createPostSchema,
-  deleteOrganizationsSchema,
-  moveOrganizationSchema,
-  updateOrganizationSchema,
-  updatePostSchema,
-  upsertOrganizationMemberSchema
+  createPositionSchema,
+  organizationActivitiesQuerySchema,
+  updateOrganizationLeaderSchema,
+  updateOrganizationSchema
 } from './dto'
 import { OrganizationService } from './organization.service'
 
 import type { AuthContext } from '@zen/shared'
 import type {
+  AddOrganizationMemberDto,
+  ChangeOrganizationParentDto,
   CreateOrganizationDto,
-  CreatePostDto,
-  DeleteOrganizationsDto,
-  MoveOrganizationDto,
+  CreatePositionDto,
+  OrganizationActivitiesQueryDto,
   UpdateOrganizationDto,
-  UpdatePostDto,
-  UpsertOrganizationMemberDto
+  UpdateOrganizationLeaderDto
 } from './dto'
-import type {
-  OrganizationResponse,
-  OrganizationTreeResponse
-} from './responses/organization.response'
 
-@ApiTags('组织管理')
+@ApiTags('组织管理 V2')
 @ApiBearerAuth(ACCESS_TOKEN_AUTH)
-@Controller('organization')
+@ApiStandardErrorResponses()
+@Controller('organizations')
 export class OrganizationController {
   constructor(
     @Inject(OrganizationService) private readonly organizationService: OrganizationService
@@ -56,122 +53,122 @@ export class OrganizationController {
 
   @Get('tree')
   @RequirePermission(PermissionCode.ORG_LIST)
-  @ApiOperation({ summary: '获取组织树' })
-  @ApiOkResponse({ description: '查询成功' })
-  @ApiStandardErrorResponses()
-  getTree(@CurrentAuth() auth: AuthContext): Promise<OrganizationTreeResponse> {
+  @ApiOperation({ summary: '获取按名称排序的组织树' })
+  getTree(@CurrentAuth() auth: AuthContext) {
     return this.organizationService.getTree(auth)
   }
 
-  @Get('posts')
-  @RequirePermission(PermissionCode.POST_LIST)
-  @ApiOperation({ summary: '岗位列表' })
-  listPosts(@Query('organizationId') organizationId?: string) {
-    return this.organizationService.listPosts(organizationId)
-  }
-
-  @Post('posts')
-  @RequirePermission(PermissionCode.POST_MANAGE)
-  @ApiOperation({ summary: '创建岗位' })
-  @UsePipes(new ZodValidationPipe(createPostSchema))
-  createPost(@Body() payload: CreatePostDto) {
-    return this.organizationService.createPost(payload)
-  }
-
-  @Patch('posts/:postId')
-  @RequirePermission(PermissionCode.POST_MANAGE)
-  @ApiOperation({ summary: '更新岗位' })
-  @UsePipes(new ZodValidationPipe(updatePostSchema))
-  updatePost(@Param('postId') postId: string, @Body() payload: UpdatePostDto) {
-    return this.organizationService.updatePost(postId, payload)
-  }
-
-  @Delete('posts/:postId')
-  @RequirePermission(PermissionCode.POST_MANAGE)
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: '删除岗位' })
-  async deletePost(@Param('postId') postId: string): Promise<void> {
-    await this.organizationService.deletePost(postId)
-  }
-
-  @Get(':id/members')
-  @RequirePermission(PermissionCode.ORG_LIST)
-  @ApiOperation({ summary: '组织成员列表' })
-  listMembers(@Param('id') id: string) {
-    return this.organizationService.listMembers(id)
-  }
-
-  @Post(':id/members')
-  @RequirePermission(PermissionCode.ORG_UPDATE)
-  @ApiOperation({ summary: '添加或更新组织成员' })
-  @UsePipes(new ZodValidationPipe(upsertOrganizationMemberSchema))
-  upsertMember(@Param('id') id: string, @Body() payload: UpsertOrganizationMemberDto) {
-    return this.organizationService.upsertMember(id, payload)
-  }
-
-  @Delete(':id/members/:userId')
-  @RequirePermission(PermissionCode.ORG_UPDATE)
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: '移除组织成员' })
-  async removeMember(@Param('id') id: string, @Param('userId') userId: string): Promise<void> {
-    await this.organizationService.removeMember(id, userId)
+  @Post()
+  @RequirePermission(PermissionCode.ORG_CREATE)
+  @ApiOperation({ summary: '创建组织' })
+  @UsePipes(new ZodValidationPipe(createOrganizationSchema))
+  create(@Body() payload: CreateOrganizationDto, @CurrentAuth() auth: AuthContext) {
+    return this.organizationService.create(payload, auth)
   }
 
   @Get(':id')
   @RequirePermission(PermissionCode.ORG_LIST)
   @ApiOperation({ summary: '获取组织详情' })
   @ApiParam({ name: 'id', description: '组织 ID' })
-  @ApiOkResponse({ description: '查询成功' })
-  @ApiStandardErrorResponses()
-  findOne(@Param('id') id: string): Promise<OrganizationResponse> {
-    return this.organizationService.findOne(id)
-  }
-
-  @Post()
-  @RequirePermission(PermissionCode.ORG_CREATE)
-  @ApiOperation({ summary: '创建组织' })
-  @ApiOkResponse({ description: '创建成功' })
-  @ApiStandardErrorResponses()
-  @UsePipes(new ZodValidationPipe(createOrganizationSchema))
-  create(@Body() payload: CreateOrganizationDto): Promise<OrganizationResponse> {
-    return this.organizationService.create(payload)
-  }
-
-  @Patch(':id/move')
-  @RequirePermission(PermissionCode.ORG_UPDATE)
-  @ApiOperation({ summary: '移动组织（变更父节点并重算 path）' })
-  @ApiParam({ name: 'id', description: '组织 ID' })
-  @ApiOkResponse({ description: '移动成功' })
-  @ApiStandardErrorResponses()
-  @UsePipes(new ZodValidationPipe(moveOrganizationSchema))
-  move(
-    @Param('id') id: string,
-    @Body() payload: MoveOrganizationDto
-  ): Promise<OrganizationResponse> {
-    return this.organizationService.move(id, payload)
+  findOne(@Param('id') id: string, @CurrentAuth() auth: AuthContext) {
+    return this.organizationService.findOne(id, auth)
   }
 
   @Patch(':id')
   @RequirePermission(PermissionCode.ORG_UPDATE)
-  @ApiOperation({ summary: '更新组织' })
-  @ApiParam({ name: 'id', description: '组织 ID' })
-  @ApiOkResponse({ description: '更新成功' })
-  @ApiStandardErrorResponses()
+  @ApiOperation({ summary: '更新组织基础信息' })
   @UsePipes(new ZodValidationPipe(updateOrganizationSchema))
   update(
     @Param('id') id: string,
-    @Body() payload: UpdateOrganizationDto
-  ): Promise<OrganizationResponse> {
-    return this.organizationService.update(id, payload)
+    @Body() payload: UpdateOrganizationDto,
+    @CurrentAuth() auth: AuthContext
+  ) {
+    return this.organizationService.update(id, payload, auth)
   }
 
-  @Delete()
-  @RequirePermission(PermissionCode.ORG_DELETE)
-  @ApiOperation({ summary: '批量删除组织（无子节点且无成员）' })
-  @ApiOkResponse({ description: '删除成功' })
-  @ApiStandardErrorResponses()
-  @UsePipes(new ZodValidationPipe(deleteOrganizationsSchema))
-  remove(@Body() payload: DeleteOrganizationsDto): Promise<OrganizationResponse[]> {
-    return this.organizationService.remove(payload)
+  @Patch(':id/leader')
+  @RequirePermission(PermissionCode.ORG_UPDATE)
+  @ApiOperation({ summary: '变更组织负责人' })
+  @UsePipes(new ZodValidationPipe(updateOrganizationLeaderSchema))
+  updateLeader(
+    @Param('id') id: string,
+    @Body() payload: UpdateOrganizationLeaderDto,
+    @CurrentAuth() auth: AuthContext
+  ) {
+    return this.organizationService.updateLeader(id, payload, auth)
+  }
+
+  @Patch(':id/parent')
+  @RequirePermission(PermissionCode.ORG_UPDATE)
+  @ApiOperation({ summary: '变更组织父级，不支持手工排序' })
+  @UsePipes(new ZodValidationPipe(changeOrganizationParentSchema))
+  changeParent(
+    @Param('id') id: string,
+    @Body() payload: ChangeOrganizationParentDto,
+    @CurrentAuth() auth: AuthContext
+  ) {
+    return this.organizationService.changeParent(id, payload, auth)
+  }
+
+  @Get(':id/members')
+  @RequirePermission(PermissionCode.ORG_LIST)
+  @ApiOperation({ summary: '获取组织成员' })
+  listMembers(@Param('id') id: string, @CurrentAuth() auth: AuthContext) {
+    return this.organizationService.listMembers(id, auth)
+  }
+
+  @Post(':id/members')
+  @RequirePermission(PermissionCode.ORG_UPDATE)
+  @ApiOperation({ summary: '添加组织成员' })
+  @UsePipes(new ZodValidationPipe(addOrganizationMemberSchema))
+  addMember(
+    @Param('id') id: string,
+    @Body() payload: AddOrganizationMemberDto,
+    @CurrentAuth() auth: AuthContext
+  ) {
+    return this.organizationService.addMember(id, payload, auth)
+  }
+
+  @Delete(':id/members/:userId')
+  @RequirePermission(PermissionCode.ORG_UPDATE)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: '移除组织成员' })
+  async removeMember(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @CurrentAuth() auth: AuthContext
+  ): Promise<void> {
+    await this.organizationService.removeMember(id, userId, auth)
+  }
+
+  @Get(':id/positions')
+  @RequirePermission(PermissionCode.POST_LIST)
+  @ApiOperation({ summary: '获取组织岗位' })
+  listPositions(@Param('id') id: string, @CurrentAuth() auth: AuthContext) {
+    return this.organizationService.listPositions(id, auth)
+  }
+
+  @Post(':id/positions')
+  @RequirePermission(PermissionCode.POST_MANAGE)
+  @ApiOperation({ summary: '创建组织岗位' })
+  @UsePipes(new ZodValidationPipe(createPositionSchema))
+  createPosition(
+    @Param('id') id: string,
+    @Body() payload: CreatePositionDto,
+    @CurrentAuth() auth: AuthContext
+  ) {
+    return this.organizationService.createPosition(id, payload, auth)
+  }
+
+  @Get(':id/activities')
+  @RequirePermission(PermissionCode.ORG_LIST)
+  @ApiOperation({ summary: '分页获取组织活动' })
+  @UsePipes(new ZodValidationPipe(organizationActivitiesQuerySchema, { types: ['query'] }))
+  listActivities(
+    @Param('id') id: string,
+    @Query() query: OrganizationActivitiesQueryDto,
+    @CurrentAuth() auth: AuthContext
+  ) {
+    return this.organizationService.listActivities(id, query, auth)
   }
 }

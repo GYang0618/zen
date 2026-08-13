@@ -30,8 +30,8 @@ import { toast } from 'sonner'
 
 import { Can } from '@/components/auth/can'
 import { FacetedFilter } from '@/components/faceted-filter'
-import { useUpdateRoleMutation } from '@/features/system/roles/mutations'
-import { useRolesQuery } from '@/features/system/roles/queries'
+import { useUpdateRoleMutation } from '@/features/system/roles-v2/mutations'
+import { useRolesQuery } from '@/features/system/roles-v2/queries'
 
 import {
   getRoleIconColorClassName,

@@ -4,47 +4,65 @@
   "version": "0.1.0",
   "platformVersion": "^0.1.0",
   "dependsOn": [],
-  "contributions": {
-    "permissions": [
-      {
-        "code": "demo:note:list",
-        "name": "查看便签列表",
-        "module": "demo",
-        "description": "分页或列表查询便签"
-      },
-      {
-        "code": "demo:note:get",
-        "name": "查看便签详情",
-        "module": "demo",
-        "description": "按 ID 查看便签"
-      },
-      {
-        "code": "demo:note:create",
-        "name": "创建便签",
-        "module": "demo",
-        "description": "创建便签"
-      },
-      {
-        "code": "demo:note:update",
-        "name": "更新便签",
-        "module": "demo",
-        "description": "更新便签"
-      },
-      {
-        "code": "demo:note:delete",
-        "name": "删除便签",
-        "module": "demo",
-        "description": "删除便签"
-      }
-    ],
-    "routes": "./src/web/routes",
-    "apiModule": "./src/api/demo-notes.module",
-    "configSchema": "./src/config.schema.ts",
-    "events": ["demo.note.created"],
-    "agentTools": "./src/agent/tools.ts"
+  "permissions": [
+    {
+      "code": "demo:note:list",
+      "name": "查看便签列表",
+      "module": "demo",
+      "description": "分页或列表查询便签"
+    },
+    {
+      "code": "demo:note:get",
+      "name": "查看便签详情",
+      "module": "demo",
+      "description": "按 ID 查看便签"
+    },
+    {
+      "code": "demo:note:create",
+      "name": "创建便签",
+      "module": "demo",
+      "description": "创建便签"
+    },
+    {
+      "code": "demo:note:update",
+      "name": "更新便签",
+      "module": "demo",
+      "description": "更新便签"
+    },
+    {
+      "code": "demo:note:delete",
+      "name": "删除便签",
+      "module": "demo",
+      "description": "删除便签"
+    }
+  ],
+  "api": {
+    "entry": "./src/api/demo-notes.module",
+    "export": "DemoNotesModule"
+  },
+  "routes": [
+    {
+      "id": "demo-notes-home",
+      "path": "/plugins/notes",
+      "entry": "./src/web/pages/notes-page",
+      "componentExport": "NotesPage",
+      "title": "演示便签",
+      "icon": "sticky-note",
+      "order": 100,
+      "permissions": ["demo:note:list"]
+    }
+  ],
+  "config": {
+    "entry": "./src/config.schema.ts",
+    "schemaExport": "demoNotesConfigSchema"
   },
   "lifecycle": {
-    "activate": "./src/activate.ts",
-    "deactivate": "./src/deactivate.ts"
+    "entry": "./src/lifecycle.ts",
+    "export": "lifecycle"
+  },
+  "events": ["demo.note.created"],
+  "agentTools": {
+    "entry": "./src/agent/tools.ts",
+    "export": "demoNotesAgentTools"
   }
 }

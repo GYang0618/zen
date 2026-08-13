@@ -1,8 +1,10 @@
 import { z } from 'zod'
 
-export const demoNotesConfigSchema = z.object({
-  maxNotesPerUser: z.number().int().positive().default(100)
-})
+export const demoNotesConfigSchema = z
+  .object({
+    maxNotesPerUser: z.number().int().positive().default(100)
+  })
+  .strict()
 
 export type DemoNotesConfig = z.infer<typeof demoNotesConfigSchema>
 

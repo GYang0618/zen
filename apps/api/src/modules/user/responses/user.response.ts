@@ -1,11 +1,12 @@
-import type { Paged, User, UserStatus } from '@zen/shared'
+import type { Paged, User, UserGender, UserMfaType, UserStatus } from '@zen/shared'
 
 export type UserListItemResponse = User
 export type UserListResponse = Paged<UserListItemResponse>
+export type UserResponse = User
 
-export type UserMfaType = 'totp' | 'sms' | 'email' | 'off'
+export type { UserGender, UserMfaType, UserStatus }
+
 export type UserTheme = 'light' | 'dark' | 'system'
-export type UserGender = 'male' | 'female' | 'unknown'
 
 export interface RoleInfoResponse {
   id: string
@@ -20,6 +21,7 @@ export interface RoleInfoResponse {
   updatedAt: string | null
 }
 
+/** 当前登录用户档案（`GET /auth/me`），含偏好设置；管理端请使用 `User`。 */
 export interface UserInfoResponse {
   id: string
   profile: {

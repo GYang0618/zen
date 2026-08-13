@@ -7,41 +7,42 @@ import type { Organization } from './type'
 function organization(
   id: string,
   type: string,
-  parentId?: string,
-  children?: Organization[]
+  parentId: string | null = null,
+  children: Organization[] = []
 ): Organization {
   return {
     id,
     name: id,
     code: id,
-    type,
-    description: '',
+    type: type.toLowerCase() as Organization['type'],
+    description: null,
     effectiveDate: '2026-01-01',
+    leader: null,
     memberCount: 0,
     positionCount: 0,
-    budget: 0,
     parentId,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
     children
   }
 }
 
 const organizationTree = [
-  organization('group', 'GROUP', undefined, [
-    organization('company-a', 'COMPANY', 'group', [
-      organization('branch-a', 'BRANCH', 'company-a', [
-        organization('department-a', 'DEPARTMENT', 'branch-a', [
-          organization('team-a', 'TEAM', 'department-a')
+  organization('group', 'group', null, [
+    organization('company-a', 'company', 'group', [
+      organization('branch-a', 'branch', 'company-a', [
+        organization('department-a', 'department', 'branch-a', [
+          organization('team-a', 'team', 'department-a')
         ])
       ])
     ]),
-    organization('company-b', 'COMPANY', 'group', [organization('center-b', 'CENTER', 'company-b')])
+    organization('company-b', 'company', 'group', [organization('center-b', 'center', 'company-b')])
   ])
 ]
 
-/** 顶层存在多个根组织（如多个集团）的场景 */
 const multiRootOrganizationTree = [
-  organization('group-a', 'GROUP', undefined, [organization('company-a', 'COMPANY', 'group-a')]),
-  organization('group-b', 'GROUP', undefined, [organization('company-b', 'COMPANY', 'group-b')])
+  organization('group-a', 'group', null, [organization('company-a', 'company', 'group-a')]),
+  organization('group-b', 'group', null, [organization('company-b', 'company', 'group-b')])
 ]
 
 describe('validateOrganizationDrop', () => {
@@ -56,22 +57,18 @@ describe('validateOrganizationDrop', () => {
     })
   })
 
-  it('单一根组织没有同级可调整顺序，拖到不兼容层级会被拒绝', () => {
-    expect(validateOrganizationDrop(organizationTree, 'group', 'company-b')).toMatchObject({
+  it('拒绝同级重排：拖到兄弟节点无效，仅允许挂到目标下成为子节点', () => {
+    expect(validateOrganizationDrop(multiRootOrganizationTree, 'group-a', 'group-b')).toMatchObject({
       isValid: false,
-      reason: 'own-descendant'
+      reason: 'incompatible-hierarchy'
     })
   })
 
-  it('允许调整多个根组织（如多个集团）之间的顺序', () => {
-    expect(validateOrganizationDrop(multiRootOrganizationTree, 'group-a', 'group-b')).toEqual({
-      isValid: true,
-      action: 'reorder-siblings',
-      destinationParentId: undefined
+  it('已在目标下时拒绝', () => {
+    expect(validateOrganizationDrop(organizationTree, 'company-a', 'group')).toMatchObject({
+      isValid: false,
+      reason: 'same-parent'
     })
-
-    const nextTree = moveOrganizationInTree(multiRootOrganizationTree, 'group-a', 'group-b')
-    expect(nextTree?.map((node) => node.id)).toEqual(['group-b', 'group-a'])
   })
 
   it('根组织不能挂到其他组织下成为子节点', () => {

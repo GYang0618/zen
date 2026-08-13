@@ -1,12 +1,4 @@
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
   Avatar,
   AvatarBadge,
   AvatarFallback,
@@ -15,10 +7,6 @@ import {
   Card,
   CardContent,
   CardFooter,
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
@@ -33,14 +21,6 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemMedia,
-  ItemTitle,
-  ScrollArea,
   Separator
 } from '@zen/ui'
 import {
@@ -53,33 +33,20 @@ import {
   UserRoundArrowLeft,
   UserRoundMinus
 } from 'lucide-react'
-import { useCallback, useMemo, useState } from 'react'
-import { toast } from 'sonner'
+import { useMemo, useState } from 'react'
 
-import { organizationUsers } from '../data/mock'
+import { useOrganizationMembers } from '../queries'
+import { OrganizationAddMemberDialog } from './organization-add-member-dialog'
+import { OrganizationRemoveMemberDialog } from './organization-remove-member-dialog'
 
-import type { OrganizationMember, OrganizationUserOption } from '../type'
+import type { OrganizationMember } from '../type'
 
-type MemberRemoval = {
-  member: OrganizationMember
-  originalIndex: number
-  previousMemberId?: string
-  nextMemberId?: string
-}
+const EMPTY_MEMBERS: OrganizationMember[] = []
 
-function toMember(user: OrganizationUserOption): OrganizationMember {
-  return {
-    id: user.id,
-    avatar: user.avatar,
-    username: user.email.split('@')[0] ?? user.name,
-    nickname: user.name,
-    post: user.title,
-    organization: '',
-    postStatus: '在职',
-    email: user.email,
-    phoneNumber: user.phone,
-    level: 'P6'
-  }
+type MemberDialog = { type: 'add' } | { type: 'remove'; member: OrganizationMember } | null
+
+function displayName(member: OrganizationMember): string {
+  return member.nickname ?? member.username
 }
 
 function matchesMember(member: OrganizationMember, keyword: string): boolean {
@@ -93,113 +60,35 @@ function matchesMember(member: OrganizationMember, keyword: string): boolean {
     member.level,
     member.phoneNumber
   ]
+    .filter(Boolean)
     .join(' ')
     .toLowerCase()
     .includes(q)
 }
 
-function restoreMember(
-  members: OrganizationMember[],
-  removal: MemberRemoval
-): OrganizationMember[] {
-  if (members.some((member) => member.id === removal.member.id)) return members
-
-  const nextIndex = members.findIndex((member) => member.id === removal.nextMemberId)
-  const previousIndex = members.findIndex((member) => member.id === removal.previousMemberId)
-  const insertIndex =
-    nextIndex >= 0
-      ? nextIndex
-      : previousIndex >= 0
-        ? previousIndex + 1
-        : Math.min(removal.originalIndex, members.length)
-
-  return [...members.slice(0, insertIndex), removal.member, ...members.slice(insertIndex)]
+function accountStatusLabel(status: OrganizationMember['accountStatus']): string {
+  if (status === 'active') return '已激活'
+  if (status === 'pending') return '待激活'
+  if (status === 'suspended') return '已停用'
+  return '未激活'
 }
 
-export function OrganizationMembers({ data }: { data: OrganizationMember[] }) {
-  const [members, setMembers] = useState<OrganizationMember[]>(data)
+export function OrganizationMembers({ organizationId }: { organizationId: string }) {
+  const { data: membersData, isLoading } = useOrganizationMembers(organizationId)
+  const members = membersData ?? EMPTY_MEMBERS
+
   const [keyword, setKeyword] = useState('')
-  const [addOpen, setAddOpen] = useState(false)
-  const [addKeyword, setAddKeyword] = useState('')
-  const [memberToRemove, setMemberToRemove] = useState<MemberRemoval | null>(null)
+  const [dialog, setDialog] = useState<MemberDialog>(null)
 
-  const removalMessage = memberToRemove
-    ? `确定将「${memberToRemove.member.nickname}」移出当前组织吗？此操作不会删除其账号或影响其在其他组织中的成员关系。`
-    : ''
-
-  const memberKeySet = useMemo(() => {
-    const keys = new Set<string>()
-    for (const member of members) {
-      keys.add(member.id)
-      keys.add(member.email.toLowerCase())
-    }
-    return keys
-  }, [members])
-
-  const isUserBound = useCallback(
-    (user: OrganizationUserOption) =>
-      memberKeySet.has(user.id) || memberKeySet.has(user.email.toLowerCase()),
-    [memberKeySet]
+  const memberIds = useMemo(
+    () => new Set(membersData?.map((member) => member.id) ?? []),
+    [membersData]
   )
 
   const filteredMembers = useMemo(
     () => members.filter((member) => matchesMember(member, keyword)),
     [keyword, members]
   )
-
-  const filteredAvailableUsers = useMemo(() => {
-    const q = addKeyword.trim().toLowerCase()
-    const filtered = q
-      ? organizationUsers.filter(
-          (user) =>
-            user.name.toLowerCase().includes(q) ||
-            user.email.toLowerCase().includes(q) ||
-            user.title.toLowerCase().includes(q)
-        )
-      : organizationUsers
-
-    return [...filtered].sort((a, b) => Number(isUserBound(a)) - Number(isUserBound(b)))
-  }, [addKeyword, isUserBound])
-
-  const handleOpenAdd = () => {
-    setAddKeyword('')
-    setAddOpen(true)
-  }
-
-  const handleBindMember = (user: OrganizationUserOption) => {
-    if (isUserBound(user)) return
-    setMembers((prev) => [toMember(user), ...prev])
-    setAddOpen(false)
-    toast.success(`已添加成员「${user.name}」`)
-  }
-
-  const handleRequestRemoveMember = (member: OrganizationMember) => {
-    const originalIndex = members.findIndex((item) => item.id === member.id)
-    if (originalIndex < 0) return
-
-    setMemberToRemove({
-      member,
-      originalIndex,
-      previousMemberId: members[originalIndex - 1]?.id,
-      nextMemberId: members[originalIndex + 1]?.id
-    })
-  }
-
-  const handleRemoveMember = () => {
-    if (!memberToRemove) return
-
-    const removal = memberToRemove
-    setMembers((prev) => prev.filter((member) => member.id !== removal.member.id))
-    setMemberToRemove(null)
-    toast.success(`已将成员「${removal.member.nickname}」移出当前组织`, {
-      action: {
-        label: '撤销',
-        onClick: () => {
-          setMembers((prev) => restoreMember(prev, removal))
-        }
-      }
-    })
-  }
 
   return (
     <div className="@container flex flex-col gap-4">
@@ -214,83 +103,88 @@ export function OrganizationMembers({ data }: { data: OrganizationMember[] }) {
             <Search />
           </InputGroupAddon>
         </InputGroup>
-        <Button type="button" onClick={handleOpenAdd}>
+        <Button type="button" onClick={() => setDialog({ type: 'add' })}>
           <UserPlus />
           添加成员
         </Button>
       </section>
 
-      {filteredMembers.length ? (
+      {isLoading ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">加载成员…</p>
+      ) : filteredMembers.length ? (
         <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2 @2xl:grid-cols-3 @4xl:grid-cols-4">
-          {filteredMembers.map((item) => (
-            <Card key={item.id} className="relative rounded-2xl bg-background/80">
-              <div className="absolute top-2 right-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={`打开${item.nickname}的成员操作`}
-                    >
-                      <Ellipsis />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-36">
-                    <DropdownMenuGroup>
-                      <DropdownMenuItem
-                        variant="destructive"
-                        onSelect={() => handleRequestRemoveMember(item)}
+          {filteredMembers.map((item) => {
+            const name = displayName(item)
+            return (
+              <Card key={item.id} className="relative rounded-2xl bg-background/80">
+                <div className="absolute top-2 right-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`打开${name}的成员操作`}
                       >
-                        <UserRoundMinus />
-                        移除成员
-                      </DropdownMenuItem>
-                    </DropdownMenuGroup>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+                        <Ellipsis />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-36">
+                      <DropdownMenuGroup>
+                        <DropdownMenuItem
+                          variant="destructive"
+                          onSelect={() => setDialog({ type: 'remove', member: item })}
+                        >
+                          <UserRoundMinus />
+                          移除成员
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
 
-              <CardContent>
-                <div className="flex flex-col items-center justify-center gap-3">
-                  <Avatar className="size-14">
-                    <AvatarImage src={item.avatar} />
-                    <AvatarFallback>{item.nickname.charAt(0)}</AvatarFallback>
-                    <AvatarBadge className="bg-green-600 dark:bg-green-800" />
-                  </Avatar>
+                <CardContent>
+                  <div className="flex flex-col items-center justify-center gap-3">
+                    <Avatar className="size-14">
+                      <AvatarImage src={item.avatar ?? undefined} />
+                      <AvatarFallback>{name.charAt(0)}</AvatarFallback>
+                      {item.accountStatus === 'active' ? (
+                        <AvatarBadge className="bg-green-600 dark:bg-green-800" />
+                      ) : null}
+                    </Avatar>
 
-                  <div className="text-center">
-                    <h3 className="truncate text-sm font-semibold dark:text-zinc-100">
-                      {item.nickname}
-                    </h3>
-                    <p className="mt-1 truncate text-xs text-muted-foreground dark:text-zinc-400">
-                      {item.post} · {item.level}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap items-center justify-center gap-2">
-                    <div className="inline-flex items-center rounded-full border border-transparent bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground transition-colors hover:bg-secondary/80 focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2">
-                      成员
+                    <div className="text-center">
+                      <h3 className="truncate text-sm font-semibold dark:text-zinc-100">{name}</h3>
+                      <p className="mt-1 truncate text-xs text-muted-foreground dark:text-zinc-400">
+                        {[item.post, item.level].filter(Boolean).join(' · ') || '未分配岗位'}
+                      </p>
                     </div>
-                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground dark:text-zinc-400">
-                      <CheckCircle className="size-3.5 text-green-500" />
-                      已激活
-                    </span>
+
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      <div className="inline-flex items-center rounded-full border border-transparent bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground transition-colors hover:bg-secondary/80 focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                        成员
+                      </div>
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground dark:text-zinc-400">
+                        <CheckCircle className="size-3.5 text-green-500" />
+                        {accountStatusLabel(item.accountStatus)}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-              <CardFooter className="bg-transparent p-0">
-                <div className="flex flex-1 cursor-pointer items-center justify-center gap-2 px-3 py-2.5 transition-colors hover:bg-muted/50">
-                  <Mail className="size-4" />
-                  <span>邮箱</span>
-                </div>
-                <Separator orientation="vertical" className="h-full" />
-                <div className="flex flex-1 cursor-pointer items-center justify-center gap-2 px-3 py-2.5 transition-colors hover:bg-muted/50">
-                  <Phone className="size-4" />
-                  <span>电话</span>
-                </div>
-              </CardFooter>
-            </Card>
-          ))}
+                </CardContent>
+                <CardFooter className="bg-transparent p-0">
+                  <div className="flex flex-1 cursor-pointer items-center justify-center gap-2 px-3 py-2.5 transition-colors hover:bg-muted/50">
+                    <Mail className="size-4" />
+                    <span>邮箱</span>
+                  </div>
+                  <Separator orientation="vertical" className="h-full" />
+                  <div className="flex flex-1 cursor-pointer items-center justify-center gap-2 px-3 py-2.5 transition-colors hover:bg-muted/50">
+                    <Phone className="size-4" />
+                    <span>电话</span>
+                  </div>
+                </CardFooter>
+              </Card>
+            )
+          })}
         </div>
       ) : (
         <Empty className="border border-dashed">
@@ -304,7 +198,7 @@ export function OrganizationMembers({ data }: { data: OrganizationMember[] }) {
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent className="flex-row justify-center gap-2">
-            <Button type="button" onClick={handleOpenAdd}>
+            <Button type="button" onClick={() => setDialog({ type: 'add' })}>
               <UserPlus />
               添加成员
             </Button>
@@ -312,86 +206,23 @@ export function OrganizationMembers({ data }: { data: OrganizationMember[] }) {
         </Empty>
       )}
 
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>添加成员</DialogTitle>
-          </DialogHeader>
-
-          <InputGroup>
-            <InputGroupInput
-              placeholder="搜索姓名/邮箱/岗位"
-              value={addKeyword}
-              onChange={(event) => setAddKeyword(event.target.value)}
-            />
-            <InputGroupAddon>
-              <Search />
-            </InputGroupAddon>
-          </InputGroup>
-
-          <ScrollArea className="h-56 pr-2.5">
-            <ItemGroup>
-              {filteredAvailableUsers.length === 0 ? (
-                <p className="px-2 py-3 text-sm text-muted-foreground">没有匹配的用户</p>
-              ) : null}
-
-              {filteredAvailableUsers.map((user) => {
-                const isBound = isUserBound(user)
-
-                return (
-                  <Item size="xs" key={user.id} variant="outline" className="rounded-2xl">
-                    <ItemMedia>
-                      <Avatar className="size-10">
-                        <AvatarImage src={user.avatar} />
-                        <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                    </ItemMedia>
-
-                    <ItemContent>
-                      <ItemTitle>{user.name}</ItemTitle>
-                      <ItemDescription>
-                        {user.title} · {user.email}
-                      </ItemDescription>
-                    </ItemContent>
-
-                    <ItemActions>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={isBound ? 'outline' : 'default'}
-                        disabled={isBound}
-                        onClick={() => handleBindMember(user)}
-                      >
-                        {isBound ? '已添加' : '添加'}
-                      </Button>
-                    </ItemActions>
-                  </Item>
-                )
-              })}
-            </ItemGroup>
-          </ScrollArea>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog
-        open={Boolean(memberToRemove)}
+      <OrganizationAddMemberDialog
+        organizationId={organizationId}
+        memberIds={memberIds}
+        open={dialog?.type === 'add'}
         onOpenChange={(open) => {
-          if (!open) setMemberToRemove(null)
+          if (!open) setDialog(null)
         }}
-      >
-        <AlertDialogContent size="sm">
-          <AlertDialogHeader>
-            <AlertDialogTitle>移除成员</AlertDialogTitle>
-            <AlertDialogDescription>{removalMessage}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleRemoveMember}>
-              移除成员
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      />
+
+      <OrganizationRemoveMemberDialog
+        organizationId={organizationId}
+        member={dialog?.type === 'remove' ? dialog.member : null}
+        open={dialog?.type === 'remove'}
+        onOpenChange={(open) => {
+          if (!open) setDialog(null)
+        }}
+      />
     </div>
   )
 }

@@ -37,7 +37,7 @@ plugins/
 
 ## 3. Manifest
 
-推荐 `zen.plugin.json`（或 `package.json` 的 `"zen"` 字段，二选一，仓库内统一）：
+统一使用 `zen.plugin.json`（Manifest **v2**）。权限、路由、API、配置与生命周期均为结构化字段；**无独立 menus**（导航由 routes 派生）。
 
 ```json
 {
@@ -46,44 +46,42 @@ plugins/
   "version": "0.1.0",
   "platformVersion": "^0.1.0",
   "dependsOn": [],
-  "contributions": {
-    "permissions": [
-      {
-        "code": "demo:note:list",
-        "name": "查看便签",
-        "module": "demo"
-      },
-      {
-        "code": "demo:note:create",
-        "name": "创建便签",
-        "module": "demo"
-      }
-    ],
-    "routes": "./src/web/routes",
-    "menus": "./src/web/menus",
-    "widgets": "./src/web/widgets",
-    "apiModule": "./src/api/demo-notes.module",
-    "agentTools": "./src/agent/tools",
-    "events": ["./src/api/listeners"],
-    "jobs": ["./src/api/jobs"],
-    "configSchema": "./src/config.schema.ts"
-  },
-  "lifecycle": {
-    "activate": "./src/activate.ts",
-    "deactivate": "./src/deactivate.ts"
-  }
+  "permissions": [
+    { "code": "demo:note:list", "name": "查看便签列表", "module": "demo" }
+  ],
+  "api": { "entry": "./src/api/demo-notes.module", "export": "DemoNotesModule" },
+  "routes": [
+    {
+      "id": "demo-notes-home",
+      "path": "/plugins/notes",
+      "entry": "./src/web/pages/notes-page",
+      "componentExport": "NotesPage",
+      "title": "演示便签",
+      "icon": "sticky-note",
+      "order": 100,
+      "permissions": ["demo:note:list"]
+    }
+  ],
+  "config": { "entry": "./src/config.schema.ts", "schemaExport": "demoNotesConfigSchema" },
+  "lifecycle": { "entry": "./src/lifecycle.ts", "export": "lifecycle" },
+  "events": ["demo.note.created"]
 }
 ```
+
+包依赖方向：`shared/ui → plugin-sdk → plugins/* → plugin-registry → hosts`。`plugin:generate` 同时写出 SDK 注册表、`@zen/plugin-registry` loaders、以及 API/Web 宿主生成物。
 
 ### 校验规则（构建期）
 
 | 规则 | 失败行为 |
 |------|----------|
 | `id` / `version` / `platformVersion` 必填 | 构建失败 |
+| 目录名、`@zen/plugin-<id>` 包名与 Manifest.id 一致 | 构建失败 |
+| 贡献入口存在且不逃逸插件目录 | 构建失败 |
 | `dependsOn` 无环且可解析 | 构建失败 |
 | 权限码符合命名规范且不与其他插件冲突 | 构建失败 |
-| 贡献点入口可解析 | 类型检查 / 构建失败 |
+| route path / id 唯一；icon 在允许列表 | 构建失败 |
 | `platformVersion` 与当前平台兼容 | 构建失败 |
+| `plugin:generate --check` 生成物无漂移 | CI 失败 |
 
 ## 4. 生命周期
 

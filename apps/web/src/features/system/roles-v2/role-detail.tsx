@@ -43,8 +43,8 @@ import {
   useAssignRoleDataScopeMutation,
   useAssignRolePermissionsMutation,
   useUpdateRoleMutation
-} from '@/features/system/roles/mutations'
-import { usePermissionsQuery, useRoleQuery } from '@/features/system/roles/queries'
+} from '@/features/system/roles-v2/mutations'
+import { usePermissionsQuery, useRoleQuery } from '@/features/system/roles-v2/queries'
 import { useAuthStore } from '@/stores'
 
 import { PermissionMatrix } from './components/permission-matrix'

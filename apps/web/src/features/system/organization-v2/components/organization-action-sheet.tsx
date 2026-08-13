@@ -29,7 +29,6 @@ import {
 import { Building2, CalendarIcon, Loader2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
-import { toast } from 'sonner'
 import { z } from 'zod'
 
 import {
@@ -38,12 +37,12 @@ import {
   ORG_TYPES,
   ROOT_ORGANIZATION_TYPES
 } from '../data/data'
-import { organizationUsers } from '../data/mock'
 import { useOrganizations } from '../organizations-provider'
 import { OrganizationLeaderSelect } from './organization-leader-select'
 import { OrganizationParentSelect } from './organization-parent-select'
 
-import type { Organization, OrganizationLeader } from '../type'
+import type { Organization } from '../type'
+import type { OrganizationType } from '@zen/shared'
 
 interface OrganizationActionSheetProps {
   currentRow?: Organization
@@ -90,21 +89,6 @@ function formatDate(date: Date): string {
 function parseDate(value: string): Date {
   const date = new Date(`${value}T00:00:00`)
   return Number.isNaN(date.getTime()) ? TODAY : date
-}
-
-function toLeader(leaderId: string | undefined): OrganizationLeader | undefined {
-  if (!leaderId) return undefined
-  const user = organizationUsers.find((item) => item.id === leaderId)
-  if (!user) return undefined
-  return {
-    id: user.id,
-    name: user.name,
-    title: user.title,
-    avatar: user.avatar,
-    email: user.email,
-    phone: user.phone,
-    online: true
-  }
 }
 
 export function OrganizationActionSheet({
@@ -158,7 +142,6 @@ export function OrganizationActionSheet({
   const selectedParent = parentOptions.find((option) => option.id === parentId)
   const isRootEdit = isEdit && !currentRow?.parentId
 
-  /** 未选择上级组织时，视为新建根节点，可选类型限定为集团 / 公司 / 中心 */
   const childTypes = useMemo(() => {
     if (isRootEdit && currentRow) {
       return [currentRow.type]
@@ -189,7 +172,7 @@ export function OrganizationActionSheet({
         code: currentRow.code,
         type: currentRow.type,
         parentId: currentRow.parentId ?? '',
-        description: currentRow.description,
+        description: currentRow.description ?? '',
         effectiveDate: parseDate(currentRow.effectiveDate),
         leaderId: currentRow.leader?.id
       })
@@ -224,7 +207,7 @@ export function OrganizationActionSheet({
     }
   }, [open, isEdit, childTypes, form])
 
-  const handleCreateSubmit = (values: OrganizationFormValues) => {
+  const handleCreateSubmit = async (values: OrganizationFormValues) => {
     const code = values.code.trim()
     if (hasOrganizationCode(code)) {
       form.setError('code', { message: '组织编码已存在' })
@@ -233,37 +216,38 @@ export function OrganizationActionSheet({
 
     setIsSubmitting(true)
     try {
-      const created = addOrganization({
+      await addOrganization({
         name: values.name.trim(),
         code,
-        type: values.type,
-        parentId: values.parentId,
+        type: values.type as OrganizationType,
+        parentId: values.parentId.trim() ? values.parentId : null,
         description: values.description.trim(),
         effectiveDate: formatDate(values.effectiveDate),
-        leader: toLeader(values.leaderId)
+        leaderId: values.leaderId ?? null
       })
-      toast.success(`成功新建组织「${created.name}」`)
       onOpenChange(false)
+    } catch {
+      // mutation toast
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  const handleUpdateSubmit = (values: OrganizationFormValues) => {
+  const handleUpdateSubmit = async (values: OrganizationFormValues) => {
     if (!currentRow) return
 
     setIsSubmitting(true)
     try {
-      const updated = updateOrganization(currentRow.id, {
+      await updateOrganization(currentRow.id, {
         name: values.name.trim(),
-        type: values.type,
-        parentId: isRootEdit ? '' : values.parentId,
+        type: values.type as OrganizationType,
+        parentId: isRootEdit ? null : values.parentId.trim() ? values.parentId : null,
         description: values.description.trim(),
-        effectiveDate: formatDate(values.effectiveDate),
-        leader: currentRow.leader
+        effectiveDate: formatDate(values.effectiveDate)
       })
-      toast.success(`已更新组织「${updated?.name ?? values.name.trim()}」`)
       onOpenChange(false)
+    } catch {
+      // mutation toast
     } finally {
       setIsSubmitting(false)
     }

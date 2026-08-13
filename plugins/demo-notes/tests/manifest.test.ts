@@ -11,7 +11,7 @@ describe('demo-notes manifest', () => {
     expect(parsed.success).toBe(true)
     if (parsed.success) {
       expect(parsed.data.id).toBe('demo-notes')
-      expect(parsed.data.contributions.permissions.length).toBe(5)
+      expect(parsed.data.permissions.length).toBe(5)
     }
   })
 })

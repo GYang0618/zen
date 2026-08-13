@@ -1,34 +1,23 @@
 import { Module } from '@nestjs/common'
-import { DemoNotesModule } from '@zen/plugin-demo-notes/api'
-import { FilesModule } from '@zen/plugin-files/api'
-import { JobsModule } from '@zen/plugin-jobs/api'
-import { NotificationsModule } from '@zen/plugin-notifications/api'
 
+import { PLUGIN_API_LOADERS } from '@/generated/plugin-api.gen'
 import { PrismaModule, PrismaService } from '@/infra/prisma'
 
+import type { DynamicModule } from '@nestjs/common'
+
 /**
- * 编译期插件 Nest Module 聚合入口。
- * 按仓库插件注册表展开 DynamicModule。
+ * 编译期插件 Nest Module 聚合入口（由 plugin-api.gen.ts 驱动）。
  */
 @Module({
   imports: [
     PrismaModule,
-    DemoNotesModule.forRootAsync({
-      inject: [PrismaService],
-      useFactory: (prisma: PrismaService) => ({ prisma })
-    }),
-    NotificationsModule.forRootAsync({
-      inject: [PrismaService],
-      useFactory: (prisma: PrismaService) => ({ prisma })
-    }),
-    FilesModule.forRootAsync({
-      inject: [PrismaService],
-      useFactory: (prisma: PrismaService) => ({ prisma })
-    }),
-    JobsModule.forRootAsync({
-      inject: [PrismaService],
-      useFactory: (prisma: PrismaService) => ({ prisma })
-    })
+    ...PLUGIN_API_LOADERS.map(
+      (loader) =>
+        loader.module.forRootAsync({
+          inject: [PrismaService],
+          useFactory: (prisma: PrismaService) => ({ prisma })
+        }) as DynamicModule
+    )
   ]
 })
 export class PluginsModule {}

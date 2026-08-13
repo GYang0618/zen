@@ -11,8 +11,8 @@ export function UsersPrimaryButtons() {
   return (
     <div className="flex gap-2">
       <Can permission={PermissionCode.USER_CREATE}>
-        <Button onClick={() => setOpen('add')}>
-          <UserPlus data-icon="inline-start" />
+        <Button size="lg" onClick={() => setOpen('add')}>
+          <UserPlus />
           添加用户
         </Button>
       </Can>

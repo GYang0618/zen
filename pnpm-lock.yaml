@@ -362,6 +362,9 @@ importers:
       '@zen/plugin-notifications':
         specifier: workspace:*
         version: link:../../plugins/notifications
+      '@zen/plugin-registry':
+        specifier: workspace:*
+        version: link:../../packages/plugin-registry
       '@zen/request':
         specifier: workspace:*
         version: link:../../packages/request
@@ -469,6 +472,37 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@opentelemetry/api@1.9.1)(@types/node@26.1.1)(msw@2.12.14(@types/node@26.1.1)(@typescript/typescript6@6.0.2))(vite@8.1.5(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.1)(yaml@2.9.0))
 
+  packages/plugin-registry:
+    dependencies:
+      '@zen/plugin-demo-notes':
+        specifier: workspace:*
+        version: link:../../plugins/demo-notes
+      '@zen/plugin-files':
+        specifier: workspace:*
+        version: link:../../plugins/files
+      '@zen/plugin-jobs':
+        specifier: workspace:*
+        version: link:../../plugins/jobs
+      '@zen/plugin-notifications':
+        specifier: workspace:*
+        version: link:../../plugins/notifications
+      '@zen/plugin-sdk':
+        specifier: workspace:*
+        version: link:../plugin-sdk
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@types/node':
+        specifier: ^26.1.1
+        version: 26.1.1
+      '@typescript/native':
+        specifier: npm:typescript@7.0.2
+        version: typescript@7.0.2
+      typescript:
+        specifier: npm:@typescript/typescript6@6.0.2
+        version: '@typescript/typescript6@6.0.2'
+
   packages/plugin-sdk:
     dependencies:
       '@zen/shared':
@@ -478,6 +512,9 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
+      '@nestjs/common':
+        specifier: ^11.1.28
+        version: 11.1.28(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
       '@types/node':
         specifier: ^26.1.1
         version: 26.1.1

@@ -1,24 +1,27 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { PluginInstallStatus } from '@prisma/client'
 import { REQUIRE_PLUGIN_ID_KEY } from '@zen/plugin-sdk'
 import { DEFAULT_TENANT_ID } from '@zen/shared'
 
-import { PrismaService } from '@/infra/prisma'
-
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator'
+import { TenantPluginStateService } from '@/modules/plugin/tenant-plugin-state.service'
 
 import type { CanActivate, ExecutionContext } from '@nestjs/common'
+import type { AuthContext } from '@zen/shared'
+
+type AuthedRequest = {
+  auth?: AuthContext
+}
 
 /**
  * 若 handler/class 声明了 RequirePlugin，则校验租户安装状态为 ACTIVE。
- * 停用后返回 404。
+ * 停用或缺少安装记录时返回 404（fail-closed）。
  */
 @Injectable()
 export class PluginActiveGuard implements CanActivate {
   constructor(
     @Inject(Reflector) private readonly reflector: Reflector,
-    @Inject(PrismaService) private readonly prisma: PrismaService
+    @Inject(TenantPluginStateService) private readonly pluginState: TenantPluginStateService
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -34,16 +37,10 @@ export class PluginActiveGuard implements CanActivate {
     ])
     if (!pluginId) return true
 
-    const installation = await this.prisma.pluginInstallation.findUnique({
-      where: {
-        tenantId_pluginId: {
-          tenantId: DEFAULT_TENANT_ID,
-          pluginId
-        }
-      }
-    })
-
-    if (!installation || installation.status !== PluginInstallStatus.ACTIVE) {
+    const request = context.switchToHttp().getRequest<AuthedRequest>()
+    const tenantId = request.auth?.tenantId ?? DEFAULT_TENANT_ID
+    const active = await this.pluginState.isActive(pluginId, tenantId)
+    if (!active) {
       throw new NotFoundException(`插件未启用: ${pluginId}`)
     }
 

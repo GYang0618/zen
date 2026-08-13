@@ -1,6 +1,8 @@
 export * from './apply-data-scope'
 export * from './constants'
 export * from './discover'
+export * from './generate-host'
+export * from './generate-loaders'
 export * from './generate-registry'
 export { PLUGIN_REGISTRY } from './generated/plugin-registry.gen'
 export * from './manifest.schema'

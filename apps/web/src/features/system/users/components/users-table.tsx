@@ -26,7 +26,8 @@ import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
 import { useTableUrlState } from '@/hooks'
 import { toOptions } from '@/lib/config-utils'
 
-import { roleConfig, statusConfig } from '../data/data'
+import { statusConfig } from '../data/data'
+import { useRoleOptionsQuery } from '../queries'
 import { DataTableBulkActions } from './data-table-bulk-actions'
 import { usersColumns as columns } from './users-columns'
 
@@ -37,7 +38,7 @@ import type { NavigateFn } from '@/hooks'
 const USERS_SORTABLE_COLUMNS: Record<UsersSortBy, true> = {
   username: true,
   email: true,
-  jobTitle: true,
+  lastLoginAt: true,
   createdAt: true
 }
 
@@ -63,6 +64,11 @@ export function UsersTable({
 }: DataTableProps) {
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+  const { data: rolesPage } = useRoleOptionsQuery()
+  const roleFilterOptions = useMemo(
+    () => (rolesPage?.items ?? []).map((role) => ({ label: role.name, value: role.code })),
+    [rolesPage?.items]
+  )
   const sorting = useMemo<SortingState>(() => {
     if (!search.sortBy) return []
     return [{ id: search.sortBy, desc: search.sortOrder !== 'asc' }]
@@ -83,7 +89,7 @@ export function UsersTable({
     globalFilter: { enabled: true, key: 'keyword', trim: true },
     columnFilters: [
       { columnId: 'status', searchKey: 'status', type: 'array' },
-      { columnId: 'role', searchKey: 'role', type: 'array' }
+      { columnId: 'roles', searchKey: 'role', type: 'array' }
     ]
   })
 
@@ -143,6 +149,7 @@ export function UsersTable({
       const searchFields = [
         row.original.username,
         row.original.nickname,
+        row.original.realName,
         row.original.email,
         row.original.phoneNumber
       ]
@@ -168,7 +175,7 @@ export function UsersTable({
     <div className={cn('max-sm:has-[div[role="toolbar"]]:mb-16', 'flex flex-1 flex-col gap-4')}>
       <DataTableToolbar
         table={table}
-        searchPlaceholder="搜索用户名、昵称、邮箱、手机号"
+        searchPlaceholder="搜索用户名、姓名、邮箱、手机号"
         searchValue={globalFilter ?? undefined}
         onSearchChange={handleSearchChange}
         filters={[
@@ -178,9 +185,9 @@ export function UsersTable({
             options: toOptions(statusConfig)
           },
           {
-            columnId: 'role',
+            columnId: 'roles',
             title: '角色',
-            options: toOptions(roleConfig)
+            options: roleFilterOptions
           }
         ]}
       />

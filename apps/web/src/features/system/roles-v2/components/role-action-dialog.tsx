@@ -27,7 +27,7 @@ import { Controller, useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import { useCreateRoleMutation, useUpdateRoleMutation } from '@/features/system/roles/mutations'
+import { useCreateRoleMutation, useUpdateRoleMutation } from '@/features/system/roles-v2/mutations'
 
 import { RoleIconColorPicker } from './role-icon-color-picker'
 import { RoleIconPicker } from './role-icon-picker'

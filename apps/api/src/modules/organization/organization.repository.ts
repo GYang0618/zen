@@ -6,10 +6,20 @@ import type { Prisma } from '@prisma/client'
 
 export const ORGANIZATION_INCLUDE = {
   leader: {
-    select: { id: true, username: true, nickname: true }
+    select: {
+      id: true,
+      username: true,
+      nickname: true,
+      email: true,
+      phoneNumber: true,
+      profile: { select: { realName: true, avatar: true, jobTitle: true } }
+    }
   },
   _count: {
-    select: { users: true, children: true }
+    select: {
+      users: { where: { leftAt: null } },
+      posts: true
+    }
   }
 } satisfies Prisma.OrganizationInclude
 
@@ -28,29 +38,22 @@ export class OrganizationRepository {
     })
   }
 
-  findByCode(code: string) {
-    return this.prisma.organization.findUnique({ where: { code } })
-  }
-
-  findManyByIds(ids: string[]) {
-    return this.prisma.organization.findMany({
-      where: { id: { in: ids } },
+  findByIdInScope(id: string, scope: Prisma.OrganizationWhereInput) {
+    return this.prisma.organization.findFirst({
+      where: { AND: [{ id }, scope] },
       include: ORGANIZATION_INCLUDE
     })
   }
 
-  findAll() {
-    return this.prisma.organization.findMany({
-      include: ORGANIZATION_INCLUDE,
-      orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }]
-    })
+  findByCode(code: string) {
+    return this.prisma.organization.findUnique({ where: { code } })
   }
 
   findMany(where: Prisma.OrganizationWhereInput = {}) {
     return this.prisma.organization.findMany({
       where,
       include: ORGANIZATION_INCLUDE,
-      orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }]
+      orderBy: [{ name: 'asc' }, { id: 'asc' }]
     })
   }
 
@@ -58,6 +61,19 @@ export class OrganizationRepository {
     return this.prisma.organization.findMany({
       where: { path: { startsWith: pathPrefix } },
       select: { id: true, path: true, level: true }
+    })
+  }
+
+  countDescendantsByPathPrefix(pathPrefix: string, scope: Prisma.OrganizationWhereInput = {}) {
+    return this.prisma.organization.count({
+      where: { AND: [{ path: { startsWith: pathPrefix } }, scope] }
+    })
+  }
+
+  findChildrenTypes(parentId: string) {
+    return this.prisma.organization.findMany({
+      where: { parentId },
+      select: { id: true, type: true }
     })
   }
 
@@ -93,15 +109,9 @@ export class OrganizationRepository {
     )
   }
 
-  deleteManyByIds(ids: string[]) {
-    return this.prisma.organization.deleteMany({
-      where: { id: { in: ids } }
-    })
-  }
-
   findActiveUserById(userId: string) {
     return this.prisma.user.findFirst({
-      where: { id: userId, deletedAt: null },
+      where: { id: userId, deletedAt: null, status: 'ACTIVE' },
       select: { id: true }
     })
   }
@@ -110,50 +120,54 @@ export class OrganizationRepository {
     return this.prisma.userOrganization.findMany({
       where: { organizationId, leftAt: null },
       include: {
-        user: { select: { id: true, username: true, nickname: true, email: true } },
-        post: { select: { id: true, code: true, name: true } }
+        user: {
+          select: {
+            id: true,
+            username: true,
+            nickname: true,
+            email: true,
+            phoneNumber: true,
+            status: true,
+            profile: { select: { avatar: true } }
+          }
+        },
+        post: { select: { id: true, name: true, level: true } },
+        organization: { select: { name: true } }
       },
-      orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }]
+      orderBy: [{ user: { username: 'asc' } }, { userId: 'asc' }]
     })
   }
 
-  async upsertMember(input: {
-    organizationId: string
-    userId: string
-    isPrimary: boolean
-    postId?: string | null
-  }) {
-    if (input.isPrimary) {
-      await this.prisma.userOrganization.updateMany({
-        where: { userId: input.userId, leftAt: null, isPrimary: true },
-        data: { isPrimary: false }
-      })
-    }
-
+  addMember(organizationId: string, userId: string) {
     return this.prisma.userOrganization.upsert({
       where: {
-        userId_organizationId: {
-          userId: input.userId,
-          organizationId: input.organizationId
-        }
+        userId_organizationId: { userId, organizationId }
       },
       create: {
-        userId: input.userId,
-        organizationId: input.organizationId,
-        isPrimary: input.isPrimary,
-        postId: input.postId ?? null,
+        userId,
+        organizationId,
+        isPrimary: false,
         joinedAt: new Date(),
         leftAt: null
       },
       update: {
-        isPrimary: input.isPrimary,
-        postId: input.postId ?? null,
         leftAt: null,
         joinedAt: new Date()
       },
       include: {
-        user: { select: { id: true, username: true, nickname: true, email: true } },
-        post: { select: { id: true, code: true, name: true } }
+        user: {
+          select: {
+            id: true,
+            username: true,
+            nickname: true,
+            email: true,
+            phoneNumber: true,
+            status: true,
+            profile: { select: { avatar: true } }
+          }
+        },
+        post: { select: { id: true, name: true, level: true } },
+        organization: { select: { name: true } }
       }
     })
   }
@@ -165,11 +179,11 @@ export class OrganizationRepository {
     })
   }
 
-  listPosts(organizationId?: string) {
+  listPositions(organizationId: string) {
     return this.prisma.post.findMany({
-      where: organizationId ? { organizationId } : undefined,
-      orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
-      include: { _count: { select: { users: true } } }
+      where: { organizationId },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+      include: { _count: { select: { users: { where: { leftAt: null } } } } }
     })
   }
 
@@ -177,29 +191,40 @@ export class OrganizationRepository {
     return this.prisma.post.findUnique({ where: { code } })
   }
 
-  findPostById(id: string) {
-    return this.prisma.post.findUnique({
-      where: { id },
-      include: { _count: { select: { users: true } } }
-    })
-  }
-
-  createPost(data: Prisma.PostCreateInput) {
+  createPosition(data: Prisma.PostCreateInput) {
     return this.prisma.post.create({
       data,
-      include: { _count: { select: { users: true } } }
+      include: { _count: { select: { users: { where: { leftAt: null } } } } }
     })
   }
 
-  updatePost(id: string, data: Prisma.PostUpdateInput) {
-    return this.prisma.post.update({
-      where: { id },
-      data,
-      include: { _count: { select: { users: true } } }
+  countActivities(tenantId: string, organizationId: string) {
+    return this.prisma.auditLog.count({
+      where: { tenantId, resource: 'organization', resourceId: organizationId }
     })
   }
 
-  deletePost(id: string) {
-    return this.prisma.post.delete({ where: { id } })
+  listActivities(
+    tenantId: string,
+    organizationId: string,
+    pagination: { skip: number; take: number }
+  ) {
+    return this.prisma.auditLog.findMany({
+      where: { tenantId, resource: 'organization', resourceId: organizationId },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      ...pagination
+    })
+  }
+
+  findActivityActors(ids: string[]) {
+    return this.prisma.user.findMany({
+      where: { id: { in: ids } },
+      select: {
+        id: true,
+        username: true,
+        nickname: true,
+        profile: { select: { realName: true, avatar: true } }
+      }
+    })
   }
 }

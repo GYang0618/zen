@@ -28,7 +28,7 @@ import { ConfigDrawer, ProfileDropdown, Search, ThemeSwitch } from '@/components
 import { Can } from '@/components/auth/can'
 import { Header, Main } from '@/components/layouts'
 import { AppPageHeader } from '@/components/layouts/app-page-header'
-import { EmptyState } from '@/features/system/config/components'
+import { EmptyState } from '@/components/empty-state'
 
 import { useCreateDictItem, useCreateDictType, useDictList } from './queries'
 

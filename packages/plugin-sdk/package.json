@@ -15,6 +15,10 @@
     "./registry": {
       "types": "./dist/generated/plugin-registry.gen.d.ts",
       "default": "./dist/generated/plugin-registry.gen.js"
+    },
+    "./nest": {
+      "types": "./dist/nest/index.d.ts",
+      "default": "./dist/nest/index.js"
     }
   },
   "files": [
@@ -33,7 +37,16 @@
     "@zen/shared": "workspace:*",
     "zod": "^4.4.3"
   },
+  "peerDependencies": {
+    "@nestjs/common": "^11.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@nestjs/common": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@nestjs/common": "^11.1.28",
     "@types/node": "^26.1.1",
     "@typescript/native": "npm:typescript@7.0.2",
     "typescript": "npm:@typescript/typescript6@6.0.2",

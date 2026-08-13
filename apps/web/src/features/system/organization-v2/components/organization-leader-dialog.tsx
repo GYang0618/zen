@@ -17,14 +17,13 @@ import {
   Input
 } from '@zen/ui'
 import { Loader2, Mail, Phone, UserRound } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
-import { organizationUsers } from '../data/mock'
 import { useOrganizations } from '../organizations-provider'
 import { OrganizationLeaderSelect } from './organization-leader-select'
 
-import type { Organization, OrganizationLeader } from '../type'
+import type { Organization, OrganizationUserOption } from '../type'
 
 interface OrganizationLeaderDialogProps {
   currentRow: Organization
@@ -32,17 +31,14 @@ interface OrganizationLeaderDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-function toLeader(userId: string): OrganizationLeader | undefined {
-  const user = organizationUsers.find((item) => item.id === userId)
-  if (!user) return undefined
+function toUserOption(leader: NonNullable<Organization['leader']>): OrganizationUserOption {
   return {
-    id: user.id,
-    name: user.name,
-    title: user.title,
-    avatar: user.avatar,
-    email: user.email,
-    phone: user.phone,
-    online: true
+    id: leader.id,
+    name: leader.name,
+    title: leader.title ?? '',
+    avatar: leader.avatar ?? '',
+    email: leader.email ?? '',
+    phone: leader.phone ?? ''
   }
 }
 
@@ -53,34 +49,36 @@ export function OrganizationLeaderDialog({
 }: OrganizationLeaderDialogProps) {
   const { updateOrganizationLeader } = useOrganizations()
   const [leaderId, setLeaderId] = useState(currentRow.leader?.id ?? '')
+  const [preview, setPreview] = useState<OrganizationUserOption | undefined>(
+    currentRow.leader ? toUserOption(currentRow.leader) : undefined
+  )
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const preview = organizationUsers.find((user) => user.id === leaderId)
+  const selectedUser = useMemo(
+    () => (currentRow.leader ? toUserOption(currentRow.leader) : undefined),
+    [currentRow.leader]
+  )
 
   useEffect(() => {
     if (!open) return
     setLeaderId(currentRow.leader?.id ?? '')
+    setPreview(currentRow.leader ? toUserOption(currentRow.leader) : undefined)
     setIsSubmitting(false)
   }, [open, currentRow])
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!leaderId) {
       toast.error('请选择负责人')
       return
     }
 
-    const leader = toLeader(leaderId)
-    if (!leader) {
-      toast.error('未找到对应用户')
-      return
-    }
-
     setIsSubmitting(true)
     try {
-      updateOrganizationLeader(currentRow.id, leader)
-      toast.success(`已将「${currentRow.name}」负责人更新为 ${leader.name}`)
+      await updateOrganizationLeader(currentRow.id, leaderId)
       onOpenChange(false)
+    } catch {
+      // mutation toast
     } finally {
       setIsSubmitting(false)
     }
@@ -115,22 +113,26 @@ export function OrganizationLeaderDialog({
                 <OrganizationLeaderSelect
                   id="organization-leader-user"
                   value={leaderId}
-                  onValueChange={(user) => setLeaderId(user.id)}
+                  selectedUser={preview ?? selectedUser}
+                  onValueChange={(user) => {
+                    setLeaderId(user.id)
+                    setPreview(user)
+                  }}
                 />
                 <FieldDescription>从用户表中选择组织负责人。</FieldDescription>
               </FieldContent>
             </Field>
 
             {preview ? (
-              <div className="rounded-xl border bg-muted/30 p-4 space-y-4">
+              <div className="space-y-4 rounded-xl border bg-muted/30 p-4">
                 <div className="flex items-center gap-3">
                   <Avatar className="size-12">
-                    <AvatarImage src={preview.avatar} alt={preview.name} />
+                    <AvatarImage src={preview.avatar || undefined} alt={preview.name} />
                     <AvatarFallback>{preview.name.slice(0, 1)}</AvatarFallback>
                   </Avatar>
                   <div className="min-w-0">
                     <p className="font-medium">{preview.name}</p>
-                    <p className="text-sm text-muted-foreground">{preview.title}</p>
+                    <p className="text-sm text-muted-foreground">{preview.title || '—'}</p>
                   </div>
                 </div>
                 <Field>
@@ -139,7 +141,7 @@ export function OrganizationLeaderDialog({
                     <Phone className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       id="organization-leader-phone"
-                      value={preview.phone}
+                      value={preview.phone || '—'}
                       readOnly
                       className="pl-8"
                     />
@@ -151,7 +153,7 @@ export function OrganizationLeaderDialog({
                     <Mail className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       id="organization-leader-email"
-                      value={preview.email}
+                      value={preview.email || '—'}
                       readOnly
                       className="pl-8"
                     />

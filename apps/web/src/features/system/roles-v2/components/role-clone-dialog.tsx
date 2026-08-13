@@ -30,7 +30,7 @@ import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import { useCloneRoleMutation } from '@/features/system/roles/mutations'
+import { useCloneRoleMutation } from '@/features/system/roles-v2/mutations'
 
 import type { Role } from '@zen/shared'
 

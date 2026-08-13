@@ -19,6 +19,10 @@
       "import": "./src/web/index.ts",
       "default": "./src/web/index.ts"
     },
+    "./lifecycle": {
+      "types": "./dist/lifecycle.d.ts",
+      "default": "./dist/lifecycle.js"
+    },
     "./config": {
       "types": "./dist/config.schema.d.ts",
       "default": "./dist/config.schema.js"

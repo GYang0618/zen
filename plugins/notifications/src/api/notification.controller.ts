@@ -1,12 +1,10 @@
 import { Body, Controller, Get, Inject, Param, Patch, Post } from '@nestjs/common'
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger'
+import { CurrentAuth, RequirePermission, RequirePlugin, ZodValidationPipe } from '@zen/plugin-sdk/nest'
 
 import { NOTIF_PERMISSIONS, NOTIFICATIONS_PLUGIN_ID } from '../constants'
 import { createNotificationSchema } from '../notification.schema'
-import { CurrentAuth } from './current-auth'
-import { RequirePermission, RequirePlugin } from './nest-decorators'
 import { NotificationService } from './notification.service'
-import { ZodValidationPipe } from './zod-validation.pipe'
 
 import type { AuthContext } from '@zen/shared'
 import type { CreateNotificationInput, NotificationDto } from '../notification.schema'

@@ -23,9 +23,9 @@ import { toast } from 'sonner'
 
 import { ConfigDrawer, ConfirmDialog, ProfileDropdown, Search, ThemeSwitch } from '@/components'
 import { Can } from '@/components/auth/can'
+import { EmptyState } from '@/components/empty-state'
 import { Header, Main } from '@/components/layouts'
 import { AppPageHeader } from '@/components/layouts/app-page-header'
-import { EmptyState } from '@/features/system/config/components'
 
 import {
   useActivatePlugin,

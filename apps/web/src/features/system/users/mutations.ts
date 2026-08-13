@@ -5,7 +5,11 @@ import { userApi } from './api'
 const USERS_LIST_QUERY_KEY = ['system', 'users', 'list'] as const
 
 function invalidateUserQueries(queryClient: ReturnType<typeof useQueryClient>, userId?: string) {
-  const tasks = [queryClient.invalidateQueries({ queryKey: USERS_LIST_QUERY_KEY })]
+  const tasks = [
+    queryClient.invalidateQueries({ queryKey: USERS_LIST_QUERY_KEY }),
+    queryClient.invalidateQueries({ queryKey: ['organization-v2'] }),
+    queryClient.invalidateQueries({ queryKey: ['system', 'roles'] })
+  ]
   if (userId) {
     tasks.push(queryClient.invalidateQueries({ queryKey: ['system', 'users', 'detail', userId] }))
   }
@@ -19,7 +23,7 @@ export function useCreateUserMutation() {
     mutationKey: ['system', 'users', 'create'],
     mutationFn: userApi.createUser,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: USERS_LIST_QUERY_KEY })
+      await invalidateUserQueries(queryClient)
     }
   })
 }
@@ -45,7 +49,7 @@ export function useDeleteUsersMutation() {
     mutationFn: ({ ids, stepUpToken }: { ids: string[]; stepUpToken: string }) =>
       userApi.deleteUsers(ids, stepUpToken),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: USERS_LIST_QUERY_KEY })
+      await invalidateUserQueries(queryClient)
     }
   })
 }
@@ -57,7 +61,7 @@ export function useUpdateUsersStatusMutation() {
     mutationKey: ['system', 'users', 'status'],
     mutationFn: userApi.updateUsersStatus,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: USERS_LIST_QUERY_KEY })
+      await invalidateUserQueries(queryClient)
     }
   })
 }

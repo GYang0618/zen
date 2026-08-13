@@ -1,60 +1,55 @@
-import { Shield, UserCheck, Users } from 'lucide-react'
-
-import type { UserStatus } from '@zen/shared'
-import type { LucideIcon } from 'lucide-react'
+import type { UserGender, UserStatus } from '@zen/shared'
 
 interface StatusConfig {
   label: string
-  color: string
-}
-
-interface RoleConfig {
-  label: string
-  icon?: LucideIcon
+  className: string
 }
 
 export const statusConfig: Record<UserStatus, StatusConfig> = {
   active: {
-    label: '激活',
-    color: 'bg-teal-100/30 text-teal-900 dark:text-teal-200 border-teal-200'
+    label: '已激活',
+    className:
+      'border-green-700/20 bg-green-50 text-green-700 dark:border-green-700/60 dark:bg-green-950 dark:text-green-300'
   },
   inactive: {
     label: '未激活',
-    color: 'bg-neutral-300/40 border-neutral-300'
+    className:
+      'border-zinc-500/20 bg-zinc-50 text-zinc-600 dark:border-zinc-500/60 dark:bg-zinc-900 dark:text-zinc-300'
   },
   pending: {
     label: '待审核',
-    color: 'bg-sky-200/40 text-sky-900 dark:text-sky-100 border-sky-300'
+    className:
+      'border-sky-700/20 bg-sky-50 text-sky-700 dark:border-sky-700/60 dark:bg-sky-950 dark:text-sky-300'
   },
   suspended: {
     label: '已停用',
-    color:
-      'bg-destructive/10 dark:bg-destructive/50 text-destructive dark:text-primary border-destructive/10'
-  }
-} as const
-
-const fallbackRole: RoleConfig = { label: '—', icon: Users }
-
-export const roleConfig: Record<string, RoleConfig> = {
-  super_admin: {
-    label: '超级管理员',
-    icon: Shield
-  },
-  user: {
-    label: '普通用户',
-    icon: Users
-  },
-  admin: {
-    label: '管理员',
-    icon: UserCheck
-  },
-  guest: {
-    label: '访客',
-    icon: Users
+    className:
+      'border-red-700/20 bg-red-50 text-red-700 dark:border-red-700/60 dark:bg-red-950 dark:text-red-300'
   }
 }
 
-export function getRoleDisplay(role: string | null): RoleConfig {
-  if (!role) return fallbackRole
-  return roleConfig[role] ?? { label: role, icon: Users }
+export const statusOptions = (Object.entries(statusConfig) as [UserStatus, StatusConfig][]).map(
+  ([value, config]) => ({
+    value,
+    label: config.label
+  })
+)
+
+export const genderLabels: Record<UserGender, string> = {
+  male: '男',
+  female: '女',
+  unknown: '未知'
+}
+
+export const genderOptions = (Object.entries(genderLabels) as [UserGender, string][]).map(
+  ([value, label]) => ({ value, label })
+)
+
+export const organizationTypeLabels: Record<string, string> = {
+  group: '集团',
+  company: '公司',
+  branch: '分公司',
+  center: '中心',
+  department: '部门',
+  team: '小组'
 }

@@ -151,46 +151,6 @@ export function isOrganizationDescendant(
   return flattenOrganizations(ancestor.children).some((node) => node.id === candidateId)
 }
 
-function reorderChildren(
-  children: Organization[],
-  activeId: string,
-  overId: string
-): Organization[] {
-  const oldIndex = children.findIndex((child) => child.id === activeId)
-  const newIndex = children.findIndex((child) => child.id === overId)
-  if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return children
-  const next = [...children]
-  const [moved] = next.splice(oldIndex, 1)
-  next.splice(newIndex, 0, moved)
-  return next
-}
-
-/**
- * 在同一父节点下调整兄弟节点顺序。
- * parentId 为空时表示调整顶层根组织（如多个集团）之间的顺序，直接对传入的顶层数组重排。
- */
-export function reorderOrganizationSiblings(
-  nodes: Organization[],
-  parentId: string | undefined,
-  activeId: string,
-  overId: string
-): Organization[] {
-  if (!parentId) {
-    return reorderChildren(nodes, activeId, overId)
-  }
-
-  const walk = (list: Organization[]): Organization[] =>
-    list.map((node) => {
-      if (node.id === parentId) {
-        return { ...node, children: reorderChildren(node.children ?? [], activeId, overId) }
-      }
-      if (!node.children?.length) return node
-      return { ...node, children: walk(node.children) }
-    })
-
-  return walk(nodes)
-}
-
 /** 将节点移动到新的父节点下（追加为最后一个子节点） */
 export function moveOrganizationToParent(
   nodes: Organization[],
@@ -206,21 +166,11 @@ export function moveOrganizationToParent(
   return insertOrganizationChild(tree, newParentId, updated)
 }
 
-function normalizeOrgType(type: string): string {
-  return type.toUpperCase()
-}
-
-function isSameOrganizationType(left: string, right: string): boolean {
-  return normalizeOrgType(left) === normalizeOrgType(right)
-}
-
-export type OrganizationDropAction =
-  | 'reorder-siblings'
-  | 'reparent-as-child'
-  | 'reparent-as-sibling'
+export type OrganizationDropAction = 'reparent-as-child'
 
 export type OrganizationDropRejectionReason =
   | 'same-organization'
+  | 'same-parent'
   | 'source-not-found'
   | 'target-not-found'
   | 'own-descendant'
@@ -230,40 +180,15 @@ export type OrganizationDropValidation =
   | {
       isValid: true
       action: OrganizationDropAction
-      /** 顶层根组织之间重排时没有父节点，此时为 undefined */
-      destinationParentId: string | undefined
+      destinationParentId: string
     }
   | {
       isValid: false
       reason: OrganizationDropRejectionReason
     }
 
-/** 解析拖拽落点：同类型视为挂到目标父节点下成为兄弟节点 */
-function resolveOrganizationDropAction(
-  nodes: Organization[],
-  activeNode: Organization,
-  overNode: Organization
-): OrganizationDropAction | null {
-  if (activeNode.parentId === overNode.parentId) return 'reorder-siblings'
-
-  if (isSameOrganizationType(activeNode.type, overNode.type) && overNode.parentId) {
-    const parent = findOrganization(nodes, overNode.parentId)
-    if (parent && canOrganizationBeChildOf(activeNode.type, parent.type)) {
-      return 'reparent-as-sibling'
-    }
-    return null
-  }
-
-  if (canOrganizationBeChildOf(activeNode.type, overNode.type)) {
-    return 'reparent-as-child'
-  }
-
-  return null
-}
-
 /**
- * 校验拖拽落点，并返回明确的移动方式或拒绝原因。
- * 所有拖拽预览和提交应基于同一个初始树快照调用，避免预览状态影响最终校验。
+ * 校验拖拽落点：仅支持把来源节点挂到目标节点下成为其子节点。
  */
 export function validateOrganizationDrop(
   nodes: Organization[],
@@ -288,19 +213,19 @@ export function validateOrganizationDrop(
     return { isValid: false, reason: 'target-not-found' }
   }
 
-  const action = resolveOrganizationDropAction(nodes, activeNode, overNode)
-  if (!action) {
+  if ((activeNode.parentId ?? null) === overNode.id) {
+    return { isValid: false, reason: 'same-parent' }
+  }
+
+  if (!canOrganizationBeChildOf(activeNode.type, overNode.type)) {
     return { isValid: false, reason: 'incompatible-hierarchy' }
   }
 
-  const destinationParentId =
-    action === 'reparent-as-child'
-      ? overNode.id
-      : action === 'reparent-as-sibling'
-        ? overNode.parentId
-        : activeNode.parentId
-
-  return { isValid: true, action, destinationParentId }
+  return {
+    isValid: true,
+    action: 'reparent-as-child',
+    destinationParentId: overNode.id
+  }
 }
 
 /** 校验拖拽是否满足组织层级关系 */
@@ -335,15 +260,15 @@ export function getOrganizationDropRejectionMessage(
     }
     case 'same-organization':
       return '不能拖拽到当前组织自身'
+    case 'same-parent':
+      return '已在该组织下'
     case 'source-not-found':
     case 'target-not-found':
       return '目标组织不存在，请重试'
   }
 }
 
-/**
- * 拖拽落点处理：同父级重排；同类型挂到目标父节点下成为兄弟；否则作为目标子节点
- */
+/** 拖拽落点处理：仅将源节点移动到目标节点下 */
 export function moveOrganizationInTree(
   nodes: Organization[],
   activeId: string,
@@ -351,31 +276,7 @@ export function moveOrganizationInTree(
 ): Organization[] | null {
   const validation = validateOrganizationDrop(nodes, activeId, overId)
   if (!validation.isValid) return null
-
-  const activeNode = findOrganization(nodes, activeId)
-  if (!activeNode) return null
-
-  const overNode = findOrganization(nodes, overId)
-  if (!overNode) return null
-
-  switch (validation.action) {
-    case 'reorder-siblings':
-      return reorderOrganizationSiblings(nodes, activeNode.parentId, activeId, overId)
-    case 'reparent-as-sibling': {
-      if (!overNode.parentId) return null
-      const parentId = overNode.parentId
-      const tree =
-        activeNode.parentId === parentId
-          ? nodes
-          : moveOrganizationToParent(nodes, activeId, parentId)
-      if (!tree) return null
-      return reorderOrganizationSiblings(tree, parentId, activeId, overId)
-    }
-    case 'reparent-as-child':
-      return moveOrganizationToParent(nodes, activeId, overId)
-    default:
-      return null
-  }
+  return moveOrganizationToParent(nodes, activeId, validation.destinationParentId)
 }
 
 export function removeOrganizationFromTree(
@@ -410,8 +311,4 @@ export function formatEffectiveDate(value: string): string {
     month: 'long',
     day: 'numeric'
   }).format(date)
-}
-
-export function formatBudget(value: number): string {
-  return `${value.toLocaleString('zh-CN')}¥`
 }

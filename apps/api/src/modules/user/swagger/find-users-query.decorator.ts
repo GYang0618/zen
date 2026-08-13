@@ -24,7 +24,7 @@ export function ApiFindUsersQueryDocs() {
       name: 'keyword',
       required: false,
       type: String,
-      description: '关键字：邮箱、用户名、昵称、手机号',
+      description: '关键字：邮箱、用户名、昵称、真实姓名、手机号',
       example: 'zhang'
     }),
     ApiQuery({
@@ -42,6 +42,12 @@ export function ApiFindUsersQueryDocs() {
       type: String,
       description: '角色 code，可传单个或数组',
       example: 'admin'
+    }),
+    ApiQuery({
+      name: 'organizationId',
+      required: false,
+      type: String,
+      description: '按在职组织 ID 筛选'
     }),
     ApiQuery({
       name: 'sortBy',

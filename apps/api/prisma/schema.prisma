@@ -98,10 +98,14 @@ enum UserStatusCode {
 
 /// 组织类型枚举
 enum OrganizationType {
+  /// 集团
+  GROUP      @map("group")
   /// 公司
   COMPANY    @map("company")
   /// 分支机构
   BRANCH     @map("branch")
+  /// 中心
+  CENTER     @map("center")
   /// 部门
   DEPARTMENT @map("department")
   /// 小组
@@ -455,31 +459,29 @@ model Role {
 /// 组织表
 model Organization {
   /// 组织ID
-  id          String           @id @default(cuid())
+  id            String           @id @default(cuid())
   /// 组织编码
-  code        String           @unique
+  code          String           @unique
   /// 组织名称
-  name        String
+  name          String
   /// 组织类型
-  type        OrganizationType @default(DEPARTMENT)
+  type          OrganizationType @default(DEPARTMENT)
   /// 父组织ID
-  parentId    String?          @map("parent_id")
+  parentId      String?          @map("parent_id")
   /// 负责人用户ID
-  leaderId    String?          @map("leader_id")
+  leaderId      String?          @map("leader_id")
   /// 组织描述
-  description String?
-  /// 状态
-  status      RecordStatus     @default(ACTIVE)
-  /// 排序值
-  sort        Int?
+  description   String?
+  /// 生效日期
+  effectiveDate DateTime         @map("effective_date") @db.Date
   /// 层级路径（例如 /company/rd/backend）
-  path        String?
+  path          String?
   /// 层级深度
-  level       Int              @default(1)
+  level         Int              @default(1)
   /// 创建时间
-  createdAt   DateTime         @default(now()) @map("created_at")
+  createdAt     DateTime         @default(now()) @map("created_at")
   /// 更新时间
-  updatedAt   DateTime         @updatedAt @map("updated_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
 
   /// 父级组织
   parent    Organization?      @relation("OrganizationHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
@@ -497,7 +499,6 @@ model Organization {
   @@index([parentId])
   @@index([leaderId])
   @@index([type])
-  @@index([status])
   @@index([path])
   @@map("organizations")
 }
@@ -505,27 +506,23 @@ model Organization {
 /// 岗位表
 model Post {
   /// 岗位ID
-  id             String       @id @default(cuid())
+  id             String   @id @default(cuid())
   /// 岗位编码
-  code           String       @unique
+  code           String   @unique
   /// 岗位名称
   name           String
   /// 所属组织ID
-  organizationId String       @map("organization_id")
+  organizationId String   @map("organization_id")
   /// 岗位描述
   description    String?
-  /// 岗级 / 职级，例如 P7 / 专家
-  grade          String?
+  /// 岗级 / 职级，例如 P7
+  level          String
   /// 编制人数
-  headcount      Int          @default(1)
-  /// 状态
-  status         RecordStatus @default(ACTIVE)
-  /// 排序值
-  sort           Int?
+  headcount      Int      @default(1)
   /// 创建时间
-  createdAt      DateTime     @default(now()) @map("created_at")
+  createdAt      DateTime @default(now()) @map("created_at")
   /// 更新时间
-  updatedAt      DateTime     @updatedAt @map("updated_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   /// 所属组织
   organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -533,7 +530,6 @@ model Post {
   users        UserOrganization[]
 
   @@index([organizationId])
-  @@index([status])
   @@map("posts")
 }
 

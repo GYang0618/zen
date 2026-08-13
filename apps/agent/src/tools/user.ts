@@ -45,6 +45,9 @@ function normalizeUsersQuery(input: z.input<typeof usersQuerySchema>): FindAllQu
   if (input.role !== undefined) {
     query.role = Array.isArray(input.role) ? input.role : [input.role]
   }
+  if (input.organizationId !== undefined) {
+    Object.assign(query, { organizationId: input.organizationId })
+  }
 
   return query
 }

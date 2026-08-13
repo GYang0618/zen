@@ -1,1 +1,0 @@
-export { Organizations } from './organization'

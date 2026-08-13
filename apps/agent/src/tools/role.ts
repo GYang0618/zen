@@ -44,7 +44,7 @@ type RolesFindAllQuery = {
   pageSize?: number
   keyword?: string
   status?: Array<'active' | 'disabled'>
-  dataScope?: Array<'all' | 'department' | 'department_only' | 'self' | 'custom'>
+  dataScope?: Array<'all' | 'org_and_child' | 'org' | 'self' | 'custom'>
 }
 
 function normalizeRolesQuery(input: z.input<typeof rolesQuerySchema>): RolesFindAllQuery {

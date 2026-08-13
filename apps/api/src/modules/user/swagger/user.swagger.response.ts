@@ -34,17 +34,44 @@ export class UserListItemSwaggerDto {
   })
   status!: UserStatusSwagger
 
-  @ApiProperty({ description: '主角色 code', example: 'guest', nullable: true })
-  role!: string | null
+  @ApiProperty({ description: '是否锁定' })
+  isLocked!: boolean
 
-  @ApiProperty({ description: '部门名称', nullable: true })
-  deptName!: string | null
+  @ApiProperty({ description: '锁定到期时间（ISO 8601）', nullable: true })
+  lockExpireAt!: string | null
 
-  @ApiProperty({ description: '职位', nullable: true })
-  jobTitle!: string | null
+  @ApiProperty({ description: '已绑定角色', type: 'array' })
+  roles!: Array<{
+    id: string
+    code: string
+    name: string
+    icon: string | null
+    iconColor: string | null
+    kind: 'system' | 'custom'
+    status: 'active' | 'disabled'
+  }>
 
-  @ApiProperty({ description: '权限标识列表', type: [String], example: ['user:read'] })
-  permissions!: string[]
+  @ApiProperty({ description: '在职组织归属', type: 'array' })
+  organizations!: Array<{
+    organizationId: string
+    organizationName: string
+    organizationCode: string
+    organizationType: string
+    isPrimary: boolean
+    postId: string | null
+    postName: string | null
+    postLevel: string | null
+    joinedAt: string | null
+  }>
+
+  @ApiProperty({ description: '是否启用 MFA' })
+  mfaEnabled!: boolean
+
+  @ApiProperty({ description: '最近登录时间（ISO 8601）', nullable: true })
+  lastLoginAt!: string | null
+
+  @ApiProperty({ description: '备注', nullable: true })
+  remark!: string | null
 
   @ApiProperty({ description: '创建时间（ISO 8601）', example: '2026-05-22T08:00:00.000Z' })
   createdAt!: string

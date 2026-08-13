@@ -15,6 +15,8 @@ export interface ApiErrorDetail {
 
 export interface ApiErrorResponse {
   code: number
+  /** 稳定的领域拒绝原因，供客户端映射交互反馈 */
+  reason: string | null
   message: string
   path: string
   /** 请求追踪 ID（与响应头 x-trace-id 一致） */

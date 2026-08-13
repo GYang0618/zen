@@ -4,26 +4,38 @@
   "version": "0.1.0",
   "platformVersion": "^0.1.0",
   "dependsOn": [],
-  "contributions": {
-    "permissions": [
-      {
-        "code": "job:task:list",
-        "name": "查看任务列表",
-        "module": "job",
-        "description": "查看租户任务记录"
-      },
-      {
-        "code": "job:task:manage",
-        "name": "管理任务",
-        "module": "job",
-        "description": "创建任务"
-      }
-    ],
-    "routes": "./src/web/routes",
-    "apiModule": "./src/api/jobs.module"
+  "permissions": [
+    {
+      "code": "job:task:list",
+      "name": "查看任务列表",
+      "module": "job",
+      "description": "查看租户任务记录"
+    },
+    {
+      "code": "job:task:manage",
+      "name": "管理任务",
+      "module": "job",
+      "description": "创建任务"
+    }
+  ],
+  "api": {
+    "entry": "./src/api/jobs.module",
+    "export": "JobsModule"
   },
+  "routes": [
+    {
+      "id": "jobs-home",
+      "path": "/plugins/jobs",
+      "entry": "./src/web/pages/jobs-page",
+      "componentExport": "JobsPage",
+      "title": "任务中心",
+      "icon": "list-todo",
+      "order": 130,
+      "permissions": ["job:task:list"]
+    }
+  ],
   "lifecycle": {
-    "activate": "./src/activate.ts",
-    "deactivate": "./src/deactivate.ts"
+    "entry": "./src/lifecycle.ts",
+    "export": "lifecycle"
   }
 }

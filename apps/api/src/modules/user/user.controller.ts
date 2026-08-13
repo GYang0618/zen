@@ -29,6 +29,7 @@ import { RequireStepUp } from '@/common/decorators/require-step-up.decorator'
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
 import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '@/common/swagger'
 
+import { adminResetPasswordSchema } from './dto/admin-reset-password.dto'
 import { assignUserRolesSchema } from './dto/assign-user-roles.dto'
 import { createUserSchema } from './dto/create-user.dto'
 import { deleteUsersSchema } from './dto/delete-users.dto'
@@ -44,7 +45,6 @@ import {
   UpdateUserSuccessSwaggerDto,
   UpdateUserSwaggerDto,
   UpdateUsersStatusSwaggerDto,
-  UserInfoSuccessSwaggerDto,
   UserListItemArraySuccessSwaggerDto,
   UserListSuccessSwaggerDto
 } from './swagger'
@@ -53,6 +53,7 @@ import { UserService } from './user.service'
 import type { AuthContext } from '@zen/shared'
 import type { Request } from 'express'
 import type { JwtPayload } from '@/common/interfaces/jwt-payload.interface'
+import type { AdminResetPasswordDto } from './dto/admin-reset-password.dto'
 import type { AssignUserRolesDto } from './dto/assign-user-roles.dto'
 import type { CreateUserDto } from './dto/create-user.dto'
 import type { DeleteUsersDto } from './dto/delete-users.dto'
@@ -61,9 +62,9 @@ import type { ReplaceUserOrganizationsDto } from './dto/replace-user-organizatio
 import type { UpdateUserDto } from './dto/update-user.dto'
 import type { UpdateUsersStatusDto } from './dto/update-users-status.dto'
 import type {
-  UserInfoResponse,
   UserListItemResponse,
-  UserListResponse
+  UserListResponse,
+  UserResponse
 } from './responses/user.response'
 
 @ApiTags('用户管理')
@@ -76,7 +77,7 @@ export class UserController {
   @RequirePermission(PermissionCode.USER_CREATE)
   @ApiOperation({
     summary: '创建用户',
-    description: '注册新用户账号，分配默认 user 角色，返回列表行结构。'
+    description: '注册新用户账号。可同时指定初始角色与组织归属；省略角色时分配默认 user 角色。'
   })
   @ApiBody({ type: CreateUserSwaggerDto })
   @ApiCreatedResponse({
@@ -85,7 +86,7 @@ export class UserController {
   })
   @ApiStandardErrorResponses()
   @UsePipes(new ZodValidationPipe(createUserSchema))
-  create(@Body() createUserDto: CreateUserDto): Promise<UserListItemResponse> {
+  create(@Body() createUserDto: CreateUserDto): Promise<UserResponse> {
     return this.userService.create(createUserDto)
   }
 
@@ -110,17 +111,17 @@ export class UserController {
   @RequirePermission(PermissionCode.USER_LIST)
   @ApiOperation({
     summary: '获取用户详情',
-    description: '按用户 ID 返回完整档案，含角色、权限、组织与安全信息。'
+    description: '按用户 ID 返回扁平用户档案，含角色预览与在职组织/岗位。'
   })
   @ApiParam({
     name: 'id',
     description: '用户 ID（UUID）',
     example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479'
   })
-  @ApiOkResponse({ description: '查询成功', type: UserInfoSuccessSwaggerDto })
+  @ApiOkResponse({ description: '查询成功', type: UpdateUserSuccessSwaggerDto })
   @ApiStandardErrorResponses()
-  findOne(@Param('id') id: string): Promise<UserInfoResponse> {
-    return this.userService.getUserInfoByUserId(id)
+  findOne(@Param('id') id: string): Promise<UserResponse> {
+    return this.userService.getUserById(id)
   }
 
   @Patch('restore')
@@ -155,7 +156,7 @@ export class UserController {
   @RequirePermission(PermissionCode.USER_UPDATE)
   @ApiOperation({
     summary: '更新用户',
-    description: '按 ID 更新用户资料；若传入 password 将重新哈希存储。'
+    description: '按 ID 更新用户资料。用户名与密码不可通过此接口修改。'
   })
   @ApiParam({
     name: 'id',
@@ -166,10 +167,7 @@ export class UserController {
   @ApiOkResponse({ description: '更新成功', type: UpdateUserSuccessSwaggerDto })
   @ApiStandardErrorResponses()
   @UsePipes(new ZodValidationPipe(updateUserSchema))
-  update(
-    @Param('id') id: string,
-    @Body() updateUserDto: UpdateUserDto
-  ): Promise<UserListItemResponse> {
+  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto): Promise<UserResponse> {
     return this.userService.update(id, updateUserDto)
   }
 
@@ -178,29 +176,20 @@ export class UserController {
   @ApiOperation({ summary: '解锁用户账号' })
   @ApiOkResponse({ description: '解锁成功', type: UpdateUserSuccessSwaggerDto })
   @ApiStandardErrorResponses()
-  unlock(@Param('id') id: string): Promise<UserListItemResponse> {
+  unlock(@Param('id') id: string): Promise<UserResponse> {
     return this.userService.unlock(id)
   }
 
   @Post(':id/reset-password')
   @RequirePermission(PermissionCode.USER_UPDATE)
   @ApiOperation({ summary: '管理员重置用户密码并可选强制改密' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: ['password'],
-      properties: {
-        password: { type: 'string' },
-        mustChangePassword: { type: 'boolean', default: true }
-      }
-    }
-  })
   @ApiOkResponse({ description: '重置成功', type: UpdateUserSuccessSwaggerDto })
   @ApiStandardErrorResponses()
+  @UsePipes(new ZodValidationPipe(adminResetPasswordSchema))
   adminResetPassword(
     @Param('id') id: string,
-    @Body() body: { password: string; mustChangePassword?: boolean }
-  ): Promise<UserListItemResponse> {
+    @Body() body: AdminResetPasswordDto
+  ): Promise<UserResponse> {
     return this.userService.adminResetPassword(id, body.password, body.mustChangePassword ?? true)
   }
 
@@ -221,13 +210,10 @@ export class UserController {
       }
     }
   })
-  @ApiOkResponse({ description: '分配成功', type: UserInfoSuccessSwaggerDto })
+  @ApiOkResponse({ description: '分配成功', type: UpdateUserSuccessSwaggerDto })
   @ApiStandardErrorResponses()
   @UsePipes(new ZodValidationPipe(assignUserRolesSchema))
-  assignRoles(
-    @Param('id') id: string,
-    @Body() body: AssignUserRolesDto
-  ): Promise<UserInfoResponse> {
+  assignRoles(@Param('id') id: string, @Body() body: AssignUserRolesDto): Promise<UserResponse> {
     return this.userService.assignRoles(id, body)
   }
 
@@ -258,13 +244,13 @@ export class UserController {
       }
     }
   })
-  @ApiOkResponse({ description: '同步成功', type: UserInfoSuccessSwaggerDto })
+  @ApiOkResponse({ description: '同步成功', type: UpdateUserSuccessSwaggerDto })
   @ApiStandardErrorResponses()
   @UsePipes(new ZodValidationPipe(replaceUserOrganizationsSchema))
   replaceOrganizations(
     @Param('id') id: string,
     @Body() body: ReplaceUserOrganizationsDto
-  ): Promise<UserInfoResponse> {
+  ): Promise<UserResponse> {
     return this.userService.replaceOrganizations(id, body)
   }
 

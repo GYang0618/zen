@@ -1,12 +1,10 @@
 import { Body, Controller, Delete, Get, Inject, Param, Patch, Post } from '@nestjs/common'
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger'
+import { CurrentAuth, RequirePermission, RequirePlugin, ZodValidationPipe } from '@zen/plugin-sdk/nest'
 
 import { DEMO_NOTE_PERMISSIONS, DEMO_NOTES_PLUGIN_ID } from '../constants'
 import { createDemoNoteSchema, updateDemoNoteSchema } from '../note.schema'
-import { CurrentAuth } from './current-auth'
-import { RequirePermission, RequirePlugin } from './nest-decorators'
 import { NoteService } from './note.service'
-import { ZodValidationPipe } from './zod-validation.pipe'
 
 import type { AuthContext } from '@zen/shared'
 import type { CreateDemoNoteInput, DemoNoteDto, UpdateDemoNoteInput } from '../note.schema'
