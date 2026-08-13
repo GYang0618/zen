@@ -6,6 +6,7 @@ import {
   Injectable,
   NotFoundException
 } from '@nestjs/common'
+import { PermissionStatus, RoleKind } from '@prisma/client'
 
 import { toArray } from '@/common'
 import { AuditService } from '@/common/auth/audit.service'
@@ -25,12 +26,14 @@ import { RoleRepository } from './role.repository'
 
 import type { Prisma } from '@prisma/client'
 import type {
+  AssignRoleDataScope,
   AssignRoleMembersDto,
   AssignRolePermissionsDto,
   CloneRoleDto,
   CreateRoleDto,
   FindRolesQueryDto,
   RoleDataScope,
+  RoleEffectiveStatus,
   RoleStatus,
   UpdateRoleDto
 } from './dto'
@@ -43,7 +46,6 @@ import type {
   RoleResponse
 } from './responses/role.response'
 
-const LOCKED_SYSTEM_ROLE_CODES = new Set(['super_admin'])
 const SUPER_ADMIN_ROLE_CODE = 'super_admin'
 
 @Injectable()
@@ -63,14 +65,20 @@ export class RoleService {
 
     const dataScope = data.dataScope ?? 'self'
     const customOrgIds = await this.resolveCustomOrgIds(dataScope, data.customOrgIds)
-    const permissionIds = await this.resolvePermissionIds(data.permissionCodes ?? [])
+    const permissionIds = await this.resolveActivePermissionIds(data.permissionCodes ?? [])
+    const expiresAt = parseExpiresAt(data.expiresAt)
+
     const created = await this.roleRepo.create({
       code: data.code,
       name: data.name,
       description: data.description,
+      icon: data.icon ?? null,
+      iconColor: data.iconColor ?? null,
+      expiresAt,
       dataScope: fromApiDataScope(dataScope),
       customOrgIds,
       sort: data.sort,
+      kind: RoleKind.CUSTOM,
       isSystem: false,
       permissions:
         permissionIds.length > 0
@@ -108,14 +116,35 @@ export class RoleService {
       throw new BadRequestException('page 和 pageSize 必须同时传入')
     }
 
-    const { keyword, status, dataScope, page, pageSize } = findRolesQuerySchema.parse(query ?? {})
+    const parsed = findRolesQuerySchema.parse(query ?? {})
+    const { keyword, status, dataScope, page, pageSize } = parsed
+    const effectiveStatus = toArray(parsed.effectiveStatus) as RoleEffectiveStatus[] | undefined
     const where = this.buildFindRolesWhere({
       keyword,
       status: toArray(status),
-      dataScope: toArray(dataScope)
+      dataScope: toArray(dataScope),
+      effectiveStatus
     })
 
     if (hasPage && hasPageSize) {
+      // effectiveStatus 含派生态时需内存过滤；先取全量再分页以保证计数准确
+      if (effectiveStatus && effectiveStatus.length > 0) {
+        const all = await this.roleRepo.findMany(where, undefined, undefined, [
+          { sort: 'asc' },
+          { createdAt: 'desc' }
+        ])
+        const filtered = all
+          .map(toRoleListItemResponse)
+          .filter((item) => effectiveStatus.includes(item.effectiveStatus))
+        const total = filtered.length
+        const start = (page! - 1) * pageSize!
+        const items = filtered.slice(start, start + pageSize!)
+        return {
+          items,
+          pagination: buildPaginationMeta(page!, pageSize!, total)
+        }
+      }
+
       const { items, pagination } = await paginate({
         page: page!,
         pageSize: pageSize!,
@@ -131,9 +160,13 @@ export class RoleService {
       { sort: 'asc' },
       { createdAt: 'desc' }
     ])
-    const total = items.length
+    let mapped = items.map(toRoleListItemResponse)
+    if (effectiveStatus && effectiveStatus.length > 0) {
+      mapped = mapped.filter((item) => effectiveStatus.includes(item.effectiveStatus))
+    }
+    const total = mapped.length
     return {
-      items: items.map(toRoleListItemResponse),
+      items: mapped,
       pagination: buildPaginationMeta(1, total, total)
     }
   }
@@ -148,8 +181,23 @@ export class RoleService {
     const existing = await this.roleRepo.findById(id)
     if (!existing) throw new NotFoundException('角色不存在')
 
-    if (existing.isSystem && LOCKED_SYSTEM_ROLE_CODES.has(existing.code)) {
-      throw new ForbiddenException('系统内置超级管理员角色不可编辑')
+    if (this.isLockedSystemRole(existing)) {
+      // 系统角色仅允许改展示字段
+      const allowedOnlyDisplay =
+        data.status === undefined && data.dataScope === undefined && data.customOrgIds === undefined
+      if (
+        !allowedOnlyDisplay &&
+        data.name === undefined && data.description === undefined && data.icon === undefined &&
+        data.iconColor === undefined
+      ) {
+        throw new ForbiddenException('系统内置超级管理员角色不可编辑')
+      }
+      if (
+        existing.code === SUPER_ADMIN_ROLE_CODE &&
+        (data.dataScope !== undefined || data.status !== undefined)
+      ) {
+        throw new ForbiddenException('系统内置超级管理员角色状态与数据范围不可修改')
+      }
     }
 
     const updateData: Prisma.RoleUpdateInput = {}
@@ -158,9 +206,20 @@ export class RoleService {
     if (data.name !== undefined) updateData.name = data.name
     if (data.description !== undefined) updateData.description = data.description
     if (data.sort !== undefined) updateData.sort = data.sort
-    if (data.status !== undefined) updateData.status = fromApiRoleStatus(data.status)
+    if (data.icon !== undefined) updateData.icon = data.icon
+    if (data.iconColor !== undefined) updateData.iconColor = data.iconColor
+    if (data.expiresAt !== undefined) updateData.expiresAt = parseExpiresAt(data.expiresAt)
+    if (data.status !== undefined) {
+      if (this.isLockedSystemRole(existing)) {
+        throw new ForbiddenException('系统角色不可变更状态')
+      }
+      updateData.status = fromApiRoleStatus(data.status)
+    }
 
     if (data.dataScope !== undefined || data.customOrgIds !== undefined) {
+      if (this.isLockedSystemRole(existing)) {
+        throw new ForbiddenException('系统角色数据范围不可修改')
+      }
       const nextScope = data.dataScope ?? toApiDataScope(existing.dataScope)
       const nextCustomOrgIds = await this.resolveCustomOrgIds(
         nextScope,
@@ -175,31 +234,62 @@ export class RoleService {
 
     await this.roleRepo.update(id, updateData)
 
-    if (data.permissionCodes !== undefined) {
-      await this.assignPermissions(id, { permissionCodes: data.permissionCodes }, existing)
-    } else if (scopeChanged || data.status !== undefined || data.name !== undefined) {
-      if (scopeChanged) {
-        await this.invalidateRoleMembers(id)
-      }
-      await this.auditService.write({
-        action:
-          data.status !== undefined
-            ? data.status === 'active'
-              ? 'system.role.unfrozen'
-              : 'system.role.frozen'
-            : 'system.role.updated',
-        resource: 'role',
-        resourceId: id,
-        diff: {
-          name: data.name,
-          description: data.description,
-          status: data.status,
-          dataScope: data.dataScope,
-          customOrgIds: data.customOrgIds
-        }
-      })
+    if (scopeChanged || data.status !== undefined || data.expiresAt !== undefined) {
+      await this.invalidateRoleMembers(id)
     }
 
+    await this.auditService.write({
+      action:
+        data.status !== undefined
+          ? data.status === 'active'
+            ? 'system.role.unfrozen'
+            : 'system.role.frozen'
+          : 'system.role.updated',
+      resource: 'role',
+      resourceId: id,
+      diff: {
+        name: data.name,
+        description: data.description,
+        status: data.status,
+        dataScope: data.dataScope,
+        customOrgIds: data.customOrgIds,
+        expiresAt: data.expiresAt,
+        icon: data.icon,
+        iconColor: data.iconColor
+      }
+    })
+
+    const role = await this.roleRepo.findById(id)
+    if (!role) throw new NotFoundException('角色不存在')
+    return toRoleResponse(role)
+  }
+
+  async assignDataScope(id: string, payload: AssignRoleDataScope): Promise<RoleResponse> {
+    const existing = await this.roleRepo.findById(id)
+    if (!existing) throw new NotFoundException('角色不存在')
+    if (this.isLockedSystemRole(existing)) {
+      throw new ForbiddenException('系统角色数据范围不可修改')
+    }
+    this.assertBaseVersion(existing.updatedAt, payload.baseVersion)
+
+    const customOrgIds = await this.resolveCustomOrgIds(payload.dataScope, payload.customOrgIds)
+    await this.roleRepo.update(id, {
+      dataScope: fromApiDataScope(payload.dataScope),
+      customOrgIds: payload.dataScope === 'custom' ? customOrgIds : []
+    })
+
+    await this.auditService.write({
+      action: 'system.role.data_scope_updated',
+      resource: 'role',
+      resourceId: id,
+      diff: {
+        from: toApiDataScope(existing.dataScope),
+        to: payload.dataScope,
+        customOrgIds
+      }
+    })
+
+    await this.invalidateRoleMembers(id)
     const role = await this.roleRepo.findById(id)
     if (!role) throw new NotFoundException('角色不存在')
     return toRoleResponse(role)
@@ -208,19 +298,31 @@ export class RoleService {
   async clone(id: string, payload: CloneRoleDto): Promise<RoleResponse> {
     const source = await this.roleRepo.findById(id)
     if (!source) throw new NotFoundException('角色不存在')
+    if (this.isLockedSystemRole(source)) {
+      throw new ForbiddenException('系统角色不可克隆')
+    }
 
     const existing = await this.roleRepo.findByCode(payload.code)
     if (existing) {
       throw new ConflictException('角色编码已存在')
     }
 
-    const permissionCodes = source.permissions.map((item) => item.permission.code)
+    const permissionCodes = source.permissions
+      .filter((item) => item.permission.status === PermissionStatus.ACTIVE)
+      .map((item) => item.permission.code)
+
+    const validCustomOrgIds =
+      source.dataScope === 'CUSTOM' ? await this.filterExistingOrgIds(source.customOrgIds) : []
+
     const created = await this.create({
       code: payload.code,
       name: payload.name,
       description: payload.description,
+      icon: (source.icon as CreateRoleDto['icon']) ?? null,
+      iconColor: (source.iconColor as CreateRoleDto['iconColor']) ?? null,
+      expiresAt: payload.expiresAt ?? null,
       dataScope: toApiDataScope(source.dataScope),
-      customOrgIds: source.customOrgIds ?? [],
+      customOrgIds: validCustomOrgIds,
       sort: source.sort ?? undefined,
       permissionCodes
     })
@@ -320,41 +422,47 @@ export class RoleService {
     return this.listMembers(roleId)
   }
 
-  async assignPermissions(
-    id: string,
-    payload: AssignRolePermissionsDto,
-    existingRole?: Awaited<ReturnType<RoleRepository['findById']>>
-  ): Promise<RoleResponse> {
-    const existing = existingRole ?? (await this.roleRepo.findById(id))
+  async assignPermissions(id: string, payload: AssignRolePermissionsDto): Promise<RoleResponse> {
+    const existing = await this.roleRepo.findById(id)
     if (!existing) throw new NotFoundException('角色不存在')
 
-    if (existing.isSystem && LOCKED_SYSTEM_ROLE_CODES.has(existing.code)) {
+    if (this.isLockedSystemRole(existing)) {
       throw new ForbiddenException('系统内置超级管理员角色权限不可修改')
     }
 
-    const permissionIds = await this.resolvePermissionIds(payload.permissionCodes)
+    this.assertBaseVersion(existing.updatedAt, payload.baseVersion)
+
+    const previousCodes = existing.permissions.map((item) => item.permission.code)
+    const nextCodes = [
+      ...new Set(payload.permissionCodes.map((code) => code.trim()).filter(Boolean))
+    ]
+    const permissionIds = await this.resolveActivePermissionIds(nextCodes)
     await this.roleRepo.replacePermissions(id, permissionIds)
+    // touch updatedAt for optimistic lock progression
+    await this.roleRepo.update(id, { updatedAt: new Date() })
+
+    const previousSet = new Set(previousCodes)
+    const nextSet = new Set(nextCodes)
+    const added = nextCodes.filter((code) => !previousSet.has(code))
+    const removed = previousCodes.filter((code) => !nextSet.has(code))
 
     await this.auditService.write({
       action: 'system.role.permissions_assigned',
       resource: 'role',
       resourceId: id,
-      diff: { permissionCodes: payload.permissionCodes }
+      diff: { added, removed, permissionCodes: nextCodes }
     })
 
+    // 仅 bump permVer：成员下次请求因 token.permVer 不匹配触发 401 → 静默 refresh，避免自己改权限被硬踢
     await this.authContextService.bumpPermVer()
-    const memberIds = await this.roleRepo.findUserIdsByRoleId(id)
-    await Promise.all(memberIds.map((userId) => this.sessionService.revokeAllForUser(userId)))
 
     const role = await this.roleRepo.findById(id)
     if (!role) throw new NotFoundException('角色不存在')
     return toRoleResponse(role)
   }
 
-  private async invalidateRoleMembers(roleId: string) {
+  private async invalidateRoleMembers(_roleId: string) {
     await this.authContextService.bumpPermVer()
-    const memberIds = await this.roleRepo.findUserIdsByRoleId(roleId)
-    await Promise.all(memberIds.map((userId) => this.sessionService.revokeAllForUser(userId)))
   }
 
   async remove(idsInput: string[]): Promise<RoleListItemResponse[]> {
@@ -364,7 +472,7 @@ export class RoleService {
       throw new NotFoundException('部分角色不存在')
     }
 
-    const systemRoles = roles.filter((role) => role.isSystem)
+    const systemRoles = roles.filter((role) => role.isSystem || role.kind === RoleKind.SYSTEM)
     if (systemRoles.length > 0) {
       throw new ForbiddenException('系统内置角色不可删除')
     }
@@ -389,13 +497,24 @@ export class RoleService {
     return groupPermissionsByModule(permissions)
   }
 
-  private async resolvePermissionIds(codes: string[]): Promise<string[]> {
+  private isLockedSystemRole(role: { code: string; isSystem: boolean; kind: RoleKind }): boolean {
+    return role.isSystem || role.kind === RoleKind.SYSTEM || role.code === SUPER_ADMIN_ROLE_CODE
+  }
+
+  private assertBaseVersion(updatedAt: Date, baseVersion: string) {
+    const baseline = new Date(baseVersion).getTime()
+    if (Number.isNaN(baseline) || updatedAt.getTime() !== baseline) {
+      throw new ConflictException('角色已被他人修改，请刷新后重试')
+    }
+  }
+
+  private async resolveActivePermissionIds(codes: string[]): Promise<string[]> {
     if (codes.length === 0) return []
 
     const uniqueCodes = [...new Set(codes.map((code) => code.trim()).filter(Boolean))]
-    const permissions = await this.roleRepo.findPermissionsByCodes(uniqueCodes)
+    const permissions = await this.roleRepo.findActivePermissionsByCodes(uniqueCodes)
     if (permissions.length !== uniqueCodes.length) {
-      throw new BadRequestException('部分权限编码不存在')
+      throw new BadRequestException('部分权限编码不存在或已下线，无法勾选')
     }
 
     return permissions.map((item) => item.id)
@@ -417,12 +536,26 @@ export class RoleService {
     return ids
   }
 
+  private async filterExistingOrgIds(ids: string[]): Promise<string[]> {
+    if (ids.length === 0) return []
+    const count = await this.roleRepo.countOrganizationsByIds(ids)
+    if (count === ids.length) return ids
+    // 剔除已删除组织，避免克隆失败
+    const existing: string[] = []
+    for (const id of ids) {
+      const c = await this.roleRepo.countOrganizationsByIds([id])
+      if (c === 1) existing.push(id)
+    }
+    return existing
+  }
+
   private buildFindRolesWhere(params: {
     keyword?: string
     status?: RoleStatus[]
     dataScope?: RoleDataScope[]
+    effectiveStatus?: RoleEffectiveStatus[]
   }): Prisma.RoleWhereInput {
-    const { keyword, status, dataScope } = params
+    const { keyword, status, dataScope, effectiveStatus } = params
     const conditions: Prisma.RoleWhereInput[] = []
 
     if (keyword) {
@@ -444,10 +577,28 @@ export class RoleService {
       conditions.push({ dataScope: { in: dataScope.map(fromApiDataScope) } })
     }
 
+    // locked 可部分下推到 DB
+    if (effectiveStatus?.length === 1 && effectiveStatus[0] === 'locked') {
+      conditions.push({ OR: [{ kind: RoleKind.SYSTEM }, { isSystem: true }] })
+    }
+
     if (conditions.length === 0) return {}
-    if (conditions.length === 1) return conditions[0]
+    if (conditions.length === 1) return conditions[0]!
     return { AND: conditions }
   }
+}
+
+function parseExpiresAt(value: string | null | undefined): Date | null {
+  if (value === undefined) return null
+  if (value === null) return null
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return new Date(`${value}T23:59:59.999Z`)
+  }
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    throw new BadRequestException('过期时间格式无效')
+  }
+  return date
 }
 
 function normalizeIds(idsInput: string[]): string[] {
@@ -494,7 +645,11 @@ function groupPermissionsByModule(
       code: permission.code,
       name: permission.name,
       module: permission.module,
-      description: permission.description ?? null
+      resource: permission.resource,
+      action: permission.action,
+      description: permission.description ?? null,
+      status: permission.status === PermissionStatus.DEPRECATED ? 'deprecated' : 'active',
+      source: permission.source
     })
     groups.set(moduleName, current)
   }

@@ -4,10 +4,9 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { useDeleteRolesMutation } from '@/features/system/roles/mutations'
 
-import { useRoles } from '../roles-provider'
-
-import type { Role } from '../type'
+import type { Role } from '@zen/shared'
 
 type RoleDeleteDialogProps = {
   open: boolean
@@ -16,30 +15,30 @@ type RoleDeleteDialogProps = {
 }
 
 export function RoleDeleteDialog({ open, onOpenChange, currentRow }: RoleDeleteDialogProps) {
-  const { deleteRole } = useRoles()
+  const { mutate: deleteRoles, isPending } = useDeleteRolesMutation()
   const [value, setValue] = useState('')
-  const [isDeleting, setIsDeleting] = useState(false)
   const hasMembers = currentRow.memberCount > 0
-  const canDelete = value.trim() === currentRow.code && !hasMembers
+  const isSystem = currentRow.isSystem || currentRow.kind === 'system'
+  const canDelete = value.trim() === currentRow.code && !hasMembers && !isSystem
 
   useEffect(() => {
     if (!open) return
     setValue('')
-    setIsDeleting(false)
   }, [open])
 
   const handleDelete = () => {
     if (!canDelete) return
 
-    setIsDeleting(true)
-    try {
-      deleteRole(currentRow.id)
-      toast.success(`已删除角色「${currentRow.name}」`)
-      setValue('')
-      onOpenChange(false)
-    } finally {
-      setIsDeleting(false)
-    }
+    deleteRoles([currentRow.id], {
+      onSuccess: () => {
+        toast.success(`已删除角色「${currentRow.name}」`)
+        setValue('')
+        onOpenChange(false)
+      },
+      onError: (error) => {
+        toast.error(error instanceof Error ? error.message : '删除失败')
+      }
+    })
   }
 
   return (
@@ -48,7 +47,7 @@ export function RoleDeleteDialog({ open, onOpenChange, currentRow }: RoleDeleteD
       onOpenChange={onOpenChange}
       handleConfirm={handleDelete}
       disabled={!canDelete}
-      isLoading={isDeleting}
+      isLoading={isPending}
       title={
         <span className="text-destructive">
           <AlertTriangle className="me-1 inline-block stroke-destructive" size={18} /> 删除角色
@@ -73,7 +72,12 @@ export function RoleDeleteDialog({ open, onOpenChange, currentRow }: RoleDeleteD
             />
           </Label>
 
-          {hasMembers ? (
+          {isSystem ? (
+            <Alert variant="destructive">
+              <AlertTitle>系统角色</AlertTitle>
+              <AlertDescription>系统内置角色不可删除。</AlertDescription>
+            </Alert>
+          ) : hasMembers ? (
             <Alert variant="destructive">
               <AlertTitle>存在成员</AlertTitle>
               <AlertDescription>

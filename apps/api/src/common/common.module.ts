@@ -10,6 +10,7 @@ import { PrismaModule } from '@/infra/prisma'
 import { AuditService } from './auth/audit.service'
 import { AuthContextService } from './auth/auth-context.service'
 import { MembershipService } from './auth/membership.service'
+import { PermissionCatalogSyncService } from './auth/permission-catalog-sync.service'
 import { SessionService } from './auth/session.service'
 import { AllExceptionsFilter } from './filters/all-exceptions.filter'
 import { AuthGuard } from './guards/auth.guard'
@@ -48,6 +49,7 @@ import type { AuthConfig, SecurityConfig } from '@/config'
     AuditService,
     SessionService,
     MembershipService,
+    PermissionCatalogSyncService,
     {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter
@@ -81,6 +83,13 @@ import type { AuthConfig, SecurityConfig } from '@/config'
       useClass: TransformInterceptor
     }
   ],
-  exports: [JwtModule, AuthContextService, AuditService, SessionService, MembershipService]
+  exports: [
+    JwtModule,
+    AuthContextService,
+    AuditService,
+    SessionService,
+    MembershipService,
+    PermissionCatalogSyncService
+  ]
 })
 export class CommonModule {}

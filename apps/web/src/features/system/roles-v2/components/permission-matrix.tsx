@@ -1,3 +1,4 @@
+import { isReadonlyPermissionCode } from '@zen/shared'
 import {
   Badge,
   Button,
@@ -16,6 +17,7 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
+  Skeleton,
   Switch,
   Tooltip,
   TooltipContent,
@@ -24,110 +26,16 @@ import {
 import { CheckCheck, Eraser, Eye, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
-type PermissionItem = {
-  code: string
-  name: string
-  description: string
-}
-
-type PermissionGroup = {
-  module: string
-  permissions: PermissionItem[]
-}
+import type { PermissionGroup } from '@zen/shared'
 
 type PermissionPreset = 'all' | 'readonly' | 'none'
 
-const PERMISSION_GROUPS: PermissionGroup[] = [
-  {
-    module: '用户管理',
-    permissions: [
-      {
-        code: 'system:user:list',
-        name: '列表查看',
-        description: '允许查看用户列表'
-      },
-      {
-        code: 'system:user:create',
-        name: '创建用户',
-        description: '允许创建新用户账号'
-      },
-      {
-        code: 'system:user:update',
-        name: '编辑用户',
-        description: '允许修改用户基本信息'
-      },
-      {
-        code: 'system:user:delete',
-        name: '删除用户',
-        description: '允许删除用户账号'
-      },
-      {
-        code: 'system:user:status',
-        name: '状态变更',
-        description: '允许修改用户状态'
-      }
-    ]
-  },
-  {
-    module: '组织管理',
-    permissions: [
-      {
-        code: 'system:org:tree',
-        name: '查看组织',
-        description: '查询组织树与成员'
-      },
-      {
-        code: 'system:org:create',
-        name: '创建组织',
-        description: '允许创建组织节点'
-      },
-      {
-        code: 'system:org:update',
-        name: '编辑组织',
-        description: '允许编辑组织节点'
-      },
-      {
-        code: 'system:org:delete',
-        name: '删除组织',
-        description: '允许删除组织节点'
-      }
-    ]
-  },
-  {
-    module: '角色管理',
-    permissions: [
-      {
-        code: 'system:role:assign',
-        name: '分配角色权限',
-        description: '为角色分配权限'
-      },
-      {
-        code: 'system:role:create',
-        name: '创建角色',
-        description: '创建自定义角色'
-      },
-      {
-        code: 'system:role:delete',
-        name: '删除角色',
-        description: '删除自定义角色'
-      },
-      {
-        code: 'system:role:list',
-        name: '查看角色列表',
-        description: '分页查询角色列表'
-      },
-      {
-        code: 'system:role:update',
-        name: '编辑角色',
-        description: '更新角色信息与权限'
-      }
-    ]
-  }
-]
-
-/** 只读权限：code 以 read/list/view/get/tree 结尾 */
-function isReadonlyCode(code: string) {
-  return /:(read|list|view|get|tree)$/i.test(code) || /_read$/i.test(code)
+type PermissionMatrixProps = {
+  groups: PermissionGroup[]
+  value: string[]
+  onChange: (codes: string[]) => void
+  disabled?: boolean
+  isLoading?: boolean
 }
 
 function applyModulePreset(
@@ -141,63 +49,84 @@ function applyModulePreset(
   if (preset === 'none') return withoutModule
   if (preset === 'all') return [...new Set([...withoutModule, ...moduleCodes])]
 
-  const readonlyCodes = moduleCodes.filter(isReadonlyCode)
+  const readonlyCodes = moduleCodes.filter(isReadonlyPermissionCode)
   return [...new Set([...withoutModule, ...readonlyCodes])]
 }
 
-export function PermissionMatrix() {
+export function PermissionMatrix({
+  groups,
+  value,
+  onChange,
+  disabled = false,
+  isLoading = false
+}: PermissionMatrixProps) {
   const [keyword, setKeyword] = useState('')
-  const [selected, setSelected] = useState<string[]>([])
-
-  const selectedSet = useMemo(() => new Set(selected), [selected])
+  const selectedSet = useMemo(() => new Set(value), [value])
 
   const totalCount = useMemo(
-    () => PERMISSION_GROUPS.reduce((sum, group) => sum + group.permissions.length, 0),
-    []
+    () => groups.reduce((sum, group) => sum + group.permissions.length, 0),
+    [groups]
   )
 
   const filteredGroups = useMemo(() => {
     const query = keyword.trim().toLowerCase()
-    if (!query) return PERMISSION_GROUPS
+    if (!query) return groups
 
-    return PERMISSION_GROUPS.map((group) => ({
-      ...group,
-      permissions: group.permissions.filter(
-        (permission) =>
-          permission.name.toLowerCase().includes(query) ||
-          permission.code.toLowerCase().includes(query) ||
-          permission.description.toLowerCase().includes(query) ||
-          group.module.toLowerCase().includes(query)
-      )
-    })).filter((group) => group.permissions.length > 0)
-  }, [keyword])
+    return groups
+      .map((group) => ({
+        ...group,
+        permissions: group.permissions.filter(
+          (permission) =>
+            permission.name.toLowerCase().includes(query) ||
+            permission.code.toLowerCase().includes(query) ||
+            (permission.description?.toLowerCase().includes(query) ?? false) ||
+            group.module.toLowerCase().includes(query)
+        )
+      }))
+      .filter((group) => group.permissions.length > 0)
+  }, [groups, keyword])
 
   const togglePermission = (code: string, checked: boolean) => {
+    if (disabled) return
     if (checked) {
-      setSelected((prev) => (prev.includes(code) ? prev : [...prev, code]))
+      onChange(value.includes(code) ? value : [...value, code])
       return
     }
-    setSelected((prev) => prev.filter((item) => item !== code))
+    onChange(value.filter((item) => item !== code))
   }
 
   const applyGlobalPreset = (preset: PermissionPreset) => {
+    if (disabled) return
     if (preset === 'all') {
-      setSelected(PERMISSION_GROUPS.flatMap((group) => group.permissions.map((item) => item.code)))
+      onChange(groups.flatMap((group) => group.permissions.map((item) => item.code)))
       return
     }
     if (preset === 'readonly') {
-      setSelected(
-        PERMISSION_GROUPS.flatMap((group) =>
-          group.permissions.filter((item) => isReadonlyCode(item.code)).map((item) => item.code)
+      onChange(
+        groups.flatMap((group) =>
+          group.permissions
+            .filter((item) => isReadonlyPermissionCode(item.code))
+            .map((item) => item.code)
         )
       )
       return
     }
-    setSelected([])
+    onChange([])
   }
 
   const applyLocalPreset = (moduleCodes: string[], preset: PermissionPreset) => {
-    setSelected((prev) => applyModulePreset(prev, moduleCodes, preset))
+    if (disabled) return
+    onChange(applyModulePreset(value, moduleCodes, preset))
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-4">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <Skeleton key={index} className="h-40 rounded-3xl" />
+        ))}
+      </div>
+    )
   }
 
   return (
@@ -209,6 +138,7 @@ export function PermissionMatrix() {
             onChange={(event) => setKeyword(event.target.value)}
             placeholder="全局检索权限节点，如用户、system:user:create"
             aria-label="筛选权限"
+            disabled={disabled}
           />
           <InputGroupAddon>
             <Search />
@@ -222,6 +152,7 @@ export function PermissionMatrix() {
             variant="outline"
             aria-label="全选"
             className="rounded-full"
+            disabled={disabled}
             onClick={() => applyGlobalPreset('all')}
           >
             <CheckCheck />
@@ -234,6 +165,7 @@ export function PermissionMatrix() {
             aria-label="仅只读"
             className="rounded-full"
             title="仅保留查看/读取类权限"
+            disabled={disabled}
             onClick={() => applyGlobalPreset('readonly')}
           >
             <Eye />
@@ -245,6 +177,7 @@ export function PermissionMatrix() {
             variant="outline"
             aria-label="清除"
             className="rounded-full"
+            disabled={disabled}
             onClick={() => applyGlobalPreset('none')}
           >
             <Eraser />
@@ -254,7 +187,7 @@ export function PermissionMatrix() {
       </div>
 
       <div className="text-sm text-muted-foreground">
-        当前已选 {selected.length} / {totalCount} 项
+        当前已选 {value.length} / {totalCount} 项
       </div>
 
       {filteredGroups.length === 0 ? (
@@ -265,9 +198,9 @@ export function PermissionMatrix() {
 
       {filteredGroups.map((group) => {
         const fullModuleCodes =
-          PERMISSION_GROUPS.find((item) => item.module === group.module)?.permissions.map(
-            (item) => item.code
-          ) ?? group.permissions.map((item) => item.code)
+          groups
+            .find((item) => item.module === group.module)
+            ?.permissions.map((item) => item.code) ?? group.permissions.map((item) => item.code)
         const selectedCount = fullModuleCodes.filter((code) => selectedSet.has(code)).length
 
         return (
@@ -286,6 +219,7 @@ export function PermissionMatrix() {
                         variant="ghost"
                         size="icon-sm"
                         aria-label={`${group.module}全选`}
+                        disabled={disabled}
                         onClick={() => applyLocalPreset(fullModuleCodes, 'all')}
                       >
                         <CheckCheck />
@@ -301,6 +235,7 @@ export function PermissionMatrix() {
                         variant="ghost"
                         size="icon-sm"
                         aria-label={`${group.module}仅只读`}
+                        disabled={disabled}
                         onClick={() => applyLocalPreset(fullModuleCodes, 'readonly')}
                       >
                         <Eye />
@@ -316,6 +251,7 @@ export function PermissionMatrix() {
                         variant="ghost"
                         size="icon-sm"
                         aria-label={`${group.module}清除`}
+                        disabled={disabled}
                         onClick={() => applyLocalPreset(fullModuleCodes, 'none')}
                       >
                         <Eraser />
@@ -330,6 +266,7 @@ export function PermissionMatrix() {
               <FieldGroup className="grid grid-cols-1 gap-4 @xl/content:grid-cols-2">
                 {group.permissions.map((item) => {
                   const checked = selectedSet.has(item.code)
+                  const deprecated = item.status === 'deprecated'
                   return (
                     <FieldLabel
                       key={item.code}
@@ -343,12 +280,18 @@ export function PermissionMatrix() {
                             <Badge variant="ghost" className="text-xs text-muted-foreground">
                               {item.code}
                             </Badge>
+                            {deprecated ? (
+                              <Badge variant="secondary" className="text-xs">
+                                已废弃
+                              </Badge>
+                            ) : null}
                           </FieldTitle>
-                          <FieldDescription>{item.description}</FieldDescription>
+                          <FieldDescription>{item.description ?? ''}</FieldDescription>
                         </FieldContent>
                         <Switch
                           id={item.code}
                           checked={checked}
+                          disabled={disabled || deprecated}
                           onCheckedChange={(next) => togglePermission(item.code, next)}
                           aria-label={`切换权限 ${item.name}`}
                         />

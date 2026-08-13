@@ -27,18 +27,18 @@ export const roleStatusConfig: Record<RoleStatus, StatusConfig> = {
 
 export const dataScopeConfig: Record<RoleDataScope, DataScopeConfig> = {
   all: {
-    label: '全公司数据',
-    description: '无任何隔离过滤，可访问全局跨部门全量行级数据',
+    label: '全部数据',
+    description: '无任何隔离过滤，可访问全局跨组织全量行级数据',
     icon: Database
   },
-  department: {
-    label: '本部门及下属所有子部门',
-    description: '适用于部门经理与团队 Lead，能够穿透下级组织',
+  org_and_child: {
+    label: '本组织及下级',
+    description: '适用于组织负责人，能够穿透下级组织',
     icon: FolderTree
   },
-  department_only: {
-    label: '仅本部门数据',
-    description: '只能查看当前绑定部门的数据，无法穿透子部门',
+  org: {
+    label: '仅本组织',
+    description: '只能查看当前绑定组织的数据，无法穿透子组织',
     icon: Building2
   },
   self: {

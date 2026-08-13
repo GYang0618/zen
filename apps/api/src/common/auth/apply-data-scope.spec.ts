@@ -12,6 +12,7 @@ function baseAuth(overrides: Partial<AuthContext> = {}): AuthContext {
     userId: 'u1',
     roles: ['user'],
     permissions: [],
+    isAdmin: false,
     dataScope: 'self',
     orgIds: ['org1'],
     primaryOrgId: 'org1',

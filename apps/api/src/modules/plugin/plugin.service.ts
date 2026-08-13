@@ -4,6 +4,8 @@ import { filterActiveRegistryEntries, PLUGIN_REGISTRY } from '@zen/plugin-sdk'
 import { DEFAULT_TENANT_ID } from '@zen/shared'
 
 import { AuditService } from '@/common/auth/audit.service'
+import { AuthContextService } from '@/common/auth/auth-context.service'
+import { PermissionCatalogSyncService } from '@/common/auth/permission-catalog-sync.service'
 import { PrismaService } from '@/infra/prisma'
 
 import type { Prisma } from '@prisma/client'
@@ -14,7 +16,10 @@ import type { PluginListItemResponse, PluginListResponse } from './responses/plu
 export class PluginService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
-    @Inject(AuditService) private readonly auditService: AuditService
+    @Inject(AuditService) private readonly auditService: AuditService,
+    @Inject(PermissionCatalogSyncService)
+    private readonly permissionCatalogSync: PermissionCatalogSyncService,
+    @Inject(AuthContextService) private readonly authContextService: AuthContextService
   ) {}
 
   async list(tenantId = DEFAULT_TENANT_ID): Promise<PluginListResponse> {
@@ -79,6 +84,7 @@ export class PluginService {
       resourceId: pluginId,
       diff: { version: entry.version }
     })
+    await this.syncPermissionCatalog()
 
     return toListItem(entry, installation)
   }
@@ -106,6 +112,7 @@ export class PluginService {
       resourceId: pluginId,
       diff: { version: entry.version }
     })
+    await this.syncPermissionCatalog()
 
     return toListItem(entry, installation)
   }
@@ -137,6 +144,11 @@ export class PluginService {
     })
 
     return toListItem(entry, installation)
+  }
+
+  private async syncPermissionCatalog() {
+    await this.permissionCatalogSync.syncCatalog()
+    await this.authContextService.bumpPermVer()
   }
 }
 

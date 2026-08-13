@@ -8,7 +8,6 @@ import { DataTableColumnHeader } from '@/components/data-table'
 import { getConfig } from '@/lib/config-utils'
 
 import { dataScopeConfig, roleStatusConfig } from '../data/data'
-import { DataTableRowActions } from './data-table-row-actions'
 
 import type { ColumnDef } from '@tanstack/react-table'
 import type { Role } from '@zen/shared'
@@ -121,9 +120,5 @@ export const rolesColumns = [
     meta: {
       title: '描述'
     }
-  }),
-  columnHelper.display({
-    id: 'actions',
-    cell: DataTableRowActions
   })
 ] as ColumnDef<Role>[]

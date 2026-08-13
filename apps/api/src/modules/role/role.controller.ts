@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   UsePipes
 } from '@nestjs/common'
@@ -27,6 +28,7 @@ import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
 import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '@/common/swagger'
 
 import {
+  assignRoleDataScopeSchema,
   assignRoleMembersSchema,
   assignRolePermissionsSchema,
   cloneRoleSchema,
@@ -38,6 +40,7 @@ import {
 import { RoleService } from './role.service'
 
 import type {
+  AssignRoleDataScope,
   AssignRoleMembersDto,
   AssignRolePermissionsDto,
   CloneRoleDto,
@@ -67,7 +70,7 @@ export class RoleController {
 
   @Post()
   @RequirePermission(PermissionCode.ROLE_CREATE)
-  @ApiOperation({ summary: '创建角色', description: '创建自定义角色并可选分配权限。' })
+  @ApiOperation({ summary: '创建角色', description: '创建自定义角色壳，权限在详情页配置。' })
   @ApiCreatedResponse({ description: '创建成功' })
   @ApiStandardErrorResponses()
   @UsePipes(new ZodValidationPipe(createRoleSchema))
@@ -88,12 +91,21 @@ export class RoleController {
   @Get('permissions')
   @RequirePermission(PermissionCode.ROLE_LIST)
   @ApiOperation({
-    summary: '获取权限列表',
-    description: '按模块分组返回全部权限，供角色权限配置使用。'
+    summary: '获取权限目录',
+    description: '按模块分组返回权限目录（含 deprecated 标记）。'
   })
   @ApiOkResponse({ description: '查询成功' })
   @ApiStandardErrorResponses()
   listPermissions(): Promise<PermissionGroupResponse[]> {
+    return this.roleService.listPermissions()
+  }
+
+  @Get('permission-catalog')
+  @RequirePermission(PermissionCode.ROLE_LIST)
+  @ApiOperation({ summary: '获取权限目录（别名）' })
+  @ApiOkResponse({ description: '查询成功' })
+  @ApiStandardErrorResponses()
+  permissionCatalog(): Promise<PermissionGroupResponse[]> {
     return this.roleService.listPermissions()
   }
 
@@ -111,7 +123,7 @@ export class RoleController {
   @RequirePermission(PermissionCode.ROLE_CREATE)
   @ApiOperation({
     summary: '克隆角色',
-    description: '基于已有角色深拷贝权限与数据边界生成新角色。'
+    description: '复制权限、数据范围与图标；不复制成员。系统角色不可克隆。'
   })
   @ApiParam({ name: 'id', description: '源角色 ID' })
   @ApiCreatedResponse({ description: '克隆成功' })
@@ -164,11 +176,13 @@ export class RoleController {
     return this.roleService.removeMember(id, userId)
   }
 
-  @Patch(':id/permissions')
-  @RequirePermission(PermissionCode.ROLE_ASSIGN)
-  @ApiOperation({ summary: '分配角色权限', description: '覆盖式更新角色的权限列表。' })
+  @Put(':id/permissions')
+  @RequirePermission(PermissionCode.ROLE_UPDATE)
+  @ApiOperation({
+    summary: '保存角色权限',
+    description: '覆盖式更新；需传 baseVersion（updatedAt）做乐观锁。'
+  })
   @ApiParam({ name: 'id', description: '角色 ID' })
-  @ApiBody({ description: '权限编码列表' })
   @ApiOkResponse({ description: '更新成功' })
   @ApiStandardErrorResponses()
   @UsePipes(new ZodValidationPipe(assignRolePermissionsSchema))
@@ -179,9 +193,37 @@ export class RoleController {
     return this.roleService.assignPermissions(id, payload)
   }
 
+  @Patch(':id/permissions')
+  @RequirePermission(PermissionCode.ROLE_UPDATE)
+  @ApiOperation({ summary: '保存角色权限（兼容 PATCH）' })
+  @ApiParam({ name: 'id', description: '角色 ID' })
+  @ApiOkResponse({ description: '更新成功' })
+  @ApiStandardErrorResponses()
+  @UsePipes(new ZodValidationPipe(assignRolePermissionsSchema))
+  assignPermissionsPatch(
+    @Param('id') id: string,
+    @Body() payload: AssignRolePermissionsDto
+  ): Promise<RoleResponse> {
+    return this.roleService.assignPermissions(id, payload)
+  }
+
+  @Put(':id/data-scope')
+  @RequirePermission(PermissionCode.ROLE_UPDATE)
+  @ApiOperation({ summary: '保存角色数据范围', description: '需传 baseVersion 做乐观锁。' })
+  @ApiParam({ name: 'id', description: '角色 ID' })
+  @ApiOkResponse({ description: '更新成功' })
+  @ApiStandardErrorResponses()
+  @UsePipes(new ZodValidationPipe(assignRoleDataScopeSchema))
+  assignDataScope(
+    @Param('id') id: string,
+    @Body() payload: AssignRoleDataScope
+  ): Promise<RoleResponse> {
+    return this.roleService.assignDataScope(id, payload)
+  }
+
   @Patch(':id')
   @RequirePermission(PermissionCode.ROLE_UPDATE)
-  @ApiOperation({ summary: '更新角色', description: '更新角色基础信息与权限。' })
+  @ApiOperation({ summary: '更新角色', description: '更新角色基础信息、状态或数据范围。' })
   @ApiParam({ name: 'id', description: '角色 ID' })
   @ApiOkResponse({ description: '更新成功' })
   @ApiStandardErrorResponses()

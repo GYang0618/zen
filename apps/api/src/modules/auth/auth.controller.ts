@@ -22,6 +22,7 @@ import {
   updateMyProfileSchema
 } from '@zen/shared'
 
+import { AllowAuthenticated } from '@/common/decorators/allow-authenticated.decorator'
 import { Public } from '@/common/decorators/public.decorator'
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
 import { CONFIG_NAMESPACES } from '@/config'
@@ -42,6 +43,7 @@ import type { LoginDto } from './dto/login.dto'
 import type { RegisterDto } from './dto/register.dto'
 import type { LoginResponse, RefreshResponse, RegisterResponse } from './responses/auth.response'
 
+@AllowAuthenticated()
 @Controller('auth')
 export class AuthController {
   constructor(

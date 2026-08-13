@@ -46,6 +46,30 @@ enum RecordStatus {
   DISABLED @map("disabled")
 }
 
+/// 角色种类
+enum RoleKind {
+  /// 系统角色（锁定）
+  SYSTEM @map("system")
+  /// 自定义角色
+  CUSTOM @map("custom")
+}
+
+/// 权限目录状态
+enum PermissionStatus {
+  /// 可用
+  ACTIVE     @map("active")
+  /// 已下线
+  DEPRECATED @map("deprecated")
+}
+
+/// 字段权限访问级别（预留）
+enum FieldAccess {
+  NONE   @map("none")
+  MASKED @map("masked")
+  READ   @map("read")
+  WRITE  @map("write")
+}
+
 /// 角色数据范围枚举
 enum RoleDataScope {
   /// 全部数据
@@ -392,10 +416,18 @@ model Role {
   name         String
   /// 角色描述
   description  String?
-  /// 是否系统角色
+  /// 角色种类（system 不可改权限/删除）
+  kind         RoleKind      @default(CUSTOM)
+  /// 是否系统角色（兼容旧字段，与 kind=SYSTEM 同步）
   isSystem     Boolean       @default(false) @map("is_system")
   /// 角色状态
   status       RecordStatus  @default(ACTIVE)
+  /// 过期时间，空表示长期有效
+  expiresAt    DateTime?     @map("expires_at")
+  /// 展示图标（Lucide 名）
+  icon         String?
+  /// 图标颜色 token
+  iconColor    String?       @map("icon_color")
   /// 数据范围
   dataScope    RoleDataScope @default(SELF) @map("data_scope")
   /// CUSTOM 数据范围时的组织白名单
@@ -408,11 +440,15 @@ model Role {
   updatedAt    DateTime      @updatedAt @map("updated_at")
 
   /// 角色下的用户关联
-  users       UserRole[]
+  users         UserRole[]
   /// 角色下的权限关联
-  permissions RolePermission[]
+  permissions   RolePermission[]
+  /// 字段权限策略（预留）
+  fieldPolicies RoleFieldPolicy[]
 
   @@index([status])
+  @@index([kind])
+  @@index([expiresAt])
   @@map("roles")
 }
 
@@ -538,25 +574,51 @@ model UserOrganization {
 /// 权限表
 model Permission {
   /// 权限ID
-  id          String   @id @default(cuid())
+  id          String           @id @default(cuid())
   /// 权限编码
-  code        String   @unique
+  code        String           @unique
   /// 权限名称
   name        String
-  /// 所属模块
+  /// 所属模块（展示分组）
   module      String?
+  /// 资源段
+  resource    String?
+  /// 动作段
+  action      String?
   /// 权限描述
   description String?
+  /// 目录状态
+  status      PermissionStatus @default(ACTIVE)
+  /// 来源：kernel 或 plugin:<id>
+  source      String?
   /// 创建时间
-  createdAt   DateTime @default(now()) @map("created_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
   /// 更新时间
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
 
   /// 权限对应的角色关联
   roles RolePermission[]
 
   @@index([module])
+  @@index([status])
   @@map("permissions")
+}
+
+/// 角色字段权限策略（预留，本期无业务逻辑）
+model RoleFieldPolicy {
+  id        String      @id @default(cuid())
+  roleId    String      @map("role_id")
+  resource  String
+  fieldKey  String      @map("field_key")
+  access    FieldAccess @default(READ)
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, resource, fieldKey])
+  @@index([roleId])
+  @@map("role_field_policies")
 }
 
 /// 用户角色关联表

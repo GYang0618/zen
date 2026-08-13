@@ -10,6 +10,7 @@ import { applyOrganizationTreeDataScope } from '@/common/auth/apply-data-scope'
 import { AuditService } from '@/common/auth/audit.service'
 import { AuthContextService } from '@/common/auth/auth-context.service'
 import { SessionService } from '@/common/auth/session.service'
+import { RoleRepository } from '@/modules/role/role.repository'
 
 import {
   fromApiOrganizationStatus,
@@ -42,7 +43,8 @@ export class OrganizationService {
     @Inject(OrganizationRepository) private readonly orgRepo: OrganizationRepository,
     @Inject(AuditService) private readonly auditService: AuditService,
     @Inject(AuthContextService) private readonly authContextService: AuthContextService,
-    @Inject(SessionService) private readonly sessionService: SessionService
+    @Inject(SessionService) private readonly sessionService: SessionService,
+    @Inject(RoleRepository) private readonly roleRepo: RoleRepository
   ) {}
 
   async getTree(auth?: AuthContext): Promise<OrganizationTreeResponse> {
@@ -211,6 +213,15 @@ export class OrganizationService {
     const withMembers = orgs.filter((org) => org._count.users > 0)
     if (withMembers.length > 0) {
       throw new BadRequestException('存在成员的组织不可删除，请先移除成员')
+    }
+
+    for (const org of orgs) {
+      const roleRefs = await this.roleRepo.countRolesReferencingOrg(org.id)
+      if (roleRefs > 0) {
+        throw new BadRequestException(
+          `组织「${org.name}」仍被 ${roleRefs} 个角色的自定义数据范围引用，请先调整角色后再删除`
+        )
+      }
     }
 
     await this.orgRepo.deleteManyByIds(ids)

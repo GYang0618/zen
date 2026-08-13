@@ -4,18 +4,16 @@ import { AppPageHeader } from '@/components/layouts/app-page-header'
 import { RolesDialogs } from './components/roles-dialogs'
 import { RolesList } from './components/roles-list'
 import { RolesPrimaryButtons } from './components/roles-primary-buttons'
-import { RolesProvider, useRoles } from './roles-provider'
+import { RolesProvider } from './roles-provider'
 
 function RolesContent() {
-  const { roles } = useRoles()
-
   return (
     <>
       <AppHeader />
 
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
         <AppPageHeader actions={<RolesPrimaryButtons />} />
-        <RolesList data={roles} />
+        <RolesList />
       </Main>
 
       <RolesDialogs />

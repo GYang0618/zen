@@ -3,11 +3,22 @@ export type RoleResponse = {
   code: string
   name: string
   status: 'active' | 'disabled'
-  dataScope: 'all' | 'department' | 'department_only' | 'self' | 'custom'
+  effectiveStatus: 'active' | 'disabled' | 'expired' | 'locked'
+  kind: 'system' | 'custom'
+  dataScope: 'all' | 'org_and_child' | 'org' | 'self' | 'custom'
   customOrgIds: string[]
+  icon: string | null
+  iconColor: string | null
+  expiresAt: string | null
   sort: number
   description: string | null
   memberCount: number
+  permissionCount: number
+  memberPreview: Array<{
+    id: string
+    nickname: string | null
+    avatar: string | null
+  }>
   permissions: string[]
   isSystem: boolean
   createdAt: string
@@ -52,7 +63,11 @@ export type PermissionResponse = {
   code: string
   name: string
   module: string | null
+  resource: string | null
+  action: string | null
   description: string | null
+  status: 'active' | 'deprecated'
+  source: string | null
 }
 
 export type PermissionGroupResponse = {

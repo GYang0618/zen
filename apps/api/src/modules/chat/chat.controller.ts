@@ -1,7 +1,8 @@
 import { Body, Controller, Inject, Post, Res, UsePipes } from '@nestjs/common'
 import { pipeUIMessageStreamToResponse } from 'ai'
 
-import { BypassTransform, Public, ZodValidationPipe } from '@/common'
+import { BypassTransform, ZodValidationPipe } from '@/common'
+import { AllowAuthenticated } from '@/common/decorators/allow-authenticated.decorator'
 
 import { ChatService } from './chat.service'
 import { callSchema } from './dto/call.dto'
@@ -13,7 +14,7 @@ import type { CallDto } from './dto/call.dto'
 export class ChatController {
   constructor(@Inject(ChatService) private readonly chatService: ChatService) {}
 
-  @Public()
+  @AllowAuthenticated()
   @BypassTransform()
   @Post()
   @UsePipes(new ZodValidationPipe(callSchema))

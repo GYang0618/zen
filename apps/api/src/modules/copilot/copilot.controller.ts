@@ -1,10 +1,13 @@
 import { All, Controller, Inject, Next, Req, Res } from '@nestjs/common'
 
+import { AllowAuthenticated } from '@/common/decorators/allow-authenticated.decorator'
+
 import { CopilotService } from './copilot.service'
 import { extractBearerToken } from './copilot-token.util'
 
 import type { NextFunction, Request, Response } from 'express'
 
+@AllowAuthenticated()
 @Controller('copilot')
 export class CopilotController {
   constructor(@Inject(CopilotService) private readonly copilotService: CopilotService) {}

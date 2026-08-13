@@ -11,6 +11,8 @@ export interface AuthContext {
   userId: string
   roles: string[]
   permissions: string[]
+  /** 有效角色含 super_admin 且未过期时为 true；守卫短路用 */
+  isAdmin: boolean
   dataScope: DataScope
   customOrgIds?: string[]
   primaryOrgId?: string

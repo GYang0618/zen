@@ -8,6 +8,17 @@ export const ROLE_INCLUDE = {
   permissions: {
     include: { permission: true }
   },
+  users: {
+    take: 3,
+    orderBy: { createdAt: 'desc' as const },
+    include: {
+      user: {
+        include: {
+          profile: true
+        }
+      }
+    }
+  },
   _count: {
     select: { users: true }
   }
@@ -96,6 +107,12 @@ export class RoleRepository {
     })
   }
 
+  findActivePermissionsByCodes(codes: string[]) {
+    return this.prisma.permission.findMany({
+      where: { code: { in: codes }, status: 'ACTIVE' }
+    })
+  }
+
   findAllPermissions() {
     return this.prisma.permission.findMany({
       orderBy: [{ module: 'asc' }, { code: 'asc' }]
@@ -175,6 +192,15 @@ export class RoleRepository {
   countOrganizationsByIds(ids: string[]) {
     return this.prisma.organization.count({
       where: { id: { in: ids } }
+    })
+  }
+
+  countRolesReferencingOrg(orgId: string) {
+    return this.prisma.role.count({
+      where: {
+        dataScope: 'CUSTOM',
+        customOrgIds: { has: orgId }
+      }
     })
   }
 }

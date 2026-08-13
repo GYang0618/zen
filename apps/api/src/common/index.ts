@@ -1,5 +1,6 @@
 export * from './auth'
 export * from './common.module'
+export * from './decorators/allow-authenticated.decorator'
 export * from './decorators/bypass-transform.decorator'
 export * from './decorators/public.decorator'
 export * from './decorators/require-permission.decorator'

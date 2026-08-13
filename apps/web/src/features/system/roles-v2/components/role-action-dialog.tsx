@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { ROLE_ICON_COLOR_VALUES, ROLE_ICON_VALUES } from '@zen/shared'
 import {
   Button,
   Calendar,
@@ -26,13 +27,12 @@ import { Controller, useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import { ROLE_ICON_COLOR_VALUES, ROLE_ICONS } from '../data/data'
-import { useRoles } from '../roles-provider'
+import { useCreateRoleMutation, useUpdateRoleMutation } from '@/features/system/roles/mutations'
+
 import { RoleIconColorPicker } from './role-icon-color-picker'
 import { RoleIconPicker } from './role-icon-picker'
 
-import type { RoleIconName } from '../data/data'
-import type { Role, RoleIconColor } from '../type'
+import type { Role, RoleIcon, RoleIconColor } from '@zen/shared'
 
 interface RoleActionDialogProps {
   currentRow?: Role
@@ -60,10 +60,10 @@ const roleFormSchema = z.object({
     .min(2, '角色编码至少需要2个字符')
     .max(50, '角色编码不能超过50个字符')
     .regex(/^[a-z][a-z0-9_]*$/, '角色编码仅支持小写字母、数字和下划线，且以字母开头'),
-  icon: z.enum(ROLE_ICONS).nullable(),
+  icon: z.enum(ROLE_ICON_VALUES).nullable(),
   iconColor: z.enum(ROLE_ICON_COLOR_VALUES).nullable(),
   description: z.string().trim().max(200, '角色描述不能超过200个字符'),
-  expiredAt: z.date().nullable()
+  expiresAt: z.date().nullable()
 })
 
 const editRoleFormSchema = roleFormSchema.extend({
@@ -78,7 +78,7 @@ const defaultValues: RoleFormValues = {
   icon: null,
   iconColor: null,
   description: '',
-  expiredAt: null
+  expiresAt: null
 }
 
 function formatExpiredAt(date: Date | null): string | null {
@@ -91,27 +91,16 @@ function formatExpiredAt(date: Date | null): string | null {
 
 function parseExpiredAt(value: string | null): Date | null {
   if (!value) return null
-  const date = new Date(`${value}T00:00:00`)
+  const date = new Date(value.length === 10 ? `${value}T00:00:00` : value)
   return Number.isNaN(date.getTime()) ? null : date
 }
 
-function toFormIcon(icon: Role['icon']): RoleIconName | null {
-  if (!icon) return null
-  return (ROLE_ICONS as readonly string[]).includes(icon) ? (icon as RoleIconName) : null
-}
-
-function toFormIconColor(iconColor: Role['iconColor']): RoleIconColor | null {
-  if (!iconColor) return null
-  return (ROLE_ICON_COLOR_VALUES as readonly string[]).includes(iconColor)
-    ? iconColor
-    : null
-}
-
 export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionDialogProps) {
-  const { addRole, updateRole, hasRoleCode } = useRoles()
   const isEdit = !!currentRow
   const [expiredAtOpen, setExpiredAtOpen] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { mutate: createRole, isPending: isCreating } = useCreateRoleMutation()
+  const { mutate: updateRole, isPending: isUpdating } = useUpdateRoleMutation()
+  const isSubmitting = isCreating || isUpdating
 
   const form = useForm<RoleFormValues>({
     resolver: zodResolver(isEdit ? editRoleFormSchema : roleFormSchema),
@@ -121,80 +110,76 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
 
   useEffect(() => {
     if (!open) return
-
     if (currentRow) {
       form.reset({
         name: currentRow.name,
         code: currentRow.code,
-        icon: toFormIcon(currentRow.icon),
-        iconColor: toFormIconColor(currentRow.iconColor),
-        description: currentRow.description,
-        expiredAt: parseExpiredAt(currentRow.expiredAt)
+        icon: currentRow.icon,
+        iconColor: currentRow.iconColor,
+        description: currentRow.description ?? '',
+        expiresAt: parseExpiredAt(currentRow.expiresAt)
       })
     } else {
       form.reset(defaultValues)
     }
-
     setExpiredAtOpen(false)
-    setIsSubmitting(false)
   }, [open, currentRow, form])
 
   const handleCreateSubmit = (values: RoleFormValues) => {
-    const code = values.code.trim()
-    if (hasRoleCode(code)) {
-      form.setError('code', { message: '角色编码已存在' })
+    if (values.expiresAt && values.expiresAt < TODAY) {
+      form.setError('expiresAt', { message: '过期时间不能早于今天' })
       return
     }
 
-    if (values.expiredAt && values.expiredAt < TODAY) {
-      form.setError('expiredAt', { message: '过期时间不能早于今天' })
-      return
-    }
-
-    setIsSubmitting(true)
-    try {
-      const created = addRole({
+    createRole(
+      {
         name: values.name.trim(),
-        code,
+        code: values.code.trim(),
         icon: values.icon,
         iconColor: values.iconColor,
-        description: values.description.trim(),
-        expiredAt: formatExpiredAt(values.expiredAt)
-      })
-      toast.success(`成功新建角色「${created.name}」`)
-      onOpenChange(false)
-      form.reset(defaultValues)
-    } finally {
-      setIsSubmitting(false)
-    }
+        description: values.description.trim() || undefined,
+        expiresAt: formatExpiredAt(values.expiresAt),
+        dataScope: 'self'
+      },
+      {
+        onSuccess: (created) => {
+          toast.success(`成功新建角色「${created.name}」`)
+          onOpenChange(false)
+          form.reset(defaultValues)
+        }
+      }
+    )
   }
 
   const handleUpdateSubmit = (values: RoleFormValues) => {
     if (!currentRow) return
-
-    if (values.expiredAt && values.expiredAt < TODAY) {
-      const original = parseExpiredAt(currentRow.expiredAt)
-      const isSameDay = original !== null && values.expiredAt.getTime() === original.getTime()
+    if (values.expiresAt && values.expiresAt < TODAY) {
+      const original = parseExpiredAt(currentRow.expiresAt)
+      const isSameDay = original !== null && values.expiresAt.getTime() === original.getTime()
       if (!isSameDay) {
-        form.setError('expiredAt', { message: '过期时间不能早于今天' })
+        form.setError('expiresAt', { message: '过期时间不能早于今天' })
         return
       }
     }
 
-    setIsSubmitting(true)
-    try {
-      const updated = updateRole(currentRow.id, {
-        name: values.name.trim(),
-        icon: values.icon,
-        iconColor: values.iconColor,
-        description: values.description.trim(),
-        expiredAt: formatExpiredAt(values.expiredAt)
-      })
-      toast.success(`已更新角色「${updated?.name ?? values.name.trim()}」`)
-      onOpenChange(false)
-    } finally {
-      setIsSubmitting(false)
-    }
+    updateRole(
+      {
+        id: currentRow.id,
+        data: {
+          name: values.name.trim(),
+          icon: values.icon as RoleIcon | null,
+          iconColor: values.iconColor as RoleIconColor | null,
+          description: values.description.trim(),
+          expiresAt: formatExpiredAt(values.expiresAt)
+        }
+      },
+      {
+        onSuccess: (updated) => {
+          toast.success(`已更新角色「${updated.name}」`)
+          onOpenChange(false)
+        }
+      }
+    )
   }
 
   return (
@@ -213,7 +198,7 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
             </span>
           </DialogTitle>
           <DialogDescription>
-            {isEdit ? '在此更新角色、有效期等信息。' : '在此创建新角色、有效期、权限等信息。'}
+            {isEdit ? '在此更新角色、有效期等信息。' : '在此创建新角色；权限请进入详情页配置。'}
           </DialogDescription>
         </DialogHeader>
 
@@ -279,7 +264,6 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
                       onValueChange={field.onChange}
                       aria-invalid={fieldState.invalid}
                     />
-                    <FieldDescription>可选。为角色选择一个标识图标。</FieldDescription>
                     {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
                   </FieldContent>
                 </Field>
@@ -298,14 +282,13 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
                       onValueChange={field.onChange}
                       aria-invalid={fieldState.invalid}
                     />
-                    <FieldDescription>可选。点选可切换，再点一次可清除。</FieldDescription>
                     {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
                   </FieldContent>
                 </Field>
               )}
             />
             <Controller
-              name="expiredAt"
+              name="expiresAt"
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
@@ -359,7 +342,6 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
                         ) : null}
                       </PopoverContent>
                     </Popover>
-                    <FieldDescription>可选。到达该日期后角色将自动过期。</FieldDescription>
                     {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
                   </FieldContent>
                 </Field>

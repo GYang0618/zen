@@ -30,9 +30,9 @@ import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import { useRoles } from '../roles-provider'
+import { useCloneRoleMutation } from '@/features/system/roles/mutations'
 
-import type { Role } from '../type'
+import type { Role } from '@zen/shared'
 
 interface RoleCloneDialogProps {
   currentRow: Role
@@ -61,7 +61,7 @@ const cloneFormSchema = z.object({
     .max(50, '角色编码不能超过50个字符')
     .regex(/^[a-z][a-z0-9_]*$/, '角色编码仅支持小写字母、数字和下划线，且以字母开头'),
   description: z.string().trim().max(200, '角色描述不能超过200个字符'),
-  expiredAt: z.date().nullable()
+  expiresAt: z.date().nullable()
 })
 
 type CloneFormValues = z.infer<typeof cloneFormSchema>
@@ -74,81 +74,75 @@ function formatExpiredAt(date: Date | null): string | null {
   return `${year}-${month}-${day}`
 }
 
-/** 基于来源角色编码生成一个尚未被占用的建议编码，如 system_admin_copy、system_admin_copy_2 */
-function suggestCloneCode(sourceCode: string, hasRoleCode: (code: string) => boolean): string {
-  const base = `${sourceCode
+function suggestCloneCode(sourceCode: string): string {
+  return `${sourceCode
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9_]/g, '_')}_copy`
-  if (!hasRoleCode(base)) return base
-
-  let suffix = 2
-  let candidate = `${base}_${suffix}`
-  while (hasRoleCode(candidate)) {
-    suffix += 1
-    candidate = `${base}_${suffix}`
-  }
-  return candidate
 }
 
-function buildDefaultValues(source: Role, hasRoleCode: (code: string) => boolean): CloneFormValues {
+function buildDefaultValues(source: Role): CloneFormValues {
   return {
     name: `${source.name} 副本`,
-    code: suggestCloneCode(source.code, hasRoleCode),
-    description: source.description,
-    expiredAt: null
+    code: suggestCloneCode(source.code),
+    description: source.description ?? '',
+    expiresAt: null
   }
 }
 
 export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDialogProps) {
-  const { cloneRole, hasRoleCode } = useRoles()
   const [expiredAtOpen, setExpiredAtOpen] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { mutate: cloneRole, isPending } = useCloneRoleMutation()
 
   const form = useForm<CloneFormValues>({
     resolver: zodResolver(cloneFormSchema),
-    defaultValues: buildDefaultValues(currentRow, hasRoleCode)
+    defaultValues: buildDefaultValues(currentRow)
   })
 
   useEffect(() => {
     if (!open) return
-    form.reset(buildDefaultValues(currentRow, hasRoleCode))
+    form.reset(buildDefaultValues(currentRow))
     setExpiredAtOpen(false)
-    setIsSubmitting(false)
-  }, [open, currentRow, form, hasRoleCode])
+  }, [open, currentRow, form])
 
   const handleSubmit = (values: CloneFormValues) => {
-    const code = values.code.trim()
-    if (hasRoleCode(code)) {
-      form.setError('code', { message: '角色编码已存在' })
+    if (values.expiresAt && values.expiresAt < TODAY) {
+      form.setError('expiresAt', { message: '过期时间不能早于今天' })
       return
     }
 
-    if (values.expiredAt && values.expiredAt < TODAY) {
-      form.setError('expiredAt', { message: '过期时间不能早于今天' })
-      return
-    }
-
-    setIsSubmitting(true)
-    try {
-      const cloned = cloneRole(currentRow.id, {
-        name: values.name.trim(),
-        code,
-        description: values.description.trim(),
-        expiredAt: formatExpiredAt(values.expiredAt)
-      })
-      toast.success(`已基于「${currentRow.name}」克隆出新角色「${cloned?.name ?? values.name}」`)
-      onOpenChange(false)
-    } finally {
-      setIsSubmitting(false)
-    }
+    cloneRole(
+      {
+        id: currentRow.id,
+        data: {
+          name: values.name.trim(),
+          code: values.code.trim(),
+          description: values.description.trim() || undefined,
+          expiresAt: formatExpiredAt(values.expiresAt)
+        }
+      },
+      {
+        onSuccess: (cloned) => {
+          toast.success(`已基于「${currentRow.name}」克隆出新角色「${cloned.name}」`)
+          onOpenChange(false)
+        },
+        onError: (error) => {
+          const message = error instanceof Error ? error.message : '克隆失败'
+          if (message.includes('编码') || message.includes('已存在')) {
+            form.setError('code', { message: '角色编码已存在' })
+            return
+          }
+          toast.error(message)
+        }
+      }
+    )
   }
 
   return (
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
-        if (!nextOpen && isSubmitting) return
+        if (!nextOpen && isPending) return
         onOpenChange(nextOpen)
       }}
     >
@@ -170,7 +164,7 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
             将复制以下配置
             <Badge variant="secondary" className="gap-1">
               <ShieldCheck className="size-3" />
-              {currentRow.permissions.length} 项权限
+              {currentRow.permissionCount} 项权限
             </Badge>
           </AlertTitle>
           <AlertDescription className="flex items-center gap-1.5">
@@ -222,7 +216,7 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
               )}
             />
             <Controller
-              name="expiredAt"
+              name="expiresAt"
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
@@ -307,13 +301,13 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
           <Button
             type="button"
             variant="outline"
-            disabled={isSubmitting}
+            disabled={isPending}
             onClick={() => onOpenChange(false)}
           >
             取消
           </Button>
-          <Button type="submit" form="role-clone-form" disabled={isSubmitting}>
-            {isSubmitting ? <Loader2 className="animate-spin" /> : <Copy />}
+          <Button type="submit" form="role-clone-form" disabled={isPending}>
+            {isPending ? <Loader2 className="animate-spin" /> : <Copy />}
             克隆
           </Button>
         </DialogFooter>

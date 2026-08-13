@@ -1,6 +1,7 @@
 import { request } from '@/lib/request'
 
 import type {
+  AssignRoleDataScope,
   AssignRoleMembers,
   AssignRolePermissions,
   CloneRole,
@@ -30,7 +31,10 @@ export const roleApi = {
     request.patch<Role, UpdateRole>(`/role/${id}`, data),
 
   assignPermissions: (id: string, data: AssignRolePermissions) =>
-    request.patch<Role, AssignRolePermissions>(`/role/${id}/permissions`, data),
+    request.put<Role, AssignRolePermissions>(`/role/${id}/permissions`, data),
+
+  assignDataScope: (id: string, data: AssignRoleDataScope) =>
+    request.put<Role, AssignRoleDataScope>(`/role/${id}/data-scope`, data),
 
   getRoleMembers: (id: string, params?: { page?: number; pageSize?: number }) =>
     request.get<PaginationResponse<RoleMember>>(`/role/${id}/members`, { params }),

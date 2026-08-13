@@ -21,9 +21,13 @@ export type RoleMemberPreview = {
 
 type RoleRelatedMembersCardProps = {
   members: RoleMemberPreview[]
+  totalCount?: number
 }
 
-export function RoleRelatedMembersCard({ members }: RoleRelatedMembersCardProps) {
+export function RoleRelatedMembersCard({ members, totalCount }: RoleRelatedMembersCardProps) {
+  const total = totalCount ?? members.length
+  const overflow = Math.max(0, total - members.length)
+
   return (
     <Card>
       <CardHeader>
@@ -31,29 +35,37 @@ export function RoleRelatedMembersCard({ members }: RoleRelatedMembersCardProps)
           <div className="flex justify-between items-center gap-2">
             关联成员
             <span className="flex items-center gap-1 text-sm text-muted-foreground">
-              <UserRound className="size-4 " /> {members.length}
+              <UserRound className="size-4 " /> {total}
             </span>
           </div>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-wrap items-center gap-4">
-          {members.map((member) => (
-            <Tooltip key={member.id}>
-              <TooltipTrigger>
-                <Avatar>
-                  <AvatarImage src={member.avatarUrl} alt={member.name} />
-                  <AvatarFallback>{member.fallback}</AvatarFallback>
-                </Avatar>
-              </TooltipTrigger>
-              <TooltipContent>{member.name}</TooltipContent>
-            </Tooltip>
-          ))}
+        {members.length === 0 ? (
+          <p className="text-sm text-muted-foreground">暂无成员</p>
+        ) : (
+          <div className="flex flex-wrap items-center gap-4">
+            {members.map((member) => (
+              <Tooltip key={member.id}>
+                <TooltipTrigger>
+                  <Avatar>
+                    {member.avatarUrl ? (
+                      <AvatarImage src={member.avatarUrl} alt={member.name} />
+                    ) : null}
+                    <AvatarFallback>{member.fallback}</AvatarFallback>
+                  </Avatar>
+                </TooltipTrigger>
+                <TooltipContent>{member.name}</TooltipContent>
+              </Tooltip>
+            ))}
 
-          <div className="text-muted-foreground flex size-8 items-center justify-center rounded-full">
-            +{members.length - 10}
+            {overflow > 0 ? (
+              <div className="text-muted-foreground flex size-8 items-center justify-center rounded-full">
+                +{overflow}
+              </div>
+            ) : null}
           </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   )
