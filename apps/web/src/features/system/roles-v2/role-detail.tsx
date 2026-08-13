@@ -34,6 +34,7 @@ import { AppHeader, Main } from '@/components/layouts'
 import { PermissionMatrix } from './components/permission-matrix'
 import { RoleAuditTimelineCard } from './components/role-audit-timeline-card'
 import { RoleBasicInfoCard } from './components/role-basic-info-card'
+import { RoleFields } from './components/role-fields'
 import { RoleMembers } from './components/role-members'
 import { RoleRelatedMembersCard } from './components/role-related-members-card'
 import { RoleScope } from './components/role-scope'
@@ -162,6 +163,9 @@ export function RoleDetail() {
             <div className="min-w-0 flex-1">
               <TabsContent value="permissions">
                 <PermissionMatrix />
+              </TabsContent>
+              <TabsContent value="fields">
+                <RoleFields />
               </TabsContent>
               <TabsContent value="users">
                 <RoleMembers />
