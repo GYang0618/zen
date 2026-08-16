@@ -28,5 +28,10 @@ export const menus = [
     name: '角色管理',
     path: '/system/roles',
     description: '角色管理页面'
+  },
+  {
+    name: '组织管理',
+    path: '/system/organization',
+    description: '组织架构页面'
   }
 ] as const

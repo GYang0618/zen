@@ -7,7 +7,7 @@ const USERS_LIST_QUERY_KEY = ['system', 'users', 'list'] as const
 function invalidateUserQueries(queryClient: ReturnType<typeof useQueryClient>, userId?: string) {
   const tasks = [
     queryClient.invalidateQueries({ queryKey: USERS_LIST_QUERY_KEY }),
-    queryClient.invalidateQueries({ queryKey: ['organization-v2'] }),
+    queryClient.invalidateQueries({ queryKey: ['organization'] }),
     queryClient.invalidateQueries({ queryKey: ['system', 'roles'] })
   ]
   if (userId) {

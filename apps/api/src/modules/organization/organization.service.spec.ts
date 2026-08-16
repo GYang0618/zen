@@ -43,16 +43,40 @@ function organization(input: {
   }
 }
 
+function member(userId: string) {
+  return {
+    user: {
+      id: userId,
+      username: userId,
+      nickname: null,
+      email: `${userId}@zen.dev`,
+      phoneNumber: null,
+      status: 'ACTIVE' as const,
+      profile: null
+    },
+    post: null,
+    organization: { name: '平台团队' }
+  }
+}
+
 describe('OrganizationService', () => {
   const repository = {
     findMany: jest.fn(),
     findByIdInScope: jest.fn(),
     countDescendantsByPathPrefix: jest.fn(),
     findDescendantsByPathPrefix: jest.fn(),
-    updateManyPaths: jest.fn()
+    updateManyPaths: jest.fn(),
+    findActiveUserById: jest.fn(),
+    findUsersDisplayByIds: jest.fn(),
+    findOrganizationsDisplayByIds: jest.fn(),
+    addMember: jest.fn(),
+    removeMember: jest.fn()
   } as unknown as jest.Mocked<OrganizationRepository>
   const auditService = { write: jest.fn() } as unknown as AuditService
-  const authContextService = { bumpPermVer: jest.fn() } as unknown as AuthContextService
+  const authContextService = {
+    bumpPermVer: jest.fn(),
+    invalidateCache: jest.fn()
+  } as unknown as AuthContextService
   const sessionService = { revokeAllForUser: jest.fn() } as unknown as SessionService
   const service = new OrganizationService(
     repository,
@@ -109,6 +133,10 @@ describe('OrganizationService', () => {
     repository.findDescendantsByPathPrefix.mockResolvedValue([
       { id: source.id, path: source.path, level: source.level }
     ])
+    repository.findOrganizationsDisplayByIds.mockResolvedValue([
+      { id: 'old-center', name: '旧中心', code: 'old-center' },
+      { id: target.id, name: target.name, code: target.id }
+    ] as never)
     repository.updateManyPaths.mockResolvedValue([])
 
     await service.changeParent(source.id, { parentId: target.id }, auth)
@@ -122,6 +150,61 @@ describe('OrganizationService', () => {
       }
     ])
     expect(authContextService.bumpPermVer).toHaveBeenCalled()
+  })
+
+  it('scopes an added member to the affected user without bumping tenant permVer', async () => {
+    repository.findByIdInScope.mockResolvedValue(organization({ id: 'team', name: '平台团队' }))
+    repository.findActiveUserById.mockResolvedValue({ id: 'member' } as never)
+    repository.findUsersDisplayByIds.mockResolvedValue([
+      { id: 'member', username: 'member', nickname: '成员甲', profile: null }
+    ] as never)
+    repository.addMember.mockResolvedValue(member('member'))
+
+    await service.addMember('team', { userIds: ['member'] }, auth)
+
+    expect(authContextService.bumpPermVer).not.toHaveBeenCalled()
+    expect(authContextService.invalidateCache).toHaveBeenCalledWith('member')
+    expect(sessionService.revokeAllForUser).toHaveBeenCalledWith('member')
+    expect(auditService.write).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'system.organization.member_added',
+        diff: expect.objectContaining({
+          members: { added: [{ id: 'member', name: '成员甲' }] }
+        })
+      })
+    )
+  })
+
+  it('scopes a removed member to the affected user without bumping tenant permVer', async () => {
+    repository.findByIdInScope.mockResolvedValue(organization({ id: 'team', name: '平台团队' }))
+    repository.findUsersDisplayByIds.mockResolvedValue([
+      { id: 'member', username: 'member', nickname: '成员甲', profile: null }
+    ] as never)
+    repository.removeMember.mockResolvedValue({ count: 1 })
+
+    await service.removeMember('team', 'member', auth)
+
+    expect(authContextService.bumpPermVer).not.toHaveBeenCalled()
+    expect(authContextService.invalidateCache).toHaveBeenCalledWith('member')
+    expect(sessionService.revokeAllForUser).toHaveBeenCalledWith('member')
+    expect(auditService.write).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'system.organization.member_removed',
+        diff: expect.objectContaining({
+          members: { removed: [{ id: 'member', name: '成员甲' }] }
+        })
+      })
+    )
+  })
+
+  it('leaves authorization untouched when the member to remove does not exist', async () => {
+    repository.findByIdInScope.mockResolvedValue(organization({ id: 'team', name: '平台团队' }))
+    repository.removeMember.mockResolvedValue({ count: 0 })
+
+    await expect(service.removeMember('team', 'ghost', auth)).rejects.toThrow('组织成员不存在')
+
+    expect(authContextService.invalidateCache).not.toHaveBeenCalled()
+    expect(sessionService.revokeAllForUser).not.toHaveBeenCalled()
   })
 
   it('rejects moving a subtree that contains out-of-scope organizations', async () => {

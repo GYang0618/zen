@@ -1,4 +1,5 @@
 export * from './client'
 export * from './middleware'
+export * from './silent-refresh'
 export * from './types'
 export * from './utils'

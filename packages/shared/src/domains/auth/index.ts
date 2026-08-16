@@ -1,5 +1,4 @@
 export * from './auth.type'
 export * from './auth-context'
 export * from './password.schema'
-export * from './permissions'
 export * from './profile.schema'

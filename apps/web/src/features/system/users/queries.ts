@@ -13,11 +13,12 @@ export const usersQueryKeys = {
   detail: (id: string) => [...usersQueryKeys.all, 'detail', id] as const
 }
 
-export function useUsersQuery(params: UsersQuery = {}) {
+export function useUsersQuery(params: UsersQuery = {}, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: usersQueryKeys.list(params),
     queryFn: () => userApi.getUserList(params),
-    placeholderData: keepPreviousData
+    placeholderData: keepPreviousData,
+    enabled: options?.enabled ?? true
   })
 }
 

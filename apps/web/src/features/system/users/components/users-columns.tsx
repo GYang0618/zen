@@ -7,7 +7,7 @@ import { Mail, Phone } from 'lucide-react'
 import { DynamicIcon } from 'lucide-react/dynamic'
 
 import { DataTableColumnHeader } from '@/components/data-table'
-import { getRoleIconColorClassName } from '@/features/system/roles-v2/data/data'
+import { getRoleIconColorClassName } from '@/features/system/roles/data/data'
 
 import { statusConfig } from '../data/data'
 import {

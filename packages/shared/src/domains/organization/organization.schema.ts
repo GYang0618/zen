@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { auditDiffSchema } from '../audit/audit-diff.schema'
 import { paged, pageQuerySchema } from '../pagination'
 
 const idSchema = z.string().trim().min(1)
@@ -71,7 +72,7 @@ export const changeOrganizationParentSchema = z
 
 export const addOrganizationMemberSchema = z
   .object({
-    userId: idSchema
+    userIds: z.array(idSchema).min(1, '至少选择一名用户').describe('要加入组织的用户 ID 列表')
   })
   .strict()
 
@@ -120,7 +121,9 @@ export const organizationActivitySchema = z.object({
     avatar: z.string().nullable()
   }),
   action: z.string(),
-  description: z.string(),
+  title: z.string().describe('操作标题，如「添加了成员」'),
+  description: z.string().describe('变更详情，由 AuditDiff 生成'),
+  diff: auditDiffSchema.nullable().describe('结构化变更，历史脏数据可能为 null'),
   createdAt: dateTimeSchema
 })
 

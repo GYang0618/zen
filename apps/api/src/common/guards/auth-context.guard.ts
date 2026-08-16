@@ -2,7 +2,9 @@ import { Inject, Injectable, UnauthorizedException } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 
 import { AuthContextService } from '../auth/auth-context.service'
+import { setRequestAuditContext } from '../auth/request-audit-context'
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator'
+import { resolveTraceId } from '../utils/trace-id'
 
 import type { CanActivate, ExecutionContext } from '@nestjs/common'
 import type { AuthContext } from '@zen/shared'
@@ -11,6 +13,19 @@ import type { JwtPayload } from '../interfaces/jwt-payload.interface'
 type HttpRequest = {
   user?: JwtPayload
   auth?: AuthContext
+  id?: string
+  ip?: string
+  headers: Record<string, string | string[] | undefined>
+  get?: (name: string) => string | undefined
+}
+
+function readClientIp(request: HttpRequest): string | undefined {
+  const forwarded = request.headers['x-forwarded-for']
+  const forwardedValue = Array.isArray(forwarded) ? forwarded[0] : forwarded
+  if (typeof forwardedValue === 'string' && forwardedValue.trim()) {
+    return forwardedValue.split(',')[0]?.trim()
+  }
+  return request.ip
 }
 
 /**
@@ -44,6 +59,17 @@ export class AuthContextGuard implements CanActivate {
     ) {
       throw new UnauthorizedException('权限已变更，请重新登录')
     }
+
+    setRequestAuditContext({
+      actorId: request.auth.userId,
+      tenantId: request.auth.tenantId,
+      ip: readClientIp(request),
+      userAgent: request.get?.('user-agent') ?? undefined,
+      traceId: resolveTraceId({
+        existingId: request.id,
+        headers: request.headers
+      })
+    })
 
     return true
   }

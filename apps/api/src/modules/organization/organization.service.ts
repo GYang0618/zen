@@ -1,10 +1,12 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
   NotFoundException
 } from '@nestjs/common'
+import { parseAuditDiff } from '@zen/shared'
 
 import { applyOrganizationTreeDataScope } from '@/common/auth/apply-data-scope'
 import { AuditService } from '@/common/auth/audit.service'
@@ -21,9 +23,23 @@ import {
 } from './organization.mapper'
 import { OrganizationRepository } from './organization.repository'
 import { assertValidParentType, canBeChildOf, throwMoveRejection } from './organization.rules'
+import {
+  buildOrganizationCreatedDiff,
+  buildOrganizationLeaderDiff,
+  buildOrganizationMembersDiff,
+  buildOrganizationParentDiff,
+  buildOrganizationPositionCreatedDiff,
+  buildOrganizationUpdatedDiff,
+  toUserDisplayName
+} from './organization-audit-diff'
 
 import type { Prisma } from '@prisma/client'
-import type { AuthContext, OrganizationActivity, OrganizationTreeNode } from '@zen/shared'
+import type {
+  AuditDiff,
+  AuthContext,
+  OrganizationActivity,
+  OrganizationTreeNode
+} from '@zen/shared'
 import type {
   AddOrganizationMemberDto,
   ChangeOrganizationParentDto,
@@ -47,12 +63,81 @@ const NAME_COLLATOR = new Intl.Collator('zh-CN', {
   sensitivity: 'base'
 })
 
+const ORGANIZATION_ACTION_TITLES: Record<string, string> = {
+  'system.organization.created': '创建了组织',
+  'system.organization.updated': '更新了信息',
+  'system.organization.leader_updated': '变更了负责人',
+  'system.organization.parent_changed': '调整了上级',
+  'system.organization.member_added': '添加了成员',
+  'system.organization.member_removed': '移除了成员',
+  'system.organization.position_created': '创建了岗位'
+}
+
 function buildPath(parentPath: string | null | undefined, id: string): string {
   return `${parentPath || '/'}${id}/`
 }
 
 function toDate(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`)
+}
+
+function displayText(value: string | null | undefined): string {
+  if (value == null || value === '') return '空'
+  return value
+}
+
+function formatMembersLine(names: string[], verb: '添加了' | '移除了'): string {
+  if (names.length === 0) return `${verb} 0 人`
+  return `${verb}${names.join('、')} 共 ${names.length} 人`
+}
+
+function formatChanges(diff: AuditDiff): string {
+  if (!diff.changes || diff.changes.length === 0) {
+    return diff.summary ?? '无字段变更'
+  }
+  return diff.changes
+    .map(
+      (change) =>
+        `${change.label}由「${displayText(change.from)}」更新为「${displayText(change.to)}」`
+    )
+    .join('、')
+}
+
+function formatActivityDescription(action: string, diff: AuditDiff | null): string {
+  if (!diff) {
+    return ORGANIZATION_ACTION_TITLES[action] ?? '更新了组织'
+  }
+
+  if (
+    action === 'system.organization.created' ||
+    action === 'system.organization.position_created'
+  ) {
+    return diff.summary ?? ORGANIZATION_ACTION_TITLES[action] ?? '更新了组织'
+  }
+
+  if (
+    action === 'system.organization.updated' ||
+    action === 'system.organization.leader_updated' ||
+    action === 'system.organization.parent_changed'
+  ) {
+    return formatChanges(diff)
+  }
+
+  if (action === 'system.organization.member_added') {
+    return formatMembersLine(
+      (diff.members?.added ?? []).map((item) => item.name),
+      '添加了'
+    )
+  }
+
+  if (action === 'system.organization.member_removed') {
+    return formatMembersLine(
+      (diff.members?.removed ?? []).map((item) => item.name),
+      '移除了'
+    )
+  }
+
+  return diff.summary ?? ORGANIZATION_ACTION_TITLES[action] ?? '更新了组织'
 }
 
 @Injectable()
@@ -108,10 +193,12 @@ export class OrganizationService {
     const updated = await this.orgRepo.update(created.id, {
       path: buildPath(parent?.path, created.id)
     })
-    await this.writeAudit(auth, updated.id, 'system.organization.created', {
-      code: updated.code,
-      name: updated.name
-    })
+    await this.writeAudit(
+      auth,
+      updated.id,
+      'system.organization.created',
+      buildOrganizationCreatedDiff(updated)
+    )
     return toOrganizationResponse(updated)
   }
 
@@ -129,7 +216,12 @@ export class OrganizationService {
       description: data.description,
       effectiveDate: data.effectiveDate ? toDate(data.effectiveDate) : undefined
     })
-    await this.writeAudit(auth, id, 'system.organization.updated', data)
+    await this.writeAudit(
+      auth,
+      id,
+      'system.organization.updated',
+      buildOrganizationUpdatedDiff(existing, data)
+    )
     return toOrganizationResponse(updated)
   }
 
@@ -138,12 +230,36 @@ export class OrganizationService {
     data: UpdateOrganizationLeaderDto,
     auth: AuthContext
   ): Promise<OrganizationResponse> {
-    await this.requireVisible(id, auth)
+    const existing = await this.requireVisible(id, auth)
     await this.assertActiveUser(data.leaderId)
+
+    const leaderIds = [
+      ...new Set(
+        [existing.leaderId, data.leaderId].filter((value): value is string => Boolean(value))
+      )
+    ]
+    const leaders = new Map(
+      (await this.orgRepo.findUsersDisplayByIds(leaderIds)).map((user) => [
+        user.id,
+        { id: user.id, name: toUserDisplayName(user) }
+      ])
+    )
+
     const updated = await this.orgRepo.update(id, {
       leader: data.leaderId === null ? { disconnect: true } : { connect: { id: data.leaderId } }
     })
-    await this.writeAudit(auth, id, 'system.organization.leader_updated', data)
+    await this.writeAudit(
+      auth,
+      id,
+      'system.organization.leader_updated',
+      buildOrganizationLeaderDiff(
+        existing,
+        existing.leaderId ? (leaders.get(existing.leaderId) ?? null) : null,
+        data.leaderId
+          ? (leaders.get(data.leaderId) ?? { id: data.leaderId, name: data.leaderId })
+          : null
+      )
+    )
     return toOrganizationResponse(updated)
   }
 
@@ -170,6 +286,18 @@ export class OrganizationService {
       parent ? toApiOrganizationType(parent.type) : null
     )
 
+    const parentIds = [
+      ...new Set(
+        [existing.parentId, data.parentId].filter((value): value is string => Boolean(value))
+      )
+    ]
+    const parents = new Map(
+      (await this.orgRepo.findOrganizationsDisplayByIds(parentIds)).map((item) => [
+        item.id,
+        { id: item.id, name: item.name }
+      ])
+    )
+
     const oldPrefix = existing.path ?? `/${id}/`
     const newPath = buildPath(parent?.path, id)
     const levelDelta = (parent?.level ?? 0) + 1 - existing.level
@@ -183,7 +311,18 @@ export class OrganizationService {
       }))
     )
 
-    await this.writeAudit(auth, id, 'system.organization.parent_changed', data)
+    await this.writeAudit(
+      auth,
+      id,
+      'system.organization.parent_changed',
+      buildOrganizationParentDiff(
+        existing,
+        existing.parentId ? (parents.get(existing.parentId) ?? null) : null,
+        data.parentId
+          ? (parents.get(data.parentId) ?? { id: data.parentId, name: data.parentId })
+          : null
+      )
+    )
     await this.authContextService.bumpPermVer()
     return toOrganizationResponse(await this.requireVisible(id, auth))
   }
@@ -197,20 +336,62 @@ export class OrganizationService {
     id: string,
     data: AddOrganizationMemberDto,
     auth: AuthContext
-  ): Promise<OrganizationMemberResponse> {
-    await this.requireVisible(id, auth)
-    await this.assertActiveUser(data.userId)
-    const member = await this.orgRepo.addMember(id, data.userId)
-    await this.writeAudit(auth, id, 'system.organization.member_added', data)
-    await this.refreshUserAccess(data.userId)
-    return toOrganizationMemberResponse(member)
+  ): Promise<OrganizationMemberResponse[]> {
+    const organization = await this.requireVisible(id, auth)
+    const userIds = [...new Set(data.userIds.map((item) => item.trim()).filter(Boolean))]
+    if (userIds.length === 0) {
+      throw new BadRequestException('至少选择一名用户')
+    }
+
+    for (const userId of userIds) {
+      await this.assertActiveUser(userId)
+    }
+
+    const members = await Promise.all(userIds.map((userId) => this.orgRepo.addMember(id, userId)))
+    const displayUsers = await this.orgRepo.findUsersDisplayByIds(userIds)
+    const displayById = new Map(
+      displayUsers.map((user) => [user.id, toUserDisplayName(user)] as const)
+    )
+
+    await this.writeAudit(
+      auth,
+      id,
+      'system.organization.member_added',
+      buildOrganizationMembersDiff(
+        organization,
+        userIds.map((userId) => ({
+          id: userId,
+          name: displayById.get(userId) ?? userId
+        })),
+        'added'
+      )
+    )
+
+    await Promise.all(userIds.map((userId) => this.refreshUserAccess(userId)))
+    return members.map(toOrganizationMemberResponse)
   }
 
   async removeMember(id: string, userId: string, auth: AuthContext): Promise<void> {
-    await this.requireVisible(id, auth)
+    const organization = await this.requireVisible(id, auth)
+    const displayUsers = await this.orgRepo.findUsersDisplayByIds([userId])
+    const displayUser = displayUsers[0]
     const result = await this.orgRepo.removeMember(id, userId)
     if (result.count === 0) throw new NotFoundException('组织成员不存在')
-    await this.writeAudit(auth, id, 'system.organization.member_removed', { userId })
+    await this.writeAudit(
+      auth,
+      id,
+      'system.organization.member_removed',
+      buildOrganizationMembersDiff(
+        organization,
+        [
+          {
+            id: userId,
+            name: displayUser ? toUserDisplayName(displayUser) : userId
+          }
+        ],
+        'removed'
+      )
+    )
     await this.refreshUserAccess(userId)
   }
 
@@ -224,7 +405,7 @@ export class OrganizationService {
     data: CreatePositionDto,
     auth: AuthContext
   ): Promise<PositionResponse> {
-    await this.requireVisible(id, auth)
+    const organization = await this.requireVisible(id, auth)
     if (await this.orgRepo.findPostByCode(data.code)) {
       throw new ConflictException('岗位编码已存在')
     }
@@ -236,10 +417,18 @@ export class OrganizationService {
       headcount: data.headcount,
       organization: { connect: { id } }
     })
-    await this.writeAudit(auth, id, 'system.organization.position_created', {
-      positionId: position.id,
-      ...data
-    })
+    await this.writeAudit(
+      auth,
+      id,
+      'system.organization.position_created',
+      buildOrganizationPositionCreatedDiff(organization, {
+        id: position.id,
+        code: position.code,
+        name: position.name,
+        level: data.level,
+        headcount: data.headcount
+      })
+    )
     return toPositionResponse(position)
   }
 
@@ -320,17 +509,16 @@ export class OrganizationService {
       )
   }
 
+  /**
+   * 成员归属变更只影响当事人：清空其鉴权快照并注销其会话。
+   * 不 bump 租户 permVer，否则所有在线用户（含操作者）的 accessToken 会立即失效并触发 401。
+   */
   private async refreshUserAccess(userId: string): Promise<void> {
-    await this.authContextService.bumpPermVer()
+    this.authContextService.invalidateCache(userId)
     await this.sessionService.revokeAllForUser(userId)
   }
 
-  private writeAudit(
-    auth: AuthContext,
-    resourceId: string,
-    action: string,
-    diff?: Prisma.InputJsonValue
-  ) {
+  private writeAudit(auth: AuthContext, resourceId: string, action: string, diff: AuditDiff) {
     return this.auditService.write({
       tenantId: auth.tenantId,
       actorId: auth.userId,
@@ -358,6 +546,7 @@ export class OrganizationService {
         }
       | undefined
   ): OrganizationActivity {
+    const diff = parseAuditDiff(item.diff)
     return {
       id: item.id,
       actor: {
@@ -366,21 +555,10 @@ export class OrganizationService {
         avatar: actor?.profile?.avatar ?? null
       },
       action: item.action,
-      description: this.describeActivity(item.action),
+      title: ORGANIZATION_ACTION_TITLES[item.action] ?? '操作了组织',
+      description: formatActivityDescription(item.action, diff),
+      diff,
       createdAt: item.createdAt.toISOString()
     }
-  }
-
-  private describeActivity(action: string): string {
-    const descriptions: Record<string, string> = {
-      'system.organization.created': '创建了组织',
-      'system.organization.updated': '更新了组织信息',
-      'system.organization.leader_updated': '变更了组织负责人',
-      'system.organization.parent_changed': '调整了组织上级',
-      'system.organization.member_added': '添加了组织成员',
-      'system.organization.member_removed': '移除了组织成员',
-      'system.organization.position_created': '创建了岗位'
-    }
-    return descriptions[action] ?? '更新了组织'
   }
 }

@@ -132,17 +132,17 @@ export const listOrganizationMembersTool = tool(
 )
 
 export const addOrganizationMemberTool = tool(
-  async ({ id, userId }, config) =>
+  async ({ id, userIds }, config) =>
     executeApiCall(config, () =>
       client.post({
         url: `/api/organizations/${id}/members`,
-        body: { userId },
+        body: { userIds },
         headers: { 'Content-Type': 'application/json' }
       })
     ),
   {
     name: 'add_organization_member',
-    description: '将用户加入指定组织',
+    description: '将一名或多名用户加入指定组织',
     schema: addOrganizationMemberToolSchema
   }
 )

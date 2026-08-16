@@ -42,7 +42,7 @@ import type {
   UpdateOrganizationLeaderDto
 } from './dto'
 
-@ApiTags('组织管理 V2')
+@ApiTags('组织管理')
 @ApiBearerAuth(ACCESS_TOKEN_AUTH)
 @ApiStandardErrorResponses()
 @Controller('organizations')
@@ -119,7 +119,7 @@ export class OrganizationController {
 
   @Post(':id/members')
   @RequirePermission(PermissionCode.ORG_UPDATE)
-  @ApiOperation({ summary: '添加组织成员' })
+  @ApiOperation({ summary: '批量添加组织成员' })
   @UsePipes(new ZodValidationPipe(addOrganizationMemberSchema))
   addMember(
     @Param('id') id: string,

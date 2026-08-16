@@ -3,7 +3,7 @@ import { roleDataScopeSchema, roleEffectiveStatusSchema } from '@zen/shared'
 import { KeyRound } from 'lucide-react'
 import { z } from 'zod'
 
-import { Roles } from '@/features/system/roles-v2/roles'
+import { Roles } from '@/features/system/roles/roles'
 
 const rolesSearchSchema = z.object({
   keyword: z.string().trim().min(1).optional().catch(undefined),

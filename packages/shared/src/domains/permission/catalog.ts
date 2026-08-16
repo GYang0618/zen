@@ -1,5 +1,4 @@
 import { AUDIT_PERMISSIONS } from '../audit/permissions'
-import { SESSION_PERMISSIONS } from '../auth/permissions'
 import { DICT_PERMISSIONS } from '../dict/permissions'
 import { ORG_PERMISSIONS, POST_PERMISSIONS } from '../organization/permissions'
 import { PLUGIN_PERMISSIONS } from '../plugin/permissions'
@@ -16,8 +15,7 @@ const KERNEL_PERMISSION_GROUPS = [
   POST_PERMISSIONS,
   AUDIT_PERMISSIONS,
   DICT_PERMISSIONS,
-  PLUGIN_PERMISSIONS,
-  SESSION_PERMISSIONS
+  PLUGIN_PERMISSIONS
 ] as const
 
 /** 内核权限目录（不含插件；插件由 PLUGIN_REGISTRY 运行时合并） */

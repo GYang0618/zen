@@ -55,10 +55,10 @@ import { Route as AuthenticatedOtherSettingsActivityRouteImport } from './routes
 import { Route as AuthenticatedOtherSettingsAppearanceRouteImport } from './routes/_authenticated/_other/settings/appearance'
 import { Route as AuthenticatedOtherSettingsNotificationsRouteImport } from './routes/_authenticated/_other/settings/notifications'
 import { Route as AuthenticatedOtherSettingsProfileRouteImport } from './routes/_authenticated/_other/settings/profile'
-import { Route as AuthenticatedSystemIdentityOrganizationV2RouteImport } from './routes/_authenticated/system/_identity/organization-v2'
+import { Route as AuthenticatedSystemIdentityOrganizationRouteImport } from './routes/_authenticated/system/_identity/organization'
 import { Route as AuthenticatedSystemIdentityRolesRouteImport } from './routes/_authenticated/system/_identity/roles'
 import { Route as AuthenticatedSystemIdentityUsersRouteImport } from './routes/_authenticated/system/_identity/users'
-import { Route as AuthenticatedSystemIdentityOrganizationV2IdRouteImport } from './routes/_authenticated/system/_identity/organization-v2_.$id'
+import { Route as AuthenticatedSystemIdentityOrganizationIdRouteImport } from './routes/_authenticated/system/_identity/organization_.$id'
 import { Route as AuthenticatedSystemIdentityRolesIdRouteImport } from './routes/_authenticated/system/_identity/roles_.$id'
 import { Route as AuthenticatedSystemIdentityUsersUserIdRouteImport } from './routes/_authenticated/system/_identity/users_.$userId'
 
@@ -317,10 +317,10 @@ const AuthenticatedOtherSettingsProfileRoute =
     path: '/profile',
     getParentRoute: () => AuthenticatedOtherSettingsRouteRoute,
   } as any)
-const AuthenticatedSystemIdentityOrganizationV2Route =
-  AuthenticatedSystemIdentityOrganizationV2RouteImport.update({
-    id: '/organization-v2',
-    path: '/organization-v2',
+const AuthenticatedSystemIdentityOrganizationRoute =
+  AuthenticatedSystemIdentityOrganizationRouteImport.update({
+    id: '/organization',
+    path: '/organization',
     getParentRoute: () => AuthenticatedSystemIdentityRouteRoute,
   } as any)
 const AuthenticatedSystemIdentityRolesRoute =
@@ -335,10 +335,10 @@ const AuthenticatedSystemIdentityUsersRoute =
     path: '/users',
     getParentRoute: () => AuthenticatedSystemIdentityRouteRoute,
   } as any)
-const AuthenticatedSystemIdentityOrganizationV2IdRoute =
-  AuthenticatedSystemIdentityOrganizationV2IdRouteImport.update({
-    id: '/organization-v2_/$id',
-    path: '/organization-v2/$id',
+const AuthenticatedSystemIdentityOrganizationIdRoute =
+  AuthenticatedSystemIdentityOrganizationIdRouteImport.update({
+    id: '/organization_/$id',
+    path: '/organization/$id',
     getParentRoute: () => AuthenticatedSystemIdentityRouteRoute,
   } as any)
 const AuthenticatedSystemIdentityRolesIdRoute =
@@ -396,10 +396,10 @@ export interface FileRoutesByFullPath {
   '/settings/appearance': typeof AuthenticatedOtherSettingsAppearanceRoute
   '/settings/notifications': typeof AuthenticatedOtherSettingsNotificationsRoute
   '/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
-  '/system/organization-v2': typeof AuthenticatedSystemIdentityOrganizationV2Route
+  '/system/organization': typeof AuthenticatedSystemIdentityOrganizationRoute
   '/system/roles': typeof AuthenticatedSystemIdentityRolesRoute
   '/system/users': typeof AuthenticatedSystemIdentityUsersRoute
-  '/system/organization-v2/$id': typeof AuthenticatedSystemIdentityOrganizationV2IdRoute
+  '/system/organization/$id': typeof AuthenticatedSystemIdentityOrganizationIdRoute
   '/system/roles/$id': typeof AuthenticatedSystemIdentityRolesIdRoute
   '/system/users/$userId': typeof AuthenticatedSystemIdentityUsersUserIdRoute
 }
@@ -445,10 +445,10 @@ export interface FileRoutesByTo {
   '/settings/appearance': typeof AuthenticatedOtherSettingsAppearanceRoute
   '/settings/notifications': typeof AuthenticatedOtherSettingsNotificationsRoute
   '/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
-  '/system/organization-v2': typeof AuthenticatedSystemIdentityOrganizationV2Route
+  '/system/organization': typeof AuthenticatedSystemIdentityOrganizationRoute
   '/system/roles': typeof AuthenticatedSystemIdentityRolesRoute
   '/system/users': typeof AuthenticatedSystemIdentityUsersRoute
-  '/system/organization-v2/$id': typeof AuthenticatedSystemIdentityOrganizationV2IdRoute
+  '/system/organization/$id': typeof AuthenticatedSystemIdentityOrganizationIdRoute
   '/system/roles/$id': typeof AuthenticatedSystemIdentityRolesIdRoute
   '/system/users/$userId': typeof AuthenticatedSystemIdentityUsersUserIdRoute
 }
@@ -500,10 +500,10 @@ export interface FileRoutesById {
   '/_authenticated/_other/settings/appearance': typeof AuthenticatedOtherSettingsAppearanceRoute
   '/_authenticated/_other/settings/notifications': typeof AuthenticatedOtherSettingsNotificationsRoute
   '/_authenticated/_other/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
-  '/_authenticated/system/_identity/organization-v2': typeof AuthenticatedSystemIdentityOrganizationV2Route
+  '/_authenticated/system/_identity/organization': typeof AuthenticatedSystemIdentityOrganizationRoute
   '/_authenticated/system/_identity/roles': typeof AuthenticatedSystemIdentityRolesRoute
   '/_authenticated/system/_identity/users': typeof AuthenticatedSystemIdentityUsersRoute
-  '/_authenticated/system/_identity/organization-v2_/$id': typeof AuthenticatedSystemIdentityOrganizationV2IdRoute
+  '/_authenticated/system/_identity/organization_/$id': typeof AuthenticatedSystemIdentityOrganizationIdRoute
   '/_authenticated/system/_identity/roles_/$id': typeof AuthenticatedSystemIdentityRolesIdRoute
   '/_authenticated/system/_identity/users_/$userId': typeof AuthenticatedSystemIdentityUsersUserIdRoute
 }
@@ -551,10 +551,10 @@ export interface FileRouteTypes {
     | '/settings/appearance'
     | '/settings/notifications'
     | '/settings/profile'
-    | '/system/organization-v2'
+    | '/system/organization'
     | '/system/roles'
     | '/system/users'
-    | '/system/organization-v2/$id'
+    | '/system/organization/$id'
     | '/system/roles/$id'
     | '/system/users/$userId'
   fileRoutesByTo: FileRoutesByTo
@@ -600,10 +600,10 @@ export interface FileRouteTypes {
     | '/settings/appearance'
     | '/settings/notifications'
     | '/settings/profile'
-    | '/system/organization-v2'
+    | '/system/organization'
     | '/system/roles'
     | '/system/users'
-    | '/system/organization-v2/$id'
+    | '/system/organization/$id'
     | '/system/roles/$id'
     | '/system/users/$userId'
   id:
@@ -654,10 +654,10 @@ export interface FileRouteTypes {
     | '/_authenticated/_other/settings/appearance'
     | '/_authenticated/_other/settings/notifications'
     | '/_authenticated/_other/settings/profile'
-    | '/_authenticated/system/_identity/organization-v2'
+    | '/_authenticated/system/_identity/organization'
     | '/_authenticated/system/_identity/roles'
     | '/_authenticated/system/_identity/users'
-    | '/_authenticated/system/_identity/organization-v2_/$id'
+    | '/_authenticated/system/_identity/organization_/$id'
     | '/_authenticated/system/_identity/roles_/$id'
     | '/_authenticated/system/_identity/users_/$userId'
   fileRoutesById: FileRoutesById
@@ -996,11 +996,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOtherSettingsProfileRouteImport
       parentRoute: typeof AuthenticatedOtherSettingsRouteRoute
     }
-    '/_authenticated/system/_identity/organization-v2': {
-      id: '/_authenticated/system/_identity/organization-v2'
-      path: '/organization-v2'
-      fullPath: '/system/organization-v2'
-      preLoaderRoute: typeof AuthenticatedSystemIdentityOrganizationV2RouteImport
+    '/_authenticated/system/_identity/organization': {
+      id: '/_authenticated/system/_identity/organization'
+      path: '/organization'
+      fullPath: '/system/organization'
+      preLoaderRoute: typeof AuthenticatedSystemIdentityOrganizationRouteImport
       parentRoute: typeof AuthenticatedSystemIdentityRouteRoute
     }
     '/_authenticated/system/_identity/roles': {
@@ -1017,11 +1017,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSystemIdentityUsersRouteImport
       parentRoute: typeof AuthenticatedSystemIdentityRouteRoute
     }
-    '/_authenticated/system/_identity/organization-v2_/$id': {
-      id: '/_authenticated/system/_identity/organization-v2_/$id'
-      path: '/organization-v2/$id'
-      fullPath: '/system/organization-v2/$id'
-      preLoaderRoute: typeof AuthenticatedSystemIdentityOrganizationV2IdRouteImport
+    '/_authenticated/system/_identity/organization_/$id': {
+      id: '/_authenticated/system/_identity/organization_/$id'
+      path: '/organization/$id'
+      fullPath: '/system/organization/$id'
+      preLoaderRoute: typeof AuthenticatedSystemIdentityOrganizationIdRouteImport
       parentRoute: typeof AuthenticatedSystemIdentityRouteRoute
     }
     '/_authenticated/system/_identity/roles_/$id': {
@@ -1190,24 +1190,24 @@ const AuthenticatedPluginsRouteRouteWithChildren =
   )
 
 interface AuthenticatedSystemIdentityRouteRouteChildren {
-  AuthenticatedSystemIdentityOrganizationV2Route: typeof AuthenticatedSystemIdentityOrganizationV2Route
+  AuthenticatedSystemIdentityOrganizationRoute: typeof AuthenticatedSystemIdentityOrganizationRoute
   AuthenticatedSystemIdentityRolesRoute: typeof AuthenticatedSystemIdentityRolesRoute
   AuthenticatedSystemIdentityUsersRoute: typeof AuthenticatedSystemIdentityUsersRoute
-  AuthenticatedSystemIdentityOrganizationV2IdRoute: typeof AuthenticatedSystemIdentityOrganizationV2IdRoute
+  AuthenticatedSystemIdentityOrganizationIdRoute: typeof AuthenticatedSystemIdentityOrganizationIdRoute
   AuthenticatedSystemIdentityRolesIdRoute: typeof AuthenticatedSystemIdentityRolesIdRoute
   AuthenticatedSystemIdentityUsersUserIdRoute: typeof AuthenticatedSystemIdentityUsersUserIdRoute
 }
 
 const AuthenticatedSystemIdentityRouteRouteChildren: AuthenticatedSystemIdentityRouteRouteChildren =
   {
-    AuthenticatedSystemIdentityOrganizationV2Route:
-      AuthenticatedSystemIdentityOrganizationV2Route,
+    AuthenticatedSystemIdentityOrganizationRoute:
+      AuthenticatedSystemIdentityOrganizationRoute,
     AuthenticatedSystemIdentityRolesRoute:
       AuthenticatedSystemIdentityRolesRoute,
     AuthenticatedSystemIdentityUsersRoute:
       AuthenticatedSystemIdentityUsersRoute,
-    AuthenticatedSystemIdentityOrganizationV2IdRoute:
-      AuthenticatedSystemIdentityOrganizationV2IdRoute,
+    AuthenticatedSystemIdentityOrganizationIdRoute:
+      AuthenticatedSystemIdentityOrganizationIdRoute,
     AuthenticatedSystemIdentityRolesIdRoute:
       AuthenticatedSystemIdentityRolesIdRoute,
     AuthenticatedSystemIdentityUsersUserIdRoute:

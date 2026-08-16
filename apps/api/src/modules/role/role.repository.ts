@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
+import { ROLE_MEMBER_PREVIEW_LIMIT } from '@zen/shared'
 
 import { PrismaService } from '@/infra/prisma/prisma.service'
 
@@ -9,7 +10,7 @@ export const ROLE_INCLUDE = {
     include: { permission: true }
   },
   users: {
-    take: 3,
+    take: ROLE_MEMBER_PREVIEW_LIMIT,
     orderBy: { createdAt: 'desc' as const },
     include: {
       user: {
@@ -107,14 +108,9 @@ export class RoleRepository {
     })
   }
 
-  findActivePermissionsByCodes(codes: string[]) {
-    return this.prisma.permission.findMany({
-      where: { code: { in: codes }, status: 'ACTIVE' }
-    })
-  }
-
   findAllPermissions() {
     return this.prisma.permission.findMany({
+      where: { status: 'ACTIVE' },
       orderBy: [{ module: 'asc' }, { code: 'asc' }]
     })
   }
@@ -169,6 +165,18 @@ export class RoleRepository {
     return this.prisma.user.findMany({
       where: { id: { in: ids }, deletedAt: null },
       select: { id: true }
+    })
+  }
+
+  findUsersDisplayByIds(ids: string[]) {
+    return this.prisma.user.findMany({
+      where: { id: { in: ids } },
+      select: {
+        id: true,
+        username: true,
+        nickname: true,
+        profile: { select: { realName: true } }
+      }
     })
   }
 

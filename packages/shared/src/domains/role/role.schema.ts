@@ -2,6 +2,9 @@ import { z } from 'zod'
 
 import { paged, pageQuerySchema } from '../pagination'
 
+/** 角色卡片 / 详情侧栏成员头像预览上限（按最近添加） */
+export const ROLE_MEMBER_PREVIEW_LIMIT = 5
+
 export const ROLE_ICON_VALUES = [
   'crown',
   'shield',
@@ -53,10 +56,10 @@ export const roleStatusSchema = z.union([
 
 /** 展示用派生状态：locked/expired 由 kind / expiresAt 计算 */
 export const roleEffectiveStatusSchema = z.union([
-  z.literal('active').describe('已激活'),
-  z.literal('disabled').describe('已冻结'),
-  z.literal('expired').describe('已过期'),
-  z.literal('locked').describe('已锁定')
+  z.literal('active').describe('激活'),
+  z.literal('disabled').describe('冻结'),
+  z.literal('expired').describe('过期'),
+  z.literal('locked').describe('锁定')
 ])
 
 export const roleKindSchema = z.union([
@@ -235,7 +238,9 @@ export const roleSchema = z.object({
   description: z.string().nullable().describe('描述'),
   memberCount: z.number().describe('成员数量'),
   permissionCount: z.number().describe('权限数量'),
-  memberPreview: z.array(roleMemberPreviewSchema).describe('成员头像预览'),
+  memberPreview: z
+    .array(roleMemberPreviewSchema)
+    .describe(`成员头像预览（最近添加，最多 ${ROLE_MEMBER_PREVIEW_LIMIT} 人）`),
   permissions: z.array(z.string()).describe('权限编码列表'),
   isSystem: z.boolean().describe('是否系统内置角色（兼容字段，等同 kind=system）'),
   createdAt: z.string().describe('创建时间（ISO 8601）'),

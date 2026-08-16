@@ -42,9 +42,10 @@ export class PermissionCatalogSyncService implements OnModuleInit, OnModuleDestr
 
   async syncCatalog(tenantId = DEFAULT_TENANT_ID): Promise<void> {
     const catalog = await this.resolveCatalog(tenantId)
-    const catalogCodes = new Set(catalog.map((entry) => entry.code))
+    const activeCatalog = catalog.filter((entry) => entry.status === 'active')
+    const activeCodes = new Set(activeCatalog.map((entry) => entry.code))
 
-    for (const entry of catalog) {
+    for (const entry of activeCatalog) {
       await this.prisma.permission.upsert({
         where: { code: entry.code },
         create: toPermissionRow(entry),
@@ -54,19 +55,20 @@ export class PermissionCatalogSyncService implements OnModuleInit, OnModuleDestr
           resource: entry.resource,
           action: entry.action,
           description: entry.description ?? null,
-          status: toPrismaStatus(entry.status),
+          status: PermissionStatus.ACTIVE,
           source: entry.source
         }
       })
     }
 
-    const orphaned = await this.prisma.permission.updateMany({
-      where: {
-        code: { notIn: [...catalogCodes] },
-        status: { not: PermissionStatus.DEPRECATED }
-      },
-      data: { status: PermissionStatus.DEPRECATED }
+    // 目录已废弃或已移除的权限：删除记录（RolePermission 级联清理）
+    const removed = await this.prisma.permission.deleteMany({
+      where: { code: { notIn: [...activeCodes] } }
     })
+
+    if (removed.count > 0) {
+      await this.authContextService.bumpPermVer()
+    }
 
     await this.prisma.role.updateMany({
       where: { isSystem: true, kind: { not: 'SYSTEM' } },
@@ -74,7 +76,7 @@ export class PermissionCatalogSyncService implements OnModuleInit, OnModuleDestr
     })
 
     this.logger.log(
-      `Permission catalog synced: kernel=${KERNEL_PERMISSION_CATALOG.length} total=${catalog.length} deprecated orphans=${orphaned.count}`
+      `Permission catalog synced: kernel=${KERNEL_PERMISSION_CATALOG.length} active=${activeCatalog.length} removed=${removed.count}`
     )
   }
 
@@ -116,10 +118,6 @@ export class PermissionCatalogSyncService implements OnModuleInit, OnModuleDestr
   }
 }
 
-function toPrismaStatus(status: PermissionCatalogEntry['status']): PermissionStatus {
-  return status === 'deprecated' ? PermissionStatus.DEPRECATED : PermissionStatus.ACTIVE
-}
-
 function toPermissionRow(entry: PermissionCatalogEntry) {
   return {
     code: entry.code,
@@ -128,7 +126,7 @@ function toPermissionRow(entry: PermissionCatalogEntry) {
     resource: entry.resource,
     action: entry.action,
     description: entry.description ?? null,
-    status: toPrismaStatus(entry.status),
+    status: PermissionStatus.ACTIVE,
     source: entry.source
   }
 }

@@ -3,6 +3,8 @@ import { DEFAULT_TENANT_ID } from '@zen/shared'
 
 import { PrismaService } from '@/infra/prisma'
 
+import { getRequestAuditContext } from './request-audit-context'
+
 import type { Prisma } from '@prisma/client'
 
 export type WriteAuditInput = {
@@ -14,7 +16,8 @@ export type WriteAuditInput = {
   ip?: string
   userAgent?: string
   traceId?: string
-  diff?: Prisma.InputJsonValue
+  /** 结构化变更快照；写入前序列化以兼容 Prisma InputJsonValue */
+  diff?: unknown
 }
 
 @Injectable()
@@ -22,17 +25,22 @@ export class AuditService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async write(input: WriteAuditInput) {
+    const requestContext = getRequestAuditContext()
+
     return this.prisma.auditLog.create({
       data: {
-        tenantId: input.tenantId ?? DEFAULT_TENANT_ID,
-        actorId: input.actorId ?? null,
+        tenantId: input.tenantId ?? requestContext?.tenantId ?? DEFAULT_TENANT_ID,
+        actorId: input.actorId ?? requestContext?.actorId ?? null,
         action: input.action,
         resource: input.resource ?? null,
         resourceId: input.resourceId ?? null,
-        ip: input.ip ?? null,
-        userAgent: input.userAgent ?? null,
-        traceId: input.traceId ?? null,
-        diff: input.diff ?? undefined
+        ip: input.ip ?? requestContext?.ip ?? null,
+        userAgent: input.userAgent ?? requestContext?.userAgent ?? null,
+        traceId: input.traceId ?? requestContext?.traceId ?? null,
+        diff:
+          input.diff === undefined
+            ? undefined
+            : (JSON.parse(JSON.stringify(input.diff)) as Prisma.InputJsonValue)
       }
     })
   }

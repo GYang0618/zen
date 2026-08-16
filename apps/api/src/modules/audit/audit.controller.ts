@@ -75,11 +75,34 @@ export class AuditController {
         })
     })
 
+    const actorIds = [
+      ...new Set(items.flatMap((item) => (item.actorId ? [item.actorId] : [])))
+    ]
+    const actors =
+      actorIds.length > 0
+        ? await this.prisma.user.findMany({
+            where: { id: { in: actorIds } },
+            select: {
+              id: true,
+              username: true,
+              nickname: true,
+              profile: { select: { realName: true } }
+            }
+          })
+        : []
+    const actorNames = new Map(
+      actors.map((actor) => [
+        actor.id,
+        actor.profile?.realName ?? actor.nickname ?? actor.username
+      ])
+    )
+
     return {
       items: items.map((item) => ({
         id: item.id,
         tenantId: item.tenantId,
         actorId: item.actorId,
+        actorName: item.actorId ? (actorNames.get(item.actorId) ?? null) : null,
         action: item.action,
         resource: item.resource,
         resourceId: item.resourceId,

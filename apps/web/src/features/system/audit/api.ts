@@ -6,6 +6,7 @@ export interface AuditLogItem {
   id: string
   tenantId: string
   actorId: string | null
+  actorName: string | null
   action: string
   resource: string | null
   resourceId: string | null

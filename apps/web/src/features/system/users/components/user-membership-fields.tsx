@@ -13,7 +13,7 @@ import { useMemo } from 'react'
 import {
   useOrganizationPositions,
   useOrganizationTree
-} from '@/features/system/organization-v2/queries'
+} from '@/features/system/organization/queries'
 
 import { flattenOrganizationOptions } from '../utils'
 

@@ -116,6 +116,25 @@ export class OrganizationRepository {
     })
   }
 
+  findUsersDisplayByIds(ids: string[]) {
+    return this.prisma.user.findMany({
+      where: { id: { in: ids } },
+      select: {
+        id: true,
+        username: true,
+        nickname: true,
+        profile: { select: { realName: true } }
+      }
+    })
+  }
+
+  findOrganizationsDisplayByIds(ids: string[]) {
+    return this.prisma.organization.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, name: true, code: true }
+    })
+  }
+
   listMembers(organizationId: string) {
     return this.prisma.userOrganization.findMany({
       where: { organizationId, leftAt: null },

@@ -22,7 +22,7 @@ import { Can } from '@/components/auth/can'
 import {
   useOrganizationPositions,
   useOrganizationTree
-} from '@/features/system/organization-v2/queries'
+} from '@/features/system/organization/queries'
 
 import { useReplaceUserOrganizationsMutation } from '../mutations'
 import { flattenOrganizationOptions, getUserDisplayName } from '../utils'

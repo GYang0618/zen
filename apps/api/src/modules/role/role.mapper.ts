@@ -1,4 +1,4 @@
-import { deriveRoleEffectiveStatus } from '@zen/shared'
+import { deriveRoleEffectiveStatus, ROLE_MEMBER_PREVIEW_LIMIT } from '@zen/shared'
 
 import type { RecordStatus, RoleDataScope, RoleKind } from '@prisma/client'
 import type {
@@ -77,7 +77,7 @@ function extractPermissionCodes(role: RoleWithRelations): string[] {
 
 function toMemberPreview(role: RoleWithRelations) {
   const users = role.users ?? []
-  return users.slice(0, 3).map((item) => ({
+  return users.slice(0, ROLE_MEMBER_PREVIEW_LIMIT).map((item) => ({
     id: item.user.id,
     nickname: item.user.nickname ?? null,
     avatar: item.user.profile?.avatar ?? null

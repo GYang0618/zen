@@ -16,6 +16,16 @@ import { buildPaginationMeta, paginate } from '@/common/pagination'
 
 import { findRolesQuerySchema } from './dto'
 import {
+  buildRoleClonedDiff,
+  buildRoleCreatedDiff,
+  buildRoleDataScopeDiff,
+  buildRoleDeletedDiff,
+  buildRoleMembersDiff,
+  buildRolePermissionsDiff,
+  buildRoleUpdatedDiff,
+  toUserDisplayName
+} from './role-audit-diff'
+import {
   fromApiDataScope,
   fromApiRoleStatus,
   toApiDataScope,
@@ -65,7 +75,7 @@ export class RoleService {
 
     const dataScope = data.dataScope ?? 'self'
     const customOrgIds = await this.resolveCustomOrgIds(dataScope, data.customOrgIds)
-    const permissionIds = await this.resolveActivePermissionIds(data.permissionCodes ?? [])
+    const { ids: permissionIds } = await this.resolveActivePermissionIds(data.permissionCodes ?? [])
     const expiresAt = parseExpiresAt(data.expiresAt)
 
     const created = await this.roleRepo.create({
@@ -96,12 +106,13 @@ export class RoleService {
       action: 'system.role.created',
       resource: 'role',
       resourceId: created.id,
-      diff: {
+      diff: buildRoleCreatedDiff({
+        id: created.id,
         code: data.code,
         name: data.name,
         dataScope,
         permissionCount: permissionIds.length
-      }
+      })
     })
 
     const role = await this.roleRepo.findById(created.id)
@@ -238,25 +249,12 @@ export class RoleService {
       await this.invalidateRoleMembers(id)
     }
 
+    const { action, diff } = buildRoleUpdatedDiff(existing, data)
     await this.auditService.write({
-      action:
-        data.status !== undefined
-          ? data.status === 'active'
-            ? 'system.role.unfrozen'
-            : 'system.role.frozen'
-          : 'system.role.updated',
+      action,
       resource: 'role',
       resourceId: id,
-      diff: {
-        name: data.name,
-        description: data.description,
-        status: data.status,
-        dataScope: data.dataScope,
-        customOrgIds: data.customOrgIds,
-        expiresAt: data.expiresAt,
-        icon: data.icon,
-        iconColor: data.iconColor
-      }
+      diff
     })
 
     const role = await this.roleRepo.findById(id)
@@ -282,11 +280,7 @@ export class RoleService {
       action: 'system.role.data_scope_updated',
       resource: 'role',
       resourceId: id,
-      diff: {
-        from: toApiDataScope(existing.dataScope),
-        to: payload.dataScope,
-        customOrgIds
-      }
+      diff: buildRoleDataScopeDiff(existing, payload.dataScope, customOrgIds)
     })
 
     await this.invalidateRoleMembers(id)
@@ -331,12 +325,16 @@ export class RoleService {
       action: 'system.role.cloned',
       resource: 'role',
       resourceId: created.id,
-      diff: {
-        sourceRoleId: source.id,
-        sourceRoleCode: source.code,
-        permissionCount: permissionCodes.length,
-        dataScope: created.dataScope
-      }
+      diff: buildRoleClonedDiff({
+        created: {
+          id: created.id,
+          code: created.code,
+          name: created.name,
+          dataScope: created.dataScope
+        },
+        source: { id: source.id, code: source.code, name: source.name },
+        permissionCount: permissionCodes.length
+      })
     })
 
     return created
@@ -375,14 +373,27 @@ export class RoleService {
       throw new BadRequestException('部分用户不存在或已删除')
     }
 
+    const displayUsers = await this.roleRepo.findUsersDisplayByIds(userIds)
+    const members = displayUsers.map((user) => ({
+      id: user.id,
+      name: toUserDisplayName(user)
+    }))
+
     await this.roleRepo.addMembers(roleId, userIds)
     await this.auditService.write({
       action: 'system.role.members_added',
       resource: 'role',
       resourceId: roleId,
-      diff: { userIds, roleCode: role.code, roleName: role.name }
+      diff: buildRoleMembersDiff(
+        { id: role.id, code: role.code, name: role.name },
+        members,
+        'added'
+      )
     })
-    await this.authContextService.bumpPermVer()
+    // 角色成员变更只影响当事人，避免 bump 租户 permVer 使所有在线用户的 token 失效。
+    for (const userId of userIds) {
+      this.authContextService.invalidateCache(userId)
+    }
     await Promise.all(userIds.map((userId) => this.sessionService.revokeAllForUser(userId)))
 
     return this.listMembers(roleId)
@@ -409,14 +420,26 @@ export class RoleService {
       throw new BadRequestException('用户至少需要保留一个角色，无法解绑')
     }
 
+    const displayUsers = await this.roleRepo.findUsersDisplayByIds([userId])
+    const removedMember = displayUsers[0]
+    const memberSnapshot = {
+      id: userId,
+      name: removedMember ? toUserDisplayName(removedMember) : userId
+    }
+
     await this.roleRepo.removeMember(roleId, userId)
     await this.auditService.write({
       action: 'system.role.member_removed',
       resource: 'role',
       resourceId: roleId,
-      diff: { userId, roleCode: role.code, roleName: role.name }
+      diff: buildRoleMembersDiff(
+        { id: role.id, code: role.code, name: role.name },
+        [memberSnapshot],
+        'removed'
+      )
     })
-    await this.authContextService.bumpPermVer()
+    // 解绑后的权限由服务端鉴权快照实时收敛，无需让操作者和其他用户刷新 token。
+    this.authContextService.invalidateCache(userId)
     await this.sessionService.revokeAllForUser(userId)
 
     return this.listMembers(roleId)
@@ -433,24 +456,40 @@ export class RoleService {
     this.assertBaseVersion(existing.updatedAt, payload.baseVersion)
 
     const previousCodes = existing.permissions.map((item) => item.permission.code)
-    const nextCodes = [
-      ...new Set(payload.permissionCodes.map((code) => code.trim()).filter(Boolean))
-    ]
-    const permissionIds = await this.resolveActivePermissionIds(nextCodes)
+    const { ids: permissionIds, codes: nextCodes } = await this.resolveActivePermissionIds(
+      payload.permissionCodes
+    )
     await this.roleRepo.replacePermissions(id, permissionIds)
     // touch updatedAt for optimistic lock progression
     await this.roleRepo.update(id, { updatedAt: new Date() })
 
     const previousSet = new Set(previousCodes)
     const nextSet = new Set(nextCodes)
-    const added = nextCodes.filter((code) => !previousSet.has(code))
-    const removed = previousCodes.filter((code) => !nextSet.has(code))
+    const addedCodes = nextCodes.filter((code) => !previousSet.has(code))
+    const removedCodes = previousCodes.filter((code) => !nextSet.has(code))
+    const snapshotCodes = [...new Set([...addedCodes, ...removedCodes])]
+    const permissionRows =
+      snapshotCodes.length > 0 ? await this.roleRepo.findPermissionsByCodes(snapshotCodes) : []
+    const permissionMap = new Map(
+      permissionRows.map((item) => [
+        item.code,
+        { code: item.code, module: item.module ?? '其他', name: item.name }
+      ])
+    )
+    const toPermissionSnapshot = (codes: string[]) =>
+      codes.map(
+        (code) => permissionMap.get(code) ?? { code, module: '其他', name: code }
+      )
 
     await this.auditService.write({
       action: 'system.role.permissions_assigned',
       resource: 'role',
       resourceId: id,
-      diff: { added, removed, permissionCodes: nextCodes }
+      diff: buildRolePermissionsDiff(
+        { id: existing.id, code: existing.code, name: existing.name },
+        toPermissionSnapshot(addedCodes),
+        toPermissionSnapshot(removedCodes)
+      )
     })
 
     // 仅 bump permVer：成员下次请求因 token.permVer 不匹配触发 401 → 静默 refresh，避免自己改权限被硬踢
@@ -487,7 +526,9 @@ export class RoleService {
       action: 'system.role.deleted',
       resource: 'role',
       resourceId: ids.join(','),
-      diff: { ids, codes: roles.map((role) => role.code) }
+      diff: buildRoleDeletedDiff(
+        roles.map((role) => ({ id: role.id, code: role.code, name: role.name }))
+      )
     })
     return roles.map(toRoleListItemResponse)
   }
@@ -508,16 +549,27 @@ export class RoleService {
     }
   }
 
-  private async resolveActivePermissionIds(codes: string[]): Promise<string[]> {
-    if (codes.length === 0) return []
+  /**
+   * 解析可分配的权限：不存在的编码直接拒绝；已下线编码静默丢弃（与 clone 一致，兼容历史勾选）。
+   */
+  private async resolveActivePermissionIds(
+    codes: string[]
+  ): Promise<{ ids: string[]; codes: string[] }> {
+    if (codes.length === 0) return { ids: [], codes: [] }
 
     const uniqueCodes = [...new Set(codes.map((code) => code.trim()).filter(Boolean))]
-    const permissions = await this.roleRepo.findActivePermissionsByCodes(uniqueCodes)
-    if (permissions.length !== uniqueCodes.length) {
-      throw new BadRequestException('部分权限编码不存在或已下线，无法勾选')
+    const permissions = await this.roleRepo.findPermissionsByCodes(uniqueCodes)
+    const foundCodes = new Set(permissions.map((item) => item.code))
+    const missingCodes = uniqueCodes.filter((code) => !foundCodes.has(code))
+    if (missingCodes.length > 0) {
+      throw new BadRequestException(`部分权限编码不存在：${missingCodes.join('、')}`)
     }
 
-    return permissions.map((item) => item.id)
+    const active = permissions.filter((item) => item.status === PermissionStatus.ACTIVE)
+    return {
+      ids: active.map((item) => item.id),
+      codes: active.map((item) => item.code)
+    }
   }
 
   private async resolveCustomOrgIds(

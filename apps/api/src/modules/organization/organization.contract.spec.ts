@@ -5,7 +5,7 @@ import {
   organizationActivitiesQuerySchema
 } from '@zen/shared'
 
-describe('organization V2 contracts', () => {
+describe('organization contracts', () => {
   it('accepts all supported organization types', () => {
     const types = ['group', 'company', 'branch', 'center', 'department', 'team'] as const
     for (const type of types) {

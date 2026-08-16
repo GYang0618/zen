@@ -15,7 +15,7 @@ import { DynamicIcon } from 'lucide-react/dynamic'
 
 import { Can } from '@/components/auth/can'
 import { EmptyState } from '@/components/empty-state'
-import { getRoleIconColorClassName } from '@/features/system/roles-v2/data/data'
+import { getRoleIconColorClassName } from '@/features/system/roles/data/data'
 
 import type { RoleIcon, User } from '@zen/shared'
 

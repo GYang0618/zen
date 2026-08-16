@@ -80,7 +80,7 @@ PageHeader                       // Flex 横排
 ```tsx
 <PageHeader>
   <Button variant="outline" size="icon-lg" className="rounded-full" asChild>
-    <Link to="/system/organization-v2" aria-label="返回组织管理">
+    <Link to="/system/organization" aria-label="返回组织管理">
       <ArrowLeft />
     </Link>
   </Button>

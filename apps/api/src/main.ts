@@ -5,6 +5,7 @@ import { Logger } from 'nestjs-pino'
 
 import { CONFIG_NAMESPACES } from '@/config'
 
+import { runWithRequestAuditContext } from './common/auth/request-audit-context'
 import { AppModule } from './app.module'
 import { setupSwagger } from './swagger/setup-swagger'
 
@@ -29,6 +30,9 @@ async function bootstrap() {
   const securityCfg = app.get<SecurityConfig>(CONFIG_NAMESPACES.SECURITY)
   const swaggerCfg = app.get<SwaggerConfig>(CONFIG_NAMESPACES.SWAGGER)
 
+  app.use((_req: Request, _res: Response, next: NextFunction) =>
+    runWithRequestAuditContext(next)
+  )
   app.use(cookieParser())
 
   const normalizedPrefix = appCfg.apiPrefix.startsWith('/')
