@@ -4,7 +4,7 @@ import { toApiOrganizationType } from './organization.mapper'
 
 import type { OrganizationType as PrismaOrganizationType } from '@prisma/client'
 import type { AuditDiff, AuditDiffChange, OrganizationType } from '@zen/shared'
-import type { CreatePositionDto, UpdateOrganizationDto } from './dto'
+import type { UpdateOrganizationDto } from './dto'
 
 const ORGANIZATION_TYPE_LABELS: Record<OrganizationType, string> = {
   group: '集团',
@@ -173,10 +173,10 @@ export function buildOrganizationMembersDiff(
 
 export function buildOrganizationPositionCreatedDiff(
   org: { id: string; code: string; name: string },
-  position: { id: string; code: string; name: string } & Partial<CreatePositionDto>
+  position: { id: string; code: string; name: string; level?: string; headcount?: number }
 ): AuditDiff {
   return createAuditDiff({
-    summary: `创建了岗位「${position.name}」`,
+    summary: `关联了岗位「${position.name}」`,
     target: { id: org.id, code: org.code, name: org.name },
     meta: {
       positionId: position.id,

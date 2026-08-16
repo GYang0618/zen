@@ -105,7 +105,7 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
             </TabsTrigger>
             <TabsTrigger value="positions">
               <Briefcase className="size-3.5" aria-hidden />
-              岗位/编制 ({organization.positionCount})
+              岗位编制 ({organization.positionCount})
             </TabsTrigger>
             <TabsTrigger value="changes">
               <History className="size-3.5" aria-hidden />

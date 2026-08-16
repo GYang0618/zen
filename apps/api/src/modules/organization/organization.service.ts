@@ -18,8 +18,7 @@ import {
   fromApiOrganizationType,
   toApiOrganizationType,
   toOrganizationMemberResponse,
-  toOrganizationResponse,
-  toPositionResponse
+  toOrganizationResponse
 } from './organization.mapper'
 import { OrganizationRepository } from './organization.repository'
 import { assertValidParentType, canBeChildOf, throwMoveRejection } from './organization.rules'
@@ -32,6 +31,7 @@ import {
   buildOrganizationUpdatedDiff,
   toUserDisplayName
 } from './organization-audit-diff'
+import { PostService } from '@/modules/post'
 
 import type { Prisma } from '@prisma/client'
 import type {
@@ -47,7 +47,8 @@ import type {
   CreatePositionDto,
   OrganizationActivitiesQueryDto,
   UpdateOrganizationDto,
-  UpdateOrganizationLeaderDto
+  UpdateOrganizationLeaderDto,
+  UpdateOrganizationPositionDto
 } from './dto'
 import type { OrganizationWithRelations } from './organization.repository'
 import type {
@@ -144,6 +145,7 @@ function formatActivityDescription(action: string, diff: AuditDiff | null): stri
 export class OrganizationService {
   constructor(
     @Inject(OrganizationRepository) private readonly orgRepo: OrganizationRepository,
+    @Inject(PostService) private readonly postService: PostService,
     @Inject(AuditService) private readonly auditService: AuditService,
     @Inject(AuthContextService) private readonly authContextService: AuthContextService,
     @Inject(SessionService) private readonly sessionService: SessionService
@@ -397,7 +399,7 @@ export class OrganizationService {
 
   async listPositions(id: string, auth: AuthContext): Promise<PositionResponse[]> {
     await this.requireVisible(id, auth)
-    return (await this.orgRepo.listPositions(id)).map(toPositionResponse)
+    return this.postService.listOrganizationPositions(id)
   }
 
   async createPosition(
@@ -406,17 +408,7 @@ export class OrganizationService {
     auth: AuthContext
   ): Promise<PositionResponse> {
     const organization = await this.requireVisible(id, auth)
-    if (await this.orgRepo.findPostByCode(data.code)) {
-      throw new ConflictException('岗位编码已存在')
-    }
-    const position = await this.orgRepo.createPosition({
-      code: data.code,
-      name: data.name,
-      description: data.description,
-      level: data.level,
-      headcount: data.headcount,
-      organization: { connect: { id } }
-    })
+    const position = await this.postService.linkOrganizationPosition(id, data)
     await this.writeAudit(
       auth,
       id,
@@ -425,11 +417,26 @@ export class OrganizationService {
         id: position.id,
         code: position.code,
         name: position.name,
-        level: data.level,
-        headcount: data.headcount
+        level: position.level,
+        headcount: position.headcount
       })
     )
-    return toPositionResponse(position)
+    return position
+  }
+
+  async updatePosition(
+    id: string,
+    positionId: string,
+    data: UpdateOrganizationPositionDto,
+    auth: AuthContext
+  ): Promise<PositionResponse> {
+    await this.requireVisible(id, auth)
+    return this.postService.updateOrganizationPosition(id, positionId, data)
+  }
+
+  async removePosition(id: string, positionId: string, auth: AuthContext): Promise<void> {
+    await this.requireVisible(id, auth)
+    await this.postService.unlinkOrganizationPosition(id, positionId)
   }
 
   async listActivities(

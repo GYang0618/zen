@@ -1,5 +1,5 @@
 import type { OrganizationType, UserStatusCode } from '@prisma/client'
-import type { OrganizationType as ApiType, OrganizationMember, Position } from '@zen/shared'
+import type { OrganizationType as ApiType, OrganizationMember } from '@zen/shared'
 import type { OrganizationWithRelations } from './organization.repository'
 import type { OrganizationResponse } from './responses/organization.response'
 
@@ -73,7 +73,10 @@ export function toOrganizationMemberResponse(row: {
     status: UserStatusCode
     profile: { avatar: string | null } | null
   }
-  post: { name: string; level: string } | null
+  post: {
+    level: string | null
+    jobProfile: { name: string; level: string }
+  } | null
   organization: { name: string }
 }): OrganizationMember {
   return {
@@ -81,33 +84,11 @@ export function toOrganizationMemberResponse(row: {
     avatar: row.user.profile?.avatar ?? null,
     username: row.user.username,
     nickname: row.user.nickname,
-    post: row.post?.name ?? null,
+    post: row.post?.jobProfile.name ?? null,
     organization: row.organization.name,
     accountStatus: USER_STATUS_TO_API[row.user.status],
     email: row.user.email,
     phoneNumber: row.user.phoneNumber,
-    level: row.post?.level ?? null
-  }
-}
-
-export function toPositionResponse(row: {
-  id: string
-  code: string
-  name: string
-  description: string | null
-  level: string
-  headcount: number
-  createdAt: Date
-  _count: { users: number }
-}): Position {
-  return {
-    id: row.id,
-    code: row.code,
-    name: row.name,
-    description: row.description,
-    level: row.level,
-    headcount: row.headcount,
-    activeCount: row._count.users,
-    createdAt: row.createdAt.toISOString()
+    level: row.post?.level ?? row.post?.jobProfile.level ?? null
   }
 }

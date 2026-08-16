@@ -56,6 +56,7 @@ import { Route as AuthenticatedOtherSettingsAppearanceRouteImport } from './rout
 import { Route as AuthenticatedOtherSettingsNotificationsRouteImport } from './routes/_authenticated/_other/settings/notifications'
 import { Route as AuthenticatedOtherSettingsProfileRouteImport } from './routes/_authenticated/_other/settings/profile'
 import { Route as AuthenticatedSystemIdentityOrganizationRouteImport } from './routes/_authenticated/system/_identity/organization'
+import { Route as AuthenticatedSystemIdentityPostsRouteImport } from './routes/_authenticated/system/_identity/posts'
 import { Route as AuthenticatedSystemIdentityRolesRouteImport } from './routes/_authenticated/system/_identity/roles'
 import { Route as AuthenticatedSystemIdentityUsersRouteImport } from './routes/_authenticated/system/_identity/users'
 import { Route as AuthenticatedSystemIdentityOrganizationIdRouteImport } from './routes/_authenticated/system/_identity/organization_.$id'
@@ -323,6 +324,12 @@ const AuthenticatedSystemIdentityOrganizationRoute =
     path: '/organization',
     getParentRoute: () => AuthenticatedSystemIdentityRouteRoute,
   } as any)
+const AuthenticatedSystemIdentityPostsRoute =
+  AuthenticatedSystemIdentityPostsRouteImport.update({
+    id: '/posts',
+    path: '/posts',
+    getParentRoute: () => AuthenticatedSystemIdentityRouteRoute,
+  } as any)
 const AuthenticatedSystemIdentityRolesRoute =
   AuthenticatedSystemIdentityRolesRouteImport.update({
     id: '/roles',
@@ -397,6 +404,7 @@ export interface FileRoutesByFullPath {
   '/settings/notifications': typeof AuthenticatedOtherSettingsNotificationsRoute
   '/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
   '/system/organization': typeof AuthenticatedSystemIdentityOrganizationRoute
+  '/system/posts': typeof AuthenticatedSystemIdentityPostsRoute
   '/system/roles': typeof AuthenticatedSystemIdentityRolesRoute
   '/system/users': typeof AuthenticatedSystemIdentityUsersRoute
   '/system/organization/$id': typeof AuthenticatedSystemIdentityOrganizationIdRoute
@@ -446,6 +454,7 @@ export interface FileRoutesByTo {
   '/settings/notifications': typeof AuthenticatedOtherSettingsNotificationsRoute
   '/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
   '/system/organization': typeof AuthenticatedSystemIdentityOrganizationRoute
+  '/system/posts': typeof AuthenticatedSystemIdentityPostsRoute
   '/system/roles': typeof AuthenticatedSystemIdentityRolesRoute
   '/system/users': typeof AuthenticatedSystemIdentityUsersRoute
   '/system/organization/$id': typeof AuthenticatedSystemIdentityOrganizationIdRoute
@@ -501,6 +510,7 @@ export interface FileRoutesById {
   '/_authenticated/_other/settings/notifications': typeof AuthenticatedOtherSettingsNotificationsRoute
   '/_authenticated/_other/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
   '/_authenticated/system/_identity/organization': typeof AuthenticatedSystemIdentityOrganizationRoute
+  '/_authenticated/system/_identity/posts': typeof AuthenticatedSystemIdentityPostsRoute
   '/_authenticated/system/_identity/roles': typeof AuthenticatedSystemIdentityRolesRoute
   '/_authenticated/system/_identity/users': typeof AuthenticatedSystemIdentityUsersRoute
   '/_authenticated/system/_identity/organization_/$id': typeof AuthenticatedSystemIdentityOrganizationIdRoute
@@ -552,6 +562,7 @@ export interface FileRouteTypes {
     | '/settings/notifications'
     | '/settings/profile'
     | '/system/organization'
+    | '/system/posts'
     | '/system/roles'
     | '/system/users'
     | '/system/organization/$id'
@@ -601,6 +612,7 @@ export interface FileRouteTypes {
     | '/settings/notifications'
     | '/settings/profile'
     | '/system/organization'
+    | '/system/posts'
     | '/system/roles'
     | '/system/users'
     | '/system/organization/$id'
@@ -655,6 +667,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_other/settings/notifications'
     | '/_authenticated/_other/settings/profile'
     | '/_authenticated/system/_identity/organization'
+    | '/_authenticated/system/_identity/posts'
     | '/_authenticated/system/_identity/roles'
     | '/_authenticated/system/_identity/users'
     | '/_authenticated/system/_identity/organization_/$id'
@@ -1003,6 +1016,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSystemIdentityOrganizationRouteImport
       parentRoute: typeof AuthenticatedSystemIdentityRouteRoute
     }
+    '/_authenticated/system/_identity/posts': {
+      id: '/_authenticated/system/_identity/posts'
+      path: '/posts'
+      fullPath: '/system/posts'
+      preLoaderRoute: typeof AuthenticatedSystemIdentityPostsRouteImport
+      parentRoute: typeof AuthenticatedSystemIdentityRouteRoute
+    }
     '/_authenticated/system/_identity/roles': {
       id: '/_authenticated/system/_identity/roles'
       path: '/roles'
@@ -1191,6 +1211,7 @@ const AuthenticatedPluginsRouteRouteWithChildren =
 
 interface AuthenticatedSystemIdentityRouteRouteChildren {
   AuthenticatedSystemIdentityOrganizationRoute: typeof AuthenticatedSystemIdentityOrganizationRoute
+  AuthenticatedSystemIdentityPostsRoute: typeof AuthenticatedSystemIdentityPostsRoute
   AuthenticatedSystemIdentityRolesRoute: typeof AuthenticatedSystemIdentityRolesRoute
   AuthenticatedSystemIdentityUsersRoute: typeof AuthenticatedSystemIdentityUsersRoute
   AuthenticatedSystemIdentityOrganizationIdRoute: typeof AuthenticatedSystemIdentityOrganizationIdRoute
@@ -1202,6 +1223,8 @@ const AuthenticatedSystemIdentityRouteRouteChildren: AuthenticatedSystemIdentity
   {
     AuthenticatedSystemIdentityOrganizationRoute:
       AuthenticatedSystemIdentityOrganizationRoute,
+    AuthenticatedSystemIdentityPostsRoute:
+      AuthenticatedSystemIdentityPostsRoute,
     AuthenticatedSystemIdentityRolesRoute:
       AuthenticatedSystemIdentityRolesRoute,
     AuthenticatedSystemIdentityUsersRoute:

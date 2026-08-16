@@ -112,6 +112,22 @@ enum OrganizationType {
   TEAM       @map("team")
 }
 
+/// 岗位目录状态
+enum JobProfileStatus {
+  /// 启用
+  ACTIVE   @map("active")
+  /// 停用
+  DISABLED @map("disabled")
+}
+
+/// 组织岗位编制状态
+enum OrganizationPositionStatus {
+  /// 启用
+  ACTIVE @map("active")
+  /// 冻结
+  FROZEN @map("frozen")
+}
+
 /// 租户表（单租户交付阶段仅种子 default；全链路 Context 必带 tenantId）
 model Tenant {
   /// 租户 ID
@@ -503,33 +519,71 @@ model Organization {
   @@map("organizations")
 }
 
-/// 岗位表
-model Post {
-  /// 岗位ID
-  id             String   @id @default(cuid())
+/// 岗位目录（全局可复用岗位标准）
+model JobProfile {
+  /// 岗位目录 ID
+  id          String           @id @default(cuid())
   /// 岗位编码
-  code           String   @unique
+  code        String           @unique
   /// 岗位名称
-  name           String
-  /// 所属组织ID
-  organizationId String   @map("organization_id")
+  name        String
   /// 岗位描述
-  description    String?
-  /// 岗级 / 职级，例如 P7
-  level          String
-  /// 编制人数
-  headcount      Int      @default(1)
+  description String?
+  /// 标准职级，例如 P7
+  level       String
+  /// 岗位族
+  family      String?
+  /// 展示图标（Lucide 名）
+  icon         String?
+  /// 图标颜色 token
+  iconColor    String?          @map("icon_color")
+  /// 启停状态
+  status      JobProfileStatus @default(ACTIVE)
   /// 创建时间
-  createdAt      DateTime @default(now()) @map("created_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
   /// 更新时间
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
 
+  /// 组织编制实例
+  posts Post[]
+
+  @@index([status])
+  @@index([name])
+  @@map("job_profiles")
+}
+
+/// 组织岗位编制表（组织对岗位目录的编制关联）
+model Post {
+  /// 编制 ID
+  id             String                     @id @default(cuid())
+  /// 岗位目录 ID
+  jobProfileId   String                     @map("job_profile_id")
+  /// 所属组织 ID
+  organizationId String                     @map("organization_id")
+  /// 组织侧补充说明
+  description    String?
+  /// 组织侧职级覆盖；为空时使用岗位目录职级
+  level          String?
+  /// 编制人数
+  headcount      Int                        @default(1)
+  /// 编制状态
+  status         OrganizationPositionStatus @default(ACTIVE)
+  /// 创建时间
+  createdAt      DateTime                   @default(now()) @map("created_at")
+  /// 更新时间
+  updatedAt      DateTime                   @updatedAt @map("updated_at")
+
+  /// 所属岗位目录
+  jobProfile   JobProfile         @relation(fields: [jobProfileId], references: [id], onDelete: Restrict)
   /// 所属组织
   organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   /// 岗位任职用户
   users        UserOrganization[]
 
+  @@unique([organizationId, jobProfileId])
   @@index([organizationId])
+  @@index([jobProfileId])
+  @@index([status])
   @@map("posts")
 }
 

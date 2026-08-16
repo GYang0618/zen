@@ -116,8 +116,8 @@ function toOrganizations(user: UserWithDomain): User['organizations'] {
     organizationType: toApiOrganizationType(item.organization.type),
     isPrimary: item.isPrimary,
     postId: item.postId ?? null,
-    postName: item.post?.name ?? null,
-    postLevel: item.post?.level ?? null,
+    postName: item.post?.jobProfile.name ?? null,
+    postLevel: item.post?.level ?? item.post?.jobProfile.level ?? null,
     joinedAt: item.joinedAt?.toISOString() ?? null
   }))
 }
@@ -162,7 +162,7 @@ export function toUserInfoResponse(user: UserWithDomain): UserInfoResponse {
   const primaryOrg = organizations.find((item) => item.isPrimary) ?? organizations[0]
   const roleDetails = toRoleDetails(roles)
   const permissions = collectPermissions(roleDetails)
-  const primaryPostName = primaryOrg?.post?.name ?? null
+  const primaryPostName = primaryOrg?.post?.jobProfile.name ?? null
 
   return {
     id: user.id,
@@ -192,7 +192,7 @@ export function toUserInfoResponse(user: UserWithDomain): UserInfoResponse {
       organizationName: item.organization.name ?? null,
       isPrimary: item.isPrimary,
       postId: item.postId ?? null,
-      postName: item.post?.name ?? null
+      postName: item.post?.jobProfile.name ?? null
     })),
     account: {
       status: toUserStatus(user.status),

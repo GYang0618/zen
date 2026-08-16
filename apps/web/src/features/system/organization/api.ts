@@ -4,7 +4,7 @@ import type {
   AddOrganizationMember,
   ChangeOrganizationParent,
   CreateOrganization,
-  CreatePosition,
+  LinkOrganizationPosition,
   Organization,
   OrganizationActivitiesQuery,
   OrganizationActivity,
@@ -13,7 +13,8 @@ import type {
   Paged,
   Position,
   UpdateOrganization,
-  UpdateOrganizationLeader
+  UpdateOrganizationLeader,
+  UpdateOrganizationPosition
 } from '@zen/shared'
 
 export const organizationApi = {
@@ -43,8 +44,17 @@ export const organizationApi = {
 
   listPositions: (id: string) => request.get<Position[]>(`/organizations/${id}/positions`),
 
-  createPosition: (id: string, data: CreatePosition) =>
-    request.post<Position, CreatePosition>(`/organizations/${id}/positions`, data),
+  createPosition: (id: string, data: LinkOrganizationPosition) =>
+    request.post<Position, LinkOrganizationPosition>(`/organizations/${id}/positions`, data),
+
+  updatePosition: (id: string, positionId: string, data: UpdateOrganizationPosition) =>
+    request.patch<Position, UpdateOrganizationPosition>(
+      `/organizations/${id}/positions/${positionId}`,
+      data
+    ),
+
+  removePosition: (id: string, positionId: string) =>
+    request.delete<void>(`/organizations/${id}/positions/${positionId}`),
 
   listActivities: (id: string, params?: OrganizationActivitiesQuery) =>
     request.get<Paged<OrganizationActivity>>(`/organizations/${id}/activities`, { params })

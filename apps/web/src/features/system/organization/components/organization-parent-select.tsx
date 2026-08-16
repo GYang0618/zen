@@ -1,6 +1,5 @@
 import {
   Button,
-  ButtonGroup,
   Command,
   CommandEmpty,
   CommandGroup,
@@ -12,7 +11,7 @@ import {
   PopoverContent,
   PopoverTrigger
 } from '@zen/ui'
-import { Ban, ChevronRight, ChevronsUpDown, Folder, X } from 'lucide-react'
+import { Ban, ChevronRight, ChevronsUpDown, Folder } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { getOrganizationTypeLabel, organizationIconConfig } from '../data/data'
@@ -185,87 +184,77 @@ export function OrganizationParentSelect({
   const showRootOption = !query.trim()
 
   return (
-    <ButtonGroup className="w-full">
-      <Popover modal open={open} onOpenChange={handleOpenChange}>
-        <PopoverTrigger asChild>
-          <Button
-            id={id}
-            type="button"
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            aria-invalid={ariaInvalid}
-            className="w-full min-w-0 flex-1 justify-between font-normal"
-          >
-            {selected ? (
-              <span className="truncate">
-                {selected.name}
-                <span className="text-muted-foreground">
-                  {' '}
-                  · {getOrganizationTypeLabel(selected.type)}
-                </span>
-              </span>
-            ) : (
-              <span className="text-muted-foreground">选择上级组织（留空则新建根节点）</span>
-            )}
-            <ChevronsUpDown data-icon="inline-end" className="text-muted-foreground" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
-          <Command shouldFilter={false}>
-            <CommandInput placeholder="搜索组织名称" value={query} onValueChange={setQuery} />
-            <CommandList>
-              <CommandEmpty>没有找到匹配组织</CommandEmpty>
-              {showRootOption ? (
-                <CommandGroup>
-                  <CommandItem
-                    value="__root__ 无 根节点"
-                    data-checked={value === '' || undefined}
-                    className="rounded-lg"
-                    onSelect={() => handleSelect('')}
-                  >
-                    <span className="inline-flex size-6 shrink-0 items-center justify-center">
-                      <Ban className="text-muted-foreground" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium">无（根节点）</p>
-                      <p className="truncate text-xs text-muted-foreground">新建为独立根节点</p>
-                    </div>
-                  </CommandItem>
-                </CommandGroup>
-              ) : null}
-              {displayTree.length > 0 ? (
-                <CommandGroup>
-                  {displayTree.map((node) => (
-                    <ParentTreeNode
-                      key={node.id}
-                      node={node}
-                      depth={0}
-                      value={value}
-                      expandedIds={expandedIds}
-                      selectableIds={selectableIds}
-                      canToggleExpanded={!query.trim()}
-                      onToggleExpanded={handleToggleExpanded}
-                      onSelect={handleSelect}
-                    />
-                  ))}
-                </CommandGroup>
-              ) : null}
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-      {selected ? (
+    <Popover modal open={open} onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>
         <Button
+          id={id}
           type="button"
           variant="outline"
-          size="icon"
-          aria-label="清空上级组织"
-          onClick={() => onValueChange('')}
+          role="combobox"
+          aria-expanded={open}
+          aria-invalid={ariaInvalid}
+          className="w-full justify-between font-normal"
         >
-          <X />
+          {selected ? (
+            <span className="truncate">
+              {selected.name}
+              <span className="text-muted-foreground">
+                {' '}
+                · {getOrganizationTypeLabel(selected.type)}
+              </span>
+            </span>
+          ) : (
+            <span className="truncate">
+              无（根节点）
+              <span className="text-muted-foreground"> · 独立根节点</span>
+            </span>
+          )}
+          <ChevronsUpDown data-icon="inline-end" className="text-muted-foreground" />
         </Button>
-      ) : null}
-    </ButtonGroup>
+      </PopoverTrigger>
+      <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
+        <Command shouldFilter={false}>
+          <CommandInput placeholder="搜索组织名称" value={query} onValueChange={setQuery} />
+          <CommandList>
+            <CommandEmpty>没有找到匹配组织</CommandEmpty>
+            {showRootOption ? (
+              <CommandGroup>
+                <CommandItem
+                  value="__root__ 无 根节点"
+                  data-checked={value === '' || undefined}
+                  className="rounded-lg"
+                  onSelect={() => handleSelect('')}
+                >
+                  <span className="inline-flex size-6 shrink-0 items-center justify-center">
+                    <Ban className="text-muted-foreground" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">无（根节点）</p>
+                    <p className="truncate text-xs text-muted-foreground">新建为独立根节点</p>
+                  </div>
+                </CommandItem>
+              </CommandGroup>
+            ) : null}
+            {displayTree.length > 0 ? (
+              <CommandGroup>
+                {displayTree.map((node) => (
+                  <ParentTreeNode
+                    key={node.id}
+                    node={node}
+                    depth={0}
+                    value={value}
+                    expandedIds={expandedIds}
+                    selectableIds={selectableIds}
+                    canToggleExpanded={!query.trim()}
+                    onToggleExpanded={handleToggleExpanded}
+                    onSelect={handleSelect}
+                  />
+                ))}
+              </CommandGroup>
+            ) : null}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   )
 }

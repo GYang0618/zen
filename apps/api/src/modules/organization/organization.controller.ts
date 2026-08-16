@@ -24,9 +24,10 @@ import {
   addOrganizationMemberSchema,
   changeOrganizationParentSchema,
   createOrganizationSchema,
-  createPositionSchema,
+  linkOrganizationPositionSchema,
   organizationActivitiesQuerySchema,
   updateOrganizationLeaderSchema,
+  updateOrganizationPositionSchema,
   updateOrganizationSchema
 } from './dto'
 import { OrganizationService } from './organization.service'
@@ -39,7 +40,8 @@ import type {
   CreatePositionDto,
   OrganizationActivitiesQueryDto,
   UpdateOrganizationDto,
-  UpdateOrganizationLeaderDto
+  UpdateOrganizationLeaderDto,
+  UpdateOrganizationPositionDto
 } from './dto'
 
 @ApiTags('组织管理')
@@ -143,21 +145,46 @@ export class OrganizationController {
 
   @Get(':id/positions')
   @RequirePermission(PermissionCode.POST_LIST)
-  @ApiOperation({ summary: '获取组织岗位' })
+  @ApiOperation({ summary: '获取组织岗位编制' })
   listPositions(@Param('id') id: string, @CurrentAuth() auth: AuthContext) {
     return this.organizationService.listPositions(id, auth)
   }
 
   @Post(':id/positions')
   @RequirePermission(PermissionCode.POST_MANAGE)
-  @ApiOperation({ summary: '创建组织岗位' })
-  @UsePipes(new ZodValidationPipe(createPositionSchema))
+  @ApiOperation({ summary: '关联岗位目录并设置编制' })
+  @UsePipes(new ZodValidationPipe(linkOrganizationPositionSchema))
   createPosition(
     @Param('id') id: string,
     @Body() payload: CreatePositionDto,
     @CurrentAuth() auth: AuthContext
   ) {
     return this.organizationService.createPosition(id, payload, auth)
+  }
+
+  @Patch(':id/positions/:positionId')
+  @RequirePermission(PermissionCode.POST_MANAGE)
+  @ApiOperation({ summary: '更新组织岗位编制' })
+  @UsePipes(new ZodValidationPipe(updateOrganizationPositionSchema))
+  updatePosition(
+    @Param('id') id: string,
+    @Param('positionId') positionId: string,
+    @Body() payload: UpdateOrganizationPositionDto,
+    @CurrentAuth() auth: AuthContext
+  ) {
+    return this.organizationService.updatePosition(id, positionId, payload, auth)
+  }
+
+  @Delete(':id/positions/:positionId')
+  @RequirePermission(PermissionCode.POST_MANAGE)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: '解除组织岗位编制关联' })
+  async removePosition(
+    @Param('id') id: string,
+    @Param('positionId') positionId: string,
+    @CurrentAuth() auth: AuthContext
+  ): Promise<void> {
+    await this.organizationService.removePosition(id, positionId, auth)
   }
 
   @Get(':id/activities')

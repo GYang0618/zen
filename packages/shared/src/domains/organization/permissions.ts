@@ -12,12 +12,5 @@ export const ORG_PERMISSIONS = defineKernelPermissions({
   ]
 } as const)
 
-export const POST_PERMISSIONS = defineKernelPermissions({
-  namespace: 'system',
-  resource: 'post',
-  moduleLabel: '岗位管理',
-  items: [
-    { action: 'list', name: '查看岗位', description: '查看组织岗位' },
-    { action: 'manage', name: '管理岗位', description: '创建更新删除岗位' }
-  ]
-} as const)
+/** @deprecated 请从 `@zen/shared` 的 post domain 导入；此处再导出以保持兼容 */
+export { POST_PERMISSIONS } from '../post/permissions'

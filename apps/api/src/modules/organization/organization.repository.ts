@@ -150,7 +150,13 @@ export class OrganizationRepository {
             profile: { select: { avatar: true } }
           }
         },
-        post: { select: { id: true, name: true, level: true } },
+        post: {
+          select: {
+            id: true,
+            level: true,
+            jobProfile: { select: { name: true, level: true } }
+          }
+        },
         organization: { select: { name: true } }
       },
       orderBy: [{ user: { username: 'asc' } }, { userId: 'asc' }]
@@ -185,7 +191,13 @@ export class OrganizationRepository {
             profile: { select: { avatar: true } }
           }
         },
-        post: { select: { id: true, name: true, level: true } },
+        post: {
+          select: {
+            id: true,
+            level: true,
+            jobProfile: { select: { name: true, level: true } }
+          }
+        },
         organization: { select: { name: true } }
       }
     })
@@ -201,19 +213,29 @@ export class OrganizationRepository {
   listPositions(organizationId: string) {
     return this.prisma.post.findMany({
       where: { organizationId },
-      orderBy: [{ name: 'asc' }, { id: 'asc' }],
-      include: { _count: { select: { users: { where: { leftAt: null } } } } }
+      orderBy: [{ jobProfile: { name: 'asc' } }, { id: 'asc' }],
+      include: {
+        jobProfile: true,
+        _count: { select: { users: { where: { leftAt: null } } } }
+      }
     })
   }
 
-  findPostByCode(code: string) {
-    return this.prisma.post.findUnique({ where: { code } })
+  findOrganizationPositionByProfile(organizationId: string, jobProfileId: string) {
+    return this.prisma.post.findUnique({
+      where: {
+        organizationId_jobProfileId: { organizationId, jobProfileId }
+      }
+    })
   }
 
   createPosition(data: Prisma.PostCreateInput) {
     return this.prisma.post.create({
       data,
-      include: { _count: { select: { users: { where: { leftAt: null } } } } }
+      include: {
+        jobProfile: true,
+        _count: { select: { users: { where: { leftAt: null } } } }
+      }
     })
   }
 

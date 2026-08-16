@@ -13,6 +13,7 @@ import {
   HealthModule,
   OrganizationModule,
   PluginModule,
+  PostModule,
   RoleModule,
   UserModule
 } from '@/modules'
@@ -29,6 +30,7 @@ import { PluginsModule } from '@/plugins.module'
     UserModule,
     RoleModule,
     OrganizationModule,
+    PostModule,
     DictModule,
     AuditModule,
     PluginModule,

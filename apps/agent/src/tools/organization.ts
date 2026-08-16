@@ -2,7 +2,7 @@ import {
   addOrganizationMemberSchema,
   changeOrganizationParentSchema,
   createOrganizationSchema,
-  createPositionSchema,
+  linkOrganizationPositionSchema,
   organizationActivitiesQuerySchema,
   updateOrganizationLeaderSchema,
   updateOrganizationSchema
@@ -29,7 +29,7 @@ const addOrganizationMemberToolSchema = organizationIdSchema.extend(
 const removeOrganizationMemberToolSchema = organizationIdSchema.extend({
   userId: z.string().min(1, '用户 ID 不能为空').describe('要移除的用户 ID')
 })
-const createPositionToolSchema = organizationIdSchema.extend(createPositionSchema.shape)
+const createPositionToolSchema = organizationIdSchema.extend(linkOrganizationPositionSchema.shape)
 const listActivitiesToolSchema = organizationIdSchema.extend(
   organizationActivitiesQuerySchema.shape
 )
@@ -180,7 +180,7 @@ export const createPositionTool = tool(
     ),
   {
     name: 'create_organization_position',
-    description: '在指定组织下创建岗位（编码格式 POS-0001）',
+    description: '将已有岗位目录关联到指定组织，并设置编制人数',
     schema: createPositionToolSchema
   }
 )

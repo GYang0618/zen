@@ -1,6 +1,7 @@
 import { AUDIT_PERMISSIONS } from '../audit/permissions'
 import { DICT_PERMISSIONS } from '../dict/permissions'
-import { ORG_PERMISSIONS, POST_PERMISSIONS } from '../organization/permissions'
+import { ORG_PERMISSIONS } from '../organization/permissions'
+import { POST_PERMISSIONS } from '../post/permissions'
 import { PLUGIN_PERMISSIONS } from '../plugin/permissions'
 import { ROLE_PERMISSIONS } from '../role/permissions'
 import { USER_PERMISSIONS } from '../user/permissions'

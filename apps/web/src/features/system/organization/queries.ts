@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
+import { postKeys } from '@/features/system/posts/queries'
 import { userApi } from '@/features/system/users/api'
 import { silentRefreshAuthSession } from '@/lib/request'
 
@@ -11,7 +12,7 @@ import type {
   AddOrganizationMember,
   ChangeOrganizationParent,
   CreateOrganization,
-  CreatePosition,
+  LinkOrganizationPosition,
   Organization,
   OrganizationActivitiesQuery,
   OrganizationMember,
@@ -253,11 +254,27 @@ export function useRemoveOrganizationMember(organizationId: string) {
 export function useCreateOrganizationPosition(organizationId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (data: CreatePosition) => organizationApi.createPosition(organizationId, data),
+    mutationFn: (data: LinkOrganizationPosition) =>
+      organizationApi.createPosition(organizationId, data),
     onSuccess: async () => {
       await invalidateOrganizationPositionQueries(queryClient, organizationId)
-      toast.success('岗位已创建')
+      await queryClient.invalidateQueries({ queryKey: postKeys.all })
+      toast.success('岗位已关联')
     },
-    onError: (error: Error) => toast.error(error.message || '创建失败')
+    onError: (error: Error) => toast.error(error.message || '关联失败')
+  })
+}
+
+export function useRemoveOrganizationPosition(organizationId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (positionId: string) =>
+      organizationApi.removePosition(organizationId, positionId),
+    onSuccess: async () => {
+      await invalidateOrganizationPositionQueries(queryClient, organizationId)
+      await queryClient.invalidateQueries({ queryKey: postKeys.all })
+      toast.success('已取消岗位关联')
+    },
+    onError: (error: Error) => toast.error(error.message || '取消关联失败')
   })
 }

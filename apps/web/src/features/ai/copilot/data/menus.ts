@@ -33,5 +33,10 @@ export const menus = [
     name: '组织管理',
     path: '/system/organization',
     description: '组织架构页面'
+  },
+  {
+    name: '岗位管理',
+    path: '/system/posts',
+    description: '岗位目录管理页面'
   }
 ] as const

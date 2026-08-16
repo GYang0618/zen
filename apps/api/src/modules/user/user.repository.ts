@@ -11,7 +11,10 @@ export const USER_INCLUDE = {
   audit: true,
   organizations: {
     where: { leftAt: null },
-    include: { organization: true, post: true }
+    include: {
+      organization: true,
+      post: { include: { jobProfile: true } }
+    }
   },
   roles: {
     include: {

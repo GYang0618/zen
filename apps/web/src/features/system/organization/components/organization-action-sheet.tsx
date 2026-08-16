@@ -41,8 +41,8 @@ import { useOrganizations } from '../organizations-provider'
 import { OrganizationLeaderSelect } from './organization-leader-select'
 import { OrganizationParentSelect } from './organization-parent-select'
 
-import type { Organization } from '../type'
 import type { OrganizationType } from '@zen/shared'
+import type { Organization } from '../type'
 
 interface OrganizationActionSheetProps {
   currentRow?: Organization
@@ -102,8 +102,7 @@ export function OrganizationActionSheet({
     hasOrganizationCode,
     getParentOptions,
     currentNode,
-    organizations,
-    rootOrganization
+    organizations
   } = useOrganizations()
   const isEdit = Boolean(currentRow)
   const [effectiveDateOpen, setEffectiveDateOpen] = useState(false)
@@ -131,7 +130,7 @@ export function OrganizationActionSheet({
       name: '',
       code: '',
       type: ORG_TYPES.DEPARTMENT,
-      parentId: rootOrganization?.id ?? '',
+      parentId: '',
       description: '',
       effectiveDate: TODAY,
       leaderId: undefined
@@ -177,12 +176,9 @@ export function OrganizationActionSheet({
         leaderId: currentRow.leader?.id
       })
     } else {
-      const preferred = currentNode ?? rootOrganization
       const parent =
-        preferred && allowedChildTypes(preferred.type).length > 0
-          ? preferred
-          : (parentOptions[0] ?? rootOrganization)
-      const nextTypes = parent ? allowedChildTypes(parent.type) : [ORG_TYPES.DEPARTMENT]
+        currentNode && allowedChildTypes(currentNode.type).length > 0 ? currentNode : null
+      const nextTypes = parent ? allowedChildTypes(parent.type) : ROOT_ORGANIZATION_TYPES
       form.reset({
         name: '',
         code: '',
@@ -196,7 +192,7 @@ export function OrganizationActionSheet({
 
     setEffectiveDateOpen(false)
     setIsSubmitting(false)
-  }, [open, currentRow, currentNode, rootOrganization, parentOptions, form])
+  }, [open, currentRow, currentNode, form])
 
   useEffect(() => {
     if (!open || isEdit) return

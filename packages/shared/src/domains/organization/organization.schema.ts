@@ -76,18 +76,19 @@ export const addOrganizationMemberSchema = z
   })
   .strict()
 
-export const createPositionSchema = z
-  .object({
-    code: z
-      .string()
-      .trim()
-      .regex(/^POS-\d{4}$/, '岗位编码格式应为 POS-0001'),
-    name: z.string().trim().min(1).max(100),
-    description: z.string().trim().max(500).optional(),
-    level: z.enum(['P5', 'P6', 'P7', 'P8']),
-    headcount: z.number().int().min(1).max(999)
-  })
-  .strict()
+export {
+  createPositionSchema,
+  linkOrganizationPositionSchema,
+  positionSchema,
+  updateOrganizationPositionSchema
+} from '../post/post.schema'
+
+export type {
+  CreatePosition,
+  LinkOrganizationPosition,
+  Position,
+  UpdateOrganizationPosition
+} from '../post/post.schema'
 
 export const organizationMemberSchema = z.object({
   id: z.string(),
@@ -100,17 +101,6 @@ export const organizationMemberSchema = z.object({
   email: z.string().nullable(),
   phoneNumber: z.string().nullable(),
   level: z.string().nullable()
-})
-
-export const positionSchema = z.object({
-  id: z.string(),
-  code: z.string(),
-  name: z.string(),
-  description: z.string().nullable(),
-  level: z.string(),
-  headcount: z.number(),
-  activeCount: z.number(),
-  createdAt: dateTimeSchema
 })
 
 export const organizationActivitySchema = z.object({
@@ -156,9 +146,7 @@ export type UpdateOrganization = z.infer<typeof updateOrganizationSchema>
 export type UpdateOrganizationLeader = z.infer<typeof updateOrganizationLeaderSchema>
 export type ChangeOrganizationParent = z.infer<typeof changeOrganizationParentSchema>
 export type AddOrganizationMember = z.infer<typeof addOrganizationMemberSchema>
-export type CreatePosition = z.infer<typeof createPositionSchema>
 export type OrganizationMember = z.infer<typeof organizationMemberSchema>
-export type Position = z.infer<typeof positionSchema>
 export type OrganizationActivity = z.infer<typeof organizationActivitySchema>
 export type OrganizationActivitiesQuery = z.infer<typeof organizationActivitiesQuerySchema>
 export type Organization = z.infer<typeof organizationSchema>
