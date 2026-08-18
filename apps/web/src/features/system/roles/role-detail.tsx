@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from '@tanstack/react-router'
+import { useParams, useRouter } from '@tanstack/react-router'
 import { PermissionCode, ROLE_MEMBER_PREVIEW_LIMIT } from '@zen/shared'
 import {
   Badge,
@@ -85,7 +85,7 @@ function formatExpiresAt(value: string | null) {
 }
 
 function RoleDetailContent({ role }: { role: Role }) {
-  const navigate = useNavigate()
+  const { history } = useRouter()
   const locked = role.code === 'super_admin' || role.kind === 'system'
   const matrixLocked = role.code === 'super_admin'
 
@@ -284,9 +284,10 @@ function RoleDetailContent({ role }: { role: Role }) {
             variant="outline"
             size="icon-lg"
             className="rounded-full"
-            onClick={() => navigate({ to: '/system/roles' })}
+            aria-label="返回上一页"
+            onClick={() => history.go(-1)}
           >
-            <ArrowLeft />
+            <ArrowLeft className="size-4" />
           </Button>
           <PageHeaderMedia className={cn(getRoleIconColorClassName(role.iconColor))}>
             <DynamicIcon name={(role.icon as RoleIcon | null) ?? 'shield'} />

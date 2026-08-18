@@ -436,6 +436,19 @@ export class UserService {
     return this.getUserListItemByUserId(id)
   }
 
+  async revokeSessions(id: string): Promise<UserListItemResponse> {
+    const existing = await this.userRepo.findActiveWithDomainById(id)
+    if (!existing) throw new NotFoundException('用户不存在')
+
+    await this.sessionService.revokeAllForUser(id)
+    await this.auditService.write({
+      action: 'system.user.sessions_revoked',
+      resource: 'user',
+      resourceId: id
+    })
+    return this.getUserListItemByUserId(id)
+  }
+
   async assignRoleByCode(userId: string, roleCode: string) {
     const role = await this.userRepo.findRoleByCode(roleCode)
     if (!role) return

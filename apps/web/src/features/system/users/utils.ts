@@ -32,6 +32,42 @@ export function formatDate(value: string | null | undefined): string {
   return date.toLocaleDateString('zh-CN')
 }
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000
+
+export function formatRelativeDateTime(value: string | null | undefined): string {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const startOfThatDay = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const dayDiff = Math.round((startOfToday.getTime() - startOfThatDay.getTime()) / MS_PER_DAY)
+  const time = date.toLocaleTimeString('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  })
+
+  if (dayDiff === 0) return `今天 ${time}`
+  if (dayDiff === 1) return `昨天 ${time}`
+  if (dayDiff === 2) return `前天 ${time}`
+  if (dayDiff > 2 && dayDiff < 7) return `${dayDiff}天前 ${time}`
+  return formatDateTime(value)
+}
+
+export function formatPhoneNumber(value: string | null | undefined): string {
+  if (!value) return '该用户未绑定手机号'
+  const digits = value.replace(/\D/g, '')
+  if (digits.length === 11 && digits.startsWith('1')) {
+    return `(+86) ${digits}`
+  }
+  if (digits.length === 13 && digits.startsWith('86')) {
+    return `(+86) ${digits.slice(2)}`
+  }
+  return value
+}
+
 export function getPrimaryMembership(user: User): UserOrganizationMembership | null {
   return getPrimaryOrganization(user.organizations)
 }

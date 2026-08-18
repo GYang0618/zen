@@ -193,6 +193,15 @@ export class UserController {
     return this.userService.adminResetPassword(id, body.password, body.mustChangePassword ?? true)
   }
 
+  @Post(':id/revoke-sessions')
+  @RequirePermission(PermissionCode.USER_UPDATE)
+  @ApiOperation({ summary: '强制下线用户全部会话' })
+  @ApiOkResponse({ description: '下线成功', type: UpdateUserSuccessSwaggerDto })
+  @ApiStandardErrorResponses()
+  revokeSessions(@Param('id') id: string): Promise<UserResponse> {
+    return this.userService.revokeSessions(id)
+  }
+
   @Patch(':id/roles')
   @RequirePermission(PermissionCode.ROLE_ASSIGN)
   @RequireStepUp()

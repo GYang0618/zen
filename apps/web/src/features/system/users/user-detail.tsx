@@ -1,6 +1,9 @@
-import { Link } from '@tanstack/react-router'
+import { Link, useRouter } from '@tanstack/react-router'
 import { PermissionCode } from '@zen/shared'
 import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
   Badge,
   Button,
   PageHeader,
@@ -9,13 +12,9 @@ import {
   PageHeaderDescription,
   PageHeaderMedia,
   PageHeaderTitle,
-  Skeleton,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger
+  Skeleton
 } from '@zen/ui'
-import { ArrowLeft, Building2, KeyRound, LockOpen, Pencil, Shield, UserRound } from 'lucide-react'
+import { ArrowLeft, KeyRound, LockOpen } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -29,12 +28,11 @@ import { UserActionSheet } from './components/user-action-sheet'
 import { UserDetailSideOverview } from './components/user-detail-side-overview'
 import { UserOrganizationsCard } from './components/user-organizations-card'
 import { UserRolesCard } from './components/user-roles-card'
-import { UserSecurityCard } from './components/user-security-card'
 import { UsersResetPasswordDialog } from './components/users-reset-password-dialog'
 import { statusConfig } from './data/data'
-import { useUnlockUserMutation } from './mutations'
+import { useRevokeUserSessionsMutation, useUnlockUserMutation } from './mutations'
 import { useUserQuery } from './queries'
-import { getUserDisplayName } from './utils'
+import { getUserDisplayName, getUserInitials } from './utils'
 
 import type { User } from '@zen/shared'
 
@@ -81,26 +79,45 @@ export function UserDetail({ userId }: { userId: string }) {
 }
 
 function UserDetailContent({ user }: { user: User }) {
+  const { history } = useRouter()
   const [editOpen, setEditOpen] = useState(false)
   const [rolesOpen, setRolesOpen] = useState(false)
   const [orgsOpen, setOrgsOpen] = useState(false)
   const [resetOpen, setResetOpen] = useState(false)
   const { mutate: unlockUser, isPending: isUnlocking } = useUnlockUserMutation()
+  const { mutate: revokeUserSessions, isPending: isRevokingSessions } = useRevokeUserSessionsMutation()
   const status = statusConfig[user.status]
   const displayName = getUserDisplayName(user)
+
+  const handleRevokeSessions = () => {
+    const confirmed = window.confirm(`确定强制下线用户“${user.username}”的全部在线会话吗？`)
+    if (!confirmed) return
+
+    revokeUserSessions(user.id, {
+      onSuccess: () => toast.success('已强制下线该用户的全部会话'),
+      onError: (error) => toast.error(error instanceof Error ? error.message : '强制下线失败')
+    })
+  }
 
   return (
     <>
       <AppHeader />
-      <Main className="flex flex-1 flex-col gap-4">
+      <Main className="flex-1 flex flex-col gap-4">
         <PageHeader size="lg">
-          <Button variant="outline" size="icon-lg" className="rounded-full" asChild>
-            <Link to="/system/users" aria-label="返回用户管理">
-              <ArrowLeft />
-            </Link>
+          <Button
+            variant="outline"
+            size="icon-lg"
+            className="rounded-full"
+            aria-label="返回上一页"
+            onClick={() => history.go(-1)}
+          >
+            <ArrowLeft />
           </Button>
           <PageHeaderMedia>
-            <UserRound />
+            <Avatar className="size-16">
+              <AvatarImage src={user.avatar ?? undefined} alt={displayName} />
+              <AvatarFallback className="text-3xl">{getUserInitials(user)}</AvatarFallback>
+            </Avatar>
           </PageHeaderMedia>
           <PageHeaderContent>
             <PageHeaderTitle as="h1" className="inline-flex flex-wrap items-center gap-3">
@@ -136,45 +153,19 @@ function UserDetailContent({ user }: { user: User }) {
                 <KeyRound />
                 重置密码
               </Button>
-              <Button variant="outline" onClick={() => setEditOpen(true)}>
-                <Pencil />
-                编辑
+              <Button variant="outline" disabled={isRevokingSessions} onClick={handleRevokeSessions}>
+                强制下线
               </Button>
             </Can>
           </PageHeaderActions>
         </PageHeader>
-
-        <Tabs defaultValue="roles">
-          <TabsList variant="line" className="mb-4 group-data-horizontal/tabs:h-12">
-            <TabsTrigger value="roles">
-              <Shield className="size-3.5" aria-hidden />
-              角色 ({user.roles.length})
-            </TabsTrigger>
-            <TabsTrigger value="organizations">
-              <Building2 className="size-3.5" aria-hidden />
-              组织 ({user.organizations.length})
-            </TabsTrigger>
-            <TabsTrigger value="security">
-              <KeyRound className="size-3.5" aria-hidden />
-              安全
-            </TabsTrigger>
-          </TabsList>
-
-          <div className="flex flex-col gap-6 @5xl/content:flex-row">
-            <div className="min-w-0 flex-1">
-              <TabsContent value="roles">
-                <UserRolesCard user={user} onAssign={() => setRolesOpen(true)} />
-              </TabsContent>
-              <TabsContent value="organizations">
-                <UserOrganizationsCard user={user} onAssign={() => setOrgsOpen(true)} />
-              </TabsContent>
-              <TabsContent value="security">
-                <UserSecurityCard user={user} />
-              </TabsContent>
-            </div>
-            <UserDetailSideOverview user={user} />
-          </div>
-        </Tabs>
+        <div className="flex gap-6">
+          <section className="flex-1 space-y-4">
+            <UserRolesCard user={user} onAssign={() => setRolesOpen(true)} />
+            <UserOrganizationsCard user={user} onAssign={() => setOrgsOpen(true)} />
+          </section>
+          <UserDetailSideOverview user={user} onEdit={() => setEditOpen(true)} />
+        </div>
       </Main>
 
       <UserActionSheet currentRow={user} open={editOpen} onOpenChange={setEditOpen} />

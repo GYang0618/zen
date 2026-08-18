@@ -3,17 +3,29 @@ import {
   AvatarFallback,
   AvatarImage,
   Badge,
+  Button,
   Card,
+  CardAction,
   CardContent,
   CardHeader,
   CardTitle,
-  Separator
+  cn
 } from '@zen/ui'
-import { Fingerprint, Mail, Phone, ShieldCheck } from 'lucide-react'
-
-import { genderLabels, organizationTypeLabels, statusConfig } from '../data/data'
 import {
-  formatDateTime,
+  Building2,
+  CalendarDays,
+  Clock3,
+  Globe,
+  KeyRound,
+  Mail,
+  Mars,
+  Pencil,
+  Phone,
+  Users,
+  Venus
+} from 'lucide-react'
+
+import {
   getOrganizationLabel,
   getPrimaryMembership,
   getUserDisplayName,
@@ -21,82 +33,170 @@ import {
 } from '../utils'
 
 import type { User } from '@zen/shared'
-import type { ReactNode } from 'react'
+import type { LucideIcon } from 'lucide-react'
+import type { HTMLAttributes, ReactNode } from 'react'
 
-export function UserDetailSideOverview({ user }: { user: User }) {
-  const primary = getPrimaryMembership(user)
-  const displayName = getUserDisplayName(user)
-  const status = statusConfig[user.status]
-
+export function UserDetailSideOverview({
+  user,
+  onEdit
+}: {
+  user: User
+  onEdit: () => void
+}) {
   return (
     <aside className="flex w-full shrink-0 flex-col gap-4 rounded-[28px] border border-dashed bg-muted/35 p-3 @5xl/content:w-90 @5xl/content:self-start">
-      <Card>
-        <CardHeader>
-          <CardTitle>基本信息</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <div className="flex items-center gap-3">
-            <Avatar className="size-14">
-              <AvatarImage src={user.avatar ?? undefined} alt={displayName} />
-              <AvatarFallback>{getUserInitials(user)}</AvatarFallback>
-            </Avatar>
-            <div className="min-w-0">
-              <p className="truncate text-lg font-medium leading-6">{displayName}</p>
-              <p className="font-mono text-sm text-muted-foreground">@{user.username}</p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-1">
-            <Badge variant="outline" className={status.className}>
-              {status.label}
-            </Badge>
-            {user.isLocked ? <Badge variant="destructive">已锁定</Badge> : null}
-            {user.mfaEnabled ? (
-              <Badge variant="secondary">
-                <ShieldCheck />
-                MFA
-              </Badge>
-            ) : null}
-          </div>
-
-          <Separator />
-
-          <OverviewRow
-            icon={<Fingerprint className="size-4" />}
-            label="真实姓名"
-            value={user.realName || '—'}
-          />
-          <OverviewRow icon={<Mail className="size-4" />} label="邮箱" value={user.email} />
-          <OverviewRow
-            icon={<Phone className="size-4" />}
-            label="手机"
-            value={user.phoneNumber || '—'}
-          />
-          <OverviewRow label="性别" value={genderLabels[user.gender]} />
-          <OverviewRow
-            label="主职"
-            value={
-              primary
-                ? `${getOrganizationLabel(primary)}${
-                    primary.organizationType
-                      ? ` · ${organizationTypeLabels[primary.organizationType] ?? primary.organizationType}`
-                      : ''
-                  }`
-                : '未分配'
-            }
-          />
-          <OverviewRow label="最近登录" value={formatDateTime(user.lastLoginAt)} />
-        </CardContent>
-      </Card>
+      <BaseInfoCard user={user} onEdit={onEdit} />
+      <SecurityStatusCard user={user} />
+      <LoginAuditCard user={user} />
     </aside>
   )
 }
 
-function OverviewRow({ icon, label, value }: { icon?: ReactNode; label: string; value: string }) {
+function BaseInfoCard({ user, onEdit }: { user: User; onEdit: () => void }) {
+  const displayName = getUserDisplayName(user)
+  const primary = getPrimaryMembership(user)
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>基本信息</CardTitle>
+        <CardAction>
+          <Button variant="ghost" onClick={onEdit} aria-label="编辑用户信息">
+            <Pencil className="size-4" />
+          </Button>
+        </CardAction>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center gap-3">
+          <Avatar className="size-14">
+            <AvatarImage src={user.avatar ?? undefined} alt={displayName} />
+            <AvatarFallback className="text-2xl">{getUserInitials(user)}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <p className="truncate text-lg font-medium leading-6 flex items-center gap-2">
+              {displayName}
+              <span>
+                {user.gender === 'unknown' ? null : user.gender === 'male' ? (
+                  <Mars className="size-4 text-blue-500" />
+                ) : (
+                  <Venus className="size-4 text-pink-500" />
+                )}
+              </span>
+            </p>
+            <p className="font-mono text-sm text-muted-foreground">@{user.username}</p>
+          </div>
+        </div>
+        <div className="mt-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <Mail className="size-4 text-muted-foreground" /> <span>{user.email}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Phone className="size-4 text-muted-foreground" />{' '}
+            <span>{user.phoneNumber ?? '-'}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Building2 className="size-4 text-muted-foreground" />{' '}
+            <span>{getOrganizationLabel(primary)}</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function SecurityStatusCard({ user }: { user: User }) {
+  const MFA_TYPE_LABEL: Record<User['mfaType'], string> = {
+    totp: 'TOTP',
+    sms: '短信',
+    email: '邮箱',
+    off: '未启用'
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>安全状态</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 gap-4">
+          <OverviewCol
+            label="MFA"
+            value={user.mfaEnabled ? `已启用 · ${MFA_TYPE_LABEL[user.mfaType]}` : '未启用'}
+          />
+          <OverviewCol
+            label="认证方式"
+            value={
+              <Badge variant="secondary" className="h-6 px-2.5">
+                <KeyRound /> 账号密码
+              </Badge>
+            }
+          />
+          <OverviewCol label="上次改密" value="昨天22:18" />
+          <OverviewCol label="登录失败次数" value="0" />
+          <OverviewCol label="认证过期时间" value="2026/08/18 10:00:00" className="col-span-2" />
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function LoginAuditCard({ user }: { user: User }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>登录审计</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col gap-3">
+          <OverviewRow icon={Clock3} label="最近登录" value="3小时前" />
+          <OverviewRow icon={Globe} label="最近登录IP" value={user.lastLoginIp ?? '-'} />
+          <OverviewRow
+            icon={Users}
+            label="当前在线会话数"
+            value={<Badge variant="secondary">0</Badge>}
+          />
+          <OverviewRow icon={CalendarDays} label="创建时间" value="2026/08/18 10:00:00" />
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function OverviewCol({
+  label,
+  icon: Icon,
+  value,
+  className
+}: {
+  label: string
+  icon?: LucideIcon
+  value: ReactNode
+  className?: HTMLAttributes<HTMLDivElement>['className']
+}) {
+  return (
+    <div className={cn('flex flex-col gap-1', className)}>
+      <span className="text-muted-foreground text-xs font-semibold flex items-center gap-1">
+        {label}
+        {Icon ? <Icon className="size-4" /> : null}
+      </span>
+      <span className="font-medium ">{value}</span>
+    </div>
+  )
+}
+
+function OverviewRow({
+  icon: Icon,
+  label,
+  value
+}: {
+  icon?: LucideIcon
+  label: string
+  value: ReactNode
+}) {
   return (
     <div className="flex items-start justify-between gap-3 text-sm">
       <span className="flex items-center gap-2 text-muted-foreground">
-        {icon}
+        {Icon ? <Icon className="size-4" /> : null}
         {label}
       </span>
       <span className="max-w-48 text-end font-medium break-all">{value}</span>

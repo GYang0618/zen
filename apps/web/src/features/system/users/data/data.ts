@@ -5,6 +5,13 @@ interface StatusConfig {
   className: string
 }
 
+export const statusAvatarBadgeClassName: Record<UserStatus, string> = {
+  active: 'bg-green-600 dark:bg-green-500',
+  inactive: 'bg-zinc-400 dark:bg-zinc-500',
+  pending: 'bg-sky-600 dark:bg-sky-500',
+  suspended: 'bg-destructive'
+}
+
 export const statusConfig: Record<UserStatus, StatusConfig> = {
   active: {
     label: '已激活',

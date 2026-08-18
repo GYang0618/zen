@@ -98,6 +98,18 @@ export function useAdminResetPasswordMutation() {
   })
 }
 
+export function useRevokeUserSessionsMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationKey: ['system', 'users', 'revoke-sessions'],
+    mutationFn: (id: string) => userApi.revokeSessions(id),
+    onSuccess: async (_data, id) => {
+      await invalidateUserQueries(queryClient, id)
+    }
+  })
+}
+
 export function useAssignUserRolesMutation() {
   const queryClient = useQueryClient()
 

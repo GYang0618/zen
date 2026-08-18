@@ -28,6 +28,7 @@ export const userApi = {
   unlock: (id: string) => request.post<User>(`/user/${id}/unlock`),
   adminResetPassword: (id: string, payload: AdminResetPassword) =>
     request.post<User, AdminResetPassword>(`/user/${id}/reset-password`, payload),
+  revokeSessions: (id: string) => request.post<User>(`/user/${id}/revoke-sessions`),
   assignRoles: (id: string, payload: AssignUserRoles, stepUpToken: string) =>
     request.patch<User, AssignUserRoles>(`/user/${id}/roles`, payload, {
       headers: { 'x-step-up-token': stepUpToken }

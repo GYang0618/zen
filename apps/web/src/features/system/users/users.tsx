@@ -1,8 +1,11 @@
 import { getRouteApi } from '@tanstack/react-router'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@zen/ui'
+import { CreditCard, TextAlignJustify } from 'lucide-react'
 
 import { AppHeader, Main } from '@/components/layouts'
 import { AppPageHeader } from '@/components/layouts/app-page-header'
 
+import { UsersCardList } from './components/users-card-list'
 import { UsersDialogs } from './components/users-dialogs'
 import { UsersPrimaryButtons } from './components/users-primary-buttons'
 import { UsersTable } from './components/users-table'
@@ -31,13 +34,29 @@ function UsersContent() {
 
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
         <AppPageHeader actions={<UsersPrimaryButtons />} />
-        <UsersTable
-          data={users}
-          isLoading={isLoading}
-          isFetching={isFetching}
-          search={search}
-          navigate={navigate}
-        />
+        <Tabs defaultValue="card">
+          <TabsList className="mx-auto">
+            <TabsTrigger value="card">
+              <CreditCard />
+            </TabsTrigger>
+            <TabsTrigger value="table">
+              <TextAlignJustify />
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="card">
+            <UsersCardList data={users} isLoading={isLoading} isFetching={isFetching} />
+          </TabsContent>
+          <TabsContent value="table">
+            <UsersTable
+              data={users}
+              isLoading={isLoading}
+              isFetching={isFetching}
+              search={search}
+              navigate={navigate}
+            />
+          </TabsContent>
+        </Tabs>
       </Main>
 
       <UsersDialogs />

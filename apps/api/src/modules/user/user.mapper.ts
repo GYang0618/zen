@@ -76,10 +76,12 @@ function toRolePreview(roles: UserWithDomain['roles']): UserRolePreview[] {
     id: role.id,
     code: role.code,
     name: role.name,
+    description: role.description ?? null,
     icon: role.icon ?? null,
     iconColor: role.iconColor ?? null,
     kind: role.kind === 'SYSTEM' ? 'system' : 'custom',
-    status: role.status === 'ACTIVE' ? 'active' : 'disabled'
+    status: role.status === 'ACTIVE' ? 'active' : 'disabled',
+    permissionCount: role.permissions.length
   }))
 }
 

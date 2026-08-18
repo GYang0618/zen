@@ -48,10 +48,12 @@ export const userRolePreviewSchema = z.object({
   id: z.string().describe('角色 ID'),
   code: z.string().describe('角色编码'),
   name: z.string().describe('角色名称'),
+  description: z.string().nullable().describe('角色描述'),
   icon: z.string().nullable().describe('角色图标'),
   iconColor: z.string().nullable().describe('图标颜色'),
   kind: z.union([z.literal('system'), z.literal('custom')]).describe('角色种类'),
-  status: z.union([z.literal('active'), z.literal('disabled')]).describe('角色状态')
+  status: z.union([z.literal('active'), z.literal('disabled')]).describe('角色状态'),
+  permissionCount: z.number().int().nonnegative().describe('权限数量')
 })
 
 export const userOrganizationMembershipSchema = z.object({
