@@ -79,6 +79,67 @@ export function getOrganizationLabel(membership: UserOrganizationMembership | nu
     : membership.organizationName
 }
 
+export type MembershipDraft = {
+  organizationId: string
+  postId: string
+  postName?: string
+}
+
+export function diffIdLists(current: string[], next: string[]) {
+  const currentSet = new Set(current)
+  const nextSet = new Set(next)
+  return {
+    addedIds: next.filter((id) => !currentSet.has(id)),
+    removedIds: current.filter((id) => !nextSet.has(id))
+  }
+}
+
+export function seedMembershipDrafts(organizations: UserOrganizationMembership[]): {
+  memberships: MembershipDraft[]
+  primaryOrgId: string
+} {
+  return {
+    memberships: organizations.map((item) => ({
+      organizationId: item.organizationId,
+      postId: item.postId ?? '',
+      postName: item.postName ?? undefined
+    })),
+    primaryOrgId:
+      organizations.find((item) => item.isPrimary)?.organizationId ??
+      organizations[0]?.organizationId ??
+      ''
+  }
+}
+
+export function getMembershipChanges(
+  initial: MembershipDraft[],
+  initialPrimary: string,
+  next: MembershipDraft[],
+  nextPrimary: string
+) {
+  const { addedIds, removedIds } = diffIdLists(
+    initial.map((item) => item.organizationId),
+    next.map((item) => item.organizationId)
+  )
+  const initialPosts = new Map(initial.map((item) => [item.organizationId, item.postId]))
+  const postChangedIds = next
+    .filter((item) => initialPosts.has(item.organizationId))
+    .filter((item) => initialPosts.get(item.organizationId) !== item.postId)
+    .map((item) => item.organizationId)
+
+  return {
+    addedIds,
+    removedIds,
+    postChangedIds,
+    primaryChanged: initialPrimary !== nextPrimary,
+    isDirty:
+      addedIds.length > 0 ||
+      removedIds.length > 0 ||
+      postChangedIds.length > 0 ||
+      initialPrimary !== nextPrimary
+  }
+}
+
 export function flattenOrganizationOptions(
   nodes: Array<{ id: string; name: string; children?: unknown[] }>,
   prefix = ''

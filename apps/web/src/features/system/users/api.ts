@@ -3,9 +3,12 @@ import { request } from '@/lib/request'
 import type {
   AdminResetPassword,
   AssignUserRoles,
+  AssignUserRolesResult,
   CreateUser,
   ReplaceUserOrganizations,
+  ReplaceUserOrganizationsResult,
   UpdateUser,
+  UpdateUserResult,
   UpdateUsersStatus,
   User,
   UsersQuery
@@ -17,7 +20,7 @@ export const userApi = {
   getUser: (id: string) => request.get<User>(`/user/${id}`),
   createUser: (data: CreateUser) => request.post<User, CreateUser>('/user', data),
   updateUser: (id: string, data: UpdateUser) =>
-    request.patch<User, UpdateUser>(`/user/${id}`, data),
+    request.patch<UpdateUserResult, UpdateUser>(`/user/${id}`, data),
   deleteUsers: (ids: string[], stepUpToken?: string) =>
     request.delete<unknown, { ids: string[] }>('/user', {
       data: { ids },
@@ -30,9 +33,12 @@ export const userApi = {
     request.post<User, AdminResetPassword>(`/user/${id}/reset-password`, payload),
   revokeSessions: (id: string) => request.post<User>(`/user/${id}/revoke-sessions`),
   assignRoles: (id: string, payload: AssignUserRoles, stepUpToken: string) =>
-    request.patch<User, AssignUserRoles>(`/user/${id}/roles`, payload, {
+    request.patch<AssignUserRolesResult, AssignUserRoles>(`/user/${id}/roles`, payload, {
       headers: { 'x-step-up-token': stepUpToken }
     }),
   replaceOrganizations: (id: string, payload: ReplaceUserOrganizations) =>
-    request.patch<User, ReplaceUserOrganizations>(`/user/${id}/organizations`, payload)
+    request.patch<ReplaceUserOrganizationsResult, ReplaceUserOrganizations>(
+      `/user/${id}/organizations`,
+      payload
+    )
 }

@@ -16,7 +16,8 @@ const SETTINGS_V2_PATH = '/settings-v2' satisfies AppPath
 
 export function Settings() {
   const router = useRouter()
-  const permissions = useAuthStore((state) => state.user?.permissions ?? [])
+  const authUser = useAuthStore((state) => state.user)
+  const permissions = authUser?.permissions ?? []
 
   const sidebarNavItems = useMemo(
     () =>

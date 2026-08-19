@@ -14,27 +14,21 @@ import {
   PageHeaderTitle,
   Skeleton
 } from '@zen/ui'
-import { ArrowLeft, KeyRound, LockOpen } from 'lucide-react'
-import { useState } from 'react'
+import { ArrowLeft, KeyRound, LockOpen, LogOut } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Can } from '@/components/auth/can'
 import { EmptyState } from '@/components/empty-state'
 import { AppHeader, Main } from '@/components/layouts'
 
-import { AssignUserOrganizationsDialog } from './components/assign-user-organizations-dialog'
-import { AssignUserRolesDialog } from './components/assign-user-roles-dialog'
-import { UserActionSheet } from './components/user-action-sheet'
 import { UserDetailSideOverview } from './components/user-detail-side-overview'
 import { UserOrganizationsCard } from './components/user-organizations-card'
 import { UserRolesCard } from './components/user-roles-card'
-import { UsersResetPasswordDialog } from './components/users-reset-password-dialog'
-import { statusConfig } from './data/data'
-import { useRevokeUserSessionsMutation, useUnlockUserMutation } from './mutations'
+import { UsersDetailDialogs } from './components/users-detail-dialogs'
+import { useUnlockUserMutation } from './mutations'
 import { useUserQuery } from './queries'
+import { UsersDetailProvider, useUsersDetail } from './users-detail-provider'
 import { getUserDisplayName, getUserInitials } from './utils'
-
-import type { User } from '@zen/shared'
 
 export function UserDetail({ userId }: { userId: string }) {
   const { data, isLoading, isError, error, refetch } = useUserQuery(userId)
@@ -75,29 +69,19 @@ export function UserDetail({ userId }: { userId: string }) {
     )
   }
 
-  return <UserDetailContent user={data} />
+  return (
+    <UsersDetailProvider user={data}>
+      <UserDetailContent />
+    </UsersDetailProvider>
+  )
 }
 
-function UserDetailContent({ user }: { user: User }) {
+function UserDetailContent() {
   const { history } = useRouter()
-  const [editOpen, setEditOpen] = useState(false)
-  const [rolesOpen, setRolesOpen] = useState(false)
-  const [orgsOpen, setOrgsOpen] = useState(false)
-  const [resetOpen, setResetOpen] = useState(false)
+  const { user, setOpen } = useUsersDetail()
   const { mutate: unlockUser, isPending: isUnlocking } = useUnlockUserMutation()
-  const { mutate: revokeUserSessions, isPending: isRevokingSessions } = useRevokeUserSessionsMutation()
-  const status = statusConfig[user.status]
+
   const displayName = getUserDisplayName(user)
-
-  const handleRevokeSessions = () => {
-    const confirmed = window.confirm(`确定强制下线用户“${user.username}”的全部在线会话吗？`)
-    if (!confirmed) return
-
-    revokeUserSessions(user.id, {
-      onSuccess: () => toast.success('已强制下线该用户的全部会话'),
-      onError: (error) => toast.error(error instanceof Error ? error.message : '强制下线失败')
-    })
-  }
 
   return (
     <>
@@ -122,15 +106,11 @@ function UserDetailContent({ user }: { user: User }) {
           <PageHeaderContent>
             <PageHeaderTitle as="h1" className="inline-flex flex-wrap items-center gap-3">
               {displayName}
-              <Badge variant="outline" className={status.className}>
-                {status.label}
-              </Badge>
-              {user.isLocked ? <Badge variant="destructive">已锁定</Badge> : null}
             </PageHeaderTitle>
             <PageHeaderDescription className="flex flex-wrap items-center gap-2 text-sm">
               <span className="font-mono">@{user.username}</span>
               <span>•</span>
-              <span>{user.email}</span>
+              {user.isLocked ? <Badge variant="secondary">已锁定</Badge> : null}
             </PageHeaderDescription>
           </PageHeaderContent>
           <PageHeaderActions className="gap-3">
@@ -149,29 +129,27 @@ function UserDetailContent({ user }: { user: User }) {
                   解锁
                 </Button>
               ) : null}
-              <Button variant="outline" onClick={() => setResetOpen(true)}>
+              <Button variant="outline" onClick={() => setOpen('reset-password')}>
                 <KeyRound />
                 重置密码
               </Button>
-              <Button variant="outline" disabled={isRevokingSessions} onClick={handleRevokeSessions}>
+              <Button variant="destructive" onClick={() => setOpen('revoke-sessions')}>
+                <LogOut />
                 强制下线
               </Button>
             </Can>
           </PageHeaderActions>
         </PageHeader>
-        <div className="flex gap-6">
+        <div className="flex gap-6 @5xl:flex-row flex-col">
           <section className="flex-1 space-y-4">
-            <UserRolesCard user={user} onAssign={() => setRolesOpen(true)} />
-            <UserOrganizationsCard user={user} onAssign={() => setOrgsOpen(true)} />
+            <UserRolesCard user={user} onAssign={() => setOpen('assign-roles')} />
+            <UserOrganizationsCard user={user} onAssign={() => setOpen('assign-organizations')} />
           </section>
-          <UserDetailSideOverview user={user} onEdit={() => setEditOpen(true)} />
+          <UserDetailSideOverview user={user} onEdit={() => setOpen('edit')} />
         </div>
       </Main>
 
-      <UserActionSheet currentRow={user} open={editOpen} onOpenChange={setEditOpen} />
-      <UsersResetPasswordDialog currentRow={user} open={resetOpen} onOpenChange={setResetOpen} />
-      <AssignUserRolesDialog user={user} open={rolesOpen} onOpenChange={setRolesOpen} />
-      <AssignUserOrganizationsDialog user={user} open={orgsOpen} onOpenChange={setOrgsOpen} />
+      <UsersDetailDialogs />
     </>
   )
 }

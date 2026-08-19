@@ -170,6 +170,31 @@ export const replaceUserOrganizationsSchema = z.object({
   organizations: z.array(userOrganizationInputSchema).describe('组织归属列表（覆盖当前在职记录）')
 })
 
+/** 更新基本资料后的局部响应 */
+export const updateUserResultSchema = userSchema.pick({
+  id: true,
+  nickname: true,
+  realName: true,
+  avatar: true,
+  gender: true,
+  email: true,
+  phoneNumber: true,
+  remark: true,
+  updatedAt: true
+})
+
+/** 分配角色后的局部响应 */
+export const assignUserRolesResultSchema = userSchema.pick({
+  id: true,
+  roles: true
+})
+
+/** 同步组织归属后的局部响应 */
+export const replaceUserOrganizationsResultSchema = userSchema.pick({
+  id: true,
+  organizations: true
+})
+
 export const usersSortBySchema = z.enum(['username', 'email', 'createdAt', 'lastLoginAt'])
 export const usersSortOrderSchema = z.enum(['asc', 'desc'])
 

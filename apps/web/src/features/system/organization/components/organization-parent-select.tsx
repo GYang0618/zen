@@ -33,7 +33,11 @@ interface OrganizationParentSelectProps {
   tree: Organization[]
   excludeIds?: ReadonlySet<string>
   selectableIds?: ReadonlySet<string>
+  placeholder?: string
+  allowEmpty?: boolean
+  disabled?: boolean
   'aria-invalid'?: boolean
+  'aria-label'?: string
 }
 
 interface ParentTreeNodeProps {
@@ -136,7 +140,11 @@ export function OrganizationParentSelect({
   tree,
   excludeIds,
   selectableIds,
-  'aria-invalid': ariaInvalid
+  placeholder = '选择组织',
+  allowEmpty = true,
+  disabled = false,
+  'aria-invalid': ariaInvalid,
+  'aria-label': ariaLabel
 }: OrganizationParentSelectProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -181,7 +189,7 @@ export function OrganizationParentSelect({
     setQuery('')
   }
 
-  const showRootOption = !query.trim()
+  const showRootOption = allowEmpty && !query.trim()
 
   return (
     <Popover modal open={open} onOpenChange={handleOpenChange}>
@@ -193,6 +201,8 @@ export function OrganizationParentSelect({
           role="combobox"
           aria-expanded={open}
           aria-invalid={ariaInvalid}
+          aria-label={ariaLabel}
+          disabled={disabled}
           className="w-full justify-between font-normal"
         >
           {selected ? (
@@ -203,11 +213,13 @@ export function OrganizationParentSelect({
                 · {getOrganizationTypeLabel(selected.type)}
               </span>
             </span>
-          ) : (
+          ) : allowEmpty ? (
             <span className="truncate">
               无（根节点）
               <span className="text-muted-foreground"> · 独立根节点</span>
             </span>
+          ) : (
+            <span className="truncate text-muted-foreground">{placeholder}</span>
           )}
           <ChevronsUpDown data-icon="inline-end" className="text-muted-foreground" />
         </Button>

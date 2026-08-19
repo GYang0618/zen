@@ -1,8 +1,35 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { userApi } from './api'
+import { usersQueryKeys } from './queries'
+
+import type { User } from '@zen/shared'
+import type { PaginationResponse } from '@/lib/request'
 
 const USERS_LIST_QUERY_KEY = ['system', 'users', 'list'] as const
+const ROLES_LIST_QUERY_KEY = ['system', 'roles', 'list'] as const
+const ROLE_DETAIL_QUERY_KEY = ['system', 'roles', 'detail'] as const
+const ROLE_MEMBERS_QUERY_KEY = ['system', 'roles', 'members'] as const
+
+function mergeUserCaches(
+  queryClient: ReturnType<typeof useQueryClient>,
+  userId: string,
+  patch: Partial<User>
+) {
+  queryClient.setQueryData<User>(usersQueryKeys.detail(userId), (current) =>
+    current ? { ...current, ...patch } : current
+  )
+  queryClient.setQueriesData<PaginationResponse<User>>(
+    { queryKey: USERS_LIST_QUERY_KEY },
+    (current) => {
+      if (!current) return current
+      return {
+        ...current,
+        items: current.items.map((user) => (user.id === userId ? { ...user, ...patch } : user))
+      }
+    }
+  )
+}
 
 function invalidateUserQueries(queryClient: ReturnType<typeof useQueryClient>, userId?: string) {
   const tasks = [
@@ -35,8 +62,8 @@ export function useUpdateUserMutation() {
     mutationKey: ['system', 'users', 'update'],
     mutationFn: ({ id, data }: { id: string; data: Parameters<typeof userApi.updateUser>[1] }) =>
       userApi.updateUser(id, data),
-    onSuccess: async (_data, variables) => {
-      await invalidateUserQueries(queryClient, variables.id)
+    onSuccess: (result, variables) => {
+      mergeUserCaches(queryClient, variables.id, result)
     }
   })
 }
@@ -124,8 +151,24 @@ export function useAssignUserRolesMutation() {
       roleIds: string[]
       stepUpToken: string
     }) => userApi.assignRoles(id, { roleIds }, stepUpToken),
-    onSuccess: async (_data, variables) => {
-      await invalidateUserQueries(queryClient, variables.id)
+    onSuccess: (result, variables) => {
+      mergeUserCaches(queryClient, variables.id, { roles: result.roles })
+
+      const staleQueries = [
+        queryClient.invalidateQueries({
+          queryKey: ROLES_LIST_QUERY_KEY,
+          refetchType: 'none'
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ROLE_DETAIL_QUERY_KEY,
+          refetchType: 'none'
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ROLE_MEMBERS_QUERY_KEY,
+          refetchType: 'none'
+        })
+      ]
+      void Promise.all(staleQueries)
     }
   })
 }
@@ -142,8 +185,16 @@ export function useReplaceUserOrganizationsMutation() {
       id: string
       organizations: Parameters<typeof userApi.replaceOrganizations>[1]['organizations']
     }) => userApi.replaceOrganizations(id, { organizations }),
-    onSuccess: async (_data, variables) => {
-      await invalidateUserQueries(queryClient, variables.id)
+    onSuccess: (result, variables) => {
+      mergeUserCaches(queryClient, variables.id, {
+        organizations: result.organizations
+      })
+      void Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ['organization'],
+          refetchType: 'none'
+        })
+      ])
     }
   })
 }

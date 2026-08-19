@@ -27,7 +27,38 @@ export const USER_INCLUDE = {
   }
 } satisfies Prisma.UserInclude
 
+const USER_BASIC_INFO_SELECT = {
+  id: true,
+  nickname: true,
+  email: true,
+  phoneNumber: true,
+  updatedAt: true,
+  profile: {
+    select: {
+      realName: true,
+      avatar: true,
+      gender: true,
+      remark: true
+    }
+  }
+} satisfies Prisma.UserSelect
+
+const USER_ROLES_SELECT = {
+  id: true,
+  roles: USER_INCLUDE.roles
+} satisfies Prisma.UserSelect
+
+const USER_ORGANIZATIONS_SELECT = {
+  id: true,
+  organizations: USER_INCLUDE.organizations
+} satisfies Prisma.UserSelect
+
 export type UserWithDomain = Prisma.UserGetPayload<{ include: typeof USER_INCLUDE }>
+export type UserBasicInfo = Prisma.UserGetPayload<{ select: typeof USER_BASIC_INFO_SELECT }>
+export type UserRoles = Prisma.UserGetPayload<{ select: typeof USER_ROLES_SELECT }>
+export type UserOrganizations = Prisma.UserGetPayload<{
+  select: typeof USER_ORGANIZATIONS_SELECT
+}>
 
 @Injectable()
 export class UserRepository {
@@ -39,6 +70,27 @@ export class UserRepository {
 
   findActiveWithDomainById(id: string) {
     return this.prisma.user.findFirst({ where: { id, deletedAt: null }, include: USER_INCLUDE })
+  }
+
+  findActiveBasicInfoById(id: string) {
+    return this.prisma.user.findFirst({
+      where: { id, deletedAt: null },
+      select: USER_BASIC_INFO_SELECT
+    })
+  }
+
+  findActiveRolesById(id: string) {
+    return this.prisma.user.findFirst({
+      where: { id, deletedAt: null },
+      select: USER_ROLES_SELECT
+    })
+  }
+
+  findActiveOrganizationsById(id: string) {
+    return this.prisma.user.findFirst({
+      where: { id, deletedAt: null },
+      select: USER_ORGANIZATIONS_SELECT
+    })
   }
 
   findUniqueWithDomain(where: Prisma.UserWhereUniqueInput) {

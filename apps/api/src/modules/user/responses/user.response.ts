@@ -1,8 +1,20 @@
-import type { Paged, User, UserGender, UserMfaType, UserStatus } from '@zen/shared'
+import type {
+  AssignUserRolesResult,
+  Paged,
+  ReplaceUserOrganizationsResult,
+  UpdateUserResult,
+  User,
+  UserGender,
+  UserMfaType,
+  UserStatus
+} from '@zen/shared'
 
 export type UserListItemResponse = User
 export type UserListResponse = Paged<UserListItemResponse>
 export type UserResponse = User
+export type UpdateUserResponse = UpdateUserResult
+export type AssignUserRolesResponse = AssignUserRolesResult
+export type ReplaceUserOrganizationsResponse = ReplaceUserOrganizationsResult
 
 export type { UserGender, UserMfaType, UserStatus }
 

@@ -18,8 +18,8 @@ import type { RouteTreeNode } from './build-nav-from-routes'
 export function AppSidebar() {
   const { collapsible, variant } = useLayout()
   const router = useRouter()
-  const permissions = useAuthStore((state) => state.user?.permissions ?? [])
   const authUser = useAuthStore((state) => state.user)
+  const permissions = authUser?.permissions ?? []
   const activePluginsQuery = useQuery({
     queryKey: ['plugins', 'active-ids'],
     queryFn: () => fetchActivePluginIds(true),

@@ -53,7 +53,8 @@ export function CommandMenu() {
   const router = useRouter()
   const { setTheme } = useTheme()
   const { open, setOpen } = useSearch()
-  const permissions = useAuthStore((state) => state.user?.permissions ?? [])
+  const authUser = useAuthStore((state) => state.user)
+  const permissions = authUser?.permissions ?? []
   const activePluginsQuery = useQuery({
     queryKey: ['plugins', 'active-ids'],
     queryFn: () => fetchActivePluginIds(true),

@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 
 import type { User } from '@zen/shared'
 
-type UsersDialogType = 'add' | 'edit' | 'delete' | 'reset-password'
+type UsersDialogType = 'add' | 'edit' | 'delete' | 'reset-password' | 'revoke-sessions'
 
 type UsersContextType = {
   open: UsersDialogType | null

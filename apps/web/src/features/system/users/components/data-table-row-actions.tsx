@@ -10,7 +10,7 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger
 } from '@zen/ui'
-import { Eye, KeyRound, LockOpen, Power, Trash2, UserCheck, UserPen } from 'lucide-react'
+import { Eye, KeyRound, LockOpen, LogOut, Power, Trash2, UserCheck, UserPen } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Can } from '@/components/auth/can'
@@ -112,6 +112,17 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
             重置密码
             <DropdownMenuShortcut>
               <KeyRound size={16} />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              setCurrentRow(row.original)
+              setOpen('revoke-sessions')
+            }}
+          >
+            强制下线
+            <DropdownMenuShortcut>
+              <LogOut size={16} />
             </DropdownMenuShortcut>
           </DropdownMenuItem>
         </Can>

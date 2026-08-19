@@ -14,6 +14,7 @@ import {
   Eye,
   KeyRound,
   LockOpen,
+  LogOut,
   MoreHorizontal,
   Power,
   Trash2,
@@ -124,6 +125,17 @@ export function UsersCardActions({ user, className }: { user: User; className?: 
             重置密码
             <DropdownMenuShortcut>
               <KeyRound />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              setCurrentRow(user)
+              setOpen('revoke-sessions')
+            }}
+          >
+            强制下线
+            <DropdownMenuShortcut>
+              <LogOut />
             </DropdownMenuShortcut>
           </DropdownMenuItem>
         </Can>

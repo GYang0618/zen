@@ -352,3 +352,63 @@ export class UpdateUserSuccessSwaggerDto extends ApiSuccessResponseBaseSwaggerDt
   @ApiProperty({ type: UserListItemSwaggerDto })
   data!: UserListItemSwaggerDto
 }
+
+class UpdateUserResultSwaggerDto {
+  @ApiProperty({ description: '用户 ID' })
+  id!: string
+
+  @ApiProperty({ nullable: true })
+  nickname!: string | null
+
+  @ApiProperty({ nullable: true })
+  realName!: string | null
+
+  @ApiProperty({ nullable: true })
+  avatar!: string | null
+
+  @ApiProperty({ enum: ['male', 'female', 'unknown'] })
+  gender!: 'male' | 'female' | 'unknown'
+
+  @ApiProperty()
+  email!: string
+
+  @ApiProperty({ nullable: true })
+  phoneNumber!: string | null
+
+  @ApiProperty({ nullable: true })
+  remark!: string | null
+
+  @ApiProperty({ description: '更新时间（ISO 8601）' })
+  updatedAt!: string
+}
+
+class AssignUserRolesResultSwaggerDto {
+  @ApiProperty({ description: '用户 ID' })
+  id!: string
+
+  @ApiProperty({ description: '更新后的角色预览', type: 'array' })
+  roles!: UserListItemSwaggerDto['roles']
+}
+
+class ReplaceUserOrganizationsResultSwaggerDto {
+  @ApiProperty({ description: '用户 ID' })
+  id!: string
+
+  @ApiProperty({ description: '更新后的组织归属', type: 'array' })
+  organizations!: UserListItemSwaggerDto['organizations']
+}
+
+export class UpdateUserPartialSuccessSwaggerDto extends ApiSuccessResponseBaseSwaggerDto {
+  @ApiProperty({ type: UpdateUserResultSwaggerDto })
+  data!: UpdateUserResultSwaggerDto
+}
+
+export class AssignUserRolesSuccessSwaggerDto extends ApiSuccessResponseBaseSwaggerDto {
+  @ApiProperty({ type: AssignUserRolesResultSwaggerDto })
+  data!: AssignUserRolesResultSwaggerDto
+}
+
+export class ReplaceUserOrganizationsSuccessSwaggerDto extends ApiSuccessResponseBaseSwaggerDto {
+  @ApiProperty({ type: ReplaceUserOrganizationsResultSwaggerDto })
+  data!: ReplaceUserOrganizationsResultSwaggerDto
+}

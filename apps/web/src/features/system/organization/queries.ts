@@ -107,10 +107,11 @@ async function invalidateOrganizationPositionQueries(
   ])
 }
 
-export function useOrganizationTree() {
+export function useOrganizationTree(enabled = true) {
   return useQuery({
     queryKey: organizationKeys.tree(),
-    queryFn: () => organizationApi.getTree()
+    queryFn: () => organizationApi.getTree(),
+    enabled
   })
 }
 
@@ -268,8 +269,7 @@ export function useCreateOrganizationPosition(organizationId: string) {
 export function useRemoveOrganizationPosition(organizationId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (positionId: string) =>
-      organizationApi.removePosition(organizationId, positionId),
+    mutationFn: (positionId: string) => organizationApi.removePosition(organizationId, positionId),
     onSuccess: async () => {
       await invalidateOrganizationPositionQueries(queryClient, organizationId)
       await queryClient.invalidateQueries({ queryKey: postKeys.all })

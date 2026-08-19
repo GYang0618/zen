@@ -8,7 +8,7 @@ import { toast } from 'sonner'
 
 import { useAuthStore } from '@/stores'
 
-import { isAuthAnonymousRequestUrl } from './auth-paths'
+import { isAuthRecoveryExcludedRequestUrl } from './auth-paths'
 import { anonymousHttp, http } from './client'
 import { ApiClientError } from './types'
 import { buildFallback, fallbackMessage, isRequestErrorResponse } from './utils'
@@ -78,7 +78,7 @@ export const globalErrorMiddleware = createErrorMiddleware((error) => {
   const data = error.response?.data as RequestErrorResponse | undefined
   const message = fallbackMessage(status)
 
-  if (status === 401 && !isAuthAnonymousRequestUrl(error.config?.url)) {
+  if (status === 401 && !isAuthRecoveryExcludedRequestUrl(error.config?.url)) {
     useAuthStore.getState().clearAuth()
     return Promise.reject(new ApiClientError(data ?? buildFallback(status, message)))
   }
@@ -119,8 +119,8 @@ export function createTokenRefreshMiddleware() {
     if (status !== 401 || !originalConfig) return false
     if (originalConfig._retry) return false
 
-    // 避免对匿名请求进行刷新，导致死循环
-    if (isAuthAnonymousRequestUrl(originalConfig.url)) return false
+    // 匿名认证和二次验证失败都不代表访问令牌已过期
+    if (isAuthRecoveryExcludedRequestUrl(originalConfig.url)) return false
 
     return true
   }

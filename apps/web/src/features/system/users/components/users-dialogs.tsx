@@ -2,6 +2,7 @@ import { useUsers } from '../users-provider'
 import { UserActionSheet } from './user-action-sheet'
 import { UsersDeleteDialog } from './users-delete-dialog'
 import { UsersResetPasswordDialog } from './users-reset-password-dialog'
+import { UsersRevokeSessionsDialog } from './users-revoke-sessions-dialog'
 
 export function UsersDialogs() {
   const { open, setOpen, currentRow, setCurrentRow } = useUsers()
@@ -31,6 +32,11 @@ export function UsersDialogs() {
     if (!nextOpen) clearCurrentRowSoon()
   }
 
+  const handleRevokeSessionsOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen ? 'revoke-sessions' : null)
+    if (!nextOpen) clearCurrentRowSoon()
+  }
+
   return (
     <>
       <UserActionSheet key="user-add" open={open === 'add'} onOpenChange={handleAddOpenChange} />
@@ -55,6 +61,13 @@ export function UsersDialogs() {
             key={`user-reset-${currentRow.id}`}
             open={open === 'reset-password'}
             onOpenChange={handleResetPasswordOpenChange}
+            currentRow={currentRow}
+          />
+
+          <UsersRevokeSessionsDialog
+            key={`user-revoke-${currentRow.id}`}
+            open={open === 'revoke-sessions'}
+            onOpenChange={handleRevokeSessionsOpenChange}
             currentRow={currentRow}
           />
         </>

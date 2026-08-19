@@ -11,7 +11,14 @@ import { buildPaginationMeta, paginate } from '@/common/pagination'
 import argon2 from '@/common/utils/argon2'
 
 import { findUsersQuerySchema } from './dto/find-users-query.dto'
-import { toUserInfoResponse, toUserListItemResponse, toUserResponse } from './user.mapper'
+import {
+  toAssignUserRolesResult,
+  toReplaceUserOrganizationsResult,
+  toUpdateUserResult,
+  toUserInfoResponse,
+  toUserListItemResponse,
+  toUserResponse
+} from './user.mapper'
 import { UserRepository } from './user.repository'
 
 import type { Prisma } from '@prisma/client'
@@ -28,6 +35,9 @@ import type { ReplaceUserOrganizationsDto } from './dto/replace-user-organizatio
 import type { UpdateUserDto } from './dto/update-user.dto'
 import type { UpdateUsersStatusDto } from './dto/update-users-status.dto'
 import type {
+  AssignUserRolesResponse,
+  ReplaceUserOrganizationsResponse,
+  UpdateUserResponse,
   UserInfoResponse,
   UserListItemResponse,
   UserListResponse,
@@ -194,8 +204,8 @@ export class UserService {
     return this.getUserById(userId)
   }
 
-  async update(id: string, data: UpdateUserDto): Promise<UserResponse> {
-    const existingUser = await this.userRepo.findActiveWithDomainById(id)
+  async update(id: string, data: UpdateUserDto): Promise<UpdateUserResponse> {
+    const existingUser = await this.userRepo.findActiveBasicInfoById(id)
     if (!existingUser) {
       throw new NotFoundException('用户不存在')
     }
@@ -239,7 +249,9 @@ export class UserService {
       resourceId: id,
       diff: data
     })
-    return this.getUserById(id)
+    const updatedUser = await this.userRepo.findActiveBasicInfoById(id)
+    if (!updatedUser) throw new NotFoundException('用户不存在')
+    return toUpdateUserResult(updatedUser)
   }
 
   /** 供内部（AuthService）使用，更新登录安全相关字段 */
@@ -455,24 +467,28 @@ export class UserService {
     await this.userRepo.upsertUserRole(userId, role.id)
   }
 
-  async assignRoles(userId: string, payload: AssignUserRolesDto): Promise<UserResponse> {
-    const existing = await this.userRepo.findActiveWithDomainById(userId)
+  async assignRoles(userId: string, payload: AssignUserRolesDto): Promise<AssignUserRolesResponse> {
+    const existing = await this.userRepo.findActiveRolesById(userId)
     if (!existing) throw new NotFoundException('用户不存在')
     await this.replaceUserRoles(userId, payload.roleIds, {
       currentCodes: existing.roles.map((item) => item.role.code),
       revokeSessions: true
     })
-    return this.getUserById(userId)
+    const updatedUser = await this.userRepo.findActiveRolesById(userId)
+    if (!updatedUser) throw new NotFoundException('用户不存在')
+    return toAssignUserRolesResult(updatedUser)
   }
 
   async replaceOrganizations(
     userId: string,
     payload: ReplaceUserOrganizationsDto
-  ): Promise<UserResponse> {
-    const existing = await this.userRepo.findActiveWithDomainById(userId)
+  ): Promise<ReplaceUserOrganizationsResponse> {
+    const existing = await this.userRepo.findActiveOrganizationsById(userId)
     if (!existing) throw new NotFoundException('用户不存在')
     await this.syncOrganizations(userId, payload.organizations, { revokeSessions: true })
-    return this.getUserById(userId)
+    const updatedUser = await this.userRepo.findActiveOrganizationsById(userId)
+    if (!updatedUser) throw new NotFoundException('用户不存在')
+    return toReplaceUserOrganizationsResult(updatedUser)
   }
 
   private async replaceUserRoles(

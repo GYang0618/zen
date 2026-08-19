@@ -1,14 +1,23 @@
 import { toApiOrganizationType } from '@/modules/organization/organization.mapper'
 
 import type { Gender, MfaType, Prisma, Theme, UserStatusCode } from '@prisma/client'
-import type { User, UserGender, UserMfaType, UserRolePreview, UserStatus } from '@zen/shared'
+import type {
+  AssignUserRolesResult,
+  ReplaceUserOrganizationsResult,
+  UpdateUserResult,
+  User,
+  UserGender,
+  UserMfaType,
+  UserRolePreview,
+  UserStatus
+} from '@zen/shared'
 import type {
   RoleInfoResponse,
   UserInfoResponse,
   UserListItemResponse,
   UserTheme
 } from './responses/user.response'
-import type { UserWithDomain } from './user.repository'
+import type { UserBasicInfo, UserOrganizations, UserRoles, UserWithDomain } from './user.repository'
 
 const GENDER_MAP: Record<Gender, UserGender> = {
   MALE: 'male',
@@ -71,7 +80,7 @@ function toMeta(raw?: Prisma.JsonValue | null): Record<string, unknown> | null {
   return raw as Record<string, unknown>
 }
 
-function toRolePreview(roles: UserWithDomain['roles']): UserRolePreview[] {
+function toRolePreview(roles: UserRoles['roles']): UserRolePreview[] {
   return roles.map(({ role }) => ({
     id: role.id,
     code: role.code,
@@ -110,8 +119,8 @@ function collectPermissions(roleDetails: RoleInfoResponse[]): string[] {
   return Array.from(permissionSet)
 }
 
-function toOrganizations(user: UserWithDomain): User['organizations'] {
-  return user.organizations.map((item) => ({
+function toOrganizations(organizations: UserOrganizations['organizations']): User['organizations'] {
+  return organizations.map((item) => ({
     organizationId: item.organizationId,
     organizationName: item.organization.name,
     organizationCode: item.organization.code,
@@ -122,6 +131,36 @@ function toOrganizations(user: UserWithDomain): User['organizations'] {
     postLevel: item.post?.level ?? item.post?.jobProfile.level ?? null,
     joinedAt: item.joinedAt?.toISOString() ?? null
   }))
+}
+
+export function toUpdateUserResult(user: UserBasicInfo): UpdateUserResult {
+  return {
+    id: user.id,
+    nickname: user.nickname ?? null,
+    realName: user.profile?.realName ?? null,
+    avatar: user.profile?.avatar ?? null,
+    gender: toGender(user.profile?.gender),
+    email: user.email,
+    phoneNumber: user.phoneNumber ?? null,
+    remark: user.profile?.remark ?? null,
+    updatedAt: user.updatedAt.toISOString()
+  }
+}
+
+export function toAssignUserRolesResult(user: UserRoles): AssignUserRolesResult {
+  return {
+    id: user.id,
+    roles: toRolePreview(user.roles)
+  }
+}
+
+export function toReplaceUserOrganizationsResult(
+  user: UserOrganizations
+): ReplaceUserOrganizationsResult {
+  return {
+    id: user.id,
+    organizations: toOrganizations(user.organizations)
+  }
 }
 
 export function toUserResponse(user: UserWithDomain): User {
@@ -140,7 +179,7 @@ export function toUserResponse(user: UserWithDomain): User {
     isLocked: user.isLocked,
     lockExpireAt: user.lockExpireAt?.toISOString() ?? null,
     roles: toRolePreview(user.roles),
-    organizations: toOrganizations(user),
+    organizations: toOrganizations(user.organizations),
     mfaEnabled: security?.mfaEnabled ?? false,
     mfaType: toMfaType(security?.mfaType),
     mustChangePassword: security?.mustChangePassword ?? false,

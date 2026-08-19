@@ -1,43 +1,36 @@
 import { PermissionCode } from '@zen/shared'
 import {
   Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Label,
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle
 } from '@zen/ui'
-import { useEffect, useMemo, useState } from 'react'
+import { Loader2 } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Can } from '@/components/auth/can'
-import {
-  useOrganizationPositions,
-  useOrganizationTree
-} from '@/features/system/organization/queries'
+import { ConfirmDialog } from '@/components/confirm-dialog'
+import { useOrganizationTree } from '@/features/system/organization/queries'
+import { findOrganization, flattenOrganizations } from '@/features/system/organization/utils'
 
 import { useReplaceUserOrganizationsMutation } from '../mutations'
-import { flattenOrganizationOptions, getUserDisplayName } from '../utils'
+import { getMembershipChanges, getUserDisplayName, seedMembershipDrafts } from '../utils'
+import { AssignUserOrganizationsEditor } from './assign-user-organizations-editor'
+import { AssignmentChangeSummary, AssignmentSessionAlert } from './assignment-panels'
 
 import type { User } from '@zen/shared'
+import type { MembershipDraft } from '../utils'
+
+type AssignStep = 'edit' | 'confirm'
 
 type AssignUserOrganizationsDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   user: User
-}
-
-type MembershipDraft = {
-  organizationId: string
-  postId: string
 }
 
 export function AssignUserOrganizationsDialog({
@@ -46,39 +39,79 @@ export function AssignUserOrganizationsDialog({
   user
 }: AssignUserOrganizationsDialogProps) {
   const { mutateAsync: replaceOrganizations, isPending } = useReplaceUserOrganizationsMutation()
-  const { data: tree = [] } = useOrganizationTree()
+  const {
+    data: tree = [],
+    isLoading: treeLoading,
+    isError: treeError,
+    refetch
+  } = useOrganizationTree(open)
   const [memberships, setMemberships] = useState<MembershipDraft[]>([])
   const [primaryOrgId, setPrimaryOrgId] = useState('')
-  const [addingOrgId, setAddingOrgId] = useState('')
+  const [step, setStep] = useState<AssignStep>('edit')
+  const [discardOpen, setDiscardOpen] = useState(false)
+  const initialRef = useRef(seedMembershipDrafts(user.organizations))
 
-  const orgOptions = useMemo(() => flattenOrganizationOptions(tree), [tree])
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 只在打开时灌入草稿
+  useEffect(() => {
+    if (!open) return
+    const seeded = seedMembershipDrafts(user.organizations)
+    initialRef.current = seeded
+    setMemberships(seeded.memberships)
+    setPrimaryOrgId(seeded.primaryOrgId)
+    setStep('edit')
+    setDiscardOpen(false)
+  }, [open])
+
   const selectedIds = useMemo(
     () => new Set(memberships.map((item) => item.organizationId)),
     [memberships]
   )
-  const availableOptions = orgOptions.filter((option) => !selectedIds.has(option.id))
+  const allOrgIds = useMemo(
+    () => new Set(flattenOrganizations(tree).map((node) => node.id)),
+    [tree]
+  )
+  const selectableIds = useMemo(() => {
+    const next = new Set(allOrgIds)
+    for (const id of selectedIds) next.delete(id)
+    return next
+  }, [allOrgIds, selectedIds])
+  const changes = getMembershipChanges(
+    initialRef.current.memberships,
+    initialRef.current.primaryOrgId,
+    memberships,
+    primaryOrgId
+  )
 
-  useEffect(() => {
-    if (!open) return
-    setMemberships(
-      user.organizations.map((item) => ({
-        organizationId: item.organizationId,
-        postId: item.postId ?? ''
-      }))
-    )
-    setPrimaryOrgId(
-      user.organizations.find((item) => item.isPrimary)?.organizationId ??
-        user.organizations[0]?.organizationId ??
-        ''
-    )
-    setAddingOrgId('')
-  }, [open, user])
+  const resolveOrgName = (organizationId: string) =>
+    findOrganization(tree, organizationId)?.name ??
+    user.organizations.find((item) => item.organizationId === organizationId)?.organizationName ??
+    organizationId
+
+  const resolveOrgType = (organizationId: string) =>
+    findOrganization(tree, organizationId)?.type ??
+    user.organizations.find((item) => item.organizationId === organizationId)?.organizationType
+
+  const resolvePostLabel = (draft: MembershipDraft | undefined) => {
+    if (!draft?.postId) return '未设岗位'
+    return draft.postName ?? '已选岗位'
+  }
+
+  const requestClose = () => {
+    if (isPending) return
+    if (changes.isDirty) {
+      setDiscardOpen(true)
+      return
+    }
+    onOpenChange(false)
+  }
 
   const handleAdd = (organizationId: string) => {
-    if (!organizationId || selectedIds.has(organizationId)) return
-    setMemberships((prev) => [...prev, { organizationId, postId: '' }])
-    if (!primaryOrgId) setPrimaryOrgId(organizationId)
-    setAddingOrgId('')
+    if (!organizationId) return
+    setMemberships((prev) => {
+      if (prev.some((item) => item.organizationId === organizationId)) return prev
+      return [...prev, { organizationId, postId: '' }]
+    })
+    setPrimaryOrgId((prev) => prev || organizationId)
   }
 
   const handleRemove = (organizationId: string) => {
@@ -106,151 +139,149 @@ export function AssignUserOrganizationsDialog({
     }
   }
 
+  const changeDetails = [
+    ...(changes.primaryChanged
+      ? [
+          {
+            id: 'primary',
+            label: `主职：${initialRef.current.primaryOrgId ? resolveOrgName(initialRef.current.primaryOrgId) : '无'} → ${primaryOrgId ? resolveOrgName(primaryOrgId) : '无'}`
+          }
+        ]
+      : []),
+    ...changes.postChangedIds.map((organizationId) => {
+      const initial = initialRef.current.memberships.find(
+        (item) => item.organizationId === organizationId
+      )
+      const next = memberships.find((item) => item.organizationId === organizationId)
+      return {
+        id: `post-${organizationId}`,
+        label: `${resolveOrgName(organizationId)} 岗位：${resolvePostLabel(initial)} → ${resolvePostLabel(next)}`
+      }
+    })
+  ]
+
+  const copy = getSheetCopy(step, getUserDisplayName(user))
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>调整组织归属</DialogTitle>
-          <DialogDescription>
-            覆盖式同步 {getUserDisplayName(user)} 的在职组织与岗位，影响数据范围。
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Sheet open={open} onOpenChange={(nextOpen) => (nextOpen ? undefined : requestClose())}>
+        <SheetContent className="sm:max-w-lg">
+        <SheetHeader className="border-b">
+          <SheetTitle>{copy.title}</SheetTitle>
+          <SheetDescription>{copy.description}</SheetDescription>
+        </SheetHeader>
 
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label>添加组织</Label>
-            <Select value={addingOrgId || undefined} onValueChange={handleAdd}>
-              <SelectTrigger className="w-full">
-                <SelectValue
-                  placeholder={availableOptions.length ? '选择要加入的组织' : '没有可添加的组织'}
-                />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {availableOptions.map((option) => (
-                    <SelectItem key={option.id} value={option.id}>
-                      {option.name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {memberships.length > 0 ? (
-            <div className="flex flex-col gap-3">
-              {memberships.map((item) => (
-                <MembershipRow
-                  key={item.organizationId}
-                  organizationId={item.organizationId}
-                  organizationName={
-                    orgOptions.find((option) => option.id === item.organizationId)?.name ??
-                    item.organizationId
-                  }
-                  postId={item.postId}
-                  onPostChange={(postId) =>
-                    setMemberships((prev) =>
-                      prev.map((membership) =>
-                        membership.organizationId === item.organizationId
-                          ? { ...membership, postId }
-                          : membership
-                      )
-                    )
-                  }
-                  onRemove={() => handleRemove(item.organizationId)}
-                />
-              ))}
+        <div className="flex-1 overflow-y-auto overscroll-contain px-4">
+          {step === 'confirm' ? (
+            <div className="flex flex-col gap-4 py-2">
+              <AssignmentChangeSummary
+                added={changes.addedIds.map((id) => ({ id, label: resolveOrgName(id) }))}
+                removed={changes.removedIds.map((id) => ({ id, label: resolveOrgName(id) }))}
+                details={changeDetails}
+              />
+              <AssignmentSessionAlert />
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">尚未分配组织。</p>
-          )}
+          ) : null}
 
-          {memberships.length > 0 ? (
-            <div className="flex flex-col gap-2">
-              <Label>主职组织</Label>
-              <Select value={primaryOrgId} onValueChange={setPrimaryOrgId}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="选择主职组织" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {memberships.map((item) => (
-                      <SelectItem key={item.organizationId} value={item.organizationId}>
-                        {orgOptions.find((option) => option.id === item.organizationId)?.name ??
-                          item.organizationId}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
+          {step === 'edit' ? (
+            <AssignUserOrganizationsEditor
+              treeLoading={treeLoading && tree.length === 0}
+              treeError={treeError}
+              hasAvailableOrgs={selectableIds.size > 0}
+              tree={tree}
+              selectableIds={selectableIds}
+              memberships={memberships}
+              primaryOrgId={primaryOrgId}
+              resolveOrgName={resolveOrgName}
+              resolveOrgType={resolveOrgType}
+              onRetry={() => {
+                void refetch()
+              }}
+              onAdd={handleAdd}
+              onPrimaryChange={setPrimaryOrgId}
+              onPostChange={(organizationId, postId, postName) => {
+                setMemberships((prev) =>
+                  prev.map((item) =>
+                    item.organizationId === organizationId ? { ...item, postId, postName } : item
+                  )
+                )
+              }}
+              onRemove={handleRemove}
+            />
           ) : null}
         </div>
 
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            取消
-          </Button>
-          <Can permission={PermissionCode.ORG_UPDATE}>
-            <Button
-              type="button"
-              disabled={isPending}
-              onClick={() => {
-                void handleSubmit()
-              }}
-            >
-              保存
-            </Button>
-          </Can>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <SheetFooter className="border-t sm:flex-row sm:justify-end">
+          {step === 'edit' ? (
+            <>
+              <Button type="button" variant="outline" onClick={requestClose}>
+                取消
+              </Button>
+              <Can permission={PermissionCode.ORG_UPDATE}>
+                <Button
+                  type="button"
+                  disabled={treeLoading || !changes.isDirty}
+                  onClick={() => setStep('confirm')}
+                >
+                  查看变更
+                </Button>
+              </Can>
+            </>
+          ) : null}
+          {step === 'confirm' ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isPending}
+                onClick={() => setStep('edit')}
+              >
+                返回
+              </Button>
+              <Can permission={PermissionCode.ORG_UPDATE}>
+                <Button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => {
+                    void handleSubmit()
+                  }}
+                >
+                  {isPending ? <Loader2 className="animate-spin" /> : null}
+                  {isPending ? '保存中…' : '确认保存'}
+                </Button>
+              </Can>
+            </>
+          ) : null}
+        </SheetFooter>
+      </SheetContent>
+      </Sheet>
+
+      <ConfirmDialog
+        open={discardOpen}
+        onOpenChange={setDiscardOpen}
+        title="放弃更改？"
+        desc="有未保存的组织归属变更。关闭后，组织、岗位和主职的修改不会被保存。"
+        cancelBtnText="继续编辑"
+        confirmText="放弃更改"
+        destructive
+        handleConfirm={() => {
+          setDiscardOpen(false)
+          onOpenChange(false)
+        }}
+      />
+    </>
   )
 }
 
-function MembershipRow({
-  organizationId,
-  organizationName,
-  postId,
-  onPostChange,
-  onRemove
-}: {
-  organizationId: string
-  organizationName: string
-  postId: string
-  onPostChange: (postId: string) => void
-  onRemove: () => void
-}) {
-  const { data: positions = [] } = useOrganizationPositions(organizationId)
-
-  return (
-    <div className="flex flex-col gap-2 rounded-lg border p-3">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-medium">{organizationName}</span>
-        <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
-          移除
-        </Button>
-      </div>
-      <Select
-        value={postId || undefined}
-        onValueChange={onPostChange}
-        disabled={positions.length === 0}
-      >
-        <SelectTrigger className="w-full">
-          <SelectValue
-            placeholder={positions.length === 0 ? '该组织暂无岗位' : '选择岗位（可选）'}
-          />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            {positions.map((position) => (
-              <SelectItem key={position.id} value={position.id}>
-                {position.name} · {position.level}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-    </div>
-  )
+function getSheetCopy(step: AssignStep, displayName: string) {
+  if (step === 'confirm') {
+    return {
+      title: '确认组织变更',
+      description: `保存后将覆盖 ${displayName} 的组织归属，并强制下线现有会话。`
+    }
+  }
+  return {
+    title: '管理组织归属',
+    description: `为 ${displayName} 添加组织、设置岗位与主职，保存前可预览变更。`
+  }
 }

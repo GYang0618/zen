@@ -4,7 +4,10 @@ export { ApiFindUsersQueryDocs } from './find-users-query.decorator'
 export { UpdateUserSwaggerDto } from './update-user.swagger.dto'
 export { UpdateUsersStatusSwaggerDto } from './update-users-status.swagger.dto'
 export {
+  AssignUserRolesSuccessSwaggerDto,
   CreateUserSuccessSwaggerDto,
+  ReplaceUserOrganizationsSuccessSwaggerDto,
+  UpdateUserPartialSuccessSwaggerDto,
   UpdateUserSuccessSwaggerDto,
   UserInfoSuccessSwaggerDto,
   UserListItemArraySuccessSwaggerDto,

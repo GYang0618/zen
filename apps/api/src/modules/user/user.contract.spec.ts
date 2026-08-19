@@ -1,7 +1,10 @@
 import {
+  assignUserRolesResultSchema,
   createUserSchema,
   getPrimaryOrganization,
   getUserDisplayName,
+  replaceUserOrganizationsResultSchema,
+  updateUserResultSchema,
   updateUserSchema,
   userSchema,
   usersQuerySchema
@@ -40,6 +43,63 @@ describe('user V2 contracts', () => {
       }).success
     ).toBe(false)
     expect(updateUserSchema.safeParse({ realName: '李四', gender: 'female' }).success).toBe(true)
+  })
+
+  it('returns only the changed user aggregate segment', () => {
+    expect(
+      updateUserResultSchema.parse({
+        id: 'u1',
+        nickname: '昵称',
+        realName: '姓名',
+        avatar: null,
+        gender: 'unknown',
+        email: 'user@example.com',
+        phoneNumber: null,
+        remark: null,
+        updatedAt: '2026-08-19T00:00:00.000Z',
+        organizations: [{ organizationId: 'ignored' }]
+      })
+    ).not.toHaveProperty('organizations')
+
+    expect(
+      assignUserRolesResultSchema.parse({
+        id: 'u1',
+        roles: [
+          {
+            id: 'r1',
+            code: 'user',
+            name: '普通用户',
+            description: null,
+            icon: null,
+            iconColor: null,
+            kind: 'system',
+            status: 'active',
+            permissionCount: 1
+          }
+        ],
+        organizations: []
+      })
+    ).not.toHaveProperty('organizations')
+
+    expect(
+      replaceUserOrganizationsResultSchema.parse({
+        id: 'u1',
+        organizations: [
+          {
+            organizationId: 'o1',
+            organizationName: '总部',
+            organizationCode: 'HQ',
+            organizationType: 'company',
+            isPrimary: true,
+            postId: null,
+            postName: null,
+            postLevel: null,
+            joinedAt: null
+          }
+        ],
+        roles: []
+      })
+    ).not.toHaveProperty('roles')
   })
 
   it('supports lastLoginAt sort and organization filter', () => {
@@ -84,10 +144,12 @@ describe('user V2 contracts', () => {
           id: 'r1',
           code: 'user',
           name: '普通用户',
+          description: null,
           icon: 'users',
           iconColor: 'slate',
           kind: 'system',
-          status: 'active'
+          status: 'active',
+          permissionCount: 0
         }
       ],
       organizations: [],

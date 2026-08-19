@@ -39,9 +39,12 @@ import { updateUserSchema } from './dto/update-user.dto'
 import { updateUsersStatusSchema } from './dto/update-users-status.dto'
 import {
   ApiFindUsersQueryDocs,
+  AssignUserRolesSuccessSwaggerDto,
   CreateUserSuccessSwaggerDto,
   CreateUserSwaggerDto,
   DeleteUsersSwaggerDto,
+  ReplaceUserOrganizationsSuccessSwaggerDto,
+  UpdateUserPartialSuccessSwaggerDto,
   UpdateUserSuccessSwaggerDto,
   UpdateUserSwaggerDto,
   UpdateUsersStatusSwaggerDto,
@@ -62,6 +65,9 @@ import type { ReplaceUserOrganizationsDto } from './dto/replace-user-organizatio
 import type { UpdateUserDto } from './dto/update-user.dto'
 import type { UpdateUsersStatusDto } from './dto/update-users-status.dto'
 import type {
+  AssignUserRolesResponse,
+  ReplaceUserOrganizationsResponse,
+  UpdateUserResponse,
   UserListItemResponse,
   UserListResponse,
   UserResponse
@@ -164,10 +170,13 @@ export class UserController {
     example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479'
   })
   @ApiBody({ type: UpdateUserSwaggerDto })
-  @ApiOkResponse({ description: '更新成功', type: UpdateUserSuccessSwaggerDto })
+  @ApiOkResponse({ description: '更新成功', type: UpdateUserPartialSuccessSwaggerDto })
   @ApiStandardErrorResponses()
   @UsePipes(new ZodValidationPipe(updateUserSchema))
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto): Promise<UserResponse> {
+  update(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto
+  ): Promise<UpdateUserResponse> {
     return this.userService.update(id, updateUserDto)
   }
 
@@ -219,10 +228,13 @@ export class UserController {
       }
     }
   })
-  @ApiOkResponse({ description: '分配成功', type: UpdateUserSuccessSwaggerDto })
+  @ApiOkResponse({ description: '分配成功', type: AssignUserRolesSuccessSwaggerDto })
   @ApiStandardErrorResponses()
   @UsePipes(new ZodValidationPipe(assignUserRolesSchema))
-  assignRoles(@Param('id') id: string, @Body() body: AssignUserRolesDto): Promise<UserResponse> {
+  assignRoles(
+    @Param('id') id: string,
+    @Body() body: AssignUserRolesDto
+  ): Promise<AssignUserRolesResponse> {
     return this.userService.assignRoles(id, body)
   }
 
@@ -253,13 +265,16 @@ export class UserController {
       }
     }
   })
-  @ApiOkResponse({ description: '同步成功', type: UpdateUserSuccessSwaggerDto })
+  @ApiOkResponse({
+    description: '同步成功',
+    type: ReplaceUserOrganizationsSuccessSwaggerDto
+  })
   @ApiStandardErrorResponses()
   @UsePipes(new ZodValidationPipe(replaceUserOrganizationsSchema))
   replaceOrganizations(
     @Param('id') id: string,
     @Body() body: ReplaceUserOrganizationsDto
-  ): Promise<UserResponse> {
+  ): Promise<ReplaceUserOrganizationsResponse> {
     return this.userService.replaceOrganizations(id, body)
   }
 

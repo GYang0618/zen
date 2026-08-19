@@ -25,6 +25,7 @@ import {
   Venus
 } from 'lucide-react'
 
+import { statusConfig } from '../data/data'
 import {
   getOrganizationLabel,
   getPrimaryMembership,
@@ -36,13 +37,7 @@ import type { User } from '@zen/shared'
 import type { LucideIcon } from 'lucide-react'
 import type { HTMLAttributes, ReactNode } from 'react'
 
-export function UserDetailSideOverview({
-  user,
-  onEdit
-}: {
-  user: User
-  onEdit: () => void
-}) {
+export function UserDetailSideOverview({ user, onEdit }: { user: User; onEdit: () => void }) {
   return (
     <aside className="flex w-full shrink-0 flex-col gap-4 rounded-[28px] border border-dashed bg-muted/35 p-3 @5xl/content:w-90 @5xl/content:self-start">
       <BaseInfoCard user={user} onEdit={onEdit} />
@@ -55,7 +50,7 @@ export function UserDetailSideOverview({
 function BaseInfoCard({ user, onEdit }: { user: User; onEdit: () => void }) {
   const displayName = getUserDisplayName(user)
   const primary = getPrimaryMembership(user)
-
+  const status = statusConfig[user.status]
   return (
     <Card>
       <CardHeader>
@@ -83,8 +78,12 @@ function BaseInfoCard({ user, onEdit }: { user: User; onEdit: () => void }) {
                 )}
               </span>
             </p>
-            <p className="font-mono text-sm text-muted-foreground">@{user.username}</p>
+            <p className="font-mono text-sm text-muted-foreground">@{user.username} </p>
           </div>
+
+          <Badge variant="outline" className={cn(status.className, 'ml-auto')}>
+            {status.label}
+          </Badge>
         </div>
         <div className="mt-5 space-y-3">
           <div className="flex items-center gap-2">

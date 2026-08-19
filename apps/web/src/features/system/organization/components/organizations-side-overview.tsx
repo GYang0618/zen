@@ -25,6 +25,7 @@ import {
   Mail,
   Pencil,
   Phone,
+  Plus,
   User
 } from 'lucide-react'
 
@@ -170,7 +171,9 @@ export function OrganizationSideOverview() {
               </div>
             </>
           ) : (
-            <p className="text-sm text-muted-foreground">暂未指定负责人</p>
+            <p className="border border-dashed rounded-2xl h-20 flex items-center justify-center">
+              <Plus />
+            </p>
           )}
         </CardContent>
       </Card>
