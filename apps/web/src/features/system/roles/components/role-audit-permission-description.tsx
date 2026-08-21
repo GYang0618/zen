@@ -26,10 +26,7 @@ function PermissionChanges({ sections }: { sections: PermissionSection[] }) {
     <div className="flex flex-col gap-3">
       {sections.map((section) => (
         <div className="flex flex-col gap-1" key={section.kind}>
-          <Badge
-            variant={section.kind === 'added' ? 'secondary' : 'destructive'}
-            className="w-fit"
-          >
+          <Badge variant={section.kind === 'added' ? 'secondary' : 'destructive'} className="w-fit">
             {section.kind === 'added' ? '新增' : '移除'}
           </Badge>
           {groupByModule(section.permissions).map(([moduleName, names]) => (

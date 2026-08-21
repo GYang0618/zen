@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { formatFromNow } from '@zen/shared'
 import { Button, Input, Skeleton } from '@zen/ui'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
@@ -85,7 +86,7 @@ export function JobsPage({ request, can }: JobsPageProps) {
             <div className="min-w-0">
               <div className="truncate font-medium">{job.name}</div>
               <p className="mt-1 text-xs text-muted-foreground">
-                创建于 {new Date(job.createdAt).toLocaleString()}
+                创建于 {formatFromNow(job.createdAt)}
               </p>
             </div>
             <span

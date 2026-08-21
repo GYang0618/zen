@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { moveOrganizationInTree, validateOrganizationDrop } from './utils'
+import { collectAncestorIds, moveOrganizationInTree, validateOrganizationDrop } from './utils'
 
 import type { Organization } from './type'
 
@@ -58,10 +58,12 @@ describe('validateOrganizationDrop', () => {
   })
 
   it('拒绝同级重排：拖到兄弟节点无效，仅允许挂到目标下成为子节点', () => {
-    expect(validateOrganizationDrop(multiRootOrganizationTree, 'group-a', 'group-b')).toMatchObject({
-      isValid: false,
-      reason: 'incompatible-hierarchy'
-    })
+    expect(validateOrganizationDrop(multiRootOrganizationTree, 'group-a', 'group-b')).toMatchObject(
+      {
+        isValid: false,
+        reason: 'incompatible-hierarchy'
+      }
+    )
   })
 
   it('已在目标下时拒绝', () => {
@@ -72,12 +74,12 @@ describe('validateOrganizationDrop', () => {
   })
 
   it('根组织不能挂到其他组织下成为子节点', () => {
-    expect(validateOrganizationDrop(multiRootOrganizationTree, 'group-a', 'company-b')).toMatchObject(
-      {
-        isValid: false,
-        reason: 'incompatible-hierarchy'
-      }
-    )
+    expect(
+      validateOrganizationDrop(multiRootOrganizationTree, 'group-a', 'company-b')
+    ).toMatchObject({
+      isValid: false,
+      reason: 'incompatible-hierarchy'
+    })
   })
 
   it('拒绝将组织拖到自身的下级组织', () => {
@@ -102,10 +104,34 @@ describe('validateOrganizationDrop', () => {
     })
   })
 
+  it('允许部门直接挂到公司下', () => {
+    expect(validateOrganizationDrop(organizationTree, 'department-a', 'company-b')).toEqual({
+      isValid: true,
+      action: 'reparent-as-child',
+      destinationParentId: 'company-b'
+    })
+  })
+
   it('仅在校验成功时修改树结构', () => {
     const nextTree = moveOrganizationInTree(organizationTree, 'team-a', 'center-b')
 
     expect(nextTree?.[0]?.children?.[1]?.children?.[0]?.children?.[0]?.id).toBe('team-a')
     expect(moveOrganizationInTree(organizationTree, 'company-b', 'department-a')).toBeNull()
+  })
+})
+
+describe('collectAncestorIds', () => {
+  it('returns ancestors from the nearest parent to the root', () => {
+    expect(collectAncestorIds(organizationTree, 'team-a')).toEqual([
+      'department-a',
+      'branch-a',
+      'company-a',
+      'group'
+    ])
+  })
+
+  it('returns an empty list for a root or unknown node', () => {
+    expect(collectAncestorIds(organizationTree, 'group')).toEqual([])
+    expect(collectAncestorIds(organizationTree, 'missing')).toEqual([])
   })
 })

@@ -66,6 +66,7 @@ import type { UpdateUserDto } from './dto/update-user.dto'
 import type { UpdateUsersStatusDto } from './dto/update-users-status.dto'
 import type {
   AssignUserRolesResponse,
+  CreateUserResponse,
   ReplaceUserOrganizationsResponse,
   UpdateUserResponse,
   UserListItemResponse,
@@ -83,16 +84,17 @@ export class UserController {
   @RequirePermission(PermissionCode.USER_CREATE)
   @ApiOperation({
     summary: '创建用户',
-    description: '注册新用户账号。可同时指定初始角色与组织归属；省略角色时分配默认 user 角色。'
+    description:
+      '注册新用户账号。可省略密码，由服务端生成临时密码并要求首次登录或邀请链接设密。可同时指定初始角色与组织归属；省略角色时分配默认 user 角色。'
   })
   @ApiBody({ type: CreateUserSwaggerDto })
   @ApiCreatedResponse({
-    description: '创建成功',
+    description: '创建成功，data 含仅返回一次的 initialPassword',
     type: CreateUserSuccessSwaggerDto
   })
   @ApiStandardErrorResponses()
   @UsePipes(new ZodValidationPipe(createUserSchema))
-  create(@Body() createUserDto: CreateUserDto): Promise<UserResponse> {
+  create(@Body() createUserDto: CreateUserDto): Promise<CreateUserResponse> {
     return this.userService.create(createUserDto)
   }
 

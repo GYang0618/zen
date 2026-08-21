@@ -1,19 +1,10 @@
-import { createAuditDiff } from '@zen/shared'
+import { createAuditDiff, getOrganizationTypeLabel } from '@zen/shared'
 
 import { toApiOrganizationType } from './organization.mapper'
 
 import type { OrganizationType as PrismaOrganizationType } from '@prisma/client'
 import type { AuditDiff, AuditDiffChange, OrganizationType } from '@zen/shared'
 import type { UpdateOrganizationDto } from './dto'
-
-const ORGANIZATION_TYPE_LABELS: Record<OrganizationType, string> = {
-  group: '集团',
-  company: '公司',
-  branch: '分公司',
-  center: '中心',
-  department: '部门',
-  team: '小组'
-}
 
 function displayValue(value: string | null | undefined): string | null {
   if (value == null || value === '') return null
@@ -40,7 +31,7 @@ function organizationTypeLabel(
     typeof type === 'string' && type === type.toLowerCase()
       ? (type as OrganizationType)
       : toApiOrganizationType(type as PrismaOrganizationType)
-  return ORGANIZATION_TYPE_LABELS[apiType] ?? apiType
+  return getOrganizationTypeLabel(apiType)
 }
 
 function pushChange(

@@ -12,6 +12,7 @@ import {
   cn
 } from '@zen/ui'
 import {
+  Activity,
   Building2,
   CalendarDays,
   Clock3,
@@ -27,6 +28,7 @@ import {
 
 import { statusConfig } from '../data/data'
 import {
+  formatFromNow,
   getOrganizationLabel,
   getPrimaryMembership,
   getUserDisplayName,
@@ -130,9 +132,13 @@ function SecurityStatusCard({ user }: { user: User }) {
               </Badge>
             }
           />
-          <OverviewCol label="上次改密" value="昨天22:18" />
-          <OverviewCol label="登录失败次数" value="0" />
-          <OverviewCol label="认证过期时间" value="2026/08/18 10:00:00" className="col-span-2" />
+          <OverviewCol label="上次改密" value={formatFromNow(user.lastPasswordChange)} />
+          <OverviewCol label="登录失败次数" value={`${user.loginAttempts} 次`} />
+          <OverviewCol
+            label="认证过期时间"
+            value={formatFromNow(user.accessTokenExpiresAt)}
+            className="col-span-2"
+          />
         </div>
       </CardContent>
     </Card>
@@ -147,14 +153,19 @@ function LoginAuditCard({ user }: { user: User }) {
       </CardHeader>
       <CardContent>
         <div className="flex flex-col gap-3">
-          <OverviewRow icon={Clock3} label="最近登录" value="3小时前" />
+          <OverviewRow icon={Clock3} label="最近登录" value={formatFromNow(user.lastLoginAt)} />
+          <OverviewRow
+            icon={Activity}
+            label="最后活跃时间"
+            value={formatFromNow(user.lastActiveAt)}
+          />
           <OverviewRow icon={Globe} label="最近登录IP" value={user.lastLoginIp ?? '-'} />
           <OverviewRow
             icon={Users}
             label="当前在线会话数"
-            value={<Badge variant="secondary">0</Badge>}
+            value={<Badge variant="secondary">{user.activeSessionCount}</Badge>}
           />
-          <OverviewRow icon={CalendarDays} label="创建时间" value="2026/08/18 10:00:00" />
+          <OverviewRow icon={CalendarDays} label="创建时间" value={formatFromNow(user.createdAt)} />
         </div>
       </CardContent>
     </Card>

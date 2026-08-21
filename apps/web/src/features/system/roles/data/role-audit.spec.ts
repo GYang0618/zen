@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vitest'
-
 import { createAuditDiff } from '@zen/shared'
+import { describe, expect, it } from 'vitest'
 
 import {
   flattenPermissionPreview,
@@ -88,9 +87,7 @@ describe('formatRoleAuditLog', () => {
 
   it('成员超过预览上限时截断展示', () => {
     const names = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']
-    expect(formatMembersLine(names, '添加了')).toBe(
-      `添加了a、b、c、d、e 等 ${names.length} 人`
-    )
+    expect(formatMembersLine(names, '添加了')).toBe(`添加了a、b、c、d、e 等 ${names.length} 人`)
     expect(
       formatMembersLine(names, '添加了', {
         previewLimit: ROLE_AUDIT_MEMBER_PREVIEW_LIMIT,
@@ -126,9 +123,7 @@ describe('formatRoleAuditLog', () => {
     )
     expect(preview.truncated).toBe(true)
     expect(preview.hiddenCount).toBe(3)
-    expect(
-      preview.preview.reduce((sum, section) => sum + section.permissions.length, 0)
-    ).toBe(5)
+    expect(preview.preview.reduce((sum, section) => sum + section.permissions.length, 0)).toBe(5)
   })
 
   it('系统操作不显示用户标识', () => {

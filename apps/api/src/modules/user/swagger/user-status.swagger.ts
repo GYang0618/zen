@@ -10,7 +10,8 @@ export enum UsersSortBySwagger {
   USERNAME = 'username',
   EMAIL = 'email',
   CREATED_AT = 'createdAt',
-  LAST_LOGIN_AT = 'lastLoginAt'
+  LAST_LOGIN_AT = 'lastLoginAt',
+  LAST_ACTIVE_AT = 'lastActiveAt'
 }
 
 export enum UsersSortOrderSwagger {

@@ -173,7 +173,11 @@ export function OrganizationLeaderDialog({
           >
             取消
           </Button>
-          <Button type="submit" form="organization-leader-form" disabled={isSubmitting || !leaderId}>
+          <Button
+            type="submit"
+            form="organization-leader-form"
+            disabled={isSubmitting || !leaderId}
+          >
             {isSubmitting ? <Loader2 className="animate-spin" /> : null}
             保存
           </Button>

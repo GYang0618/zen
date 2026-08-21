@@ -51,7 +51,9 @@ export function RoleIconColorPicker({
                 color.swatchClassName
               )}
             >
-              {selected ? <Check className="size-3.5 text-white" strokeWidth={3} aria-hidden /> : null}
+              {selected ? (
+                <Check className="size-3.5 text-white" strokeWidth={3} aria-hidden />
+              ) : null}
             </span>
           </Button>
         )

@@ -19,6 +19,7 @@ const MAX_SIZE_BYTES = 2 * 1024 * 1024
 type ProfilePhotoFieldProps = {
   initialSrc?: string
   fallbackLabel?: string
+  onFileChange?: (file: File | null) => void
 }
 
 function getInitials(value: string) {
@@ -31,7 +32,7 @@ function getInitials(value: string) {
   return normalized.slice(0, 2).toUpperCase()
 }
 
-export function ProfilePhotoField({ initialSrc, fallbackLabel = '用户' }: ProfilePhotoFieldProps) {
+export function ProfilePhotoField({ initialSrc, fallbackLabel = '用户', onFileChange }: ProfilePhotoFieldProps) {
   const inputId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(initialSrc)
@@ -82,12 +83,14 @@ export function ProfilePhotoField({ initialSrc, fallbackLabel = '用户' }: Prof
     objectUrlRef.current = nextUrl
     setPreviewUrl(nextUrl)
     setError(undefined)
+    onFileChange?.(file)
   }
 
   const handleRemove = () => {
     revokeObjectUrl()
     setPreviewUrl(undefined)
     setError(undefined)
+    onFileChange?.(null)
   }
 
   return (

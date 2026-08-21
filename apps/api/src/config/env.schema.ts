@@ -85,7 +85,14 @@ export const envSchema = z
     SWAGGER_JSON_OUTPUT: z
       .string()
       .default('swagger.json')
-      .describe('启动时写入的 OpenAPI JSON 文件路径')
+      .describe('启动时写入的 OpenAPI JSON 文件路径'),
+
+    // ==================== LangGraph / Copilot 配置 ====================
+    /** LangGraph 部署地址（apps/agent `langgraphjs dev` 默认监听） */
+    LANGGRAPH_DEPLOYMENT_URL: z
+      .url()
+      .default('http://127.0.0.1:3600')
+      .describe('LangGraph Agent 服务地址')
   })
   .strict()
 

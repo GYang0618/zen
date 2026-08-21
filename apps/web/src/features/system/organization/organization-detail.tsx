@@ -21,8 +21,7 @@ import { OrganizationActivity } from './components/organization-activity'
 import { OrganizationDetailSideOverview } from './components/organization-detail-side-overview'
 import { OrganizationMembers } from './components/organization-members'
 import { OrganizationPositions } from './components/organization-positions'
-import { getOrganizationTypeLabel } from './data/data'
-import { useOrganizationDetail } from './queries'
+import { useOrganizationDetail, useOrganizationTypeCatalog } from './queries'
 
 type OrganizationDetailProps = {
   organizationId: string
@@ -32,6 +31,7 @@ type OrganizationDetailTab = 'members' | 'positions' | 'changes'
 
 export function OrganizationDetail({ organizationId }: OrganizationDetailProps) {
   const { data: organization, isLoading, isError } = useOrganizationDetail(organizationId)
+  const { getLabel } = useOrganizationTypeCatalog()
   const [activeTab, setActiveTab] = useState<OrganizationDetailTab>('members')
 
   const handleTabChange = (value: string) => {
@@ -83,7 +83,7 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
           <PageHeaderContent>
             <PageHeaderTitle as="h1" className="inline-flex flex-wrap items-center gap-3">
               {organization.name}
-              <Badge variant="secondary">{getOrganizationTypeLabel(organization.type)}</Badge>
+              <Badge variant="secondary">{getLabel(organization.type)}</Badge>
             </PageHeaderTitle>
             <PageHeaderDescription className="flex flex-wrap items-center gap-2 text-sm">
               <span>{organization.code}</span>

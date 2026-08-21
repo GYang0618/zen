@@ -31,7 +31,7 @@ export function ChangePasswordPage() {
           <h2 className="text-2xl font-bold tracking-tight">修改密码</h2>
           <p className="text-muted-foreground">
             {mustChangePassword
-              ? '管理员要求或密码已过期，请先修改密码后再继续使用'
+              ? '首次登录或管理员重置后须先设密。若已通过邀请邮件设密，则不会进入此页。'
               : '更新登录密码'}
           </p>
         </div>

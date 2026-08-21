@@ -2,21 +2,21 @@ import { z } from 'zod'
 
 import { auditDiffSchema } from '../audit/audit-diff.schema'
 import { paged, pageQuerySchema } from '../pagination'
+import { ORGANIZATION_TYPE_TEMPLATE_IDS, REQUIRED_ORGANIZATION_TYPES } from './organization.catalog'
+import {
+  canBeRootOrganization,
+  ORGANIZATION_TYPE_LABELS,
+  ORGANIZATION_TYPE_VALUES,
+  ROOT_ORGANIZATION_TYPES
+} from './organization.hierarchy'
 
 const idSchema = z.string().trim().min(1)
 const dateSchema = z.iso.date()
 const dateTimeSchema = z.iso.datetime()
 
-export const organizationTypeSchema = z.enum([
-  'group',
-  'company',
-  'branch',
-  'center',
-  'department',
-  'team'
-])
+export const organizationTypeSchema = z.enum(ORGANIZATION_TYPE_VALUES)
 
-export const rootOrganizationTypeSchema = z.enum(['group', 'company', 'center'])
+export const rootOrganizationTypeSchema = z.enum(ROOT_ORGANIZATION_TYPES)
 
 const organizationCodeSchema = z
   .string()
@@ -47,6 +47,15 @@ export const createOrganizationSchema = z
     description: z.string().trim().max(500).optional()
   })
   .strict()
+  .superRefine((data, ctx) => {
+    if (data.parentId == null && !canBeRootOrganization(data.type)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['type'],
+        message: '该组织类型不能作为根组织'
+      })
+    }
+  })
 
 export const updateOrganizationSchema = z
   .object({
@@ -159,9 +168,74 @@ export const organizationTreeNodeSchema: z.ZodType<OrganizationTreeNode> = z.laz
 export const organizationTreeSchema = z.array(organizationTreeNodeSchema)
 export const organizationActivitiesPageSchema = paged(organizationActivitySchema)
 
+export const organizationTypeCatalogItemSchema = z.object({
+  type: organizationTypeSchema,
+  label: z.string().trim().min(1).max(20),
+  enabled: z.boolean(),
+  required: z.boolean(),
+  canBeRoot: z.boolean()
+})
+
+export const organizationTypeCatalogSchema = z.object({
+  templateId: z.union([z.enum(ORGANIZATION_TYPE_TEMPLATE_IDS), z.literal('custom')]),
+  items: z.array(organizationTypeCatalogItemSchema)
+})
+
+export const organizationTypeCatalogResponseSchema = z.object({
+  catalog: organizationTypeCatalogSchema,
+  inUseTypes: z.array(organizationTypeSchema)
+})
+
+export const updateOrganizationTypeCatalogSchema = z
+  .object({
+    items: z.array(
+      z.object({
+        type: organizationTypeSchema,
+        enabled: z.boolean(),
+        label: z.string().trim().min(1, '类型名称不能为空').max(20, '类型名称不能超过20个字符')
+      })
+    )
+  })
+  .strict()
+  .superRefine((data, ctx) => {
+    const seen = new Set<string>()
+    for (const item of data.items) {
+      if (seen.has(item.type)) {
+        ctx.addIssue({ code: 'custom', path: ['items'], message: '组织类型不能重复' })
+        return
+      }
+      seen.add(item.type)
+    }
+    for (const type of ORGANIZATION_TYPE_VALUES) {
+      if (!seen.has(type)) {
+        ctx.addIssue({ code: 'custom', path: ['items'], message: '必须包含全部组织类型' })
+        return
+      }
+    }
+    for (const type of REQUIRED_ORGANIZATION_TYPES) {
+      const item = data.items.find((entry) => entry.type === type)
+      if (item && !item.enabled) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['items'],
+          message: `${ORGANIZATION_TYPE_LABELS[type]}为必选类型，不能关闭`
+        })
+      }
+    }
+  })
+
+export const applyOrganizationTypeTemplateSchema = z
+  .object({
+    templateId: z.enum(ORGANIZATION_TYPE_TEMPLATE_IDS)
+  })
+  .strict()
+
 export const organizationFocusSchema = z.object({
   id: idSchema.optional(),
   keyword: z.string().trim().optional()
 })
 
 export type OrganizationFocus = z.input<typeof organizationFocusSchema>
+export type OrganizationTypeCatalogResponse = z.infer<typeof organizationTypeCatalogResponseSchema>
+export type UpdateOrganizationTypeCatalog = z.infer<typeof updateOrganizationTypeCatalogSchema>
+export type ApplyOrganizationTypeTemplate = z.infer<typeof applyOrganizationTypeTemplateSchema>

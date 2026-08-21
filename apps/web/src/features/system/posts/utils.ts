@@ -10,6 +10,17 @@ export const JOB_PROFILE_STATUS_OPTIONS = [
   { value: 'disabled', label: '停用' }
 ] as const
 
+export const jobProfileStatusConfig = {
+  active: {
+    label: '启用',
+    className: 'border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+  },
+  disabled: {
+    label: '停用',
+    className: 'border-muted-foreground/30'
+  }
+} as const
+
 export function formatJobProfileLevel(level: string): string {
   const matched = JOB_PROFILE_LEVEL_OPTIONS.find(
     (item) => item.value === level || level.startsWith(item.value)

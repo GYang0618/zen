@@ -1,31 +1,19 @@
 import { Link } from '@tanstack/react-router'
-import {
-  Avatar,
-  AvatarBadge,
-  AvatarFallback,
-  AvatarImage,
-  Badge,
-  Button,
-  Card,
-  CardAction,
-  CardContent,
-  CardHeader,
-  cn
-} from '@zen/ui'
+import { Badge, Button, Card, CardAction, CardContent, CardHeader, cn } from '@zen/ui'
 import { CopyIcon } from 'lucide-react'
 import { DynamicIcon } from 'lucide-react/dynamic'
 import { toast } from 'sonner'
 
 import { getRoleIconColorClassName } from '@/features/system/roles/data/data'
 
-import { statusAvatarBadgeClassName, statusConfig } from '../data/data'
+import { statusConfig } from '../data/data'
 import {
+  formatFromNow,
   formatPhoneNumber,
-  formatRelativeDateTime,
   getPrimaryMembership,
-  getUserDisplayName,
-  getUserInitials
+  getUserDisplayName
 } from '../utils'
+import { UserAvatar } from './user-avatar'
 import { UsersCardActions } from './users-card-actions'
 
 import type { RoleIcon, User } from '@zen/shared'
@@ -49,9 +37,6 @@ export function UsersCard({ user }: UsersCardProps) {
   const primary = getPrimaryMembership(user)
   const roles = user.roles ?? []
   const jobLabel = [primary?.postName, primary?.postLevel].filter(Boolean).join(' • ')
-  const avatarBadgeClassName = user.isLocked
-    ? 'bg-destructive'
-    : statusAvatarBadgeClassName[user.status]
 
   return (
     <Card className="min-w-0 gap-0">
@@ -61,11 +46,7 @@ export function UsersCard({ user }: UsersCardProps) {
           params={{ userId: user.id }}
           className="w-fit rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <Avatar className="size-14">
-            <AvatarImage src={user.avatar ?? undefined} alt={name} />
-            <AvatarFallback className="text-2xl">{getUserInitials(user)}</AvatarFallback>
-            <AvatarBadge className={avatarBadgeClassName} />
-          </Avatar>
+          <UserAvatar user={user} className="size-14" fallbackClassName="text-2xl" />
         </Link>
         <CardAction>
           <div className="flex flex-wrap items-center justify-end gap-2">
@@ -128,9 +109,9 @@ export function UsersCard({ user }: UsersCardProps) {
             </p>
           </div>
           <div className="min-w-0">
-            <span className="text-xs text-muted-foreground">最后登录</span>
+            <span className="text-xs text-muted-foreground">最后活跃时间</span>
             <p className="mt-1 truncate text-sm font-medium text-secondary-foreground">
-              {formatRelativeDateTime(user.lastLoginAt)}
+              {formatFromNow(user.lastActiveAt)}
             </p>
           </div>
         </div>

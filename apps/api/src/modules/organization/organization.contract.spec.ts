@@ -1,21 +1,46 @@
 import {
+  buildOrganizationTypeCatalog,
   changeOrganizationParentSchema,
-  createOrganizationSchema,
   createJobProfileSchema,
+  createOrganizationSchema,
   linkOrganizationPositionSchema,
-  organizationActivitiesQuerySchema
+  organizationActivitiesQuerySchema,
+  updateOrganizationTypeCatalogSchema
 } from '@zen/shared'
 
 describe('organization contracts', () => {
-  it('accepts all supported organization types', () => {
-    const types = ['group', 'company', 'branch', 'center', 'department', 'team'] as const
-    for (const type of types) {
+  it('accepts supported organization types', () => {
+    const rootTypes = ['group', 'company'] as const
+    const childTypes = ['division', 'branch', 'center', 'department', 'team', 'project'] as const
+
+    for (const type of rootTypes) {
       expect(
         createOrganizationSchema.safeParse({
           code: `org_${type}`,
           name: type,
           type,
           parentId: null,
+          effectiveDate: '2026-08-13'
+        }).success
+      ).toBe(true)
+    }
+
+    for (const type of childTypes) {
+      expect(
+        createOrganizationSchema.safeParse({
+          code: `org_${type}`,
+          name: type,
+          type,
+          parentId: null,
+          effectiveDate: '2026-08-13'
+        }).success
+      ).toBe(false)
+      expect(
+        createOrganizationSchema.safeParse({
+          code: `org_${type}`,
+          name: type,
+          type,
+          parentId: 'parent-id',
           effectiveDate: '2026-08-13'
         }).success
       ).toBe(true)
@@ -66,5 +91,14 @@ describe('organization contracts', () => {
     expect(organizationActivitiesQuerySchema.safeParse({ page: 1, pageSize: 101 }).success).toBe(
       false
     )
+  })
+
+  it('accepts a complete organization type catalog update', () => {
+    const items = buildOrganizationTypeCatalog(null).items.map((item) => ({
+      type: item.type,
+      enabled: item.enabled,
+      label: item.label
+    }))
+    expect(updateOrganizationTypeCatalogSchema.safeParse({ items }).success).toBe(true)
   })
 })

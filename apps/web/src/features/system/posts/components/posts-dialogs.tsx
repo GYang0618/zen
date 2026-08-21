@@ -2,7 +2,6 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 
 import { usePosts } from '../posts-provider'
 import { useDisableJobProfileMutation } from '../queries'
-
 import { JobProfileDeleteDialog } from './job-profile-delete-dialog'
 import { JobProfileFormDialog } from './job-profile-form-dialog'
 

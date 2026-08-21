@@ -29,8 +29,8 @@ import {
   User
 } from 'lucide-react'
 
-import { getOrganizationTypeLabel } from '../data/data'
 import { useOrganizations } from '../organizations-provider'
+import { useOrganizationTypeCatalog } from '../queries'
 import { findOrganization, formatEffectiveDate } from '../utils'
 
 import type { LucideIcon } from 'lucide-react'
@@ -44,6 +44,7 @@ interface CoreField {
 
 export function OrganizationSideOverview() {
   const { currentNode, organizations, setOpen } = useOrganizations()
+  const { getLabel } = useOrganizationTypeCatalog()
 
   if (!currentNode) return null
 
@@ -90,7 +91,7 @@ export function OrganizationSideOverview() {
               <div className="flex min-w-0 items-center gap-3 font-bold">
                 <Building2 className="shrink-0" />
                 <h2 className="truncate text-xl">{currentNode.name}</h2>
-                <Badge variant="secondary">{getOrganizationTypeLabel(currentNode.type)}</Badge>
+                <Badge variant="secondary">{getLabel(currentNode.type)}</Badge>
               </div>
 
               <Button

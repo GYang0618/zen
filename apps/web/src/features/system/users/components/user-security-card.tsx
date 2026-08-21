@@ -1,7 +1,6 @@
+import { formatFromNow } from '@zen/shared'
 import { Badge, Card, CardContent, CardHeader, CardTitle } from '@zen/ui'
 import { Clock, Globe, KeyRound, ShieldAlert, ShieldCheck } from 'lucide-react'
-
-import { formatDateTime } from '../utils'
 
 import type { User } from '@zen/shared'
 import type { ReactNode } from 'react'
@@ -38,7 +37,7 @@ export function UserSecurityCard({ user }: { user: User }) {
           <SecurityItem
             icon={<Clock className="size-4" />}
             label="上次改密"
-            value={formatDateTime(user.lastPasswordChange)}
+            value={formatFromNow(user.lastPasswordChange)}
           />
           <SecurityItem
             icon={<ShieldAlert className="size-4" />}
@@ -56,7 +55,7 @@ export function UserSecurityCard({ user }: { user: User }) {
           <SecurityItem
             icon={<Clock className="size-4" />}
             label="最近登录"
-            value={formatDateTime(user.lastLoginAt)}
+            value={formatFromNow(user.lastLoginAt)}
           />
           <SecurityItem
             icon={<Globe className="size-4" />}
@@ -66,12 +65,12 @@ export function UserSecurityCard({ user }: { user: User }) {
           <SecurityItem
             icon={<Clock className="size-4" />}
             label="最近活跃"
-            value={formatDateTime(user.lastActiveAt)}
+            value={formatFromNow(user.lastActiveAt)}
           />
           <SecurityItem
             icon={<Clock className="size-4" />}
             label="创建时间"
-            value={formatDateTime(user.createdAt)}
+            value={formatFromNow(user.createdAt)}
           />
         </CardContent>
       </Card>

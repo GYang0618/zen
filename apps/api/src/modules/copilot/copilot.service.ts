@@ -1,15 +1,25 @@
 import { CopilotRuntime, createCopilotExpressHandler } from '@copilotkit/runtime/v2'
-import { Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
+
+import { CONFIG_NAMESPACES } from '@/config'
 
 import { defaultAgent, planAgent } from './agents'
 
+import type { LanggraphConfig } from '@/config'
+
 @Injectable()
 export class CopilotService {
+  constructor(
+    @Inject(CONFIG_NAMESPACES.LANGGRAPH)
+    private readonly langgraphCfg: LanggraphConfig
+  ) {}
+
   getHandler(accessToken?: string) {
+    const { deploymentUrl } = this.langgraphCfg
     const runtime = new CopilotRuntime({
       agents: {
-        default: defaultAgent({ accessToken }),
-        plan: planAgent()
+        default: defaultAgent({ deploymentUrl, accessToken }),
+        plan: planAgent({ deploymentUrl })
       }
     })
 

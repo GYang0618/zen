@@ -29,16 +29,14 @@ import {
   ChevronRightIcon,
   ChevronsDownUp,
   ChevronsUpDown,
-  Folder,
   GripVertical,
   Settings
 } from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
-import { organizationIconConfig, organizationTypeLabels } from '../data/data'
 import { useOrganizations } from '../organizations-provider'
+import { useOrganizationTypeCatalog } from '../queries'
 import {
   collectExpandableIds,
   collectExpandedIdsToDepth,
@@ -48,36 +46,11 @@ import {
   moveOrganizationInTree,
   validateOrganizationDrop
 } from '../utils'
-import { OrganizationSideOverview } from './organizations-side-overview'
+import { OrganizationTypeIcon } from './organization-icon'
 
 import type { DragEndEvent, DragOverEvent } from '@dnd-kit/react'
 import type { Organization } from '../type'
 import type { OrganizationDropValidation } from '../utils'
-
-/** 与 OrganizationSideOverview 的 `w-95` 对齐 */
-const SIDE_OVERVIEW_WIDTH = '23.75rem'
-
-const sideOverviewMotion = {
-  initial: { width: 0, opacity: 0, marginLeft: 0 },
-  animate: { width: SIDE_OVERVIEW_WIDTH, opacity: 1, marginLeft: '1.5rem' },
-  exit: { width: 0, opacity: 0, marginLeft: 0 },
-  transition: { duration: 0.28, ease: [0.32, 0.72, 0, 1] as const }
-}
-
-function renderOrgIcon({ type, className }: { type?: string; className?: string }) {
-  const normalizedType = (type || '').toUpperCase()
-  const config = organizationIconConfig[normalizedType] ?? {
-    icon: Folder,
-    defaultColor: 'text-muted-foreground'
-  }
-  const IconComponent = config.icon
-
-  return (
-    <IconComponent
-      className={cn('size-4 shrink-0 transition-colors', config.defaultColor, className)}
-    />
-  )
-}
 
 interface TreeNodePreviewProps {
   data: Organization
@@ -87,6 +60,7 @@ interface TreeNodePreviewProps {
 }
 
 function TreeNodePreview({ data, className, isBlocked }: TreeNodePreviewProps) {
+  const { getLabel } = useOrganizationTypeCatalog()
   const { name, type, memberCount } = data
 
   return (
@@ -107,14 +81,12 @@ function TreeNodePreview({ data, className, isBlocked }: TreeNodePreviewProps) {
           )}
         </div>
         <div className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-          {renderOrgIcon({ type })}
+          <OrganizationTypeIcon type={type} />
         </div>
       </ItemMedia>
       <ItemContent className="gap-0">
         <ItemTitle>{name}</ItemTitle>
-        <ItemDescription className="text-xs">
-          {organizationTypeLabels[type] ?? type}
-        </ItemDescription>
+        <ItemDescription className="text-xs">{getLabel(type)}</ItemDescription>
       </ItemContent>
       <ItemActions>
         <Badge className="bg-muted text-muted-foreground">{memberCount}人</Badge>
@@ -147,6 +119,7 @@ function TreeNode({
   dropValidation,
   canAcceptDraggable
 }: TreeNodeProps) {
+  const { getLabel } = useOrganizationTypeCatalog()
   const { id, name, type, memberCount, children, parentId } = data
   const hasChildren = Boolean(children?.length)
   const { currentNode } = useOrganizations()
@@ -215,14 +188,12 @@ function TreeNode({
               </CollapsibleTrigger>
             ) : null}
             <div className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-              {renderOrgIcon({ type })}
+              <OrganizationTypeIcon type={type} />
             </div>
           </ItemMedia>
           <ItemContent className="gap-0">
             <ItemTitle>{name}</ItemTitle>
-            <ItemDescription className="text-xs">
-              {organizationTypeLabels[type] ?? type}
-            </ItemDescription>
+            <ItemDescription className="text-xs">{getLabel(type)}</ItemDescription>
           </ItemContent>
 
           <ItemActions>
@@ -282,6 +253,7 @@ function TreeNode({
 export function OrganizationTree() {
   const { currentNode, setCurrentNode, organizations, moveOrganization, isLoading } =
     useOrganizations()
+  const { catalog } = useOrganizationTypeCatalog()
   const expandableIds = useMemo(() => collectExpandableIds(organizations), [organizations])
   const [expandedIds, setExpandedIds] = useState(
     () => new Set(collectExpandedIdsToDepth(organizations, DEFAULT_ORGANIZATION_TREE_EXPAND_DEPTH))
@@ -363,7 +335,15 @@ export function OrganizationTree() {
       // 拖拽结束时如果判定为 same-organization，通常是 overId 抖动造成的“误判落点”
       // 这里不 toast，直接回退即可，避免“提示完数据就坏了”的体验问题。
       if (validation.reason !== 'same-organization') {
-        toast.error(getOrganizationDropRejectionMessage(snapshot, activeId, overId, validation.reason))
+        toast.error(
+          getOrganizationDropRejectionMessage(
+            snapshot,
+            activeId,
+            overId,
+            validation.reason,
+            catalog
+          )
+        )
       }
       return
     }
@@ -435,119 +415,98 @@ export function OrganizationTree() {
   }
 
   return (
-    <div className="flex">
-      <section className="min-w-0 flex-1">
-        <Card className="py-3">
-          <CardHeader>
-            <CardTitle>组织架构树</CardTitle>
-            <CardAction>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="全部展开"
-                    onClick={() => setExpandedIds(new Set(expandableIds))}
-                  >
-                    <ChevronsUpDown />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>全部展开</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="全部收起"
-                    onClick={() => setExpandedIds(new Set())}
-                  >
-                    <ChevronsDownUp />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>全部收起</TooltipContent>
-              </Tooltip>
-            </CardAction>
-          </CardHeader>
-          <CardContent className="px-2">
-            {isLoading ? (
-              <p className="px-4 py-8 text-center text-sm text-muted-foreground">加载组织树…</p>
-            ) : displayOrganizations.length === 0 ? (
-              <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-                暂无组织，请先创建根组织
-              </p>
-            ) : (
-              <DragDropProvider
-                onDragStart={(event) => {
-                  const source = event.operation.source
-                  if (!source) return
-                  organizationsSnapshotRef.current = organizations
-                  setPreviewOrganizations(organizations)
-                  setIsDragging(true)
-                  setActiveId(String(source.id))
-                  setDragOverId(null)
-                  setDropValidation(null)
-                  lastStableOverIdRef.current = null
-                  // 拖拽开始后先进入抑制态；拖拽结束时会刷新时间窗
-                  suppressSelectUntilRef.current = Date.now() + 1000
-                }}
-                onDragOver={handleDragOver}
-                onDragEnd={handleDragEnd}
+    <Card className="flex h-full min-h-0 flex-col py-3">
+      <CardHeader>
+        <CardTitle>组织架构树</CardTitle>
+        <CardAction>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label="全部展开"
+                onClick={() => setExpandedIds(new Set(expandableIds))}
               >
-                {displayOrganizations.map((item, index) => (
-                  <TreeNode
-                    data={item}
-                    key={item.id}
-                    index={index}
-                    expandedIds={expandedIds}
-                    onExpandedChange={handleExpandedChange}
-                    activeDragId={activeId}
-                    dragOverId={dragOverId}
-                    dropValidation={dropValidation}
-                    canAcceptDraggable={canAcceptOrganizationDrop}
-                    onSelect={(node) => {
-                      if (Date.now() < suppressSelectUntilRef.current) return
-                      if (node.id === currentNode?.id) {
-                        setCurrentNode(null)
-                      } else {
-                        setCurrentNode(node)
-                      }
-                    }}
-                  />
-                ))}
-
-                <DragOverlay dropAnimation={null}>
-                  {(source) => {
-                    const node = findOrganization(displayOrganizations, String(source.id))
-                    return node ? (
-                      <TreeNodePreview data={node} isBlocked={isDragging && !dragOverId} />
-                    ) : null
-                  }}
-                </DragOverlay>
-              </DragDropProvider>
-            )}
-          </CardContent>
-        </Card>
-      </section>
-
-      <AnimatePresence initial={false}>
-        {currentNode ? (
-          <motion.div
-            key="organization-side-overview"
-            initial={sideOverviewMotion.initial}
-            animate={sideOverviewMotion.animate}
-            exit={sideOverviewMotion.exit}
-            transition={sideOverviewMotion.transition}
-            className="shrink-0 overflow-hidden"
+                <ChevronsUpDown />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>全部展开</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label="全部收起"
+                onClick={() => setExpandedIds(new Set())}
+              >
+                <ChevronsDownUp />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>全部收起</TooltipContent>
+          </Tooltip>
+        </CardAction>
+      </CardHeader>
+      <CardContent className="min-h-0 flex-1 overflow-y-auto px-2">
+        {isLoading ? (
+          <p className="px-4 py-8 text-center text-sm text-muted-foreground">加载组织树…</p>
+        ) : displayOrganizations.length === 0 ? (
+          <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+            暂无组织，请先创建根组织
+          </p>
+        ) : (
+          <DragDropProvider
+            onDragStart={(event) => {
+              const source = event.operation.source
+              if (!source) return
+              organizationsSnapshotRef.current = organizations
+              setPreviewOrganizations(organizations)
+              setIsDragging(true)
+              setActiveId(String(source.id))
+              setDragOverId(null)
+              setDropValidation(null)
+              lastStableOverIdRef.current = null
+              // 拖拽开始后先进入抑制态；拖拽结束时会刷新时间窗
+              suppressSelectUntilRef.current = Date.now() + 1000
+            }}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
           >
-            <div className="w-95">
-              <OrganizationSideOverview />
-            </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-    </div>
+            {displayOrganizations.map((item, index) => (
+              <TreeNode
+                data={item}
+                key={item.id}
+                index={index}
+                expandedIds={expandedIds}
+                onExpandedChange={handleExpandedChange}
+                activeDragId={activeId}
+                dragOverId={dragOverId}
+                dropValidation={dropValidation}
+                canAcceptDraggable={canAcceptOrganizationDrop}
+                onSelect={(node) => {
+                  if (Date.now() < suppressSelectUntilRef.current) return
+                  if (node.id === currentNode?.id) {
+                    setCurrentNode(null)
+                  } else {
+                    setCurrentNode(node)
+                  }
+                }}
+              />
+            ))}
+
+            <DragOverlay dropAnimation={null}>
+              {(source) => {
+                const node = findOrganization(displayOrganizations, String(source.id))
+                return node ? (
+                  <TreeNodePreview data={node} isBlocked={isDragging && !dragOverId} />
+                ) : null
+              }}
+            </DragOverlay>
+          </DragDropProvider>
+        )}
+      </CardContent>
+    </Card>
   )
 }

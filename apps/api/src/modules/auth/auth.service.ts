@@ -317,6 +317,10 @@ export class AuthService {
     return expose ? { ok: true, resetToken: rawToken } : { ok: true }
   }
 
+  /**
+   * 使用一次性令牌设置新密码，并清除 `mustChangePassword`。
+   * 邀请邮件接入后走同一接口：邮件中改密成功则首次登录不再强制改密。
+   */
   async resetPassword(token: string, password: string): Promise<void> {
     const candidates = await this.prisma.passwordResetToken.findMany({
       where: { usedAt: null, expiresAt: { gt: new Date() } },

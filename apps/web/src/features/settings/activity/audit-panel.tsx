@@ -1,3 +1,4 @@
+import { formatFromNow } from '@zen/shared'
 import {
   Badge,
   Button,
@@ -23,10 +24,6 @@ import type { ReactNode } from 'react'
 type AuditTab = 'ops' | 'login'
 
 const PAGE_SIZE = 20
-
-function formatDate(value: string) {
-  return new Date(value).toLocaleString('zh-CN')
-}
 
 export function AuditPanel() {
   const [tab, setTab] = useState<AuditTab>('ops')
@@ -133,7 +130,7 @@ export function AuditPanel() {
                     className="shrink-0 text-xs text-muted-foreground"
                     dateTime={item.createdAt}
                   >
-                    {formatDate(item.createdAt)}
+                    {formatFromNow(item.createdAt)}
                   </time>
                 </div>
                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -176,7 +173,7 @@ export function AuditPanel() {
                     className="shrink-0 text-xs text-muted-foreground"
                     dateTime={item.createdAt}
                   >
-                    {formatDate(item.createdAt)}
+                    {formatFromNow(item.createdAt)}
                   </time>
                 </div>
                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">

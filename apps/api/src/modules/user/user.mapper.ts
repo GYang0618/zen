@@ -163,8 +163,19 @@ export function toReplaceUserOrganizationsResult(
   }
 }
 
-export function toUserResponse(user: UserWithDomain): User {
+function toActiveSessions(sessions: UserWithDomain['sessions']) {
+  const now = Date.now()
+  return sessions.filter((item) => item.expiresAt.getTime() > now)
+}
+
+function toAccessTokenExpiresAt(sessionCreatedAt: Date | undefined, accessTokenTtlMs: number) {
+  if (!sessionCreatedAt) return null
+  return new Date(sessionCreatedAt.getTime() + accessTokenTtlMs).toISOString()
+}
+
+export function toUserResponse(user: UserWithDomain, accessTokenTtlMs: number): User {
   const { profile, security, audit } = user
+  const activeSessions = toActiveSessions(user.sessions)
 
   return {
     id: user.id,
@@ -184,18 +195,24 @@ export function toUserResponse(user: UserWithDomain): User {
     mfaType: toMfaType(security?.mfaType),
     mustChangePassword: security?.mustChangePassword ?? false,
     lastPasswordChange: security?.lastPasswordChange?.toISOString() ?? null,
+    passwordExpireAt: security?.passwordExpireAt?.toISOString() ?? null,
     loginAttempts: user.loginAttempts,
     lastLoginAt: audit?.lastLoginAt?.toISOString() ?? null,
     lastLoginIp: audit?.lastLoginIp ?? null,
     lastActiveAt: audit?.lastActiveAt?.toISOString() ?? null,
+    activeSessionCount: activeSessions.length,
+    accessTokenExpiresAt: toAccessTokenExpiresAt(activeSessions[0]?.createdAt, accessTokenTtlMs),
     remark: profile?.remark ?? null,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString()
   }
 }
 
-export function toUserListItemResponse(user: UserWithDomain): UserListItemResponse {
-  return toUserResponse(user)
+export function toUserListItemResponse(
+  user: UserWithDomain,
+  accessTokenTtlMs: number
+): UserListItemResponse {
+  return toUserResponse(user, accessTokenTtlMs)
 }
 
 export function toUserInfoResponse(user: UserWithDomain): UserInfoResponse {

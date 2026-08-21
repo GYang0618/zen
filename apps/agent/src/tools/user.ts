@@ -77,7 +77,8 @@ export const createUserTool = tool(
     ),
   {
     name: 'create_user',
-    description: '创建一个新用户账号',
+    description:
+      '创建一个新用户账号。可不提供密码：系统会生成临时密码并要求首次登录或邀请链接设密。',
     schema: createUserSchema
   }
 )

@@ -14,7 +14,8 @@ import {
 import { Ban, ChevronRight, ChevronsUpDown, Folder } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
-import { getOrganizationTypeLabel, organizationIconConfig } from '../data/data'
+import { organizationIconConfig } from '../data/data'
+import { useOrganizationTypeCatalog } from '../queries'
 import {
   collectExpandableIds,
   filterOrganizationTreeByName,
@@ -61,6 +62,7 @@ function ParentTreeNode({
   onToggleExpanded,
   onSelect
 }: ParentTreeNodeProps) {
+  const { getLabel } = useOrganizationTypeCatalog()
   const children = node.children ?? []
   const hasChildren = children.length > 0
   const expanded = expandedIds.has(node.id)
@@ -109,9 +111,7 @@ function ParentTreeNode({
         <Icon className={cn('shrink-0', config.defaultColor)} />
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium">{node.name}</p>
-          <p className="truncate text-xs text-muted-foreground">
-            {getOrganizationTypeLabel(node.type)}
-          </p>
+          <p className="truncate text-xs text-muted-foreground">{getLabel(node.type)}</p>
         </div>
       </CommandItem>
       {hasChildren && expanded
@@ -146,6 +146,7 @@ export function OrganizationParentSelect({
   'aria-invalid': ariaInvalid,
   'aria-label': ariaLabel
 }: OrganizationParentSelectProps) {
+  const { getLabel } = useOrganizationTypeCatalog()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [manualExpandedIds, setManualExpandedIds] = useState<Set<string>>(() => new Set())
@@ -208,10 +209,7 @@ export function OrganizationParentSelect({
           {selected ? (
             <span className="truncate">
               {selected.name}
-              <span className="text-muted-foreground">
-                {' '}
-                · {getOrganizationTypeLabel(selected.type)}
-              </span>
+              <span className="text-muted-foreground"> · {getLabel(selected.type)}</span>
             </span>
           ) : allowEmpty ? (
             <span className="truncate">

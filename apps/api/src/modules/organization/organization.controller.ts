@@ -28,7 +28,8 @@ import {
   organizationActivitiesQuerySchema,
   updateOrganizationLeaderSchema,
   updateOrganizationPositionSchema,
-  updateOrganizationSchema
+  updateOrganizationSchema,
+  updateOrganizationTypeCatalogSchema
 } from './dto'
 import { OrganizationService } from './organization.service'
 
@@ -41,7 +42,8 @@ import type {
   OrganizationActivitiesQueryDto,
   UpdateOrganizationDto,
   UpdateOrganizationLeaderDto,
-  UpdateOrganizationPositionDto
+  UpdateOrganizationPositionDto,
+  UpdateOrganizationTypeCatalogDto
 } from './dto'
 
 @ApiTags('组织管理')
@@ -58,6 +60,23 @@ export class OrganizationController {
   @ApiOperation({ summary: '获取按名称排序的组织树' })
   getTree(@CurrentAuth() auth: AuthContext) {
     return this.organizationService.getTree(auth)
+  }
+
+  @Get('type-catalog')
+  @ApiOperation({ summary: '获取本企业组织类型目录' })
+  getTypeCatalog(@CurrentAuth() auth: AuthContext) {
+    return this.organizationService.getTypeCatalog(auth)
+  }
+
+  @Patch('type-catalog')
+  @RequirePermission(PermissionCode.ORG_UPDATE)
+  @ApiOperation({ summary: '更新本企业组织类型开关与名称' })
+  @UsePipes(new ZodValidationPipe(updateOrganizationTypeCatalogSchema))
+  updateTypeCatalog(
+    @Body() payload: UpdateOrganizationTypeCatalogDto,
+    @CurrentAuth() auth: AuthContext
+  ) {
+    return this.organizationService.updateTypeCatalog(payload, auth)
   }
 
   @Post()

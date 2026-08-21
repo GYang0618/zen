@@ -1,3 +1,4 @@
+import { formatFromNow } from '@zen/shared'
 import { Badge, Button, Card, CardContent, cn, Skeleton } from '@zen/ui'
 import { MonitorSmartphone } from 'lucide-react'
 import { useState } from 'react'
@@ -11,10 +12,6 @@ import {
 import { EmptyState } from '@/components/empty-state'
 
 import type { AuthSessionItem } from '@/features/auth/api'
-
-function formatDate(value: string) {
-  return new Date(value).toLocaleString('zh-CN')
-}
 
 function deviceLabel(userAgent: string | null) {
   if (!userAgent) return '未知设备'
@@ -97,8 +94,8 @@ export function SessionsPanel() {
                           {session.userAgent || '无 User-Agent'}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          创建于 {formatDate(session.createdAt)} · 过期{' '}
-                          {formatDate(session.expiresAt)}
+                          创建于 {formatFromNow(session.createdAt)} · 过期{' '}
+                          {formatFromNow(session.expiresAt)}
                         </p>
                       </div>
                     </div>

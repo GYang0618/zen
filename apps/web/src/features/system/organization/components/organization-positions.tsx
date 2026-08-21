@@ -1,4 +1,4 @@
-import { PermissionCode, POSITION_MEMBER_PREVIEW_LIMIT } from '@zen/shared'
+import { formatFromNow, PermissionCode, POSITION_MEMBER_PREVIEW_LIMIT } from '@zen/shared'
 import {
   Avatar,
   AvatarFallback,
@@ -48,17 +48,6 @@ import { formatPositionLevel } from '../utils'
 import { OrganizationCreatePositionDialog } from './organization-create-position-dialog'
 
 import type { Position } from '../type'
-
-function formatUpdatedAt(value: string): string {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-
-  return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).format(date)
-}
 
 type OrganizationPositionsProps = {
   organizationId: string
@@ -219,7 +208,7 @@ function PositionCard({ position, onUnlink }: PositionCardProps) {
         <div className="mt-2 flex min-h-8 items-center justify-between gap-3">
           <span className="flex items-center gap-2 text-muted-foreground" title="最后更新时间">
             <CalendarDays className="size-4" aria-hidden />
-            {formatUpdatedAt(position.updatedAt)}
+            {formatFromNow(position.updatedAt)}
           </span>
           {previewMembers.length > 0 ? (
             <AvatarGroup>
@@ -279,9 +268,7 @@ function OrganizationUnlinkPositionDialog({
               人在岗，请先调整成员岗位后再取消关联。
             </>
           ) : (
-            <>
-              确认取消「{position.name}」与当前组织的编制关联？此操作不会删除岗位目录本身。
-            </>
+            <>确认取消「{position.name}」与当前组织的编制关联？此操作不会删除岗位目录本身。</>
           )
         ) : (
           '确认取消该岗位关联？'

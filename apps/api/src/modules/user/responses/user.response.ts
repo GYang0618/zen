@@ -1,5 +1,6 @@
 import type {
   AssignUserRolesResult,
+  CreateUserResult,
   Paged,
   ReplaceUserOrganizationsResult,
   UpdateUserResult,
@@ -12,6 +13,7 @@ import type {
 export type UserListItemResponse = User
 export type UserListResponse = Paged<UserListItemResponse>
 export type UserResponse = User
+export type CreateUserResponse = CreateUserResult
 export type UpdateUserResponse = UpdateUserResult
 export type AssignUserRolesResponse = AssignUserRolesResult
 export type ReplaceUserOrganizationsResponse = ReplaceUserOrganizationsResult

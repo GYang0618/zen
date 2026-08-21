@@ -5,6 +5,7 @@ import {
   appConfig,
   authConfig,
   databaseConfig,
+  langgraphConfig,
   loggerConfig,
   securityConfig,
   swaggerConfig
@@ -19,7 +20,15 @@ import { validate } from './validate'
       expandVariables: true,
       envFilePath: [`.env.${process.env.NODE_ENV ?? 'development'}`, '.env'],
       validate,
-      load: [appConfig, authConfig, databaseConfig, loggerConfig, securityConfig, swaggerConfig]
+      load: [
+        appConfig,
+        authConfig,
+        databaseConfig,
+        langgraphConfig,
+        loggerConfig,
+        securityConfig,
+        swaggerConfig
+      ]
     })
   ]
 })

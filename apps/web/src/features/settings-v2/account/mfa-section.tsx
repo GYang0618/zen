@@ -21,15 +21,59 @@ import {
   InputGroupButton,
   InputGroupInput
 } from '@zen/ui'
-import { Copy, ShieldCheck, ShieldOff } from 'lucide-react'
-import { useState } from 'react'
+import { Copy, Loader2, ShieldCheck, ShieldOff } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
-const DEMO_SECRET = 'JBSWY3DPEHPK3PXP'
+import { useDisableMfaMutation, useEnableMfaMutation, useMeQuery, useSetupMfaMutation } from '../queries'
 
 export function MfaSection() {
-  const [mfaEnabled, setMfaEnabled] = useState(false)
+  const { data: me } = useMeQuery()
+  const mfaEnabled = me?.security.mfaEnabled ?? false
+
   const [enableOpen, setEnableOpen] = useState(false)
   const [disableOpen, setDisableOpen] = useState(false)
+  const [enableCode, setEnableCode] = useState('')
+  const [disableCode, setDisableCode] = useState('')
+
+  const setupMfa = useSetupMfaMutation()
+  const enableMfa = useEnableMfaMutation()
+  const disableMfa = useDisableMfaMutation()
+
+  useEffect(() => {
+    if (enableOpen) {
+      setEnableCode('')
+      setupMfa.mutate()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enableOpen])
+
+  useEffect(() => {
+    if (disableOpen) {
+      setDisableCode('')
+    }
+  }, [disableOpen])
+
+  const handleCopySecret = () => {
+    if (setupMfa.data?.secret) {
+      void navigator.clipboard.writeText(setupMfa.data.secret)
+      toast.info('密钥已复制')
+    }
+  }
+
+  const handleEnable = () => {
+    if (!enableCode.trim()) return
+    enableMfa.mutate(enableCode.trim(), {
+      onSuccess: () => setEnableOpen(false)
+    })
+  }
+
+  const handleDisable = () => {
+    if (!disableCode.trim()) return
+    disableMfa.mutate(disableCode.trim(), {
+      onSuccess: () => setDisableOpen(false)
+    })
+  }
 
   return (
     <>
@@ -68,6 +112,7 @@ export function MfaSection() {
         </Field>
       </FieldSet>
 
+      {/* 启用 MFA Dialog */}
       <Dialog open={enableOpen} onOpenChange={setEnableOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -80,9 +125,23 @@ export function MfaSection() {
           <FieldGroup>
             <Field>
               <FieldLabel>扫码绑定</FieldLabel>
-              <div className="flex aspect-square max-w-48 items-center justify-center rounded-lg border border-dashed border-border bg-muted/40 text-sm text-muted-foreground">
-                二维码预览区
-              </div>
+              {setupMfa.isPending ? (
+                <div className="flex aspect-square max-w-48 items-center justify-center rounded-lg border border-dashed border-border bg-muted/40">
+                  <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : setupMfa.data?.otpauthUrl ? (
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=192x192&data=${encodeURIComponent(setupMfa.data.otpauthUrl)}`}
+                  alt="MFA 二维码"
+                  className="max-w-48 rounded-lg border border-border"
+                  width={192}
+                  height={192}
+                />
+              ) : (
+                <div className="flex aspect-square max-w-48 items-center justify-center rounded-lg border border-dashed border-border bg-muted/40 text-sm text-muted-foreground">
+                  二维码加载失败
+                </div>
+              )}
               <FieldDescription>
                 使用验证器应用扫描上方二维码，或手动输入下方密钥。
               </FieldDescription>
@@ -93,12 +152,17 @@ export function MfaSection() {
               <InputGroup>
                 <InputGroupInput
                   readOnly
-                  value={DEMO_SECRET}
+                  value={setupMfa.data?.secret ?? ''}
                   className="font-mono text-xs"
                   aria-label="MFA 密钥"
                 />
                 <InputGroupAddon align="inline-end">
-                  <InputGroupButton type="button" size="icon-xs" aria-label="复制密钥">
+                  <InputGroupButton
+                    type="button"
+                    size="icon-xs"
+                    aria-label="复制密钥"
+                    onClick={handleCopySecret}
+                  >
                     <Copy />
                   </InputGroupButton>
                 </InputGroupAddon>
@@ -113,6 +177,8 @@ export function MfaSection() {
                 autoComplete="one-time-code"
                 placeholder="000000"
                 maxLength={8}
+                value={enableCode}
+                onChange={(e) => setEnableCode(e.target.value)}
               />
             </Field>
           </FieldGroup>
@@ -123,17 +189,17 @@ export function MfaSection() {
             </Button>
             <Button
               type="button"
-              onClick={() => {
-                setMfaEnabled(true)
-                setEnableOpen(false)
-              }}
+              disabled={enableCode.trim().length < 6 || enableMfa.isPending}
+              onClick={handleEnable}
             >
+              {enableMfa.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
               确认启用
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* 关闭 MFA Dialog */}
       <Dialog open={disableOpen} onOpenChange={setDisableOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -152,6 +218,8 @@ export function MfaSection() {
                 autoComplete="one-time-code"
                 placeholder="000000"
                 maxLength={8}
+                value={disableCode}
+                onChange={(e) => setDisableCode(e.target.value)}
               />
             </Field>
           </FieldGroup>
@@ -163,11 +231,10 @@ export function MfaSection() {
             <Button
               type="button"
               variant="destructive"
-              onClick={() => {
-                setMfaEnabled(false)
-                setDisableOpen(false)
-              }}
+              disabled={disableCode.trim().length < 6 || disableMfa.isPending}
+              onClick={handleDisable}
             >
+              {disableMfa.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
               确认关闭
             </Button>
           </DialogFooter>

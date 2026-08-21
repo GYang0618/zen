@@ -13,12 +13,13 @@ export class CreateUserSwaggerDto {
   @ApiProperty({ description: '登录邮箱', example: 'zhangsan@example.com' })
   email!: string
 
-  @ApiProperty({
-    description: '登录密码：至少 8 位，且包含大写、小写、数字与特殊字符',
+  @ApiPropertyOptional({
+    description:
+      '可选登录密码。省略时由服务端生成临时密码，仅在创建响应中返回一次，并要求首次登录或邀请链接设密',
     minLength: 8,
     example: 'SecureP@ss1'
   })
-  password!: string
+  password?: string
 
   @ApiPropertyOptional({
     description: '显示昵称，最长 50 个字符',

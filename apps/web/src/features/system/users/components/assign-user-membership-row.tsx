@@ -13,11 +13,11 @@ import {
 } from '@zen/ui'
 import { Building2, X } from 'lucide-react'
 
+import { organizationIconConfig } from '@/features/system/organization/data/data'
 import {
-  getOrganizationTypeLabel,
-  organizationIconConfig
-} from '@/features/system/organization/data/data'
-import { useOrganizationPositions } from '@/features/system/organization/queries'
+  useOrganizationPositions,
+  useOrganizationTypeCatalog
+} from '@/features/system/organization/queries'
 
 type AssignUserMembershipRowProps = {
   organizationId: string
@@ -38,6 +38,7 @@ export function AssignUserMembershipRow({
   onPostChange,
   onRemove
 }: AssignUserMembershipRowProps) {
+  const { getLabel } = useOrganizationTypeCatalog()
   const { data: positions = [], isLoading } = useOrganizationPositions(organizationId)
   const config = organizationIconConfig[organizationType ?? ''] ?? {
     icon: Building2,
@@ -60,9 +61,7 @@ export function AssignUserMembershipRow({
           <div className="min-w-0">
             <p className="truncate text-sm font-medium">{organizationName}</p>
             {organizationType ? (
-              <p className="truncate text-xs text-muted-foreground">
-                {getOrganizationTypeLabel(organizationType)}
-              </p>
+              <p className="truncate text-xs text-muted-foreground">{getLabel(organizationType)}</p>
             ) : null}
           </div>
         </div>

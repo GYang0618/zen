@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { formatFromNow } from '@zen/shared'
 import { Button, Input, Skeleton, Textarea } from '@zen/ui'
 import { Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
@@ -104,7 +105,7 @@ export function NotesPage({ request, can }: NotesPageProps) {
                 <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{note.content}</p>
               ) : null}
               <p className="mt-1 text-xs text-muted-foreground">
-                更新于 {new Date(note.updatedAt).toLocaleString()}
+                更新于 {formatFromNow(note.updatedAt)}
               </p>
             </div>
             {can(DEMO_NOTE_PERMISSIONS.DELETE) ? (

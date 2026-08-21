@@ -1,20 +1,24 @@
 export {
   type AddOrganizationMember as AddOrganizationMemberDto,
+  type ApplyOrganizationTypeTemplate as ApplyOrganizationTypeTemplateDto,
   addOrganizationMemberSchema,
+  applyOrganizationTypeTemplateSchema,
   type ChangeOrganizationParent as ChangeOrganizationParentDto,
   type CreateOrganization as CreateOrganizationDto,
-  type LinkOrganizationPosition as CreatePositionDto,
-  type LinkOrganizationPosition as LinkOrganizationPositionDto,
-  type UpdateOrganizationPosition as UpdateOrganizationPositionDto,
   changeOrganizationParentSchema,
   createOrganizationSchema,
   createPositionSchema,
+  type LinkOrganizationPosition as CreatePositionDto,
+  type LinkOrganizationPosition as LinkOrganizationPositionDto,
   linkOrganizationPositionSchema,
   type OrganizationActivitiesQuery as OrganizationActivitiesQueryDto,
   organizationActivitiesQuerySchema,
   type UpdateOrganization as UpdateOrganizationDto,
   type UpdateOrganizationLeader as UpdateOrganizationLeaderDto,
+  type UpdateOrganizationPosition as UpdateOrganizationPositionDto,
+  type UpdateOrganizationTypeCatalog as UpdateOrganizationTypeCatalogDto,
   updateOrganizationLeaderSchema,
   updateOrganizationPositionSchema,
-  updateOrganizationSchema
+  updateOrganizationSchema,
+  updateOrganizationTypeCatalogSchema
 } from '@zen/shared'

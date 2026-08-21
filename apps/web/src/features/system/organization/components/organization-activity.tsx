@@ -1,3 +1,4 @@
+import { formatFromNow } from '@zen/shared'
 import {
   Avatar,
   AvatarFallback,
@@ -18,27 +19,10 @@ import { useOrganizationActivities } from '../queries'
 
 import type { ActivityGroup, OrganizationActivity as OrganizationActivityItem } from '../type'
 
-function formatActivityTime(value: string): string {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  }).format(date)
-}
-
 function formatActivityDay(value: string): string {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  }).format(date)
+  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`
 }
 
 function groupActivities(items: OrganizationActivityItem[]): ActivityGroup[] {
@@ -53,7 +37,7 @@ function groupActivities(items: OrganizationActivityItem[]): ActivityGroup[] {
       title: item.title,
       avatar: item.actor.avatar ?? '',
       description: item.description,
-      timestamp: formatActivityTime(item.createdAt)
+      timestamp: formatFromNow(item.createdAt)
     })
     groups.set(groupKey, existing)
   }

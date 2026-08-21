@@ -9,16 +9,12 @@ import {
   useUpdateOrganization,
   useUpdateOrganizationLeader
 } from './queries'
-import {
-  findOrganization,
-  flattenOrganizations,
-  validateOrganizationDrop
-} from './utils'
+import { findOrganization, flattenOrganizations, validateOrganizationDrop } from './utils'
 
+import type { OrganizationType, Organization as SharedOrganization } from '@zen/shared'
 import type { Organization } from './type'
-import type { Organization as SharedOrganization, OrganizationType } from '@zen/shared'
 
-export type OrganizationsDialogType = 'add' | 'edit' | 'edit-leader'
+export type OrganizationsDialogType = 'add' | 'edit' | 'edit-leader' | 'type-catalog'
 
 export type OrganizationBasicInput = {
   name: string
@@ -43,10 +39,7 @@ type OrganizationsContextType = {
     id: string,
     input: Omit<OrganizationBasicInput, 'code' | 'leaderId'> & { code?: string }
   ) => Promise<SharedOrganization | undefined>
-  updateOrganizationLeader: (
-    id: string,
-    leaderId: string | null
-  ) => Promise<SharedOrganization>
+  updateOrganizationLeader: (id: string, leaderId: string | null) => Promise<SharedOrganization>
   moveOrganization: (activeId: string, overId: string) => Promise<boolean>
   hasOrganizationCode: (code: string, excludeId?: string) => boolean
   getParentOptions: (excludeId?: string) => Organization[]

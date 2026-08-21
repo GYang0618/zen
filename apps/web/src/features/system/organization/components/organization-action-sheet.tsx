@@ -31,13 +31,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 
-import {
-  allowedChildTypes,
-  getOrganizationTypeLabel,
-  ORG_TYPES,
-  ROOT_ORGANIZATION_TYPES
-} from '../data/data'
+import { ORG_TYPES } from '../data/data'
 import { useOrganizations } from '../organizations-provider'
+import { useOrganizationTypeCatalog } from '../queries'
 import { OrganizationLeaderSelect } from './organization-leader-select'
 import { OrganizationParentSelect } from './organization-parent-select'
 
@@ -104,6 +100,7 @@ export function OrganizationActionSheet({
     currentNode,
     organizations
   } = useOrganizations()
+  const { getLabel, allowedChildTypes, rootTypes } = useOrganizationTypeCatalog()
   const isEdit = Boolean(currentRow)
   const [effectiveDateOpen, setEffectiveDateOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -112,7 +109,7 @@ export function OrganizationActionSheet({
     const options = getParentOptions(isEdit ? currentRow?.id : undefined)
     if (isEdit) return options
     return options.filter((option) => allowedChildTypes(option.type).length > 0)
-  }, [getParentOptions, isEdit, currentRow?.id])
+  }, [allowedChildTypes, getParentOptions, isEdit, currentRow?.id])
 
   const selectableParentIds = useMemo(
     () => new Set(parentOptions.map((option) => option.id)),
@@ -146,9 +143,7 @@ export function OrganizationActionSheet({
       return [currentRow.type]
     }
 
-    const baseTypes = selectedParent
-      ? allowedChildTypes(selectedParent.type)
-      : ROOT_ORGANIZATION_TYPES
+    const baseTypes = selectedParent ? allowedChildTypes(selectedParent.type) : [...rootTypes]
 
     if (
       isEdit &&
@@ -160,7 +155,7 @@ export function OrganizationActionSheet({
 
     if (baseTypes.length) return baseTypes
     return isEdit && currentRow ? [currentRow.type] : [ORG_TYPES.DEPARTMENT]
-  }, [isRootEdit, isEdit, currentRow, selectedParent])
+  }, [allowedChildTypes, currentRow, isEdit, isRootEdit, rootTypes, selectedParent])
 
   useEffect(() => {
     if (!open) return
@@ -178,7 +173,7 @@ export function OrganizationActionSheet({
     } else {
       const parent =
         currentNode && allowedChildTypes(currentNode.type).length > 0 ? currentNode : null
-      const nextTypes = parent ? allowedChildTypes(parent.type) : ROOT_ORGANIZATION_TYPES
+      const nextTypes = parent ? allowedChildTypes(parent.type) : [...rootTypes]
       form.reset({
         name: '',
         code: '',
@@ -192,7 +187,7 @@ export function OrganizationActionSheet({
 
     setEffectiveDateOpen(false)
     setIsSubmitting(false)
-  }, [open, currentRow, currentNode, form])
+  }, [allowedChildTypes, currentNode, currentRow, form, open, rootTypes])
 
   useEffect(() => {
     if (!open || isEdit) return
@@ -348,7 +343,7 @@ export function OrganizationActionSheet({
                         <FieldDescription>
                           {currentNode && !isEdit
                             ? `默认挂载到当前选中的「${currentNode.name}」下，清空后将新建为根节点。`
-                            : '留空将新建为根节点，可选类型为集团、公司或中心。'}
+                            : `留空将新建为根节点，可选类型为${rootTypes.map((type) => getLabel(type)).join('或')}。`}
                         </FieldDescription>
                       </>
                     )}
@@ -373,13 +368,17 @@ export function OrganizationActionSheet({
                         <SelectGroup>
                           {childTypes.map((option) => (
                             <SelectItem key={option} value={option}>
-                              {getOrganizationTypeLabel(option)}
+                              {getLabel(option)}
                             </SelectItem>
                           ))}
                         </SelectGroup>
                       </SelectContent>
                     </Select>
-                    <FieldDescription>可选类型由上级组织层级决定。</FieldDescription>
+                    <FieldDescription>
+                      {selectedParent || (isRootEdit && currentRow)
+                        ? `可选类型：${childTypes.map((option) => getLabel(option)).join('、')}。`
+                        : `根组织可选${rootTypes.map((type) => getLabel(type)).join('或')}。`}
+                    </FieldDescription>
                     {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
                   </FieldContent>
                 </Field>

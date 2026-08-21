@@ -1,9 +1,6 @@
 import { Link, useRouter } from '@tanstack/react-router'
 import { PermissionCode } from '@zen/shared'
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
   Badge,
   Button,
   PageHeader,
@@ -21,6 +18,7 @@ import { Can } from '@/components/auth/can'
 import { EmptyState } from '@/components/empty-state'
 import { AppHeader, Main } from '@/components/layouts'
 
+import { UserAvatar } from './components/user-avatar'
 import { UserDetailSideOverview } from './components/user-detail-side-overview'
 import { UserOrganizationsCard } from './components/user-organizations-card'
 import { UserRolesCard } from './components/user-roles-card'
@@ -28,7 +26,7 @@ import { UsersDetailDialogs } from './components/users-detail-dialogs'
 import { useUnlockUserMutation } from './mutations'
 import { useUserQuery } from './queries'
 import { UsersDetailProvider, useUsersDetail } from './users-detail-provider'
-import { getUserDisplayName, getUserInitials } from './utils'
+import { getUserDisplayName } from './utils'
 
 export function UserDetail({ userId }: { userId: string }) {
   const { data, isLoading, isError, error, refetch } = useUserQuery(userId)
@@ -98,10 +96,7 @@ function UserDetailContent() {
             <ArrowLeft />
           </Button>
           <PageHeaderMedia>
-            <Avatar className="size-16">
-              <AvatarImage src={user.avatar ?? undefined} alt={displayName} />
-              <AvatarFallback className="text-3xl">{getUserInitials(user)}</AvatarFallback>
-            </Avatar>
+            <UserAvatar user={user} className="size-16" fallbackClassName="text-3xl" />
           </PageHeaderMedia>
           <PageHeaderContent>
             <PageHeaderTitle as="h1" className="inline-flex flex-wrap items-center gap-3">

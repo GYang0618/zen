@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { formatFromNow } from '@zen/shared'
 import { Button, Input, Skeleton, Textarea } from '@zen/ui'
 import { Check, Plus } from 'lucide-react'
 import { useState } from 'react'
@@ -113,7 +114,7 @@ export function NotificationsPage({ request, can }: NotificationsPageProps) {
                 </p>
               ) : null}
               <p className="mt-1 text-xs text-muted-foreground">
-                创建于 {new Date(notification.createdAt).toLocaleString()}
+                创建于 {formatFromNow(notification.createdAt)}
               </p>
             </div>
             {!notification.readAt ? (

@@ -24,6 +24,11 @@ export const USER_INCLUDE = {
         }
       }
     }
+  },
+  sessions: {
+    where: { revokedAt: null },
+    select: { expiresAt: true, createdAt: true },
+    orderBy: { createdAt: 'desc' as const }
   }
 } satisfies Prisma.UserInclude
 

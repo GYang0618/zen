@@ -1,8 +1,25 @@
-import { getPrimaryOrganization, getUserDisplayName } from '@zen/shared'
+import { formatFromNow, getPrimaryOrganization, getUserDisplayName } from '@zen/shared'
 
 import type { User, UserOrganizationMembership } from '@zen/shared'
+import type { UserPresence } from './data/data'
 
-export { getPrimaryOrganization, getUserDisplayName }
+export { formatFromNow, getPrimaryOrganization, getUserDisplayName }
+
+const ONLINE_WITHIN_MS = 5 * 60 * 1000
+const AWAY_WITHIN_MS = 30 * 60 * 1000
+
+export function getUserPresence(
+  lastActiveAt: string | null | undefined,
+  now = Date.now()
+): UserPresence {
+  if (!lastActiveAt) return 'offline'
+  const timestamp = new Date(lastActiveAt).getTime()
+  if (Number.isNaN(timestamp)) return 'offline'
+  const elapsed = now - timestamp
+  if (elapsed <= ONLINE_WITHIN_MS) return 'online'
+  if (elapsed <= AWAY_WITHIN_MS) return 'away'
+  return 'offline'
+}
 
 export function getUserInitials(user: {
   realName?: string | null
@@ -10,50 +27,6 @@ export function getUserInitials(user: {
   username: string
 }): string {
   return getUserDisplayName(user).slice(0, 1).toUpperCase()
-}
-
-export function formatDateTime(value: string | null | undefined): string {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-
-export function formatDate(value: string | null | undefined): string {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleDateString('zh-CN')
-}
-
-const MS_PER_DAY = 24 * 60 * 60 * 1000
-
-export function formatRelativeDateTime(value: string | null | undefined): string {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-
-  const now = new Date()
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const startOfThatDay = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-  const dayDiff = Math.round((startOfToday.getTime() - startOfThatDay.getTime()) / MS_PER_DAY)
-  const time = date.toLocaleTimeString('zh-CN', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  })
-
-  if (dayDiff === 0) return `今天 ${time}`
-  if (dayDiff === 1) return `昨天 ${time}`
-  if (dayDiff === 2) return `前天 ${time}`
-  if (dayDiff > 2 && dayDiff < 7) return `${dayDiff}天前 ${time}`
-  return formatDateTime(value)
 }
 
 export function formatPhoneNumber(value: string | null | undefined): string {

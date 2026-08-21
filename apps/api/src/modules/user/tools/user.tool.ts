@@ -27,7 +27,7 @@ export class UserTool {
 
   createUserTool = tool(async (input) => await this.userService.create(input), {
     name: 'create_user',
-    description: '创建一个新用户',
+    description: '创建一个新用户。可不提供密码：系统会生成临时密码并要求首次登录或邀请链接设密。',
     schema: createUserSchema
   })
 

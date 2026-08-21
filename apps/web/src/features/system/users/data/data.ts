@@ -5,11 +5,27 @@ interface StatusConfig {
   className: string
 }
 
-export const statusAvatarBadgeClassName: Record<UserStatus, string> = {
-  active: 'bg-green-600 dark:bg-green-500',
-  inactive: 'bg-zinc-400 dark:bg-zinc-500',
-  pending: 'bg-sky-600 dark:bg-sky-500',
-  suspended: 'bg-destructive'
+export type UserPresence = 'online' | 'away' | 'offline'
+
+interface PresenceConfig {
+  label: string
+  /** 在线状态标识色，需同时覆盖深色主题对比度 */
+  className: string
+}
+
+export const presenceConfig: Record<UserPresence, PresenceConfig> = {
+  online: {
+    label: '在线',
+    className: 'bg-green-600 dark:bg-green-500'
+  },
+  away: {
+    label: '离开',
+    className: 'bg-amber-500 dark:bg-amber-400'
+  },
+  offline: {
+    label: '离线',
+    className: 'bg-zinc-400 dark:bg-zinc-500'
+  }
 }
 
 export const statusConfig: Record<UserStatus, StatusConfig> = {
@@ -52,11 +68,4 @@ export const genderOptions = (Object.entries(genderLabels) as [UserGender, strin
   ([value, label]) => ({ value, label })
 )
 
-export const organizationTypeLabels: Record<string, string> = {
-  group: '集团',
-  company: '公司',
-  branch: '分公司',
-  center: '中心',
-  department: '部门',
-  team: '小组'
-}
+export { organizationTypeLabels } from '@/features/system/organization/data/data'

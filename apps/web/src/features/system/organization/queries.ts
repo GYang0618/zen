@@ -1,4 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  allowedEnabledChildTypes,
+  buildOrganizationTypeCatalog,
+  enabledRootOrganizationTypes,
+  getCatalogTypeLabel
+} from '@zen/shared'
+import { useMemo } from 'react'
 import { toast } from 'sonner'
 
 import { postKeys } from '@/features/system/posts/queries'
@@ -18,6 +25,7 @@ import type {
   OrganizationMember,
   UpdateOrganization,
   UpdateOrganizationLeader,
+  UpdateOrganizationTypeCatalog,
   User
 } from '@zen/shared'
 import type { PaginationResponse } from '@/lib/request'
@@ -30,7 +38,8 @@ export const organizationKeys = {
   members: (id: string) => [...organizationKeys.all, 'members', id] as const,
   positions: (id: string) => [...organizationKeys.all, 'positions', id] as const,
   activities: (id: string) => [...organizationKeys.all, 'activities', id] as const,
-  users: (keyword: string) => [...organizationKeys.all, 'users', keyword] as const
+  users: (keyword: string) => [...organizationKeys.all, 'users', keyword] as const,
+  typeCatalog: () => [...organizationKeys.all, 'type-catalog'] as const
 }
 
 function mapUserOptions(page: PaginationResponse<User>): OrganizationUserOption[] {
@@ -112,6 +121,42 @@ export function useOrganizationTree(enabled = true) {
     queryKey: organizationKeys.tree(),
     queryFn: () => organizationApi.getTree(),
     enabled
+  })
+}
+
+const FALLBACK_TYPE_CATALOG = buildOrganizationTypeCatalog(null)
+
+export function useOrganizationTypeCatalog() {
+  const query = useQuery({
+    queryKey: organizationKeys.typeCatalog(),
+    queryFn: () => organizationApi.getTypeCatalog(),
+    staleTime: 60_000
+  })
+  const catalog = query.data?.catalog ?? FALLBACK_TYPE_CATALOG
+  const inUseTypes = query.data?.inUseTypes ?? []
+
+  return useMemo(
+    () => ({
+      ...query,
+      catalog,
+      inUseTypes,
+      getLabel: (type: string) => getCatalogTypeLabel(type, catalog),
+      allowedChildTypes: (parentType: string) => allowedEnabledChildTypes(parentType, catalog),
+      rootTypes: enabledRootOrganizationTypes(catalog)
+    }),
+    [catalog, inUseTypes, query]
+  )
+}
+
+export function useUpdateOrganizationTypeCatalog() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: UpdateOrganizationTypeCatalog) => organizationApi.updateTypeCatalog(data),
+    onSuccess: async (response) => {
+      queryClient.setQueryData(organizationKeys.typeCatalog(), response)
+      toast.success('组织类型已更新')
+    },
+    onError: (error: Error) => toast.error(error.message || '更新失败')
   })
 }
 

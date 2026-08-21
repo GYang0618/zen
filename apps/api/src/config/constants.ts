@@ -2,6 +2,7 @@ import {
   appConfig,
   authConfig,
   databaseConfig,
+  langgraphConfig,
   loggerConfig,
   securityConfig,
   swaggerConfig
@@ -14,6 +15,7 @@ export const CONFIG_NAMESPACES = {
   APP: appConfig.KEY,
   AUTH: authConfig.KEY,
   DATABASE: databaseConfig.KEY,
+  LANGGRAPH: langgraphConfig.KEY,
   SECURITY: securityConfig.KEY,
   LOGGER: loggerConfig.KEY,
   SWAGGER: swaggerConfig.KEY

@@ -102,14 +102,18 @@ enum OrganizationType {
   GROUP      @map("group")
   /// 公司
   COMPANY    @map("company")
+  /// 事业部
+  DIVISION   @map("division")
   /// 分支机构
   BRANCH     @map("branch")
   /// 中心
   CENTER     @map("center")
   /// 部门
   DEPARTMENT @map("department")
-  /// 小组
+  /// 团队
   TEAM       @map("team")
+  /// 项目组
+  PROJECT    @map("project")
 }
 
 /// 岗位目录状态

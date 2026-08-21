@@ -5,6 +5,7 @@ import type {
   appConfig,
   authConfig,
   databaseConfig,
+  langgraphConfig,
   loggerConfig,
   securityConfig,
   swaggerConfig
@@ -13,6 +14,7 @@ import type {
 export type AppConfig = ConfigType<typeof appConfig>
 export type AuthConfig = ConfigType<typeof authConfig>
 export type DatabaseConfig = ConfigType<typeof databaseConfig>
+export type LanggraphConfig = ConfigType<typeof langgraphConfig>
 export type LoggerConfig = ConfigType<typeof loggerConfig>
 export type SecurityConfig = ConfigType<typeof securityConfig>
 export type SwaggerConfig = ConfigType<typeof swaggerConfig>
@@ -21,6 +23,7 @@ export type Configs = {
   [CONFIG_NAMESPACES.APP]: AppConfig
   [CONFIG_NAMESPACES.AUTH]: AuthConfig
   [CONFIG_NAMESPACES.DATABASE]: DatabaseConfig
+  [CONFIG_NAMESPACES.LANGGRAPH]: LanggraphConfig
   [CONFIG_NAMESPACES.LOGGER]: LoggerConfig
   [CONFIG_NAMESPACES.SECURITY]: SecurityConfig
   [CONFIG_NAMESPACES.SWAGGER]: SwaggerConfig

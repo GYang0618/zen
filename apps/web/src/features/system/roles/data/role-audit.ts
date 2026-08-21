@@ -1,4 +1,4 @@
-import { parseAuditDiff } from '@zen/shared'
+import { formatFromNow, parseAuditDiff } from '@zen/shared'
 
 import type { AuditDiff, AuditDiffPermission } from '@zen/shared'
 import type { AuditLogItem } from '@/features/system/audit/api'
@@ -49,17 +49,8 @@ function displayText(value: string | null | undefined): string {
 }
 
 function formatAuditTime(value: string): string {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '时间未知'
-
-  return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  }).format(date)
+  const formatted = formatFromNow(value)
+  return formatted === '—' ? '时间未知' : formatted
 }
 
 export function groupPermissionLabels(items: AuditDiffPermission[]): string[] {

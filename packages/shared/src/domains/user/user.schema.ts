@@ -95,10 +95,19 @@ export const userSchema = z.object({
   mfaType: userMfaTypeSchema.describe('MFA 类型'),
   mustChangePassword: z.boolean().describe('下次登录是否必须改密'),
   lastPasswordChange: z.string().nullable().describe('上次改密时间（ISO 8601）'),
+  passwordExpireAt: z
+    .string()
+    .nullable()
+    .describe('密码到期时间（ISO 8601），未配置密码策略时为 null'),
   loginAttempts: z.number().int().describe('登录失败次数'),
   lastLoginAt: z.string().nullable().describe('最近登录时间（ISO 8601）'),
   lastLoginIp: z.string().nullable().describe('最近登录 IP'),
-  lastActiveAt: z.string().nullable().describe('最近活跃时间（ISO 8601）'),
+  lastActiveAt: z.string().nullable().describe('最后活跃时间（ISO 8601）'),
+  activeSessionCount: z.number().int().nonnegative().describe('当前有效登录会话数'),
+  accessTokenExpiresAt: z
+    .string()
+    .nullable()
+    .describe('当前 access token 过期时间（ISO 8601）；无有效会话时为 null'),
   remark: z.string().nullable().describe('备注'),
   createdAt: z.string().describe('创建时间（ISO 8601）'),
   updatedAt: z.string().describe('更新时间（ISO 8601）')
@@ -107,7 +116,11 @@ export const userSchema = z.object({
 export const createUserSchema = z.object({
   username: usernameSchema,
   email: z.email('无效的邮箱格式').describe('邮箱'),
-  password: userPasswordSchema,
+  password: userPasswordSchema
+    .optional()
+    .describe(
+      '可选。省略时由服务端生成临时密码，仅在创建响应中返回一次，并要求首次登录或邀请链接设密'
+    ),
   nickname: nicknameSchema.optional().describe('昵称'),
   realName: realNameSchema.optional().describe('真实姓名'),
   phoneNumber: phoneNumberSchema.optional().describe('手机号码'),
@@ -121,6 +134,15 @@ export const createUserSchema = z.object({
     .array(userOrganizationInputSchema)
     .optional()
     .describe('初始组织归属；省略时不绑定组织')
+})
+
+/**
+ * 创建用户响应。`initialPassword` 仅此一次返回，后续 GET 不会包含明文密码。
+ * 接入邮件后：邀请链接走 `/auth/reset-password` 设密并清除 `mustChangePassword`；
+ * 若未通过邮件设密，首次登录仍会强制改密。
+ */
+export const createUserResultSchema = userSchema.extend({
+  initialPassword: z.string().min(1).describe('仅创建时返回一次的临时登录密码')
 })
 
 export const updateUserSchema = z
@@ -195,7 +217,13 @@ export const replaceUserOrganizationsResultSchema = userSchema.pick({
   organizations: true
 })
 
-export const usersSortBySchema = z.enum(['username', 'email', 'createdAt', 'lastLoginAt'])
+export const usersSortBySchema = z.enum([
+  'username',
+  'email',
+  'createdAt',
+  'lastLoginAt',
+  'lastActiveAt'
+])
 export const usersSortOrderSchema = z.enum(['asc', 'desc'])
 
 export const usersQuerySchema = pageQuerySchema.extend({

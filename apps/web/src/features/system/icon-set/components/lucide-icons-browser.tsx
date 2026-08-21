@@ -12,15 +12,20 @@ import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
-  TooltipTrigger
+  TooltipTrigger,
+  VirtualList
 } from '@zen/ui'
 import { Search, SearchX, X } from 'lucide-react'
-import { useDeferredValue, useState } from 'react'
+import { useDeferredValue, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import { lucideIconEntries } from '../data/lucide-icons'
 
 import type { LucideIconEntry } from '../data/lucide-icons'
+
+/** 与 `Button className="size-11"` / 原 `minmax(2.75rem, 1fr)` 对齐 */
+const ICON_CELL_SIZE = 44
+const ICON_GRID_GAP = 4
 
 function filterIcons(keyword: string): LucideIconEntry[] {
   const normalized = keyword.trim().toLowerCase()
@@ -40,14 +45,34 @@ async function copyIconName(entry: LucideIconEntry) {
   }
 }
 
+function IconGridCell({ entry }: { entry: LucideIconEntry }) {
+  return (
+    <div className="flex size-full items-center justify-center">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            className="size-11"
+            aria-label={`复制图标名称 ${entry.kebabName}`}
+            onClick={() => void copyIconName(entry)}
+          >
+            <entry.Icon aria-hidden className="size-5 shrink-0" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{entry.kebabName}</TooltipContent>
+      </Tooltip>
+    </div>
+  )
+}
+
 export function LucideIconsBrowser() {
   const [keyword, setKeyword] = useState('')
   const deferredKeyword = useDeferredValue(keyword)
-  const filteredIcons = filterIcons(deferredKeyword)
+  const filteredIcons = useMemo(() => filterIcons(deferredKeyword), [deferredKeyword])
   const isFiltering = deferredKeyword.trim().length > 0
 
   return (
-    <div className="flex flex-1 flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <section className="flex flex-wrap items-center gap-3">
         <InputGroup className="max-w-md">
           <InputGroupAddon>
@@ -80,46 +105,32 @@ export function LucideIconsBrowser() {
         </p>
       </section>
 
-      {filteredIcons.length === 0 ? (
-        <Empty className="border">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <SearchX />
-            </EmptyMedia>
-            <EmptyTitle>未找到匹配图标</EmptyTitle>
-            <EmptyDescription>试试更短的关键词，或清空搜索查看全部图标。</EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      ) : (
-        <TooltipProvider delayDuration={200}>
-          <ul className="grid grid-cols-[repeat(auto-fill,minmax(2.75rem,1fr))] gap-1 ">
-            {filteredIcons.map((entry) => (
-              <li key={entry.name}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    {/* <button
-                      type="button"
-                      onClick={() => void copyIconName(entry)}
-                      aria-label={`复制图标名称 ${entry.kebabName}`}
-                      className="flex size-11 items-center justify-center rounded-xl border border-transparent bg-card transition-colors hover:border-border hover:bg-accent/40 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-                    >
-                      <entry.Icon className="size-5 shrink-0" aria-hidden />
-                    </button> */}
-                    <Button
-                      variant="ghost"
-                      className="size-11"
-                      onClick={() => void copyIconName(entry)}
-                    >
-                      <entry.Icon aria-hidden className="size-5 shrink-0" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{entry.kebabName}</TooltipContent>
-                </Tooltip>
-              </li>
-            ))}
-          </ul>
-        </TooltipProvider>
-      )}
+      <TooltipProvider delayDuration={200}>
+        <VirtualList
+          key={deferredKeyword}
+          items={filteredIcons}
+          estimateSize={ICON_CELL_SIZE}
+          minLaneSize={ICON_CELL_SIZE}
+          gap={ICON_GRID_GAP}
+          measure={false}
+          getItemKey={(entry) => entry.name}
+          className="min-h-0 flex-1"
+          aria-label="Lucide 图标"
+          empty={
+            <Empty className="border">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <SearchX />
+                </EmptyMedia>
+                <EmptyTitle>未找到匹配图标</EmptyTitle>
+                <EmptyDescription>试试更短的关键词，或清空搜索查看全部图标。</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          }
+        >
+          {(entry) => <IconGridCell entry={entry} />}
+        </VirtualList>
+      </TooltipProvider>
     </div>
   )
 }

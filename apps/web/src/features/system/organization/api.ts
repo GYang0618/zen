@@ -10,11 +10,13 @@ import type {
   OrganizationActivity,
   OrganizationMember,
   OrganizationTreeNode,
+  OrganizationTypeCatalogResponse,
   Paged,
   Position,
   UpdateOrganization,
   UpdateOrganizationLeader,
-  UpdateOrganizationPosition
+  UpdateOrganizationPosition,
+  UpdateOrganizationTypeCatalog
 } from '@zen/shared'
 
 export const organizationApi = {
@@ -57,5 +59,13 @@ export const organizationApi = {
     request.delete<void>(`/organizations/${id}/positions/${positionId}`),
 
   listActivities: (id: string, params?: OrganizationActivitiesQuery) =>
-    request.get<Paged<OrganizationActivity>>(`/organizations/${id}/activities`, { params })
+    request.get<Paged<OrganizationActivity>>(`/organizations/${id}/activities`, { params }),
+
+  getTypeCatalog: () => request.get<OrganizationTypeCatalogResponse>('/organizations/type-catalog'),
+
+  updateTypeCatalog: (data: UpdateOrganizationTypeCatalog) =>
+    request.patch<OrganizationTypeCatalogResponse, UpdateOrganizationTypeCatalog>(
+      '/organizations/type-catalog',
+      data
+    )
 }

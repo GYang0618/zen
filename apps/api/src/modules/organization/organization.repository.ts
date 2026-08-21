@@ -268,4 +268,33 @@ export class OrganizationRepository {
       }
     })
   }
+
+  findDistinctTypes() {
+    return this.prisma.organization.findMany({
+      distinct: ['type'],
+      select: { type: true }
+    })
+  }
+
+  async getTenantSettings(tenantId: string): Promise<Record<string, unknown>> {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { settings: true }
+    })
+    if (
+      !tenant?.settings ||
+      typeof tenant.settings !== 'object' ||
+      Array.isArray(tenant.settings)
+    ) {
+      return {}
+    }
+    return tenant.settings as Record<string, unknown>
+  }
+
+  updateTenantSettings(tenantId: string, settings: Record<string, unknown>) {
+    return this.prisma.tenant.update({
+      where: { id: tenantId },
+      data: { settings: settings as Prisma.InputJsonValue }
+    })
+  }
 }

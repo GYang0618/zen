@@ -25,10 +25,10 @@ import { Can } from '@/components/auth/can'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { EmptyState } from '@/components/empty-state'
 import { organizationIconConfig } from '@/features/system/organization/data/data'
+import { useOrganizationTypeCatalog } from '@/features/system/organization/queries'
 
-import { organizationTypeLabels } from '../data/data'
 import { useReplaceUserOrganizationsMutation } from '../mutations'
-import { formatDate, getUserDisplayName } from '../utils'
+import { formatFromNow, getUserDisplayName } from '../utils'
 
 import type { User, UserOrganizationMembership } from '@zen/shared'
 
@@ -38,6 +38,7 @@ type UserOrganizationsCardProps = {
 }
 
 export function UserOrganizationsCard({ user, onAssign }: UserOrganizationsCardProps) {
+  const { getLabel } = useOrganizationTypeCatalog()
   const memberships = [...user.organizations].sort(
     (left, right) => Number(right.isPrimary) - Number(left.isPrimary)
   )
@@ -132,11 +133,9 @@ export function UserOrganizationsCard({ user, onAssign }: UserOrganizationsCardP
                         <span className="truncate">{org.organizationName}</span>
                       </ItemTitle>
                       <div className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
-                        <Badge variant="outline">
-                          {organizationTypeLabels[org.organizationType] ?? org.organizationType}
-                        </Badge>
+                        <Badge variant="outline">{getLabel(org.organizationType)}</Badge>
                         <span>{postLabel}</span>
-                        {org.joinedAt ? <span>入职 {formatDate(org.joinedAt)}</span> : null}
+                        {org.joinedAt ? <span>入职 {formatFromNow(org.joinedAt)}</span> : null}
                       </div>
                     </ItemContent>
                   </Link>

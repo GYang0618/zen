@@ -1,5 +1,6 @@
 import {
   assignUserRolesResultSchema,
+  createUserResultSchema,
   createUserSchema,
   getPrimaryOrganization,
   getUserDisplayName,
@@ -21,6 +22,16 @@ describe('user V2 contracts', () => {
         gender: 'male',
         roleIds: ['role-1'],
         organizations: [{ organizationId: 'org-1', isPrimary: true, postId: 'post-1' }]
+      }).success
+    ).toBe(true)
+  })
+
+  it('accepts create payload without password', () => {
+    expect(
+      createUserSchema.safeParse({
+        username: 'zhangsan',
+        email: 'zhangsan@example.com',
+        realName: '张三'
       }).success
     ).toBe(true)
   })
@@ -112,6 +123,14 @@ describe('user V2 contracts', () => {
         sortOrder: 'desc'
       }).success
     ).toBe(true)
+    expect(
+      usersQuerySchema.safeParse({
+        page: 1,
+        pageSize: 10,
+        sortBy: 'lastActiveAt',
+        sortOrder: 'desc'
+      }).success
+    ).toBe(true)
     expect(usersQuerySchema.safeParse({ sortBy: 'jobTitle' }).success).toBe(false)
   })
 
@@ -157,14 +176,55 @@ describe('user V2 contracts', () => {
       mfaType: 'off',
       mustChangePassword: false,
       lastPasswordChange: null,
+      passwordExpireAt: null,
       loginAttempts: 0,
       lastLoginAt: null,
       lastLoginIp: null,
       lastActiveAt: null,
+      activeSessionCount: 0,
+      accessTokenExpiresAt: null,
       remark: null,
       createdAt: '2026-08-13T00:00:00.000Z',
       updatedAt: '2026-08-13T00:00:00.000Z'
     })
     expect(parsed.success).toBe(true)
+  })
+
+  it('returns initialPassword only on create result', () => {
+    const user = {
+      id: 'u1',
+      username: 'zhangsan',
+      nickname: '张三',
+      realName: '张三',
+      avatar: null,
+      gender: 'unknown' as const,
+      email: 'a@b.c',
+      phoneNumber: null,
+      status: 'active' as const,
+      isLocked: false,
+      lockExpireAt: null,
+      roles: [],
+      organizations: [],
+      mfaEnabled: false,
+      mfaType: 'off' as const,
+      mustChangePassword: true,
+      lastPasswordChange: null,
+      passwordExpireAt: null,
+      loginAttempts: 0,
+      lastLoginAt: null,
+      lastLoginIp: null,
+      lastActiveAt: null,
+      activeSessionCount: 0,
+      accessTokenExpiresAt: null,
+      remark: null,
+      createdAt: '2026-08-19T00:00:00.000Z',
+      updatedAt: '2026-08-19T00:00:00.000Z'
+    }
+
+    expect(createUserResultSchema.safeParse(user).success).toBe(false)
+    expect(
+      createUserResultSchema.safeParse({ ...user, initialPassword: 'TmpP@ssw0rd!' }).success
+    ).toBe(true)
+    expect(userSchema.parse(user)).not.toHaveProperty('initialPassword')
   })
 })

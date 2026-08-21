@@ -17,6 +17,7 @@ export interface StoredFileDto {
   mimeType: string | null
   size: number
   storageKey: string
+  url: string
   createdAt: string
   updatedAt: string
 }

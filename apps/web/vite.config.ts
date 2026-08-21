@@ -27,7 +27,12 @@ export default defineConfig(({ mode }) => {
       cesium()
     ],
     resolve: {
-      tsconfigPaths: true
+      tsconfigPaths: true,
+      // Plugin web entries live outside apps/web/src, so tsconfig paths do not
+      // apply. Pin to source — @zen/shared dist is CJS and Vite cannot named-import it.
+      alias: {
+        '@zen/shared': path.resolve(monorepoRoot, 'packages/shared/src/index.ts')
+      }
     },
     server: {
       port: 3000,

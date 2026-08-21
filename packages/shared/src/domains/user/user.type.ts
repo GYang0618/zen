@@ -3,6 +3,7 @@ import type {
   adminResetPasswordSchema,
   assignUserRolesResultSchema,
   assignUserRolesSchema,
+  createUserResultSchema,
   createUserSchema,
   deleteUsersSchema,
   replaceUserOrganizationsResultSchema,
@@ -29,6 +30,7 @@ export type UserRolePreview = z.infer<typeof userRolePreviewSchema>
 export type UserOrganizationMembership = z.infer<typeof userOrganizationMembershipSchema>
 export type User = z.infer<typeof userSchema>
 export type CreateUser = z.infer<typeof createUserSchema>
+export type CreateUserResult = z.infer<typeof createUserResultSchema>
 export type UpdateUser = z.infer<typeof updateUserSchema>
 export type UpdateUserResult = z.infer<typeof updateUserResultSchema>
 export type AdminResetPassword = z.infer<typeof adminResetPasswordSchema>

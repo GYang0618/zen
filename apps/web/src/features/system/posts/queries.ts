@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import { postApi } from './api'
@@ -14,7 +14,8 @@ export const postKeys = {
 export function useJobProfilesQuery(query?: FindJobProfilesQuery) {
   return useQuery({
     queryKey: postKeys.list(query),
-    queryFn: () => postApi.getList(query)
+    queryFn: () => postApi.getList(query),
+    placeholderData: keepPreviousData
   })
 }
 

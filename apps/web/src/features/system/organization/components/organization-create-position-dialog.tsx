@@ -169,7 +169,9 @@ export function OrganizationCreatePositionDialog({
                     <FieldLabel>职级覆盖（可选）</FieldLabel>
                     <Select
                       value={field.value || undefined}
-                      onValueChange={(value) => field.onChange(value === '__default__' ? '' : value)}
+                      onValueChange={(value) =>
+                        field.onChange(value === '__default__' ? '' : value)
+                      }
                     >
                       <SelectTrigger aria-invalid={fieldState.invalid || undefined}>
                         <SelectValue placeholder="使用岗位标准职级" />

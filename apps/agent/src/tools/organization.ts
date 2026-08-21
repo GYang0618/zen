@@ -40,7 +40,7 @@ export const getOrganizationTreeTool = tool(
   {
     name: 'query_organization_tree',
     description:
-      '获取按名称排序的组织树（集团/公司/分公司/中心/部门/小组）。' +
+      '获取按名称排序的组织树（公司/集团/事业部/分支机构/中心/部门/团队/项目组）。' +
       '结果会由前端树形 UI 展示；你只需在最终回复中用一两句话概括节点规模或结论，不要重复输出整棵树。',
     schema: z.object({})
   }

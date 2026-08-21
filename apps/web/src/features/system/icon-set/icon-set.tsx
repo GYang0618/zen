@@ -8,7 +8,7 @@ export function IconSetPage() {
     <>
       <AppHeader />
 
-      <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
+      <Main fixed className="flex min-h-0 flex-1 flex-col gap-4 sm:gap-6">
         <AppPageHeader />
         <LucideIconsBrowser />
       </Main>

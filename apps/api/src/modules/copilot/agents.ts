@@ -1,15 +1,21 @@
+import { ACCESS_TOKEN_CONFIGURABLE_KEY } from '@zen/shared'
+
 import { LangGraphAgent } from './langgraph-runtime-agent'
 
 const agents = {
-  default: { url: 'http://127.0.0.1:3600', graphId: 'default_agent' },
-  plan: { url: 'http://127.0.0.1:3600', graphId: 'plan_agent' }
+  default: { graphId: 'default_agent' },
+  plan: { graphId: 'plan_agent' }
 } as const
 
-import { ACCESS_TOKEN_CONFIGURABLE_KEY } from '@zen/shared'
-
-export const defaultAgent = ({ accessToken }: { accessToken?: string }) =>
+export const defaultAgent = ({
+  deploymentUrl,
+  accessToken
+}: {
+  deploymentUrl: string
+  accessToken?: string
+}) =>
   new LangGraphAgent({
-    deploymentUrl: agents.default.url,
+    deploymentUrl,
     graphId: agents.default.graphId,
     assistantConfig: accessToken
       ? {
@@ -20,8 +26,8 @@ export const defaultAgent = ({ accessToken }: { accessToken?: string }) =>
       : undefined
   })
 
-export const planAgent = () =>
+export const planAgent = ({ deploymentUrl }: { deploymentUrl: string }) =>
   new LangGraphAgent({
-    deploymentUrl: agents.plan.url,
+    deploymentUrl,
     graphId: agents.plan.graphId
   })

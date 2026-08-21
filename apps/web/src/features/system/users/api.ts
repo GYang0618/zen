@@ -5,6 +5,7 @@ import type {
   AssignUserRoles,
   AssignUserRolesResult,
   CreateUser,
+  CreateUserResult,
   ReplaceUserOrganizations,
   ReplaceUserOrganizationsResult,
   UpdateUser,
@@ -18,7 +19,7 @@ import type { PaginationResponse } from '@/lib/request'
 export const userApi = {
   getUserList: (params?: UsersQuery) => request.get<PaginationResponse<User>>('/user', { params }),
   getUser: (id: string) => request.get<User>(`/user/${id}`),
-  createUser: (data: CreateUser) => request.post<User, CreateUser>('/user', data),
+  createUser: (data: CreateUser) => request.post<CreateUserResult, CreateUser>('/user', data),
   updateUser: (id: string, data: UpdateUser) =>
     request.patch<UpdateUserResult, UpdateUser>(`/user/${id}`, data),
   deleteUsers: (ids: string[], stepUpToken?: string) =>

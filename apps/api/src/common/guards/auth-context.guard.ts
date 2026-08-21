@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core'
 
 import { AuthContextService } from '../auth/auth-context.service'
 import { setRequestAuditContext } from '../auth/request-audit-context'
+import { UserActivityService } from '../auth/user-activity.service'
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator'
 import { resolveTraceId } from '../utils/trace-id'
 
@@ -36,7 +37,8 @@ function readClientIp(request: HttpRequest): string | undefined {
 export class AuthContextGuard implements CanActivate {
   constructor(
     @Inject(Reflector) private readonly reflector: Reflector,
-    @Inject(AuthContextService) private readonly authContextService: AuthContextService
+    @Inject(AuthContextService) private readonly authContextService: AuthContextService,
+    @Inject(UserActivityService) private readonly userActivityService: UserActivityService
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -50,6 +52,7 @@ export class AuthContextGuard implements CanActivate {
     if (!request.user?.sub) return true
 
     request.auth = await this.authContextService.resolve(request.user.sub)
+    await this.userActivityService.touch(request.user.sub)
 
     const tokenPermVer = request.user.permVer
     if (

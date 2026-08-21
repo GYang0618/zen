@@ -49,6 +49,7 @@ export * from './common/page-header'
 export * from './common/text-effect/gradient-text'
 export * from './common/text-effect/typing-text'
 export * from './common/timeline'
+export * from './common/virtual-list'
 
 // Hooks
 

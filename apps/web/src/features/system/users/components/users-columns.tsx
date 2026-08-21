@@ -2,7 +2,7 @@
 
 import { Link } from '@tanstack/react-router'
 import { createColumnHelper } from '@tanstack/react-table'
-import { Avatar, AvatarFallback, AvatarImage, Badge, Checkbox, cn } from '@zen/ui'
+import { Badge, Checkbox, cn } from '@zen/ui'
 import { Mail, Phone } from 'lucide-react'
 import { DynamicIcon } from 'lucide-react/dynamic'
 
@@ -11,13 +11,13 @@ import { getRoleIconColorClassName } from '@/features/system/roles/data/data'
 
 import { statusConfig } from '../data/data'
 import {
-  formatDate,
+  formatFromNow,
   getOrganizationLabel,
   getPrimaryMembership,
-  getUserDisplayName,
-  getUserInitials
+  getUserDisplayName
 } from '../utils'
 import { DataTableRowActions } from './data-table-row-actions'
+import { UserAvatar } from './user-avatar'
 
 import type { ColumnDef } from '@tanstack/react-table'
 import type { RoleIcon, User } from '@zen/shared'
@@ -63,10 +63,7 @@ export const usersColumns = [
           params={{ userId: user.id }}
           className="flex items-center gap-3"
         >
-          <Avatar>
-            <AvatarImage src={user.avatar ?? undefined} alt={name} />
-            <AvatarFallback>{getUserInitials(user)}</AvatarFallback>
-          </Avatar>
+          <UserAvatar user={user} />
           <span className="flex min-w-0 flex-col">
             <span className="truncate font-medium text-foreground">{name}</span>
             <span className="truncate font-mono text-xs text-muted-foreground">
@@ -177,10 +174,10 @@ export const usersColumns = [
     enableSorting: false
   }),
 
-  columnHelper.accessor('lastLoginAt', {
-    header: ({ column }) => <DataTableColumnHeader column={column} title="最近登录" />,
-    cell: (info) => <div className="w-fit ps-2 text-nowrap">{formatDate(info.getValue())}</div>,
-    meta: { title: '最近登录' }
+  columnHelper.accessor('lastActiveAt', {
+    header: ({ column }) => <DataTableColumnHeader column={column} title="最后活跃时间" />,
+    cell: (info) => <div className="w-fit ps-2 text-nowrap">{formatFromNow(info.getValue())}</div>,
+    meta: { title: '最后活跃时间' }
   }),
 
   columnHelper.display({

@@ -1,5 +1,5 @@
 import { useParams, useRouter } from '@tanstack/react-router'
-import { PermissionCode, ROLE_MEMBER_PREVIEW_LIMIT } from '@zen/shared'
+import { formatFromNow, PermissionCode, ROLE_MEMBER_PREVIEW_LIMIT } from '@zen/shared'
 import {
   Badge,
   Button,
@@ -73,15 +73,7 @@ function arraysEqual(a: string[], b: string[]) {
 
 function formatExpiresAt(value: string | null) {
   if (!value) return '无限制'
-  try {
-    return new Intl.DateTimeFormat('zh-CN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    }).format(new Date(value.length === 10 ? `${value}T00:00:00` : value))
-  } catch {
-    return value
-  }
+  return formatFromNow(value)
 }
 
 function RoleDetailContent({ role }: { role: Role }) {

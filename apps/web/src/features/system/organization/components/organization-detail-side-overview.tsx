@@ -1,3 +1,4 @@
+import { formatFromNow } from '@zen/shared'
 import {
   Avatar,
   AvatarFallback,
@@ -28,11 +29,6 @@ export function OrganizationDetailSideOverview({
   organization
 }: OrganizationDetailSideOverviewProps) {
   const leader = organization.leader
-  const updatedAt = new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).format(new Date(organization.updatedAt))
 
   return (
     <aside className="bg-muted/35 flex w-full shrink-0 flex-col gap-4 rounded-[28px] border border-dashed p-3 @5xl/content:w-90 @5xl/content:self-start">
@@ -60,7 +56,7 @@ export function OrganizationDetailSideOverview({
               <CalendarSync className="size-4" />
               最后更新
             </span>
-            <span className="font-medium">{updatedAt}</span>
+            <span className="font-medium">{formatFromNow(organization.updatedAt)}</span>
           </div>
 
           <Separator />

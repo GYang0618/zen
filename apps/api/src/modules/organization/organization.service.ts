@@ -6,13 +6,21 @@ import {
   Injectable,
   NotFoundException
 } from '@nestjs/common'
-import { parseAuditDiff } from '@zen/shared'
+import {
+  buildOrganizationTypeCatalog,
+  createAuditDiff,
+  isOrganizationTypeEnabled,
+  parseAuditDiff,
+  parseOrganizationTypeCatalogConfig,
+  serializeOrganizationTypeCatalog
+} from '@zen/shared'
 
 import { applyOrganizationTreeDataScope } from '@/common/auth/apply-data-scope'
 import { AuditService } from '@/common/auth/audit.service'
 import { AuthContextService } from '@/common/auth/auth-context.service'
 import { SessionService } from '@/common/auth/session.service'
 import { paginate } from '@/common/pagination/paginate.util'
+import { PostService } from '@/modules/post'
 
 import {
   fromApiOrganizationType,
@@ -31,14 +39,17 @@ import {
   buildOrganizationUpdatedDiff,
   toUserDisplayName
 } from './organization-audit-diff'
-import { PostService } from '@/modules/post'
 
 import type { Prisma } from '@prisma/client'
 import type {
   AuditDiff,
   AuthContext,
   OrganizationActivity,
-  OrganizationTreeNode
+  OrganizationTreeNode,
+  OrganizationType,
+  OrganizationTypeCatalog,
+  OrganizationTypeCatalogResponse,
+  UpdateOrganizationTypeCatalog
 } from '@zen/shared'
 import type {
   AddOrganizationMemberDto,
@@ -169,6 +180,38 @@ export class OrganizationService {
     return this.sortTree(roots)
   }
 
+  async getTypeCatalog(auth: AuthContext): Promise<OrganizationTypeCatalogResponse> {
+    const [catalog, typeRows] = await Promise.all([
+      this.loadTypeCatalog(auth),
+      this.orgRepo.findDistinctTypes()
+    ])
+    return {
+      catalog,
+      inUseTypes: typeRows.map((row) => toApiOrganizationType(row.type))
+    }
+  }
+
+  async updateTypeCatalog(
+    data: UpdateOrganizationTypeCatalog,
+    auth: AuthContext
+  ): Promise<OrganizationTypeCatalogResponse> {
+    const catalog = buildOrganizationTypeCatalog({
+      types: Object.fromEntries(
+        data.items.map((item) => [item.type, { enabled: item.enabled, label: item.label }])
+      )
+    })
+    await this.saveTypeCatalog(auth, catalog)
+    await this.writeAudit(
+      auth,
+      auth.tenantId,
+      'system.organization.type_catalog_updated',
+      createAuditDiff({
+        summary: `组织类型已更新为「${catalog.templateId === 'custom' ? '自定义' : catalog.templateId}」`
+      })
+    )
+    return this.getTypeCatalog(auth)
+  }
+
   async findOne(id: string, auth: AuthContext): Promise<OrganizationResponse> {
     return toOrganizationResponse(await this.requireVisible(id, auth))
   }
@@ -180,6 +223,7 @@ export class OrganizationService {
 
     const parent = data.parentId ? await this.requireVisible(data.parentId, auth) : null
     assertValidParentType(data.type, parent ? toApiOrganizationType(parent.type) : null)
+    await this.assertTypeEnabled(data.type, auth)
     await this.assertActiveUser(data.leaderId)
 
     const created = await this.orgRepo.create({
@@ -210,7 +254,7 @@ export class OrganizationService {
     auth: AuthContext
   ): Promise<OrganizationResponse> {
     const existing = await this.requireVisible(id, auth)
-    if (data.type) await this.assertTypeChange(existing, data.type)
+    if (data.type) await this.assertTypeChange(existing, data.type, auth)
 
     const updated = await this.orgRepo.update(id, {
       name: data.name,
@@ -494,13 +538,42 @@ export class OrganizationService {
     }
   }
 
+  private async loadTypeCatalog(auth: AuthContext): Promise<OrganizationTypeCatalog> {
+    const settings = await this.orgRepo.getTenantSettings(auth.tenantId)
+    return buildOrganizationTypeCatalog(
+      parseOrganizationTypeCatalogConfig(settings.organizationTypes)
+    )
+  }
+
+  private async saveTypeCatalog(auth: AuthContext, catalog: OrganizationTypeCatalog) {
+    const settings = await this.orgRepo.getTenantSettings(auth.tenantId)
+    await this.orgRepo.updateTenantSettings(auth.tenantId, {
+      ...settings,
+      organizationTypes: serializeOrganizationTypeCatalog(catalog)
+    })
+  }
+
+  private async assertTypeEnabled(type: OrganizationType, auth: AuthContext): Promise<void> {
+    const catalog = await this.loadTypeCatalog(auth)
+    if (!isOrganizationTypeEnabled(type, catalog)) {
+      throw new BadRequestException({
+        message: '该组织类型未在本企业启用',
+        reason: 'ORG_TYPE_DISABLED'
+      })
+    }
+  }
+
   private async assertTypeChange(
     existing: OrganizationWithRelations,
-    nextType: UpdateOrganizationDto['type']
+    nextType: UpdateOrganizationDto['type'],
+    auth: AuthContext
   ): Promise<void> {
     if (!nextType) return
     const parent = existing.parentId ? await this.orgRepo.findById(existing.parentId) : null
     assertValidParentType(nextType, parent ? toApiOrganizationType(parent.type) : null)
+    if (nextType !== toApiOrganizationType(existing.type)) {
+      await this.assertTypeEnabled(nextType, auth)
+    }
     const children = await this.orgRepo.findChildrenTypes(existing.id)
     if (children.some((child) => !canBeChildOf(toApiOrganizationType(child.type), nextType))) {
       throw new ConflictException('新组织类型与现有下级组织不兼容')

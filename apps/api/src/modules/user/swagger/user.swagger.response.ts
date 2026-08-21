@@ -325,12 +325,21 @@ export class UserInfoSwaggerDto {
   meta!: Record<string, unknown> | null
 }
 
+export class CreateUserResultSwaggerDto extends UserListItemSwaggerDto {
+  @ApiProperty({
+    description:
+      '仅创建时返回一次的临时登录密码。接入邮件后，用户可通过邀请链接设密并清除强制改密。',
+    example: 'TmpP@ssw0rd!xK3'
+  })
+  initialPassword!: string
+}
+
 export class CreateUserSuccessSwaggerDto extends ApiSuccessResponseBaseSwaggerDto {
   @ApiProperty({ example: 200 })
   declare code: number
 
-  @ApiProperty({ type: UserListItemSwaggerDto })
-  data!: UserListItemSwaggerDto
+  @ApiProperty({ type: CreateUserResultSwaggerDto })
+  data!: CreateUserResultSwaggerDto
 }
 
 export class UserListSuccessSwaggerDto extends ApiSuccessResponseBaseSwaggerDto {

@@ -6,19 +6,23 @@ import type { OrganizationResponse } from './responses/organization.response'
 const TYPE_TO_API: Record<OrganizationType, ApiType> = {
   GROUP: 'group',
   COMPANY: 'company',
+  DIVISION: 'division',
   BRANCH: 'branch',
   CENTER: 'center',
   DEPARTMENT: 'department',
-  TEAM: 'team'
+  TEAM: 'team',
+  PROJECT: 'project'
 }
 
 const TYPE_FROM_API: Record<ApiType, OrganizationType> = {
   group: 'GROUP',
   company: 'COMPANY',
+  division: 'DIVISION',
   branch: 'BRANCH',
   center: 'CENTER',
   department: 'DEPARTMENT',
-  team: 'TEAM'
+  team: 'TEAM',
+  project: 'PROJECT'
 }
 
 const USER_STATUS_TO_API: Record<UserStatusCode, OrganizationMember['accountStatus']> = {

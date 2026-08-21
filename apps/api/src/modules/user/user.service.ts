@@ -9,20 +9,23 @@ import { MembershipService } from '@/common/auth/membership.service'
 import { SessionService } from '@/common/auth/session.service'
 import { buildPaginationMeta, paginate } from '@/common/pagination'
 import argon2 from '@/common/utils/argon2'
+import { CONFIG_NAMESPACES } from '@/config'
+import { durationToSeconds } from '@/modules/auth/auth-cookie'
 
 import { findUsersQuerySchema } from './dto/find-users-query.dto'
+import { generateTemporaryPassword } from './generate-temporary-password'
 import {
   toAssignUserRolesResult,
   toReplaceUserOrganizationsResult,
   toUpdateUserResult,
   toUserInfoResponse,
-  toUserListItemResponse,
   toUserResponse
 } from './user.mapper'
 import { UserRepository } from './user.repository'
 
 import type { Prisma } from '@prisma/client'
 import type { AuthContext, UserGender } from '@zen/shared'
+import type { AuthConfig } from '@/config'
 import type { AssignUserRolesDto } from './dto/assign-user-roles.dto'
 import type { CreateUserDto } from './dto/create-user.dto'
 import type {
@@ -36,6 +39,7 @@ import type { UpdateUserDto } from './dto/update-user.dto'
 import type { UpdateUsersStatusDto } from './dto/update-users-status.dto'
 import type {
   AssignUserRolesResponse,
+  CreateUserResponse,
   ReplaceUserOrganizationsResponse,
   UpdateUserResponse,
   UserInfoResponse,
@@ -54,11 +58,17 @@ export class UserService {
     @Inject(MembershipService) private readonly membershipService: MembershipService,
     @Inject(SessionService) private readonly sessionService: SessionService,
     @Inject(AuditService) private readonly auditService: AuditService,
-    @Inject(AuthContextService) private readonly authContextService: AuthContextService
+    @Inject(AuthContextService) private readonly authContextService: AuthContextService,
+    @Inject(CONFIG_NAMESPACES.AUTH) private readonly authCfg: AuthConfig
   ) {}
 
-  async create(data: CreateUserDto): Promise<UserResponse> {
-    const hashedPassword = await argon2.hash(data.password)
+  private toUser(user: Parameters<typeof toUserResponse>[0]) {
+    return toUserResponse(user, durationToSeconds(this.authCfg.expiresIn) * 1000)
+  }
+
+  async create(data: CreateUserDto): Promise<CreateUserResponse> {
+    const initialPassword = data.password ?? generateTemporaryPassword()
+    const hashedPassword = await argon2.hash(initialPassword)
     const created = await this.userRepo.create({
       username: data.username,
       email: data.email,
@@ -75,6 +85,7 @@ export class UserService {
     })
 
     await this.userRepo.ensureDomainData(created.id)
+    await this.userRepo.updateSecurity(created.id, { mustChangePassword: true })
     await this.membershipService.ensureDefaultMembership(created.id)
 
     if (data.roleIds && data.roleIds.length > 0) {
@@ -91,10 +102,11 @@ export class UserService {
       action: 'system.user.created',
       resource: 'user',
       resourceId: created.id,
-      diff: { username: data.username, email: data.email }
+      diff: { username: data.username, email: data.email, mustChangePassword: true }
     })
 
-    return this.getUserById(created.id)
+    const user = await this.getUserById(created.id)
+    return { ...user, initialPassword }
   }
 
   findOne(where: Prisma.UserWhereUniqueInput) {
@@ -116,7 +128,7 @@ export class UserService {
     const user = await this.userRepo.findActiveWithDomainById(userId)
     if (!user) throw new NotFoundException('用户不存在')
 
-    return toUserResponse(user)
+    return this.toUser(user)
   }
 
   async updateMe(
@@ -287,13 +299,13 @@ export class UserService {
         findMany: ({ skip, take }) => this.userRepo.findManyWithDomain(where, skip, take, orderBy)
       })
 
-      return { items: items.map(toUserListItemResponse), pagination }
+      return { items: items.map((item) => this.toUser(item)), pagination }
     }
 
     const items = await this.userRepo.findManyWithDomain(where, undefined, undefined, orderBy)
     const total = items.length
     return {
-      items: items.map(toUserListItemResponse),
+      items: items.map((item) => this.toUser(item)),
       pagination: buildPaginationMeta(1, total, total)
     }
   }
@@ -321,7 +333,7 @@ export class UserService {
     }
 
     await this.userRepo.softDeleteByIds(ids)
-    return users.map(toUserListItemResponse)
+    return users.map((item) => this.toUser(item))
   }
 
   async hardRemove(ids: string[], currentUserId?: string): Promise<UserListItemResponse[]> {
@@ -346,7 +358,7 @@ export class UserService {
     }
 
     await this.userRepo.deleteManyByIds(normalizedIds)
-    return users.map(toUserListItemResponse)
+    return users.map((item) => this.toUser(item))
   }
 
   async restore(ids: string[]): Promise<UserListItemResponse[]> {
@@ -373,7 +385,7 @@ export class UserService {
     }
 
     await this.userRepo.restoreByIds(normalizedIds)
-    return deletedUsers.map(toUserListItemResponse)
+    return deletedUsers.map((item) => this.toUser(item))
   }
 
   async updateStatus(payload: UpdateUsersStatusDto): Promise<UserListItemResponse[]> {
@@ -397,7 +409,7 @@ export class UserService {
 
     await this.userRepo.updateStatusByIds(normalizedIds, toUserStatusCode(payload.status))
     const updatedUsers = await this.userRepo.findManyWithDomainByIds(normalizedIds)
-    return updatedUsers.map(toUserListItemResponse)
+    return updatedUsers.map((item) => this.toUser(item))
   }
 
   async ensureUserDomainData(userId: string) {
@@ -669,5 +681,6 @@ function buildUsersOrderBy(
   if (sortBy === 'username') return { username: direction }
   if (sortBy === 'email') return { email: direction }
   if (sortBy === 'lastLoginAt') return { audit: { lastLoginAt: direction } }
+  if (sortBy === 'lastActiveAt') return { audit: { lastActiveAt: direction } }
   return { createdAt: direction }
 }

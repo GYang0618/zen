@@ -1,9 +1,12 @@
 import {
-  canOrganizationBeChildOf,
-  formatAllowedParentTypeLabels,
-  getOrganizationTypeLabel
-} from './data/data'
+  formatCatalogAllowedParentTypeLabels,
+  formatFromNow,
+  getCatalogTypeLabel
+} from '@zen/shared'
 
+import { canOrganizationBeChildOf } from './data/data'
+
+import type { OrganizationTypeCatalog } from '@zen/shared'
 import type { Organization } from './type'
 
 export const POSITION_LEVEL_OPTIONS = [
@@ -85,6 +88,19 @@ export function filterOrganizationTreeByName(
 
 export function findOrganization(nodes: Organization[], id: string): Organization | undefined {
   return flattenOrganizations(nodes).find((node) => node.id === id)
+}
+
+/** 收集目标节点的全部祖先 id（近父在前） */
+export function collectAncestorIds(nodes: Organization[], id: string): string[] {
+  const ids: string[] = []
+  let current = findOrganization(nodes, id)
+
+  while (current?.parentId) {
+    ids.push(current.parentId)
+    current = findOrganization(nodes, current.parentId)
+  }
+
+  return ids
 }
 
 export function mapOrganizationTree(
@@ -242,18 +258,21 @@ export function getOrganizationDropRejectionMessage(
   nodes: Organization[],
   activeId: string,
   overId: string,
-  reason: OrganizationDropRejectionReason
+  reason: OrganizationDropRejectionReason,
+  catalog?: OrganizationTypeCatalog | null
 ): string {
   const activeNode = findOrganization(nodes, activeId)
   const overNode = findOrganization(nodes, overId)
-  const activeLabel = activeNode ? getOrganizationTypeLabel(activeNode.type) : '该组织'
-  const targetLabel = overNode ? getOrganizationTypeLabel(overNode.type) : '该组织'
+  const activeLabel = activeNode ? getCatalogTypeLabel(activeNode.type, catalog) : '该组织'
+  const targetLabel = overNode ? getCatalogTypeLabel(overNode.type, catalog) : '该组织'
 
   switch (reason) {
     case 'own-descendant':
       return `${activeLabel}不能拖拽到自身或其下级组织中`
     case 'incompatible-hierarchy': {
-      const allowedParents = activeNode ? formatAllowedParentTypeLabels(activeNode.type) : ''
+      const allowedParents = activeNode
+        ? formatCatalogAllowedParentTypeLabels(activeNode.type, catalog)
+        : ''
       return allowedParents
         ? `${activeLabel}不能作为${targetLabel}的下级组织，请拖拽到${allowedParents}下`
         : `${activeLabel}不允许移动到${targetLabel}下`
@@ -304,11 +323,5 @@ export function removeOrganizationFromTree(
 }
 
 export function formatEffectiveDate(value: string): string {
-  const date = new Date(`${value}T00:00:00`)
-  if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  }).format(date)
+  return formatFromNow(value)
 }

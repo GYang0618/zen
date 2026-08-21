@@ -7,7 +7,7 @@ export const Route = createFileRoute('/_authenticated/system/_identity/organizat
   component: Organizations,
   staticData: {
     title: '组织管理',
-    description: '企业组织架构管理，管理分公司、部门、业务中心与岗位编制关联',
+    description: '企业组织架构管理，管理部门、团队、分支机构与岗位编制关联',
     icon: FolderKanban,
     permissions: ['system:org:list']
   }

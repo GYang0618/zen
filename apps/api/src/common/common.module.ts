@@ -12,6 +12,7 @@ import { AuthContextService } from './auth/auth-context.service'
 import { MembershipService } from './auth/membership.service'
 import { PermissionCatalogSyncService } from './auth/permission-catalog-sync.service'
 import { SessionService } from './auth/session.service'
+import { UserActivityService } from './auth/user-activity.service'
 import { AllExceptionsFilter } from './filters/all-exceptions.filter'
 import { AuthGuard } from './guards/auth.guard'
 import { AuthContextGuard } from './guards/auth-context.guard'
@@ -49,6 +50,7 @@ import type { AuthConfig, SecurityConfig } from '@/config'
     AuthContextService,
     AuditService,
     SessionService,
+    UserActivityService,
     MembershipService,
     PermissionCatalogSyncService,
     TenantPluginStateService,
@@ -90,6 +92,7 @@ import type { AuthConfig, SecurityConfig } from '@/config'
     AuthContextService,
     AuditService,
     SessionService,
+    UserActivityService,
     MembershipService,
     PermissionCatalogSyncService,
     TenantPluginStateService

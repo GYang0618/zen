@@ -1,4 +1,4 @@
-import { PermissionCode } from '@zen/shared'
+import { formatFromNow, PermissionCode } from '@zen/shared'
 import {
   Avatar,
   AvatarFallback,
@@ -41,18 +41,6 @@ type RoleMembersProps = {
 
 function displayName(user: { nickname: string | null; realName: string | null; username: string }) {
   return user.realName || user.nickname || user.username
-}
-
-function formatDate(value: string) {
-  try {
-    return new Intl.DateTimeFormat('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    }).format(new Date(value))
-  } catch {
-    return value
-  }
 }
 
 function initials(name: string) {
@@ -141,7 +129,7 @@ export function RoleMembers({ roleId, roleName, memberCount }: RoleMembersProps)
                       ) : null}
                     </ItemTitle>
                     <ItemDescription>
-                      {user.email} · 绑定于 {formatDate(user.boundAt)}
+                      {user.email} · 绑定于 {formatFromNow(user.boundAt)}
                     </ItemDescription>
                   </ItemContent>
                   <ItemActions>

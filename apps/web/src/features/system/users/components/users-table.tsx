@@ -39,6 +39,7 @@ const USERS_SORTABLE_COLUMNS: Record<UsersSortBy, true> = {
   username: true,
   email: true,
   lastLoginAt: true,
+  lastActiveAt: true,
   createdAt: true
 }
 

@@ -1,7 +1,7 @@
 import { ChatOpenAI } from '@langchain/openai'
 
 export const qwenModel = new ChatOpenAI({
-  model: 'qwen3.7-max',
+  model: 'qwen3.7-max-preview',
   temperature: 0,
   streaming: true
 })

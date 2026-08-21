@@ -1,75 +1,83 @@
-import { PermissionCode, POSITION_MEMBER_PREVIEW_LIMIT } from '@zen/shared'
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarGroup,
-  AvatarGroupCount,
-  AvatarImage,
-  Badge,
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
   cn,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  Field,
-  FieldLabel,
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-  Separator,
   Skeleton
 } from '@zen/ui'
-import { Ban, Building2, CalendarDays, MoreHorizontal, Pencil, Search, Trash2 } from 'lucide-react'
-import { DynamicIcon } from 'lucide-react/dynamic'
-import { useMemo, useState } from 'react'
+import { BriefcaseBusiness, Search } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
-import { Can } from '@/components/auth/can'
 import { FacetedFilter } from '@/components/faceted-filter'
 
-import { getJobProfileIconColorClassName } from '../data'
-import { usePosts } from '../posts-provider'
-import { useJobProfilesQuery } from '../queries'
-import { formatJobProfileLevel, formatJobProfileStatus, JOB_PROFILE_STATUS_OPTIONS } from '../utils'
+import { JOB_PROFILE_STATUS_OPTIONS } from '../utils'
+import { PostsCard } from './posts-card'
 
 import type { JobProfile, JobProfileStatus } from '@zen/shared'
+import type { NavigateFn } from '@/hooks'
 
-function formatUpdatedAt(value: string): string {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-
-  return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).format(date)
+type PostsSearch = {
+  keyword?: string
+  page?: number
+  pageSize?: number
+  status?: JobProfileStatus | JobProfileStatus[]
 }
 
-export function PostsList() {
-  const { setOpen, setCurrentRow } = usePosts()
-  const [keyword, setKeyword] = useState('')
-  const [statusFilter, setStatusFilter] = useState<JobProfileStatus[]>([])
+type PostsListProps = {
+  data: JobProfile[]
+  isLoading?: boolean
+  isFetching?: boolean
+  isError?: boolean
+  search: PostsSearch
+  navigate: NavigateFn
+}
 
-  const query = useMemo(
-    () => ({
-      page: 1,
-      pageSize: 100,
-      keyword: keyword.trim() || undefined,
-      status: statusFilter[0]
-    }),
-    [keyword, statusFilter]
-  )
+function toFilterArray<T>(value: T | T[] | undefined): T[] {
+  if (value == null) return []
+  return Array.isArray(value) ? value : [value]
+}
 
-  const { data, isLoading, isError } = useJobProfilesQuery(query)
-  const profiles = data?.items ?? []
+const SKELETON_COUNT = 8
+const SEARCH_DEBOUNCE_MS = 300
+
+export function PostsList({
+  data,
+  isLoading = false,
+  isFetching = false,
+  isError = false,
+  search,
+  navigate
+}: PostsListProps) {
+  const [keyword, setKeyword] = useState(search.keyword ?? '')
+  const statusFilter = toFilterArray(search.status)
+  const showSkeleton = isLoading && data.length === 0
+
+  useEffect(() => {
+    setKeyword(search.keyword ?? '')
+  }, [search.keyword])
+
+  useEffect(() => {
+    const next = keyword.trim() || undefined
+    if (next === (search.keyword || undefined)) return
+    const timer = window.setTimeout(() => {
+      navigate({
+        search: (prev) => ({
+          ...prev,
+          page: undefined,
+          keyword: next
+        })
+      })
+    }, SEARCH_DEBOUNCE_MS)
+    return () => window.clearTimeout(timer)
+  }, [keyword, navigate, search.keyword])
 
   return (
-    <>
+    <div className="flex flex-col gap-4">
       <section className="flex flex-wrap gap-4">
         <InputGroup className="max-w-sm min-w-56 flex-1">
           <InputGroupInput
@@ -88,175 +96,49 @@ export function PostsList() {
             value: item.value
           }))}
           value={statusFilter}
-          onValueChange={(values) => setStatusFilter(values as JobProfileStatus[])}
+          onValueChange={(values) =>
+            navigate({
+              search: (prev) => ({
+                ...prev,
+                page: undefined,
+                status: values.length > 0 ? values : undefined
+              })
+            })
+          }
         />
       </section>
 
-      {isLoading ? (
+      {isError ? <p className="text-sm text-destructive">岗位列表加载失败</p> : null}
+
+      {showSkeleton ? (
         <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2 @2xl:grid-cols-3 @4xl:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, index) => (
-            <Skeleton key={index} className="h-64 rounded-xl" />
+          {Array.from({ length: SKELETON_COUNT }).map((_, index) => (
+            <Skeleton key={`post-card-skeleton-${index}`} className="h-64 rounded-xl" />
           ))}
         </div>
       ) : null}
 
-      {isError ? <p className="text-sm text-destructive">岗位列表加载失败</p> : null}
+      {!showSkeleton && !isError && data.length === 0 ? (
+        <Empty className="border border-dashed">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <BriefcaseBusiness />
+            </EmptyMedia>
+            <EmptyTitle>没有结果</EmptyTitle>
+            <EmptyDescription>当前没有可展示的岗位目录</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      ) : null}
 
-      {!isLoading && !isError ? (
-        <section className="@container">
-          {profiles.length ? (
-            <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2 @2xl:grid-cols-3 @4xl:grid-cols-4">
-              {profiles.map((item) => (
-                <JobProfileCard
-                  key={item.id}
-                  item={item}
-                  onEdit={() => {
-                    setCurrentRow(item)
-                    setOpen('edit')
-                  }}
-                  onDisable={() => {
-                    setCurrentRow(item)
-                    setOpen('disable')
-                  }}
-                  onDelete={() => {
-                    setCurrentRow(item)
-                    setOpen('delete')
-                  }}
-                />
-              ))}
-            </div>
-          ) : (
-            <p className="py-12 text-center text-sm text-muted-foreground">暂无岗位目录</p>
-          )}
+      {!showSkeleton && data.length > 0 ? (
+        <section className={cn('@container transition-opacity', isFetching && 'opacity-70')}>
+          <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2 @2xl:grid-cols-3 @4xl:grid-cols-4">
+            {data.map((item) => (
+              <PostsCard key={item.id} item={item} />
+            ))}
+          </div>
         </section>
       ) : null}
-    </>
-  )
-}
-
-type JobProfileCardProps = {
-  item: JobProfile
-  onEdit: () => void
-  onDisable: () => void
-  onDelete: () => void
-}
-
-function JobProfileCard({ item, onEdit, onDisable, onDelete }: JobProfileCardProps) {
-  const previewMembers = (item.memberPreview ?? []).slice(0, POSITION_MEMBER_PREVIEW_LIMIT)
-  const overflowCount = Math.max(item.activeCount - previewMembers.length, 0)
-
-  return (
-    <Card className="gap-3">
-      <CardHeader>
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
-            <div
-              className={cn(
-                'flex size-8 shrink-0 items-center justify-center rounded-lg',
-                getJobProfileIconColorClassName(item.iconColor)
-              )}
-            >
-              <DynamicIcon
-                name={item.icon ?? 'briefcase-business'}
-                className="size-4"
-                aria-hidden
-              />
-            </div>
-            <span className="truncate text-xs">{item.code}</span>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-1">
-            <Badge
-              variant="outline"
-              className={cn(
-                item.status === 'active'
-                  ? 'border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
-                  : 'border-muted-foreground/30'
-              )}
-            >
-              {formatJobProfileStatus(item.status)}
-            </Badge>
-
-            <Can permission={PermissionCode.POST_MANAGE}>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={`打开${item.name}的操作`}
-                  >
-                    <MoreHorizontal />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-36">
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem onSelect={onEdit}>
-                      <Pencil />
-                      编辑
-                    </DropdownMenuItem>
-                    {item.status === 'active' ? (
-                      <DropdownMenuItem variant="destructive" onSelect={onDisable}>
-                        <Ban />
-                        停用
-                      </DropdownMenuItem>
-                    ) : null}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem variant="destructive" onSelect={onDelete}>
-                      <Trash2 />
-                      删除
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </Can>
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent>
-        <h2 className="text-base font-semibold">{item.name}</h2>
-        <p className="mt-1 text-muted-foreground">{formatJobProfileLevel(item.level)}</p>
-        {item.family ? (
-          <p className="mt-1 text-xs text-muted-foreground">岗位族 · {item.family}</p>
-        ) : null}
-        <p className="mt-3 line-clamp-2 min-h-10 text-sm leading-5 text-muted-foreground">
-          {item.description || '暂无描述'}
-        </p>
-        <div className="mt-2 flex min-h-8 items-center justify-between gap-3">
-          <span className="flex items-center gap-2 text-muted-foreground" title="最后更新时间">
-            <CalendarDays className="size-4" aria-hidden />
-            {formatUpdatedAt(item.updatedAt)}
-          </span>
-          {previewMembers.length > 0 ? (
-            <AvatarGroup>
-              {previewMembers.map((member) => (
-                <Avatar key={member.id} size="sm" title={member.name}>
-                  {member.avatar ? <AvatarImage src={member.avatar} alt={member.name} /> : null}
-                  <AvatarFallback>{member.name.slice(0, 1)}</AvatarFallback>
-                </Avatar>
-              ))}
-              {overflowCount > 0 ? (
-                <AvatarGroupCount title={`另有 ${overflowCount} 人`}>
-                  +{overflowCount}
-                </AvatarGroupCount>
-              ) : null}
-            </AvatarGroup>
-          ) : null}
-        </div>
-        <Separator className="mt-4 mb-3" />
-        <Field>
-          <FieldLabel>
-            <span className="flex items-center gap-1.5 text-sm">
-              <Building2 className="size-3.5 text-muted-foreground" aria-hidden />
-              已关联 {item.organizationCount} 个组织
-            </span>
-            <span className="ml-auto text-xs text-muted-foreground">
-              总编制 {item.totalHeadcount}
-            </span>
-          </FieldLabel>
-        </Field>
-      </CardContent>
-    </Card>
+    </div>
   )
 }
