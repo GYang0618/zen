@@ -53,6 +53,16 @@ function toGender(gender?: Gender | null): UserGender {
   return gender ? GENDER_MAP[gender] : 'unknown'
 }
 
+export function toBirthdayDate(value: string | null): Date | null {
+  if (value === null) return null
+  return new Date(`${value}T00:00:00.000Z`)
+}
+
+export function toBirthdayString(value: Date | null | undefined): string | null {
+  if (!value) return null
+  return value.toISOString().slice(0, 10)
+}
+
 function toMfaType(mfaType?: MfaType | null): UserMfaType {
   return mfaType ? MFA_TYPE_MAP[mfaType] : 'off'
 }
@@ -229,7 +239,8 @@ export function toUserInfoResponse(user: UserWithDomain): UserInfoResponse {
       nickname: user.nickname ?? null,
       realName: profile?.realName ?? null,
       avatar: profile?.avatar ?? null,
-      gender: toGender(profile?.gender)
+      gender: toGender(profile?.gender),
+      birthday: toBirthdayString(profile?.birthday)
     },
     contact: {
       email: user.email,

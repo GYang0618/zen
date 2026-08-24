@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import {
   Button,
   Calendar,
@@ -12,18 +13,18 @@ import {
   Textarea
 } from '@zen/ui'
 import { CalendarIcon, Loader2 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
-import { request } from '@/lib/request'
+import { authApi } from '@/features/auth/api'
+import { uploadWithIntent } from '@/lib/storage-upload'
 
 import { SectionContent } from '../components/section-content'
-import { useMeQuery, useUpdateMeMutation } from '../queries'
+import { settingsV2Keys, useApplyMeSession, useMeQuery, useUpdateMeMutation } from '../queries'
+import { buildProfileUpdate, formatBirthday, parseBirthday } from './profile-form'
 import { ProfilePhotoField } from './profile-photo-field'
 
-import type { StoredFileDto } from '@zen/plugin-files'
-import type { MutableRefObject } from 'react'
-
-const BIRTHDAY_START_MONTH = new Date(1925, 0)
+const BIRTHDAY_START_MONTH = new Date(1900, 0)
 const BIRTHDAY_FORMATTER = new Intl.DateTimeFormat('zh-CN', {
   year: 'numeric',
   month: 'long',
@@ -31,7 +32,9 @@ const BIRTHDAY_FORMATTER = new Intl.DateTimeFormat('zh-CN', {
 })
 
 export function SettingsProfile() {
+  const queryClient = useQueryClient()
   const { data: me, isLoading } = useMeQuery()
+  const applyMeSession = useApplyMeSession()
   const updateMe = useUpdateMeMutation()
 
   const fallbackLabel = me?.profile.nickname ?? me?.profile.username ?? '用户'
@@ -41,10 +44,11 @@ export function SettingsProfile() {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [bio, setBio] = useState('')
-  const avatarFileRef = useRef<File | null>(null) as MutableRefObject<File | null>
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarRemoved, setAvatarRemoved] = useState(false)
   const [birthday, setBirthday] = useState<Date>()
   const [birthdayOpen, setBirthdayOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (!me) return
@@ -53,39 +57,76 @@ export function SettingsProfile() {
     setEmail(me.contact.email)
     setPhone(me.contact.phoneNumber ?? '')
     setBio(me.remark ?? '')
+    setBirthday(me.profile.birthday ? parseBirthday(me.profile.birthday) : undefined)
   }, [me])
 
+  const { payload, isDirty } = me
+    ? buildProfileUpdate(
+        {
+          nickname: me.profile.nickname ?? '',
+          phone: me.contact.phoneNumber ?? '',
+          bio: me.remark ?? '',
+          birthday: me.profile.birthday,
+          hasAvatar: Boolean(me.profile.avatar)
+        },
+        {
+          nickname,
+          phone,
+          bio,
+          birthday: birthday ? formatBirthday(birthday) : null,
+          hasAvatarFile: avatarFile !== null,
+          avatarRemoved
+        }
+      )
+    : { payload: {}, isDirty: false }
+
   const handleAvatarChange = (file: File | null) => {
-    avatarFileRef.current = file
+    setAvatarFile(file)
     setAvatarRemoved(file === null)
   }
 
-  const [submitting, setSubmitting] = useState(false)
+  const refreshMeAfterAvatar = async () => {
+    const nextMe = await queryClient.fetchQuery({
+      queryKey: settingsV2Keys.me(),
+      queryFn: () => authApi.getMe()
+    })
+    applyMeSession(nextMe)
+    toast.success('已保存')
+  }
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
-    setSubmitting(true)
+    if (!isDirty) return
 
+    setSubmitting(true)
+    const selectedFile = avatarFile
+    let stage: 'upload' | 'patch' | 'refresh' = 'upload'
     try {
-      let avatarUrl: string | null | undefined
-      if (avatarFileRef.current) {
-        const formData = new FormData()
-        formData.append('file', avatarFileRef.current)
-        const uploaded = await request.post<StoredFileDto>('/files/upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
+      if (selectedFile) {
+        await uploadWithIntent({
+          file: selectedFile,
+          purpose: 'avatar',
+          endpoint: 'avatar'
         })
-        avatarUrl = uploaded.url
-        avatarFileRef.current = null
-      } else if (avatarRemoved) {
-        avatarUrl = null
+        setAvatarFile(null)
       }
 
-      updateMe.mutate({
-        nickname: nickname || undefined,
-        phoneNumber: phone || null,
-        bio: bio || null,
-        ...(avatarUrl !== undefined ? { avatar: avatarUrl } : {})
-      })
+      if (Object.keys(payload).length > 0) {
+        stage = 'patch'
+        await updateMe.mutateAsync(payload)
+        setAvatarRemoved(false)
+        return
+      }
+
+      if (selectedFile) {
+        stage = 'refresh'
+        await refreshMeAfterAvatar()
+      }
+    } catch (error) {
+      if (stage === 'patch') return
+      toast.error(
+        error instanceof Error ? error.message : stage === 'upload' ? '头像上传失败' : '保存失败'
+      )
     } finally {
       setSubmitting(false)
     }
@@ -123,13 +164,7 @@ export function SettingsProfile() {
           </Field>
           <Field>
             <FieldLabel htmlFor="username">用户名</FieldLabel>
-            <Input
-              id="username"
-              type="text"
-              placeholder="admin"
-              value={username}
-              disabled
-            />
+            <Input id="username" type="text" placeholder="admin" value={username} disabled />
             <FieldDescription>
               这是您的公开显示名称。既可以是您的真实姓名，也可以是化名。每 30 天仅可更改一次。
             </FieldDescription>
@@ -161,36 +196,46 @@ export function SettingsProfile() {
           <Field>
             <FieldLabel htmlFor="birthday">生日</FieldLabel>
 
-            <Popover open={birthdayOpen} onOpenChange={setBirthdayOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  id="birthday"
-                  type="button"
-                  variant="outline"
-                  data-empty={!birthday}
-                  className="justify-between font-normal data-[empty=true]:text-muted-foreground"
-                >
-                  {birthday ? BIRTHDAY_FORMATTER.format(birthday) : '选择您的出生日期'}
-                  <CalendarIcon data-icon="inline-start" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={birthday}
-                  onSelect={(date) => {
-                    setBirthday(date)
-                    setBirthdayOpen(false)
-                  }}
-                  captionLayout="dropdown"
-                  startMonth={BIRTHDAY_START_MONTH}
-                  endMonth={new Date()}
-                  disabled={{ after: new Date() }}
-                  defaultMonth={birthday ?? new Date(1995, 0)}
-                  autoFocus
-                />
-              </PopoverContent>
-            </Popover>
+            <div className="flex items-center gap-2">
+              <Popover open={birthdayOpen} onOpenChange={setBirthdayOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="birthday"
+                    type="button"
+                    variant="outline"
+                    data-empty={!birthday}
+                    className="flex-1 justify-between font-normal data-[empty=true]:text-muted-foreground"
+                  >
+                    {birthday ? BIRTHDAY_FORMATTER.format(birthday) : '选择您的出生日期'}
+                    <CalendarIcon data-icon="inline-start" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={birthday}
+                    onSelect={(date) => {
+                      setBirthday(date)
+                      setBirthdayOpen(false)
+                    }}
+                    captionLayout="dropdown"
+                    startMonth={BIRTHDAY_START_MONTH}
+                    endMonth={new Date()}
+                    disabled={{ after: new Date() }}
+                    defaultMonth={birthday ?? new Date(1995, 0)}
+                    autoFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={!birthday}
+                onClick={() => setBirthday(undefined)}
+              >
+                清除
+              </Button>
+            </div>
 
             <FieldDescription>您的出生日期用于计算您的年龄。</FieldDescription>
           </Field>
@@ -205,8 +250,10 @@ export function SettingsProfile() {
             <FieldDescription>您可以使用 @ 符号提及其他用户和组织，从而建立链接。</FieldDescription>
           </Field>
           <Field orientation="horizontal">
-            <Button type="submit" disabled={submitting || updateMe.isPending}>
-              {submitting || updateMe.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+            <Button type="submit" disabled={!isDirty || submitting || updateMe.isPending}>
+              {submitting || updateMe.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : null}
               更新个人资料
             </Button>
           </Field>

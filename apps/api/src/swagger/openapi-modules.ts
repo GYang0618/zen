@@ -6,6 +6,7 @@ export const OPENAPI_REQUIRED_MODULE_NAMES = [
   'AuthModule',
   'HealthModule',
   'UserModule',
+  'StorageModule',
   'RoleModule',
   'OrganizationModule',
   'DictModule',

@@ -160,3 +160,43 @@ export function applyOrgScopedResourceDataScope(
 function nonemptyIds(ids: string[] | undefined): string[] {
   return ids && ids.length > 0 ? ids : ['__none__']
 }
+
+/**
+ * 文件专用范围：自己的文件 OR 授权组织文件。tenantId 由调用方作为外层 AND。
+ */
+export function applyFileDataScope(
+  auth: Pick<
+    AuthContext,
+    'userId' | 'isAdmin' | 'dataScope' | 'orgIds' | 'primaryOrgPath' | 'customOrgIds'
+  >
+): Record<string, unknown> {
+  if (auth.isAdmin || auth.dataScope === 'all') {
+    return {}
+  }
+
+  const ownFiles = { ownerId: auth.userId }
+
+  switch (auth.dataScope) {
+    case 'self':
+      return ownFiles
+    case 'org':
+      return {
+        OR: [ownFiles, { organizationId: { in: nonemptyIds(auth.orgIds) } }]
+      }
+    case 'org_and_child':
+      if (auth.primaryOrgPath) {
+        return {
+          OR: [ownFiles, { organization: { path: { startsWith: auth.primaryOrgPath } } }]
+        }
+      }
+      return {
+        OR: [ownFiles, { organizationId: { in: nonemptyIds(auth.orgIds) } }]
+      }
+    case 'custom':
+      return {
+        OR: [ownFiles, { organizationId: { in: nonemptyIds(auth.customOrgIds) } }]
+      }
+    default:
+      return ownFiles
+  }
+}

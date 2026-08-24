@@ -153,7 +153,7 @@ export const updateUserSchema = z
     phoneNumber: phoneNumberSchema.nullable().optional().describe('手机号码'),
     gender: userGenderSchema.optional().describe('性别'),
     remark: remarkSchema.nullable().optional().describe('备注'),
-    avatar: z.string().trim().max(500).nullable().optional().describe('头像 URL')
+    avatar: z.string().trim().max(2048).nullable().optional().describe('头像文件 ID 或兼容 URL')
   })
   .strict()
 

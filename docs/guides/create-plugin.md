@@ -13,7 +13,7 @@
    - `packages/plugin-registry/src/generated/*`
 7. `pnpm -F api check-types` / `pnpm -F web check-types`
 
-参考实现：`plugins/demo-notes`、`plugins/notifications`、`plugins/files`、`plugins/jobs`。
+参考实现：`plugins/demo-notes`、`plugins/notifications`、`plugins/jobs`。文件上传为内核能力，见 [ADR-003](../adr/003-file-storage-kernel.md)。
 
 ## Manifest v2 要点
 

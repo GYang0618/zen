@@ -296,7 +296,7 @@ model User {
   /// 站内通知
   notifications       Notification[]
   /// 上传文件
-  storedFiles         StoredFile[]
+  fileAssets          FileAsset[]
   /// 用户组织岗位关联（一对多）
   organizations       UserOrganization[]
   /// 负责的组织集合（一对多）
@@ -320,6 +320,8 @@ model UserProfile {
   avatar    String?
   /// 性别
   gender    Gender   @default(UNKNOWN)
+  /// 出生日期
+  birthday  DateTime? @db.Date
   /// 职位名称
   jobTitle  String?  @map("job_title")
   /// 备注
@@ -515,6 +517,8 @@ model Organization {
   users     UserOrganization[]
   /// 演示便签（参考插件）
   demoNotes DemoNote[]
+  /// 组织文件
+  fileAssets FileAsset[]
 
   @@index([parentId])
   @@index([leaderId])
@@ -818,24 +822,80 @@ model Notification {
   @@map("notifications")
 }
 
-/// 文件对象元数据（files 插件）
-model StoredFile {
-  id         String    @id @default(cuid())
-  tenantId   String    @default("cmtenant00000000000000001") @map("tenant_id")
-  ownerId    String    @map("owner_id")
-  filename   String
-  mimeType   String?   @map("mime_type")
-  size       Int       @default(0)
-  storageKey String    @map("storage_key")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-  deletedAt  DateTime? @map("deleted_at")
+/// 文件对象元数据（内核存储）
+model FileAsset {
+  id             String    @id @default(cuid())
+  tenantId       String    @default("cmtenant00000000000000001") @map("tenant_id")
+  ownerId        String    @map("owner_id")
+  organizationId String?   @map("organization_id")
+  purpose        String
+  category       String    @default("other")
+  status         String
+  originalName   String    @map("original_name")
+  declaredMime   String    @map("declared_mime")
+  detectedMime   String?   @map("detected_mime")
+  size           Int       @default(0)
+  sha256         String?
+  provider       String    @default("s3")
+  storageKey     String    @map("storage_key")
+  expiresAt      DateTime? @map("expires_at")
+  deletedAt      DateTime? @map("deleted_at")
+  purgeAfter     DateTime? @map("purge_after")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner        User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  sessions     UploadSession[]
+  bindings     FileBinding[]
 
   @@index([tenantId, ownerId])
+  @@index([tenantId, status])
+  @@index([tenantId, purpose])
+  @@index([tenantId, category])
+  @@index([organizationId])
   @@index([deletedAt])
-  @@map("stored_files")
+  @@index([purgeAfter])
+  @@index([sha256])
+  @@map("file_assets")
+}
+
+/// 预签名上传会话
+model UploadSession {
+  id               String    @id @default(cuid())
+  tenantId         String    @default("cmtenant00000000000000001") @map("tenant_id")
+  fileId           String    @map("file_id")
+  strategy         String    @default("presign_put")
+  providerUploadId String?   @map("provider_upload_id")
+  idempotencyKey   String?   @map("idempotency_key")
+  status           String
+  expiresAt        DateTime  @map("expires_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  file FileAsset @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([fileId])
+  @@index([expiresAt, status])
+  @@map("upload_sessions")
+}
+
+/// 文件与业务资源绑定
+model FileBinding {
+  id           String   @id @default(cuid())
+  tenantId     String   @default("cmtenant00000000000000001") @map("tenant_id")
+  fileId       String   @map("file_id")
+  resourceType String   @map("resource_type")
+  resourceId   String   @map("resource_id")
+  relation     String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  file FileAsset @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@unique([fileId, resourceType, resourceId, relation])
+  @@index([tenantId, resourceType, resourceId])
+  @@map("file_bindings")
 }
 
 /// 异步任务记录（jobs 插件）

@@ -8,6 +8,7 @@ import type {
   langgraphConfig,
   loggerConfig,
   securityConfig,
+  storageConfig,
   swaggerConfig
 } from './modules'
 
@@ -17,6 +18,7 @@ export type DatabaseConfig = ConfigType<typeof databaseConfig>
 export type LanggraphConfig = ConfigType<typeof langgraphConfig>
 export type LoggerConfig = ConfigType<typeof loggerConfig>
 export type SecurityConfig = ConfigType<typeof securityConfig>
+export type StorageConfig = ConfigType<typeof storageConfig>
 export type SwaggerConfig = ConfigType<typeof swaggerConfig>
 
 export type Configs = {
@@ -26,5 +28,6 @@ export type Configs = {
   [CONFIG_NAMESPACES.LANGGRAPH]: LanggraphConfig
   [CONFIG_NAMESPACES.LOGGER]: LoggerConfig
   [CONFIG_NAMESPACES.SECURITY]: SecurityConfig
+  [CONFIG_NAMESPACES.STORAGE]: StorageConfig
   [CONFIG_NAMESPACES.SWAGGER]: SwaggerConfig
 }

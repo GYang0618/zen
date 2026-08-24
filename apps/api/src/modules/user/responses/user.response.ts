@@ -44,6 +44,7 @@ export interface UserInfoResponse {
     realName: string | null
     avatar: string | null
     gender: UserGender | null
+    birthday: string | null
   }
   contact: {
     email: string

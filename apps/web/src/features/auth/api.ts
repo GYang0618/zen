@@ -30,6 +30,7 @@ export interface MeResponse {
     realName: string | null
     avatar: string | null
     gender: 'male' | 'female' | 'unknown' | null
+    birthday: string | null
   }
   contact: {
     email: string

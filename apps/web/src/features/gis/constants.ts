@@ -1,9 +1,1 @@
-export const BIM_TILESET_URL = '/oss/models/building/tileset.json'
-
-/** 北京市中心（天安门广场附近）WGS84 */
-export const BEIJING_CAPITAL = {
-  longitude: 116.397128,
-  latitude: 39.916527,
-  /** 椭球面高程（米），可按场地抬升 */
-  height: 0
-} as const
+export const CESIUM_DEFAULT_TOKEN = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6InI0RTBnenFLV0E4X3RoZmkiLCJqdGkiOiJjM2IwOGI4MC01N2UwLTRlNDQtYTkzNC0zYWNkN2U3MzdiYzUiLCJpZCI6NDM5Njk5LCJzdWIiOiJCYWlsaW55aXlpIiwiaXNzIjoiaHR0cHM6Ly9hcGkuY2VzaXVtLmNvbSIsImF1ZCI6IkJhaWxpbnlpeWlfZGVmYXVsdCIsImlhdCI6MTc4NzU0MzAxNn0.bIIN3xEiN8LC5TaD_dPPNEe-0FGEdSSP0V3Q5iFZdrQ`

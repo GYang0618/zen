@@ -24,7 +24,7 @@ flowchart LR
 | 1 | 平台内核 | AUTH-*、USER-*、RBAC-*、ORG-*、NAV-*、CFG-01/02、AUDIT-* |
 | 2 | 插件内核 | PLG-01..05、CFG-03 |
 | 3 | 参考插件 | PLG-07、AI-02（可选） |
-| 4 | 能力插件与 DX | NOTIF-*、FILE-*、JOB-*、PLG-06、OPEN-01 |
+| 4 | 能力插件与 DX | NOTIF-*、JOB-*、PLG-06、OPEN-01；FILE-* 已归内核 |
 | 5 | 生产化与条件演进 | 容器、观测、RBAC-08+、TENANT-*、PLG-08 |
 
 ---
@@ -232,7 +232,7 @@ Phase 2。
 
 ### 工作包
 
-1. `plugin-notifications`、`plugin-files`、`plugin-jobs`（可分批）
+1. `plugin-notifications`、`plugin-jobs`（可分批）；文件上传已上收内核（ADR-003）
 2. Webhook 出站插件（可选批次）
 3. `create-plugin` 脚手架（Manifest + 目录模板）
 4. 工作台 widget 贡献点落地

@@ -27,17 +27,6 @@ export const PLUGIN_WEB_ROUTES = [
     componentExport: 'NotesPage' as const
   },
   {
-    pluginId: 'files' as const,
-    routeId: 'files-home' as const,
-    path: '/plugins/files' as const,
-    title: "文件管理",
-    icon: 'folder-kanban' as const,
-    order: 120,
-    permissions: ["file:object:list"] as readonly string[],
-    packageName: '@zen/plugin-files' as const,
-    componentExport: 'FilesPage' as const
-  },
-  {
     pluginId: 'jobs' as const,
     routeId: 'jobs-home' as const,
     path: '/plugins/jobs' as const,

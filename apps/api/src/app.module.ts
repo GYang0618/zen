@@ -15,6 +15,7 @@ import {
   PluginModule,
   PostModule,
   RoleModule,
+  StorageModule,
   UserModule
 } from '@/modules'
 import { PluginsModule } from '@/plugins.module'
@@ -28,6 +29,7 @@ import { PluginsModule } from '@/plugins.module'
     AuthModule,
     HealthModule,
     UserModule,
+    StorageModule,
     RoleModule,
     OrganizationModule,
     PostModule,

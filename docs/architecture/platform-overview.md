@@ -52,7 +52,7 @@ flowchart TB
 | **Agent Runtime** | LangGraph 图、Tool 注册、Copilot 中间件 |
 | **Plugin Runtime** | Manifest 加载（编译期静态聚合）、贡献点注册表、生命周期 |
 | **PostgreSQL** | 唯一主数据存储（第一阶段） |
-| **Object Storage** | 文件插件可选依赖；第一阶段可本地落盘 |
+| **Object Storage** | 内核存储适配器；Docker 私有化 MinIO（S3 兼容），预签名直传 |
 
 > Redis / 消息队列：**预留**，仅在多实例、任务吞吐、会话集中撤销等触发条件满足后引入（见 [roadmap Phase 5](../implementation/roadmap.md)）。
 
@@ -102,7 +102,8 @@ flowchart TB
 
 | 属于内核（kernel） | 属于插件（plugin） |
 |--------------------|--------------------|
-| 登录会话、Tenant Context | 通知、文件、异步任务 |
+| 登录会话、Tenant Context | 通知、异步任务 |
+| 文件上传、对象存储、附件引用 | 文件管理器级产品能力（分享外链等，若后续需要） |
 | User / Org / Role / Permission | Webhook、报表、SSO |
 | PermissionGuard、DataScope 过滤 | 垂直业务（BIM、GIS、行业模块） |
 | 菜单 Shell、路由聚合算法 | 具体业务页面与 API |

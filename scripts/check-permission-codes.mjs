@@ -63,7 +63,7 @@ function loadPluginCodes() {
     const manifestPath = path.join(pluginsDir, entry.name, 'zen.plugin.json')
     if (!fs.existsSync(manifestPath)) continue
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
-    const permissions = manifest.contributions?.permissions ?? []
+    const permissions = manifest.permissions ?? manifest.contributions?.permissions ?? []
     for (const permission of permissions) {
       if (permission.code) codes.add(permission.code)
     }

@@ -36,13 +36,13 @@ import { Route as AuthenticatedWorkbenchGisRouteImport } from './routes/_authent
 import { Route as AuthenticatedAiAgentsRouteImport } from './routes/_authenticated/ai/agents'
 import { Route as AuthenticatedAiSkillsRouteImport } from './routes/_authenticated/ai/skills'
 import { Route as AuthenticatedAiWorkflowsRouteImport } from './routes/_authenticated/ai/workflows'
-import { Route as AuthenticatedPluginsFilesRouteImport } from './routes/_authenticated/plugins/files'
 import { Route as AuthenticatedPluginsJobsRouteImport } from './routes/_authenticated/plugins/jobs'
 import { Route as AuthenticatedPluginsNotesRouteImport } from './routes/_authenticated/plugins/notes'
 import { Route as AuthenticatedPluginsNotificationsRouteImport } from './routes/_authenticated/plugins/notifications'
 import { Route as AuthenticatedSystemIdentityRouteRouteImport } from './routes/_authenticated/system/_identity/route'
 import { Route as AuthenticatedSystemArrayDictV2RouteImport } from './routes/_authenticated/system/array-dict-v2'
 import { Route as AuthenticatedSystemDictRouteImport } from './routes/_authenticated/system/dict'
+import { Route as AuthenticatedSystemFilesRouteImport } from './routes/_authenticated/system/files'
 import { Route as AuthenticatedSystemIconSetRouteImport } from './routes/_authenticated/system/icon-set'
 import { Route as AuthenticatedSystemPluginsRouteImport } from './routes/_authenticated/system/plugins'
 import { Route as AuthenticatedOtherSettingsV2AccountRouteImport } from './routes/_authenticated/_other/settings-v2/account'
@@ -206,12 +206,6 @@ const AuthenticatedAiWorkflowsRoute =
     path: '/workflows',
     getParentRoute: () => AuthenticatedAiRouteRoute,
   } as any)
-const AuthenticatedPluginsFilesRoute =
-  AuthenticatedPluginsFilesRouteImport.update({
-    id: '/files',
-    path: '/files',
-    getParentRoute: () => AuthenticatedPluginsRouteRoute,
-  } as any)
 const AuthenticatedPluginsJobsRoute =
   AuthenticatedPluginsJobsRouteImport.update({
     id: '/jobs',
@@ -246,6 +240,12 @@ const AuthenticatedSystemDictRoute = AuthenticatedSystemDictRouteImport.update({
   path: '/dict',
   getParentRoute: () => AuthenticatedSystemRouteRoute,
 } as any)
+const AuthenticatedSystemFilesRoute =
+  AuthenticatedSystemFilesRouteImport.update({
+    id: '/files',
+    path: '/files',
+    getParentRoute: () => AuthenticatedSystemRouteRoute,
+  } as any)
 const AuthenticatedSystemIconSetRoute =
   AuthenticatedSystemIconSetRouteImport.update({
     id: '/icon-set',
@@ -385,12 +385,12 @@ export interface FileRoutesByFullPath {
   '/ai/agents': typeof AuthenticatedAiAgentsRoute
   '/ai/skills': typeof AuthenticatedAiSkillsRoute
   '/ai/workflows': typeof AuthenticatedAiWorkflowsRoute
-  '/plugins/files': typeof AuthenticatedPluginsFilesRoute
   '/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
   '/plugins/notes': typeof AuthenticatedPluginsNotesRoute
   '/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
   '/system/array-dict-v2': typeof AuthenticatedSystemArrayDictV2Route
   '/system/dict': typeof AuthenticatedSystemDictRoute
+  '/system/files': typeof AuthenticatedSystemFilesRoute
   '/system/icon-set': typeof AuthenticatedSystemIconSetRoute
   '/system/plugins': typeof AuthenticatedSystemPluginsRoute
   '/settings-v2/account': typeof AuthenticatedOtherSettingsV2AccountRoute
@@ -435,12 +435,12 @@ export interface FileRoutesByTo {
   '/ai/agents': typeof AuthenticatedAiAgentsRoute
   '/ai/skills': typeof AuthenticatedAiSkillsRoute
   '/ai/workflows': typeof AuthenticatedAiWorkflowsRoute
-  '/plugins/files': typeof AuthenticatedPluginsFilesRoute
   '/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
   '/plugins/notes': typeof AuthenticatedPluginsNotesRoute
   '/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
   '/system/array-dict-v2': typeof AuthenticatedSystemArrayDictV2Route
   '/system/dict': typeof AuthenticatedSystemDictRoute
+  '/system/files': typeof AuthenticatedSystemFilesRoute
   '/system/icon-set': typeof AuthenticatedSystemIconSetRoute
   '/system/plugins': typeof AuthenticatedSystemPluginsRoute
   '/settings-v2/account': typeof AuthenticatedOtherSettingsV2AccountRoute
@@ -490,12 +490,12 @@ export interface FileRoutesById {
   '/_authenticated/ai/agents': typeof AuthenticatedAiAgentsRoute
   '/_authenticated/ai/skills': typeof AuthenticatedAiSkillsRoute
   '/_authenticated/ai/workflows': typeof AuthenticatedAiWorkflowsRoute
-  '/_authenticated/plugins/files': typeof AuthenticatedPluginsFilesRoute
   '/_authenticated/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
   '/_authenticated/plugins/notes': typeof AuthenticatedPluginsNotesRoute
   '/_authenticated/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
   '/_authenticated/system/array-dict-v2': typeof AuthenticatedSystemArrayDictV2Route
   '/_authenticated/system/dict': typeof AuthenticatedSystemDictRoute
+  '/_authenticated/system/files': typeof AuthenticatedSystemFilesRoute
   '/_authenticated/system/icon-set': typeof AuthenticatedSystemIconSetRoute
   '/_authenticated/system/plugins': typeof AuthenticatedSystemPluginsRoute
   '/_authenticated/_workbench/': typeof AuthenticatedWorkbenchIndexRoute
@@ -543,12 +543,12 @@ export interface FileRouteTypes {
     | '/ai/agents'
     | '/ai/skills'
     | '/ai/workflows'
-    | '/plugins/files'
     | '/plugins/jobs'
     | '/plugins/notes'
     | '/plugins/notifications'
     | '/system/array-dict-v2'
     | '/system/dict'
+    | '/system/files'
     | '/system/icon-set'
     | '/system/plugins'
     | '/settings-v2/account'
@@ -593,12 +593,12 @@ export interface FileRouteTypes {
     | '/ai/agents'
     | '/ai/skills'
     | '/ai/workflows'
-    | '/plugins/files'
     | '/plugins/jobs'
     | '/plugins/notes'
     | '/plugins/notifications'
     | '/system/array-dict-v2'
     | '/system/dict'
+    | '/system/files'
     | '/system/icon-set'
     | '/system/plugins'
     | '/settings-v2/account'
@@ -647,12 +647,12 @@ export interface FileRouteTypes {
     | '/_authenticated/ai/agents'
     | '/_authenticated/ai/skills'
     | '/_authenticated/ai/workflows'
-    | '/_authenticated/plugins/files'
     | '/_authenticated/plugins/jobs'
     | '/_authenticated/plugins/notes'
     | '/_authenticated/plugins/notifications'
     | '/_authenticated/system/array-dict-v2'
     | '/_authenticated/system/dict'
+    | '/_authenticated/system/files'
     | '/_authenticated/system/icon-set'
     | '/_authenticated/system/plugins'
     | '/_authenticated/_workbench/'
@@ -876,13 +876,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAiWorkflowsRouteImport
       parentRoute: typeof AuthenticatedAiRouteRoute
     }
-    '/_authenticated/plugins/files': {
-      id: '/_authenticated/plugins/files'
-      path: '/files'
-      fullPath: '/plugins/files'
-      preLoaderRoute: typeof AuthenticatedPluginsFilesRouteImport
-      parentRoute: typeof AuthenticatedPluginsRouteRoute
-    }
     '/_authenticated/plugins/jobs': {
       id: '/_authenticated/plugins/jobs'
       path: '/jobs'
@@ -923,6 +916,13 @@ declare module '@tanstack/react-router' {
       path: '/dict'
       fullPath: '/system/dict'
       preLoaderRoute: typeof AuthenticatedSystemDictRouteImport
+      parentRoute: typeof AuthenticatedSystemRouteRoute
+    }
+    '/_authenticated/system/files': {
+      id: '/_authenticated/system/files'
+      path: '/files'
+      fullPath: '/system/files'
+      preLoaderRoute: typeof AuthenticatedSystemFilesRouteImport
       parentRoute: typeof AuthenticatedSystemRouteRoute
     }
     '/_authenticated/system/icon-set': {
@@ -1189,7 +1189,6 @@ const AuthenticatedAiRouteRouteWithChildren =
   AuthenticatedAiRouteRoute._addFileChildren(AuthenticatedAiRouteRouteChildren)
 
 interface AuthenticatedPluginsRouteRouteChildren {
-  AuthenticatedPluginsFilesRoute: typeof AuthenticatedPluginsFilesRoute
   AuthenticatedPluginsJobsRoute: typeof AuthenticatedPluginsJobsRoute
   AuthenticatedPluginsNotesRoute: typeof AuthenticatedPluginsNotesRoute
   AuthenticatedPluginsNotificationsRoute: typeof AuthenticatedPluginsNotificationsRoute
@@ -1197,7 +1196,6 @@ interface AuthenticatedPluginsRouteRouteChildren {
 
 const AuthenticatedPluginsRouteRouteChildren: AuthenticatedPluginsRouteRouteChildren =
   {
-    AuthenticatedPluginsFilesRoute: AuthenticatedPluginsFilesRoute,
     AuthenticatedPluginsJobsRoute: AuthenticatedPluginsJobsRoute,
     AuthenticatedPluginsNotesRoute: AuthenticatedPluginsNotesRoute,
     AuthenticatedPluginsNotificationsRoute:
@@ -1246,6 +1244,7 @@ interface AuthenticatedSystemRouteRouteChildren {
   AuthenticatedSystemIdentityRouteRoute: typeof AuthenticatedSystemIdentityRouteRouteWithChildren
   AuthenticatedSystemArrayDictV2Route: typeof AuthenticatedSystemArrayDictV2Route
   AuthenticatedSystemDictRoute: typeof AuthenticatedSystemDictRoute
+  AuthenticatedSystemFilesRoute: typeof AuthenticatedSystemFilesRoute
   AuthenticatedSystemIconSetRoute: typeof AuthenticatedSystemIconSetRoute
   AuthenticatedSystemPluginsRoute: typeof AuthenticatedSystemPluginsRoute
 }
@@ -1256,6 +1255,7 @@ const AuthenticatedSystemRouteRouteChildren: AuthenticatedSystemRouteRouteChildr
       AuthenticatedSystemIdentityRouteRouteWithChildren,
     AuthenticatedSystemArrayDictV2Route: AuthenticatedSystemArrayDictV2Route,
     AuthenticatedSystemDictRoute: AuthenticatedSystemDictRoute,
+    AuthenticatedSystemFilesRoute: AuthenticatedSystemFilesRoute,
     AuthenticatedSystemIconSetRoute: AuthenticatedSystemIconSetRoute,
     AuthenticatedSystemPluginsRoute: AuthenticatedSystemPluginsRoute,
   }

@@ -12,7 +12,6 @@ COPY packages/request/package.json packages/request/
 COPY packages/ui/package.json packages/ui/
 COPY plugins/demo-notes/package.json plugins/demo-notes/
 COPY plugins/notifications/package.json plugins/notifications/
-COPY plugins/files/package.json plugins/files/
 COPY plugins/jobs/package.json plugins/jobs/
 RUN pnpm install --frozen-lockfile
 
@@ -23,7 +22,6 @@ RUN pnpm -F @zen/shared build \
  && pnpm -F @zen/plugin-sdk build \
  && pnpm -F @zen/plugin-demo-notes build \
  && pnpm -F @zen/plugin-notifications build \
- && pnpm -F @zen/plugin-files build \
  && pnpm -F @zen/plugin-jobs build \
  && pnpm -F api prisma:generate \
  && pnpm -F api build

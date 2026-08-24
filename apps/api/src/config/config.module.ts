@@ -8,6 +8,7 @@ import {
   langgraphConfig,
   loggerConfig,
   securityConfig,
+  storageConfig,
   swaggerConfig
 } from './modules'
 import { validate } from './validate'
@@ -27,6 +28,7 @@ import { validate } from './validate'
         langgraphConfig,
         loggerConfig,
         securityConfig,
+        storageConfig,
         swaggerConfig
       ]
     })

@@ -1,8 +1,9 @@
 import { AUDIT_PERMISSIONS } from '../audit/permissions'
 import { DICT_PERMISSIONS } from '../dict/permissions'
+import { FILE_PERMISSIONS, STORAGE_PERMISSIONS } from '../file/permissions'
 import { ORG_PERMISSIONS } from '../organization/permissions'
-import { POST_PERMISSIONS } from '../post/permissions'
 import { PLUGIN_PERMISSIONS } from '../plugin/permissions'
+import { POST_PERMISSIONS } from '../post/permissions'
 import { ROLE_PERMISSIONS } from '../role/permissions'
 import { USER_PERMISSIONS } from '../user/permissions'
 import { definePermissionCatalog } from './define-permissions'
@@ -16,7 +17,9 @@ const KERNEL_PERMISSION_GROUPS = [
   POST_PERMISSIONS,
   AUDIT_PERMISSIONS,
   DICT_PERMISSIONS,
-  PLUGIN_PERMISSIONS
+  PLUGIN_PERMISSIONS,
+  FILE_PERMISSIONS,
+  STORAGE_PERMISSIONS
 ] as const
 
 /** 内核权限目录（不含插件；插件由 PLUGIN_REGISTRY 运行时合并） */
@@ -40,7 +43,7 @@ export function listActivePermissionCodes(): string[] {
 }
 
 export function isReadonlyPermissionAction(action: string): boolean {
-  return action === 'list' || action === 'query' || action === 'get'
+  return action === 'list' || action === 'query' || action === 'get' || action === 'read'
 }
 
 export function isReadonlyPermissionCode(code: string): boolean {

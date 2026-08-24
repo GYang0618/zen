@@ -79,50 +79,6 @@ export const PLUGIN_CATALOG = [
     "packageDir": "plugins/demo-notes"
   },
   {
-    "id": "files",
-    "name": "文件管理",
-    "version": "0.1.0",
-    "platformVersion": "^0.1.0",
-    "dependsOn": [],
-    "permissions": [
-      {
-        "code": "file:object:list",
-        "name": "查看文件列表",
-        "module": "file",
-        "description": "查看当前用户文件列表"
-      },
-      {
-        "code": "file:object:manage",
-        "name": "管理文件",
-        "module": "file",
-        "description": "上传/删除文件"
-      }
-    ],
-    "api": {
-      "entry": "./src/api/files.module",
-      "export": "FilesModule"
-    },
-    "routes": [
-      {
-        "id": "files-home",
-        "path": "/plugins/files",
-        "entry": "./src/web/pages/files-page",
-        "componentExport": "FilesPage",
-        "title": "文件管理",
-        "icon": "folder-kanban",
-        "order": 120,
-        "permissions": [
-          "file:object:list"
-        ]
-      }
-    ],
-    "lifecycle": {
-      "entry": "./src/lifecycle.ts",
-      "export": "lifecycle"
-    },
-    "packageDir": "plugins/files"
-  },
-  {
     "id": "jobs",
     "name": "任务中心",
     "version": "0.1.0",

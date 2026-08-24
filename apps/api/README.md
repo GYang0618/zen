@@ -33,26 +33,37 @@ pnpm --filter server prisma:generate
 pnpm --filter server dev
 ```
 
-## 使用 Docker 运行 PostgreSQL
+## 使用 Docker 运行 PostgreSQL 与 MinIO
 
 在仓库根目录执行：
 
 ```bash
-docker compose up -d
+docker compose up -d zen-postgres zen-minio
 ```
 
-默认数据库参数（已与 `.env.example` / `.env.development` 对齐）：
+MinIO（Bitnami 镜像，数据布局与 `bitnamicharts/minio` 一致）：
 
-- Host: `localhost`
+- API: `http://127.0.0.1:9000`
+- Console: `http://127.0.0.1:9001`（`zen` / `zenminio_secret`）
+- 本地映射：`data/minio` → `/bitnami/minio/data`
+- `restart: unless-stopped`：Docker Desktop 启动后会自动拉起 Postgres 与 MinIO
+
+默认数据库参数（容器 `zen-postgres`，已与 `.env.example` 对齐）：
+
+- Host: `localhost`（Compose 内为 `zen-postgres`）
 - Port: `5432`
 - User: `admin`
 - Password: `admin123`
 - Database: `admin_dev`
 
-连接串示例：
-
 ```bash
+# 宿主机 / 本地 pnpm 开发
 DATABASE_URL=postgresql://admin:admin123@localhost:5432/admin_dev?schema=public
+STORAGE_ENDPOINT=http://127.0.0.1:9000
+
+# Compose 内 API
+# DATABASE_URL=postgresql://admin:admin123@zen-postgres:5432/admin_dev
+# STORAGE_ENDPOINT=http://zen-minio:9000
 ```
 
 ## Prisma 创建数据库结构

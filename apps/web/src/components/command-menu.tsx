@@ -19,6 +19,7 @@ import { buildNavGroupsFromRouteTree } from '@/components/layouts/build-nav-from
 import { useSearch } from '@/context/search-provider'
 import { useTheme } from '@/context/theme-provider'
 import { fetchActivePluginIds } from '@/features/system/plugins/api'
+import { SUPER_ADMIN_ROLE_CODE } from '@/lib/auth/permissions'
 import { useAuthStore } from '@/stores'
 
 import type { RouteTreeNode } from '@/components/layouts/build-nav-from-routes'
@@ -55,6 +56,7 @@ export function CommandMenu() {
   const { open, setOpen } = useSearch()
   const authUser = useAuthStore((state) => state.user)
   const permissions = authUser?.permissions ?? []
+  const unrestricted = authUser?.role === SUPER_ADMIN_ROLE_CODE
   const activePluginsQuery = useQuery({
     queryKey: ['plugins', 'active-ids'],
     queryFn: () => fetchActivePluginIds(true),
@@ -65,9 +67,10 @@ export function CommandMenu() {
     return buildNavGroupsFromRouteTree(
       router.routeTree as RouteTreeNode,
       permissions,
-      activePluginsQuery.data
+      activePluginsQuery.data,
+      unrestricted
     )
-  }, [router.routeTree, permissions, activePluginsQuery.data])
+  }, [router.routeTree, permissions, activePluginsQuery.data, unrestricted])
 
   const runCommand = (command: () => unknown) => {
     setOpen(false)

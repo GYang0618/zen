@@ -52,3 +52,8 @@ pnpm-debug.log*
 
 .pnpm-store
 .tanstack
+
+# Local object storage scratch (kernel uses MinIO)
+apps/api/uploads/
+/data/minio/
+

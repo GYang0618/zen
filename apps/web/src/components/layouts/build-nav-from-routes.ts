@@ -42,9 +42,12 @@ function isErrorPath(fullPath: string): boolean {
 function passesGate(
   meta: RouterMeta | undefined,
   permissions: readonly string[],
-  activePluginIds?: readonly string[]
+  activePluginIds?: readonly string[],
+  unrestricted = false
 ): boolean {
-  if (meta?.permissions && !hasAnyPermission(permissions, meta.permissions)) return false
+  if (!unrestricted && meta?.permissions && !hasAnyPermission(permissions, meta.permissions)) {
+    return false
+  }
   if (meta?.pluginId && activePluginIds && !activePluginIds.includes(meta.pluginId)) return false
   return true
 }
@@ -97,7 +100,8 @@ function flattenToLinks(entries: NavEntry[]): NavCollapsible['items'] {
 function collectFromChildren(
   children: readonly RouteTreeNode[],
   permissions: readonly string[],
-  activePluginIds: readonly string[] | undefined
+  activePluginIds: readonly string[] | undefined,
+  unrestricted = false
 ): NavEntry[] {
   const entries: NavEntry[] = []
 
@@ -105,12 +109,12 @@ function collectFromChildren(
     if (isErrorPath(child.fullPath)) continue
 
     const meta = getMeta(child)
-    if (!passesGate(meta, permissions, activePluginIds)) continue
+    if (!passesGate(meta, permissions, activePluginIds, unrestricted)) continue
 
     const kids = getChildren(child)
 
     if (kids.length > 0) {
-      const nested = collectFromChildren(kids, permissions, activePluginIds)
+      const nested = collectFromChildren(kids, permissions, activePluginIds, unrestricted)
 
       if (meta?.title && !meta.hideInMenu) {
         const orderedLinks = [...nested]
@@ -183,7 +187,8 @@ function sortGroupBuckets(buckets: GroupBucket[]): GroupBucket[] {
 export function buildNavGroupsFromRouteTree(
   root: RouteTreeNode,
   permissions: readonly string[],
-  activePluginIds?: readonly string[]
+  activePluginIds?: readonly string[],
+  unrestricted = false
 ): NavGroup[] {
   const authRoot = findAuthenticatedRoot(root) ?? root
   const groupNodes = getChildren(authRoot)
@@ -193,13 +198,13 @@ export function buildNavGroupsFromRouteTree(
     if (isErrorPath(groupNode.fullPath)) continue
 
     const meta = getMeta(groupNode)
-    if (!passesGate(meta, permissions, activePluginIds)) continue
+    if (!passesGate(meta, permissions, activePluginIds, unrestricted)) continue
 
     const kids = getChildren(groupNode)
     const entries =
       kids.length > 0
-        ? collectFromChildren(kids, permissions, activePluginIds)
-        : collectFromChildren([groupNode], permissions, activePluginIds)
+        ? collectFromChildren(kids, permissions, activePluginIds, unrestricted)
+        : collectFromChildren([groupNode], permissions, activePluginIds, unrestricted)
 
     if (entries.length === 0) continue
 
@@ -236,12 +241,18 @@ export function buildChildNavLinksFromRouteTree(
   root: RouteTreeNode,
   parentIdOrPath: AppPath,
   permissions: readonly string[] = [],
-  activePluginIds?: readonly string[]
+  activePluginIds?: readonly string[],
+  unrestricted = false
 ): NavLink[] {
   const parent = findRouteTreeNode(root, parentIdOrPath)
   if (!parent) return []
 
-  const entries = collectFromChildren(getChildren(parent), permissions, activePluginIds)
+  const entries = collectFromChildren(
+    getChildren(parent),
+    permissions,
+    activePluginIds,
+    unrestricted
+  )
   entries.sort((a, b) => a.order - b.order || a.item.title.localeCompare(b.item.title, 'zh-CN'))
 
   return flattenToLinks(entries)

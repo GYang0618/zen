@@ -12,10 +12,12 @@ import argon2 from '@/common/utils/argon2'
 import { CONFIG_NAMESPACES } from '@/config'
 import { durationToSeconds } from '@/modules/auth/auth-cookie'
 
+import { StorageService } from '../storage/storage.service'
 import { findUsersQuerySchema } from './dto/find-users-query.dto'
 import { generateTemporaryPassword } from './generate-temporary-password'
 import {
   toAssignUserRolesResult,
+  toBirthdayDate,
   toReplaceUserOrganizationsResult,
   toUpdateUserResult,
   toUserInfoResponse,
@@ -24,7 +26,7 @@ import {
 import { UserRepository } from './user.repository'
 
 import type { Prisma } from '@prisma/client'
-import type { AuthContext, UserGender } from '@zen/shared'
+import type { AuthContext, UpdateMyProfile, UserGender } from '@zen/shared'
 import type { AuthConfig } from '@/config'
 import type { AssignUserRolesDto } from './dto/assign-user-roles.dto'
 import type { CreateUserDto } from './dto/create-user.dto'
@@ -59,11 +61,29 @@ export class UserService {
     @Inject(SessionService) private readonly sessionService: SessionService,
     @Inject(AuditService) private readonly auditService: AuditService,
     @Inject(AuthContextService) private readonly authContextService: AuthContextService,
-    @Inject(CONFIG_NAMESPACES.AUTH) private readonly authCfg: AuthConfig
+    @Inject(CONFIG_NAMESPACES.AUTH) private readonly authCfg: AuthConfig,
+    @Inject(StorageService) private readonly storageService: StorageService
   ) {}
 
   private toUser(user: Parameters<typeof toUserResponse>[0]) {
     return toUserResponse(user, durationToSeconds(this.authCfg.expiresIn) * 1000)
+  }
+
+  private async withResolvedAvatar<T extends { avatar: string | null }>(dto: T): Promise<T> {
+    return {
+      ...dto,
+      avatar: await this.storageService.resolveAvatarUrl(dto.avatar)
+    }
+  }
+
+  private async withResolvedProfileAvatar(dto: UserInfoResponse): Promise<UserInfoResponse> {
+    return {
+      ...dto,
+      profile: {
+        ...dto.profile,
+        avatar: await this.storageService.resolveAvatarUrl(dto.profile.avatar)
+      }
+    }
   }
 
   async create(data: CreateUserDto): Promise<CreateUserResponse> {
@@ -119,7 +139,7 @@ export class UserService {
     const user = await this.userRepo.findActiveWithDomainById(userId)
     if (!user) throw new NotFoundException('用户不存在')
 
-    return toUserInfoResponse(user)
+    return this.withResolvedProfileAvatar(toUserInfoResponse(user))
   }
 
   async getUserById(userId: string): Promise<UserResponse> {
@@ -128,24 +148,10 @@ export class UserService {
     const user = await this.userRepo.findActiveWithDomainById(userId)
     if (!user) throw new NotFoundException('用户不存在')
 
-    return this.toUser(user)
+    return this.withResolvedAvatar(this.toUser(user))
   }
 
-  async updateMe(
-    userId: string,
-    data: {
-      nickname?: string
-      phoneNumber?: string | null
-      bio?: string | null
-      avatar?: string | null
-      preferences?: {
-        theme?: 'light' | 'dark' | 'system'
-        notifyByEmail?: boolean
-        notifyByPush?: boolean
-        notifyBySms?: boolean
-      }
-    }
-  ): Promise<UserInfoResponse> {
+  async updateMe(userId: string, data: UpdateMyProfile): Promise<UserInfoResponse> {
     const existing = await this.userRepo.findActiveWithDomainById(userId)
     if (!existing) throw new NotFoundException('用户不存在')
 
@@ -164,11 +170,13 @@ export class UserService {
           upsert: {
             create: {
               remark: data.bio ?? null,
-              avatar: data.avatar ?? null
+              avatar: data.avatar ?? null,
+              birthday: data.birthday !== undefined ? toBirthdayDate(data.birthday) : null
             },
             update: {
               ...(data.bio !== undefined ? { remark: data.bio } : {}),
-              ...(data.avatar !== undefined ? { avatar: data.avatar } : {})
+              ...(data.avatar !== undefined ? { avatar: data.avatar } : {}),
+              ...(data.birthday !== undefined ? { birthday: toBirthdayDate(data.birthday) } : {})
             }
           }
         },
@@ -299,13 +307,16 @@ export class UserService {
         findMany: ({ skip, take }) => this.userRepo.findManyWithDomain(where, skip, take, orderBy)
       })
 
-      return { items: items.map((item) => this.toUser(item)), pagination }
+      return {
+        items: await Promise.all(items.map((item) => this.withResolvedAvatar(this.toUser(item)))),
+        pagination
+      }
     }
 
     const items = await this.userRepo.findManyWithDomain(where, undefined, undefined, orderBy)
     const total = items.length
     return {
-      items: items.map((item) => this.toUser(item)),
+      items: await Promise.all(items.map((item) => this.withResolvedAvatar(this.toUser(item)))),
       pagination: buildPaginationMeta(1, total, total)
     }
   }

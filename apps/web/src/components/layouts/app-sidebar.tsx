@@ -5,6 +5,7 @@ import { useMemo } from 'react'
 
 import { useLayout } from '@/context/layout-provider'
 import { fetchActivePluginIds } from '@/features/system/plugins/api'
+import { SUPER_ADMIN_ROLE_CODE } from '@/lib/auth/permissions'
 import { useAuthStore } from '@/stores'
 
 import { buildNavGroupsFromRouteTree } from './build-nav-from-routes'
@@ -20,6 +21,7 @@ export function AppSidebar() {
   const router = useRouter()
   const authUser = useAuthStore((state) => state.user)
   const permissions = authUser?.permissions ?? []
+  const unrestricted = authUser?.role === SUPER_ADMIN_ROLE_CODE
   const activePluginsQuery = useQuery({
     queryKey: ['plugins', 'active-ids'],
     queryFn: () => fetchActivePluginIds(true),
@@ -30,9 +32,10 @@ export function AppSidebar() {
     return buildNavGroupsFromRouteTree(
       router.routeTree as RouteTreeNode,
       permissions,
-      activePluginsQuery.data
+      activePluginsQuery.data,
+      unrestricted
     )
-  }, [router.routeTree, permissions, activePluginsQuery.data])
+  }, [router.routeTree, permissions, activePluginsQuery.data, unrestricted])
 
   const user = {
     name: authUser?.nickname || authUser?.username || '用户',

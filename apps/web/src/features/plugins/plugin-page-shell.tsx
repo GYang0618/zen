@@ -1,9 +1,9 @@
-import type { ComponentType, ReactNode } from 'react'
-
 import { ConfigDrawer, ProfileDropdown, Search, ThemeSwitch } from '@/components'
 import { Header, Main } from '@/components/layouts'
 import { canAccess } from '@/lib/auth/permissions'
 import { request } from '@/lib/request/client'
+
+import type { ComponentType, ReactNode } from 'react'
 
 export interface PluginPageProps {
   request: typeof request

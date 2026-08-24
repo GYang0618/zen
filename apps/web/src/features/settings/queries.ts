@@ -29,7 +29,7 @@ export function useUpdateMeMutation() {
   return useMutation({
     mutationFn: (data: UpdateMyProfile) => authApi.updateMe(data),
     onSuccess: (me) => {
-      void queryClient.invalidateQueries({ queryKey: settingsKeys.me() })
+      queryClient.setQueryData(settingsKeys.me(), me)
       if (accessToken && currentUser) {
         setAuth({
           accessToken,

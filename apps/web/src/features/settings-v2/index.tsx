@@ -5,6 +5,7 @@ import { useMemo } from 'react'
 import { AppHeader, Main } from '@/components/layouts'
 import { AppPageHeader } from '@/components/layouts/app-page-header'
 import { buildChildNavLinksFromRouteTree } from '@/components/layouts/build-nav-from-routes'
+import { SUPER_ADMIN_ROLE_CODE } from '@/lib/auth/permissions'
 import { useAuthStore } from '@/stores'
 
 import { SidebarNav } from './components/sidebar-nav'
@@ -18,19 +19,22 @@ export function Settings() {
   const router = useRouter()
   const authUser = useAuthStore((state) => state.user)
   const permissions = authUser?.permissions ?? []
+  const unrestricted = authUser?.role === SUPER_ADMIN_ROLE_CODE
 
   const sidebarNavItems = useMemo(
     () =>
       buildChildNavLinksFromRouteTree(
         router.routeTree as RouteTreeNode,
         SETTINGS_V2_PATH,
-        permissions
+        permissions,
+        undefined,
+        unrestricted
       ).map((item) => ({
         title: item.title,
         href: String(item.url),
         icon: item.icon
       })),
-    [router.routeTree, permissions]
+    [router.routeTree, permissions, unrestricted]
   )
 
   return (

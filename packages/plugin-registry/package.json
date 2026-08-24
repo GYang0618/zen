@@ -40,7 +40,6 @@
   },
   "dependencies": {
     "@zen/plugin-demo-notes": "workspace:*",
-    "@zen/plugin-files": "workspace:*",
     "@zen/plugin-jobs": "workspace:*",
     "@zen/plugin-notifications": "workspace:*",
     "@zen/plugin-sdk": "workspace:*",

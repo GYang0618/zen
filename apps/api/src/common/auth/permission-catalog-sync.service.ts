@@ -66,7 +66,9 @@ export class PermissionCatalogSyncService implements OnModuleInit, OnModuleDestr
       where: { code: { notIn: [...activeCodes] } }
     })
 
-    if (removed.count > 0) {
+    const grantedToSuperAdmin = await this.grantCatalogToSuperAdmin(activeCodes)
+
+    if (removed.count > 0 || grantedToSuperAdmin) {
       await this.authContextService.bumpPermVer()
     }
 
@@ -76,7 +78,7 @@ export class PermissionCatalogSyncService implements OnModuleInit, OnModuleDestr
     })
 
     this.logger.log(
-      `Permission catalog synced: kernel=${KERNEL_PERMISSION_CATALOG.length} active=${activeCatalog.length} removed=${removed.count}`
+      `Permission catalog synced: kernel=${KERNEL_PERMISSION_CATALOG.length} active=${activeCatalog.length} removed=${removed.count} superAdminGranted=${grantedToSuperAdmin}`
     )
   }
 
@@ -115,6 +117,30 @@ export class PermissionCatalogSyncService implements OnModuleInit, OnModuleDestr
     )
 
     return definePermissionCatalog([KERNEL_PERMISSION_CATALOG, ...pluginEntries])
+  }
+
+  /** 超管会话权限来自 role_permissions；目录新增码必须自动挂上，与历史 seed CROSS JOIN 一致 */
+  private async grantCatalogToSuperAdmin(activeCodes: Set<string>): Promise<boolean> {
+    const role = await this.prisma.role.findUnique({
+      where: { code: 'super_admin' },
+      select: { id: true }
+    })
+    if (!role || activeCodes.size === 0) return false
+
+    const permissions = await this.prisma.permission.findMany({
+      where: { code: { in: [...activeCodes] }, status: PermissionStatus.ACTIVE },
+      select: { id: true }
+    })
+    if (permissions.length === 0) return false
+
+    const result = await this.prisma.rolePermission.createMany({
+      data: permissions.map((permission) => ({
+        roleId: role.id,
+        permissionId: permission.id
+      })),
+      skipDuplicates: true
+    })
+    return result.count > 0
   }
 }
 

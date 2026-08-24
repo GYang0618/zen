@@ -5,6 +5,7 @@ import { authApi } from '@/features/auth/api'
 import { useAuthStore } from '@/stores'
 
 import type { UpdateMyProfile } from '@zen/shared'
+import type { MeResponse } from '@/features/auth/api'
 
 export const settingsV2Keys = {
   all: ['settings-v2'] as const,
@@ -18,31 +19,38 @@ export function useMeQuery() {
   })
 }
 
-export function useUpdateMeMutation() {
+export function useApplyMeSession() {
   const queryClient = useQueryClient()
   const setAuth = useAuthStore((state) => state.setAuth)
   const accessToken = useAuthStore((state) => state.accessToken)
   const mustChangePassword = useAuthStore((state) => state.mustChangePassword)
   const currentUser = useAuthStore((state) => state.user)
 
+  return (me: MeResponse) => {
+    queryClient.setQueryData(settingsV2Keys.me(), me)
+    if (!accessToken || !currentUser) return
+    setAuth({
+      accessToken,
+      mustChangePassword,
+      user: {
+        ...currentUser,
+        nickname: me.profile.nickname,
+        phoneNumber: me.contact.phoneNumber,
+        avatar: me.profile.avatar,
+        email: me.contact.email,
+        username: me.profile.username
+      }
+    })
+  }
+}
+
+export function useUpdateMeMutation() {
+  const applyMeSession = useApplyMeSession()
+
   return useMutation({
     mutationFn: (data: UpdateMyProfile) => authApi.updateMe(data),
     onSuccess: (me) => {
-      void queryClient.invalidateQueries({ queryKey: settingsV2Keys.me() })
-      if (accessToken && currentUser) {
-        setAuth({
-          accessToken,
-          mustChangePassword,
-          user: {
-            ...currentUser,
-            nickname: me.profile.nickname,
-            phoneNumber: me.contact.phoneNumber,
-            avatar: me.profile.avatar,
-            email: me.contact.email,
-            username: me.profile.username
-          }
-        })
-      }
+      applyMeSession(me)
       toast.success('已保存')
     },
     onError: (error: Error) => toast.error(error.message || '保存失败')

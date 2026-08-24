@@ -32,7 +32,11 @@ function getInitials(value: string) {
   return normalized.slice(0, 2).toUpperCase()
 }
 
-export function ProfilePhotoField({ initialSrc, fallbackLabel = '用户', onFileChange }: ProfilePhotoFieldProps) {
+export function ProfilePhotoField({
+  initialSrc,
+  fallbackLabel = '用户',
+  onFileChange
+}: ProfilePhotoFieldProps) {
   const inputId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(initialSrc)

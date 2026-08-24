@@ -242,6 +242,14 @@ describe('buildNavGroupsFromRouteTree', () => {
     expect(system?.items[0]).toMatchObject({ title: '数据字典' })
   })
 
+  it('unrestricted 忽略权限门禁仍渲染受保护菜单', () => {
+    const groups = buildNavGroupsFromRouteTree(tree, [], undefined, true)
+    const system = groups.find((g) => g.title === '系统')
+    expect(system?.items).toHaveLength(2)
+    expect(system?.items[0]).toMatchObject({ title: '身份权限' })
+    expect(system?.items[1]).toMatchObject({ title: '数据字典' })
+  })
+
   it('skips hideInMenu leaves that sit directly under authenticated', () => {
     const groups = buildNavGroupsFromRouteTree(tree, [])
     expect(groups.map((g) => g.title)).toEqual(['工作台', '其他'])

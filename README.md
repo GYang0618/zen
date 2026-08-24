@@ -27,7 +27,7 @@ apps/web  薄路由 + Vite alias + 菜单过滤
 | `apps/web` | Shell：薄路由挂载、菜单/`pluginId` 过滤、系统「插件管理」页 |
 | `docs/` | 架构、脚手架指南、参考插件设计 |
 
-当前已落地插件：`demo-notes`、`notifications`、`files`、`jobs`（`hello-stub` 仅 Manifest 骨架）。
+当前已落地插件：`demo-notes`、`notifications`、`jobs`。文件上传与对象存储为内核能力（[ADR-003](docs/adr/003-file-storage-kernel.md)）。
 
 ---
 
@@ -56,7 +56,7 @@ pnpm plugin:generate
 6. **宿主挂载**（见下文）
 7. `pnpm -F api check-types` / `pnpm -F web check-types`
 
-参考实现：[`plugins/demo-notes`](plugins/demo-notes)、[`plugins/notifications`](plugins/notifications)、[`plugins/files`](plugins/files)、[`plugins/jobs`](plugins/jobs)。
+参考实现：[`plugins/demo-notes`](plugins/demo-notes)、[`plugins/notifications`](plugins/notifications)、[`plugins/jobs`](plugins/jobs)。
 
 更完整的步骤说明：[docs/guides/create-plugin.md](docs/guides/create-plugin.md)。
 

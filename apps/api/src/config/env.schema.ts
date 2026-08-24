@@ -92,7 +92,35 @@ export const envSchema = z
     LANGGRAPH_DEPLOYMENT_URL: z
       .url()
       .default('http://127.0.0.1:3600')
-      .describe('LangGraph Agent 服务地址')
+      .describe('LangGraph Agent 服务地址'),
+
+    // ==================== 对象存储（MinIO / S3 兼容） ====================
+    STORAGE_DRIVER: z.enum(['s3']).default('s3').describe('对象存储驱动'),
+    STORAGE_ENDPOINT: z
+      .url()
+      .default('http://127.0.0.1:9000')
+      .describe('对象存储内部 Endpoint（宿主机 127.0.0.1:9000，Compose 内 http://zen-minio:9000）'),
+    STORAGE_PUBLIC_ENDPOINT: z
+      .url()
+      .default('http://127.0.0.1:9000')
+      .describe('浏览器可达的对象存储 Endpoint（写入预签名 URL）'),
+    STORAGE_REGION: z.string().min(1).default('us-east-1').describe('对象存储区域'),
+    STORAGE_BUCKET: z.string().min(1).default('zen-files').describe('对象存储桶名'),
+    STORAGE_ACCESS_KEY: z.string().min(1).default('zen').describe('对象存储访问键'),
+    STORAGE_SECRET_KEY: z.string().min(1).default('zenminio_secret').describe('对象存储密钥'),
+    STORAGE_FORCE_PATH_STYLE: z.coerce.boolean().default(true).describe('是否使用 path-style 访问'),
+    STORAGE_UPLOAD_URL_TTL: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(300)
+      .describe('上传预签名 URL 有效期（秒）'),
+    STORAGE_DOWNLOAD_URL_TTL: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(300)
+      .describe('下载预签名 URL 有效期（秒）')
   })
   .strict()
 

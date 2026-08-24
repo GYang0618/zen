@@ -1,5 +1,6 @@
 export {
   applyDataScope,
+  applyFileDataScope,
   applyOrganizationTreeDataScope,
   applyOrgScopedResourceDataScope,
   applyUserListDataScope

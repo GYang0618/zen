@@ -27,6 +27,8 @@
   },
   "dependencies": {
     "@ai-sdk/langchain": "^3.0.37",
+    "@aws-sdk/client-s3": "^3.1116.0",
+    "@aws-sdk/s3-request-presigner": "^3.1116.0",
     "@copilotkit/runtime": "^1.63.2",
     "@copilotkit/sdk-js": "^1.63.2",
     "@langchain/community": "^1.1.29",
@@ -43,7 +45,6 @@
     "@prisma/adapter-pg": "^7.9.0",
     "@prisma/client": "^7.9.0",
     "@zen/plugin-demo-notes": "workspace:*",
-    "@zen/plugin-files": "workspace:*",
     "@zen/plugin-jobs": "workspace:*",
     "@zen/plugin-notifications": "workspace:*",
     "@zen/plugin-sdk": "workspace:*",

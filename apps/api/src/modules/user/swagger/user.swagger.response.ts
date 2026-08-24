@@ -123,6 +123,13 @@ class UserProfileSwaggerDto {
     example: 'unknown'
   })
   gender!: 'male' | 'female' | 'unknown' | null
+
+  @ApiProperty({
+    description: '出生日期（YYYY-MM-DD）',
+    nullable: true,
+    example: '1995-01-15'
+  })
+  birthday!: string | null
 }
 
 class UserContactSwaggerDto {

@@ -1,5 +1,6 @@
 import {
   applyDataScope,
+  applyFileDataScope,
   applyOrganizationTreeDataScope,
   applyUserListDataScope
 } from '@zen/plugin-sdk'
@@ -44,6 +45,29 @@ describe('applyOrganizationTreeDataScope', () => {
   it('ORG 按 id 列表', () => {
     expect(applyOrganizationTreeDataScope(baseAuth({ dataScope: 'org' }))).toEqual({
       id: { in: ['org1'] }
+    })
+  })
+})
+
+describe('applyFileDataScope', () => {
+  it('管理员或 all 不限制', () => {
+    expect(applyFileDataScope(baseAuth({ isAdmin: true }))).toEqual({})
+    expect(applyFileDataScope(baseAuth({ dataScope: 'all' }))).toEqual({})
+  })
+
+  it('SELF 仅本人文件', () => {
+    expect(applyFileDataScope(baseAuth({ dataScope: 'self' }))).toEqual({ ownerId: 'u1' })
+  })
+
+  it('ORG 为自己或本组织文件', () => {
+    expect(applyFileDataScope(baseAuth({ dataScope: 'org' }))).toEqual({
+      OR: [{ ownerId: 'u1' }, { organizationId: { in: ['org1'] } }]
+    })
+  })
+
+  it('ORG_AND_CHILD 为自己或下级组织文件', () => {
+    expect(applyFileDataScope(baseAuth({ dataScope: 'org_and_child' }))).toEqual({
+      OR: [{ ownerId: 'u1' }, { organization: { path: { startsWith: '/t1/org1/' } } }]
     })
   })
 })

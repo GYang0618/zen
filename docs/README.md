@@ -15,6 +15,7 @@
 | 租户模型 | 单租户交付，全链路 **tenantId 就绪** | [ADR-002](./adr/002-tenant-readiness.md) |
 | 架构形态 | 模块化单体 + Turborepo monorepo | [平台总览](./architecture/platform-overview.md) |
 | 核心 vs 业务 | 内核只承载不可替代能力；业务一律插件化 | [插件系统](./architecture/plugin-system.md) |
+| 文件与对象存储 | 上传/对象存储归内核；管理页为系统模块 | [ADR-003](./adr/003-file-storage-kernel.md) |
 
 ---
 
@@ -74,6 +75,7 @@
 |------|------|
 | [001-plugin-runtime-model.md](./adr/001-plugin-runtime-model.md) | 编译期插件优先 |
 | [002-tenant-readiness.md](./adr/002-tenant-readiness.md) | 单租户交付 + tenantId 就绪 |
+| [003-file-storage-kernel.md](./adr/003-file-storage-kernel.md) | 文件与对象存储归内核 |
 
 ---
 

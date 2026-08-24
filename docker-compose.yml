@@ -1,19 +1,45 @@
 services:
-  db:
+  zen-postgres:
     image: postgres:16-alpine
+    container_name: zen-postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: zen
-      POSTGRES_PASSWORD: zen
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
       POSTGRES_DB: admin_dev
     ports:
       - '5432:5432'
     volumes:
       - zen_pg:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U zen -d admin_dev']
+      test: ['CMD-SHELL', 'pg_isready -U admin -d admin_dev']
       interval: 5s
       timeout: 5s
       retries: 10
+
+  zen-minio:
+    image: docker.io/bitnamilegacy/minio:latest
+    container_name: zen-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: zen
+      MINIO_ROOT_PASSWORD: zenminio_secret
+      MINIO_DEFAULT_BUCKETS: zen-files
+      MINIO_BROWSER: 'on'
+      MINIO_CONSOLE_PORT_NUMBER: '9001'
+      MINIO_SERVER_URL: http://localhost:9000
+      MINIO_API_CORS_ALLOW_ORIGIN: 'http://localhost:3000,http://localhost:8080'
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    volumes:
+      - ./data/minio:/bitnami/minio/data
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
 
   api:
     build:
@@ -22,15 +48,23 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
-      DATABASE_URL: postgresql://zen:zen@db:5432/admin_dev
+      DATABASE_URL: postgresql://admin:admin123@zen-postgres:5432/admin_dev
       JWT_SECRET: change-me-in-production
       CORS_ORIGIN: '*'
       THROTTLE_TTL: 60000
       THROTTLE_LIMIT: 120
+      STORAGE_ENDPOINT: http://zen-minio:9000
+      STORAGE_PUBLIC_ENDPOINT: http://localhost:9000
+      STORAGE_ACCESS_KEY: zen
+      STORAGE_SECRET_KEY: zenminio_secret
+      STORAGE_BUCKET: zen-files
+      STORAGE_FORCE_PATH_STYLE: 'true'
     ports:
       - '3001:3001'
     depends_on:
-      db:
+      zen-postgres:
+        condition: service_healthy
+      zen-minio:
         condition: service_healthy
 
   web:
@@ -44,3 +78,4 @@ services:
 
 volumes:
   zen_pg:
+    name: zen_postgres_data

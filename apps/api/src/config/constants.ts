@@ -5,6 +5,7 @@ import {
   langgraphConfig,
   loggerConfig,
   securityConfig,
+  storageConfig,
   swaggerConfig
 } from './modules'
 
@@ -18,5 +19,6 @@ export const CONFIG_NAMESPACES = {
   LANGGRAPH: langgraphConfig.KEY,
   SECURITY: securityConfig.KEY,
   LOGGER: loggerConfig.KEY,
+  STORAGE: storageConfig.KEY,
   SWAGGER: swaggerConfig.KEY
 } as const

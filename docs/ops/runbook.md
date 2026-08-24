@@ -9,6 +9,15 @@ docker compose up -d --build
 - Web: http://localhost:8080
 - API: http://localhost:3001/api/health
 - Metrics: http://localhost:3001/api/metrics
+- MinIO API: http://localhost:9000
+- MinIO Console: http://localhost:9001（账号 `zen` / `zenminio_secret`）
+- MinIO 数据目录：仓库内 `data/minio` → 容器 `/bitnami/minio/data`（`restart: unless-stopped`，Docker 启动后自动拉起 Postgres 与 MinIO）
+
+仅启动本地存储与数据库（开发 API 时）：
+
+```bash
+docker compose up -d zen-postgres zen-minio
+```
 
 ## 数据库迁移
 
@@ -26,9 +35,9 @@ pnpm -F api exec prisma migrate deploy
 
 ```bash
 # 备份
-docker compose exec db pg_dump -U zen admin_dev > backup.sql
+docker compose exec zen-postgres pg_dump -U admin admin_dev > backup.sql
 # 恢复
-cat backup.sql | docker compose exec -T db psql -U zen admin_dev
+cat backup.sql | docker compose exec -T zen-postgres psql -U admin admin_dev
 ```
 
 ## 密钥轮换
