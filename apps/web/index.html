@@ -8,7 +8,18 @@
     <script>
       ;(function () {
         try {
+          // Cookie 名须与 src/context/theme-provider.tsx 等保持一致
           var root = document.documentElement
+          var themeMatch = document.cookie.match(/(?:^|; )vite-ui-theme=([^;]*)/)
+          var theme = themeMatch ? decodeURIComponent(themeMatch[1]) : 'system'
+          if (theme !== 'light' && theme !== 'dark' && theme !== 'system') theme = 'system'
+          var resolvedTheme =
+            theme === 'dark' ||
+            (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+              ? 'dark'
+              : 'light'
+          root.classList.remove('light', 'dark')
+          root.classList.add(resolvedTheme)
           var baseMatch = document.cookie.match(/(?:^|; )vite-ui-base-color=([^;]*)/)
           var brandMatch = document.cookie.match(/(?:^|; )vite-ui-brand-color=([^;]*)/)
           var styleMatch = document.cookie.match(/(?:^|; )vite-ui-style=([^;]*)/)

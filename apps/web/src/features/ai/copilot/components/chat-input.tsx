@@ -1,7 +1,7 @@
 'use client'
 
 import { randomUUID, useAgent, useCopilotKit } from '@copilotkit/react-core/v2'
-import { Button } from '@zen/ui'
+import { Button, cn } from '@zen/ui'
 import { Globe, Lightbulb, Mic, Paperclip, Send } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
@@ -10,7 +10,7 @@ import type { Variants } from 'motion/react'
 
 const PLACEHOLDERS = ['设置主题为亮色、暗色、跟随系统', '查询、删除、更新、新增用户']
 
-export function ChatInput() {
+export function ChatInput({ className }: { className?: string }) {
   const { agent } = useAgent()
   const { copilotkit } = useCopilotKit()
 
@@ -81,10 +81,10 @@ export function ChatInput() {
   }
 
   return (
-    <div className="w-full flex justify-center items-center">
+    <div className={cn('w-full flex justify-center items-center', className)}>
       <motion.div
         ref={wrapperRef}
-        className="w-full rounded-4xl overflow-hidden bg-background dark:bg-input/30"
+        className="w-full rounded-4xl overflow-hidden bg-background"
         variants={containerVariants}
         animate={isActive || inputValue ? 'expanded' : 'collapsed'}
         initial="collapsed"

@@ -3,8 +3,8 @@ import dagre, { graphlib } from '@dagrejs/dagre'
 import type { Edge, Node } from '@xyflow/react'
 import type { Organization } from './type'
 
-export const ORGANIZATION_GRAPH_NODE_WIDTH = 256
-export const ORGANIZATION_GRAPH_NODE_HEIGHT = 112
+export const ORGANIZATION_GRAPH_NODE_WIDTH = 272
+export const ORGANIZATION_GRAPH_NODE_HEIGHT = 120
 
 export type OrganizationGraphRankdir = 'TB' | 'LR'
 

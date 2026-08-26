@@ -1,26 +1,52 @@
 import { cn, Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, Skeleton } from '@zen/ui'
 import { Users } from 'lucide-react'
 
+import { InfiniteScrollSentinel } from '@/components/infinite-scroll-sentinel'
+import { flattenPages } from '@/lib/infinite-list'
+
+import { useUsersInfiniteQuery } from '../queries'
 import { UsersCard } from './users-card'
 
-import type { User } from '@zen/shared'
+import type { UsersQuery } from '@zen/shared'
 
-type UsersCardListProps = {
-  data: User[]
-  isLoading?: boolean
-  isFetching?: boolean
-}
+type UsersCardListProps = Omit<UsersQuery, 'page' | 'pageSize'>
 
 const SKELETON_COUNT = 6
 
-export function UsersCardList({ data, isLoading = false, isFetching = false }: UsersCardListProps) {
-  const showSkeleton = isLoading && data.length === 0
+export function UsersCardList({ keyword, status, role, sortBy, sortOrder }: UsersCardListProps) {
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isFetchingNextPage,
+    isError,
+    isFetchNextPageError,
+    hasNextPage,
+    fetchNextPage
+  } = useUsersInfiniteQuery({ keyword, status, role, sortBy, sortOrder })
+  const users = flattenPages(data)
+  const showSkeleton = isLoading && users.length === 0
+  const isFilterFetching = isFetching && !isFetchingNextPage
 
   if (showSkeleton) {
     return <UsersCardListSkeleton count={SKELETON_COUNT} />
   }
 
-  if (data.length === 0) {
+  if (isError && users.length === 0) {
+    return (
+      <Empty className="border border-dashed">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <Users />
+          </EmptyMedia>
+          <EmptyTitle>加载失败</EmptyTitle>
+          <EmptyDescription>用户列表加载失败，请稍后重试</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    )
+  }
+
+  if (users.length === 0) {
     return (
       <Empty className="border border-dashed">
         <EmptyHeader>
@@ -35,12 +61,22 @@ export function UsersCardList({ data, isLoading = false, isFetching = false }: U
   }
 
   return (
-    <div className={cn('@container transition-opacity', isFetching && 'opacity-70')}>
-      <div className="grid grid-cols-1 gap-4 @lg:grid-cols-2 @4xl:grid-cols-3">
-        {data.map((user) => (
-          <UsersCard key={user.id} user={user} />
-        ))}
+    <div className="flex flex-1 flex-col gap-4">
+      <div className={cn('@container transition-opacity', isFilterFetching && 'opacity-70')}>
+        <div className="grid grid-cols-1 gap-4 @lg:grid-cols-2 @4xl:grid-cols-3">
+          {users.map((user) => (
+            <UsersCard key={user.id} user={user} />
+          ))}
+        </div>
       </div>
+      <InfiniteScrollSentinel
+        hasNextPage={Boolean(hasNextPage)}
+        isFetchingNextPage={isFetchingNextPage}
+        isError={isFetchNextPageError}
+        onLoadMore={() => {
+          void fetchNextPage()
+        }}
+      />
     </div>
   )
 }

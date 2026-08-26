@@ -24,11 +24,11 @@ import { BookMarked, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { ConfigDrawer, ProfileDropdown, Search, ThemeSwitch } from '@/components'
+import { ProfileDropdown, Search, ThemeSwitch } from '@/components'
 import { Can } from '@/components/auth/can'
+import { EmptyState } from '@/components/empty-state'
 import { Header, Main } from '@/components/layouts'
 import { AppPageHeader } from '@/components/layouts/app-page-header'
-import { EmptyState } from '@/components/empty-state'
 
 import { useCreateDictItem, useCreateDictType, useDictList } from './queries'
 
@@ -52,7 +52,6 @@ export function DictPage() {
         <Search />
         <div className="ms-auto flex items-center gap-4">
           <ThemeSwitch />
-          <ConfigDrawer />
           <ProfileDropdown />
         </div>
       </Header>

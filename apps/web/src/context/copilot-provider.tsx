@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useEffectEvent, useMemo } from 'react'
 
 import { useEnv } from '@/config/env'
+import { CopilotSharedRegistrations } from '@/features/ai/copilot/components/registrations'
 import { authApi } from '@/features/auth'
 import { isSessionExpired } from '@/lib/request'
 import { useAuthStore } from '@/stores'
@@ -18,6 +19,7 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
   return (
     <CopilotKitProvider runtimeUrl={copilotKitApi} useSingleEndpoint={false} headers={headers}>
       <CopilotRuntimeRegistrations />
+      <CopilotSharedRegistrations />
       {children}
       <CopilotAuthRetry />
     </CopilotKitProvider>

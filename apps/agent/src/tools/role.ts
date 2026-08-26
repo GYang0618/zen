@@ -1,4 +1,5 @@
 import {
+  assignRoleDataScopeSchema,
   assignRoleMembersSchema,
   assignRolePermissionsSchema,
   cloneRoleSchema,
@@ -12,8 +13,10 @@ import { tool } from 'langchain'
 import { z } from 'zod'
 
 import {
+  asSdkOptions,
   executeApiCall,
   roleControllerAddMembers,
+  roleControllerAssignDataScope,
   roleControllerAssignPermissions,
   roleControllerClone,
   roleControllerCreate,
@@ -23,16 +26,18 @@ import {
   roleControllerListPermissions,
   roleControllerRemoveMany,
   roleControllerRemoveMember,
-  roleControllerUpdate
+  roleControllerUpdate,
+  toQueryArray
 } from '../api'
 
 const roleIdSchema = z.object({
-  id: z.string().min(1, '角色 ID 不能为空')
+  id: z.string().min(1, '角色 ID 不能为空').describe('角色 ID')
 })
 
 const updateRoleToolSchema = roleIdSchema.extend(updateRoleSchema.shape)
 const cloneRoleToolSchema = roleIdSchema.extend(cloneRoleSchema.shape)
 const assignRolePermissionsToolSchema = roleIdSchema.extend(assignRolePermissionsSchema.shape)
+const assignRoleDataScopeToolSchema = roleIdSchema.extend(assignRoleDataScopeSchema.shape)
 const addRoleMembersToolSchema = roleIdSchema.extend(assignRoleMembersSchema.shape)
 const removeRoleMemberToolSchema = roleIdSchema.extend({
   userId: z.string().min(1, '用户 ID 不能为空').describe('要解绑的用户 ID')
@@ -44,6 +49,7 @@ type RolesFindAllQuery = {
   pageSize?: number
   keyword?: string
   status?: Array<'active' | 'disabled'>
+  effectiveStatus?: Array<'active' | 'disabled' | 'expired' | 'locked'>
   dataScope?: Array<'all' | 'org_and_child' | 'org' | 'self' | 'custom'>
 }
 
@@ -54,19 +60,16 @@ function normalizeRolesQuery(input: z.input<typeof rolesQuerySchema>): RolesFind
   if (input.pageSize !== undefined) query.pageSize = Number(input.pageSize)
   if (input.keyword !== undefined) query.keyword = input.keyword
 
-  if (input.status !== undefined) {
-    query.status = Array.isArray(input.status) ? input.status : [input.status]
-  }
-  if (input.dataScope !== undefined) {
-    query.dataScope = Array.isArray(input.dataScope) ? input.dataScope : [input.dataScope]
-  }
+  const status = toQueryArray(input.status)
+  if (status) query.status = status
+
+  const effectiveStatus = toQueryArray(input.effectiveStatus)
+  if (effectiveStatus) query.effectiveStatus = effectiveStatus
+
+  const dataScope = toQueryArray(input.dataScope)
+  if (dataScope) query.dataScope = dataScope
 
   return query
-}
-
-/** OpenAPI 未完整生成 body/query 时的调用参数断言 */
-function asSdkOptions<T>(options: object): T {
-  return options as T
 }
 
 export const getRolesTool = tool(
@@ -81,8 +84,7 @@ export const getRolesTool = tool(
   {
     name: 'query_roles_list',
     description:
-      '查询角色列表，可通过关键字、状态、数据范围等条件筛选并分页。' +
-      '结果会由前端表格 UI 展示；你只需在最终回复中用一两句话概括条数或结论，不要重复输出 Markdown 表格或逐行列出角色。',
+      '查询角色列表，可通过关键字（名称/编码）、持久化状态 status、派生展示状态 effectiveStatus（active/disabled/expired/locked）、数据范围筛选并分页。',
     schema: rolesQuerySchema
   }
 )
@@ -99,7 +101,8 @@ export const createRoleTool = tool(
   {
     name: 'create_role',
     description:
-      '创建一个新角色。dataScope 为 custom 时必须提供 customOrgIds；可同时传入 permissionCodes 分配权限。',
+      '创建自定义角色壳。dataScope 默认为 self；为 custom 时必须提供 customOrgIds。' +
+      '可同时传入 permissionCodes；未传则详情页再配置权限。系统角色不可通过此接口创建。',
     schema: createRoleSchema
   }
 )
@@ -113,7 +116,9 @@ export const getRoleTool = tool(
     ),
   {
     name: 'query_role_detail',
-    description: '根据角色 ID 查询单个角色详情（含权限编码列表）',
+    description:
+      '根据角色 ID 查询详情（含权限编码、数据范围、成员预览、updatedAt）。' +
+      '保存权限或数据范围前必须先调用本工具，将 updatedAt 作为 baseVersion。',
     schema: roleIdSchema
   }
 )
@@ -130,7 +135,9 @@ export const updateRoleTool = tool(
     ),
   {
     name: 'update_role_info',
-    description: '更新指定角色的基本信息、状态、数据范围或权限列表',
+    description:
+      '更新角色基本信息：名称、描述、图标、图标颜色、过期时间、排序、状态。' +
+      '权限请用 assign_role_permissions；数据范围请用 assign_role_data_scope（均需乐观锁）。',
     schema: updateRoleToolSchema
   }
 )
@@ -147,7 +154,8 @@ export const cloneRoleTool = tool(
     ),
   {
     name: 'clone_role',
-    description: '基于已有角色克隆生成新角色（深拷贝权限与数据边界），需提供新编码与名称',
+    description:
+      '基于已有角色克隆（复制权限、数据范围与图标，不复制成员）。需提供新编码与名称。系统角色不可克隆。',
     schema: cloneRoleToolSchema
   }
 )
@@ -156,7 +164,7 @@ export const listPermissionsTool = tool(
   async (_input, config) => executeApiCall(config, () => roleControllerListPermissions()),
   {
     name: 'query_permissions_list',
-    description: '获取按模块分组的全部权限列表，供角色权限配置参考',
+    description: '获取按模块分组的权限目录（含 deprecated 标记），供角色权限配置参考',
     schema: z.object({})
   }
 )
@@ -213,19 +221,40 @@ export const removeRoleMemberTool = tool(
 )
 
 export const assignRolePermissionsTool = tool(
-  async ({ id, permissionCodes }, config) =>
+  async ({ id, permissionCodes, baseVersion }, config) =>
     executeApiCall(config, () =>
       roleControllerAssignPermissions(
         asSdkOptions({
           path: { id },
-          body: { permissionCodes }
+          body: { permissionCodes, baseVersion }
         })
       )
     ),
   {
     name: 'assign_role_permissions',
-    description: '覆盖式更新角色的权限编码列表',
+    description:
+      '覆盖式保存角色权限。必须传入 baseVersion（角色详情的 updatedAt）做乐观锁。' +
+      '冲突时先 query_role_detail 再重试。系统超级管理员权限不可改。',
     schema: assignRolePermissionsToolSchema
+  }
+)
+
+export const assignRoleDataScopeTool = tool(
+  async ({ id, dataScope, customOrgIds, baseVersion }, config) =>
+    executeApiCall(config, () =>
+      roleControllerAssignDataScope(
+        asSdkOptions({
+          path: { id },
+          body: { dataScope, customOrgIds, baseVersion }
+        })
+      )
+    ),
+  {
+    name: 'assign_role_data_scope',
+    description:
+      '保存角色数据范围。dataScope 为 custom 时必须提供 customOrgIds。' +
+      '必须传入 baseVersion（角色详情的 updatedAt）做乐观锁。',
+    schema: assignRoleDataScopeToolSchema
   }
 )
 
@@ -240,8 +269,7 @@ export const deleteRolesTool = tool(
     ),
   {
     name: 'delete_roles',
-    description:
-      '删除一个或多个角色。系统内置角色或仍有成员的角色不可删除；该操作需要用户确认后才能执行',
+    description: '批量删除角色。系统内置角色或仍有成员的角色不可删除。该操作需要用户确认后才能执行',
     schema: deleteRolesSchema
   }
 )
@@ -257,5 +285,6 @@ export const roleTools = [
   addRoleMembersTool,
   removeRoleMemberTool,
   assignRolePermissionsTool,
+  assignRoleDataScopeTool,
   deleteRolesTool
 ] as const

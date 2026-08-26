@@ -75,6 +75,9 @@ export function ProfileDropdown() {
                 <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
               </Link>
             </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to="/settings/appearance">外观设置</Link>
+            </DropdownMenuItem>
             <DropdownMenuItem>新建团队</DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />

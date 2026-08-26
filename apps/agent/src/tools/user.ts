@@ -1,6 +1,9 @@
 import {
+  adminResetPasswordSchema,
+  assignUserRolesSchema,
   createUserSchema,
   deleteUsersSchema,
+  replaceUserOrganizationsSchema,
   updateUserSchema,
   updateUsersStatusSchema,
   usersQuerySchema
@@ -9,24 +12,34 @@ import { tool } from 'langchain'
 import { z } from 'zod'
 
 import {
+  asSdkOptions,
   executeApiCall,
+  toQueryArray,
+  userControllerAdminResetPassword,
+  userControllerAssignRoles,
   userControllerCreate,
   userControllerFindAll,
   userControllerFindOne,
   userControllerHardRemoveMany,
   userControllerRemoveMany,
+  userControllerReplaceOrganizations,
   userControllerRestoreMany,
+  userControllerRevokeSessions,
+  userControllerUnlock,
   userControllerUpdate,
   userControllerUpdateStatus
 } from '../api'
 
-import type { UserControllerFindAllData } from '../api'
+import type { UserControllerAdminResetPasswordData, UserControllerFindAllData } from '../api'
 
 const userIdSchema = z.object({
-  id: z.string().min(1, '用户 ID 不能为空')
+  id: z.string().min(1, '用户 ID 不能为空').describe('用户 ID')
 })
 
 const updateUserToolSchema = userIdSchema.extend(updateUserSchema.shape)
+const resetUserPasswordToolSchema = userIdSchema.extend(adminResetPasswordSchema.shape)
+const assignUserRolesToolSchema = userIdSchema.extend(assignUserRolesSchema.shape)
+const replaceUserOrganizationsToolSchema = userIdSchema.extend(replaceUserOrganizationsSchema.shape)
 
 type FindAllQuery = NonNullable<UserControllerFindAllData['query']>
 
@@ -38,16 +51,13 @@ function normalizeUsersQuery(input: z.input<typeof usersQuerySchema>): FindAllQu
   if (input.keyword !== undefined) query.keyword = input.keyword
   if (input.sortBy !== undefined) query.sortBy = input.sortBy
   if (input.sortOrder !== undefined) query.sortOrder = input.sortOrder
+  if (input.organizationId !== undefined) query.organizationId = input.organizationId
 
-  if (input.status !== undefined) {
-    query.status = Array.isArray(input.status) ? input.status : [input.status]
-  }
-  if (input.role !== undefined) {
-    query.role = Array.isArray(input.role) ? input.role : [input.role]
-  }
-  if (input.organizationId !== undefined) {
-    Object.assign(query, { organizationId: input.organizationId })
-  }
+  const status = toQueryArray(input.status)
+  if (status) query.status = status
+
+  const role = toQueryArray(input.role)
+  if (role) query.role = role
 
   return query
 }
@@ -62,8 +72,7 @@ export const getUsersTool = tool(
   {
     name: 'query_users_list',
     description:
-      '查询用户列表，可通过关键字、用户状态、角色等条件筛选并分页。' +
-      '结果会由前端表格 UI 展示；你只需在最终回复中用一两句话概括条数或结论，不要重复输出 Markdown 表格或逐行列出用户。',
+      '查询用户列表，可通过关键字（邮箱/用户名/昵称/真实姓名/手机号）、状态、角色编码、在职组织、排序字段筛选并分页。',
     schema: usersQuerySchema
   }
 )
@@ -78,7 +87,8 @@ export const createUserTool = tool(
   {
     name: 'create_user',
     description:
-      '创建一个新用户账号。可不提供密码：系统会生成临时密码并要求首次登录或邀请链接设密。',
+      '创建用户账号。可不提供密码：系统会生成临时密码（仅本次响应返回）并要求首次登录或邀请链接设密。' +
+      '可同时指定 roleIds（省略则分配默认 user 角色）与 organizations（主职/岗位）；省略组织时不绑定组织。',
     schema: createUserSchema
   }
 )
@@ -92,7 +102,7 @@ export const getUserTool = tool(
     ),
   {
     name: 'query_user_detail',
-    description: '根据用户 ID 查询单个用户详情',
+    description: '根据用户 ID 查询详情，含角色预览、在职组织/岗位、锁定与会话等安全信息',
     schema: userIdSchema
   }
 )
@@ -107,7 +117,8 @@ export const updateUserTool = tool(
     ),
   {
     name: 'update_user_info',
-    description: '更新指定用户的基本信息（不含批量状态变更）',
+    description:
+      '更新用户基本资料（邮箱、昵称、真实姓名、手机号、性别、备注、头像）。用户名与密码不可通过此接口修改。',
     schema: updateUserToolSchema
   }
 )
@@ -121,7 +132,7 @@ export const restoreUsersTool = tool(
     ),
   {
     name: 'restore_deleted_users',
-    description: '恢复一个或者多个已删除用户',
+    description: '批量恢复已软删除的用户',
     schema: deleteUsersSchema
   }
 )
@@ -136,8 +147,89 @@ export const updateUsersStatusTool = tool(
   {
     name: 'update_user_status',
     description:
-      '更新一个或者多个用户状态。禁用/停用/封禁/冻结账户必须使用 suspended；inactive 仅表示未完成激活；pending 表示待审核；active 表示正常可用。',
+      '批量更新用户状态。禁用/停用/封禁/冻结必须使用 suspended；inactive 仅表示未完成激活；pending 表示待审核；active 表示正常可用。',
     schema: updateUsersStatusSchema
+  }
+)
+
+export const unlockUserTool = tool(
+  async ({ id }, config) =>
+    executeApiCall(config, () =>
+      userControllerUnlock({
+        path: { id }
+      })
+    ),
+  {
+    name: 'unlock_user',
+    description: '解锁因登录失败次数过多而被锁定的用户账号',
+    schema: userIdSchema
+  }
+)
+
+export const resetUserPasswordTool = tool(
+  async ({ id, ...body }, config) =>
+    executeApiCall(config, () =>
+      userControllerAdminResetPassword(
+        asSdkOptions<UserControllerAdminResetPasswordData>({
+          path: { id },
+          body
+        })
+      )
+    ),
+  {
+    name: 'reset_user_password',
+    description:
+      '管理员重置用户密码。密码需含大小写字母、数字和特殊字符，至少 8 位。' +
+      'mustChangePassword 默认为 true，表示下次登录必须改密。',
+    schema: resetUserPasswordToolSchema
+  }
+)
+
+export const revokeUserSessionsTool = tool(
+  async ({ id }, config) =>
+    executeApiCall(config, () =>
+      userControllerRevokeSessions({
+        path: { id }
+      })
+    ),
+  {
+    name: 'revoke_user_sessions',
+    description: '强制下线指定用户的全部登录会话',
+    schema: userIdSchema
+  }
+)
+
+export const assignUserRolesTool = tool(
+  async ({ id, roleIds }, config) =>
+    executeApiCall(config, () =>
+      userControllerAssignRoles({
+        path: { id },
+        body: { roleIds }
+      })
+    ),
+  {
+    name: 'assign_user_roles',
+    description:
+      '覆盖式分配用户角色（替换全部角色，至少保留一个）。会刷新权限版本并强制下线目标用户。' +
+      '该操作需要用户确认后才能执行。',
+    schema: assignUserRolesToolSchema
+  }
+)
+
+export const replaceUserOrganizationsTool = tool(
+  async ({ id, organizations }, config) =>
+    executeApiCall(config, () =>
+      userControllerReplaceOrganizations({
+        path: { id },
+        body: { organizations }
+      })
+    ),
+  {
+    name: 'replace_user_organizations',
+    description:
+      '覆盖式同步用户在职组织归属，可指定 isPrimary 主职与 postId 岗位。' +
+      '传入空数组表示清空全部组织归属。会影响数据范围并强制下线。',
+    schema: replaceUserOrganizationsToolSchema
   }
 )
 
@@ -150,7 +242,7 @@ export const deleteUsersTool = tool(
     ),
   {
     name: 'delete_users',
-    description: '删除一个或者多个用户（可恢复），该操作需要用户确认后才能执行',
+    description: '批量软删除用户（可恢复），禁止删除当前登录用户自身。该操作需要用户确认后才能执行',
     schema: deleteUsersSchema
   }
 )
@@ -164,7 +256,8 @@ export const hardDeleteUsersTool = tool(
     ),
   {
     name: 'hard_delete_users',
-    description: '删除一个或者多个用户（不可恢复，高危操作），该操作需要管理员审批通过后才能执行',
+    description:
+      '批量物理删除用户（不可恢复，高危操作），禁止删除当前登录用户自身。该操作需要管理员审批通过后才能执行',
     schema: deleteUsersSchema
   }
 )
@@ -176,6 +269,11 @@ export const userTools = [
   updateUserTool,
   restoreUsersTool,
   updateUsersStatusTool,
+  unlockUserTool,
+  resetUserPasswordTool,
+  revokeUserSessionsTool,
+  assignUserRolesTool,
+  replaceUserOrganizationsTool,
   deleteUsersTool,
   hardDeleteUsersTool
 ] as const

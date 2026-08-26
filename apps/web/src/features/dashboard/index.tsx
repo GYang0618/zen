@@ -11,7 +11,6 @@ import {
   TabsTrigger
 } from '@zen/ui'
 
-import { ConfigDrawer } from '@/components/config-drawer'
 import { Header, Main, TopNav } from '@/components/layouts'
 import { AppPageHeader } from '@/components/layouts/app-page-header'
 import { ProfileDropdown } from '@/components/profile-dropdown'
@@ -56,7 +55,6 @@ export function Dashboard() {
         <div className="ms-auto flex items-center space-x-4">
           <Search />
           <ThemeSwitch />
-          <ConfigDrawer />
           <ProfileDropdown />
         </div>
       </Header>

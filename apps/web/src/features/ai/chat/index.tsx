@@ -1,4 +1,4 @@
-import { ConfigDrawer, ProfileDropdown, Search, ThemeSwitch } from '@/components'
+import { ProfileDropdown, Search, ThemeSwitch } from '@/components'
 import { Header, Main } from '@/components/layouts'
 
 import { AIChat } from './components/ai-chat'
@@ -13,7 +13,6 @@ export function AICopilot() {
         <Search />
         <div className="ms-auto flex items-center space-x-4">
           <ThemeSwitch />
-          <ConfigDrawer />
           <ProfileDropdown />
         </div>
       </Header>

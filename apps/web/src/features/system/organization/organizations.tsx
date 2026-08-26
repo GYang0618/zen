@@ -19,7 +19,7 @@ export function Organizations() {
       <Main fixed className="flex min-h-0 flex-1 flex-col gap-4 sm:gap-6">
         <AppPageHeader actions={<OrganizationsPrimaryButtons />} />
 
-        <Tabs defaultValue="tree" className="flex min-h-0 flex-1 flex-col">
+        <Tabs defaultValue="graph" className="flex min-h-0 flex-1 flex-col">
           <TabsList>
             <TabsTrigger value="tree">
               <ListTree data-icon="inline-start" />

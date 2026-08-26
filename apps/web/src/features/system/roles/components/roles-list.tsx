@@ -14,11 +14,14 @@ import { Search, Shield } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { FacetedFilter } from '@/components/faceted-filter'
+import { InfiniteScrollSentinel } from '@/components/infinite-scroll-sentinel'
+import { flattenPages } from '@/lib/infinite-list'
 
 import { roleEffectiveStatusOptions } from '../data/data'
+import { useRolesInfiniteQuery } from '../queries'
 import { RolesCard } from './roles-card'
 
-import type { Role, RoleEffectiveStatus } from '@zen/shared'
+import type { RoleDataScope, RoleEffectiveStatus } from '@zen/shared'
 import type { NavigateFn } from '@/hooks'
 
 type RolesSearch = {
@@ -26,13 +29,10 @@ type RolesSearch = {
   page?: number
   pageSize?: number
   effectiveStatus?: RoleEffectiveStatus | RoleEffectiveStatus[]
+  dataScope?: RoleDataScope | RoleDataScope[]
 }
 
 type RolesListProps = {
-  data: Role[]
-  isLoading?: boolean
-  isFetching?: boolean
-  isError?: boolean
   search: RolesSearch
   navigate: NavigateFn
 }
@@ -45,17 +45,26 @@ function toFilterArray<T>(value: T | T[] | undefined): T[] {
 const SKELETON_COUNT = 6
 const SEARCH_DEBOUNCE_MS = 300
 
-export function RolesList({
-  data,
-  isLoading = false,
-  isFetching = false,
-  isError = false,
-  search,
-  navigate
-}: RolesListProps) {
+export function RolesList({ search, navigate }: RolesListProps) {
   const [keyword, setKeyword] = useState(search.keyword ?? '')
   const statusFilter = toFilterArray(search.effectiveStatus)
-  const showSkeleton = isLoading && data.length === 0
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isFetchingNextPage,
+    isError,
+    isFetchNextPageError,
+    hasNextPage,
+    fetchNextPage
+  } = useRolesInfiniteQuery({
+    keyword: search.keyword,
+    effectiveStatus: search.effectiveStatus,
+    dataScope: search.dataScope
+  })
+  const roles = flattenPages(data)
+  const showSkeleton = isLoading && roles.length === 0
+  const isFilterFetching = isFetching && !isFetchingNextPage
 
   useEffect(() => {
     setKeyword(search.keyword ?? '')
@@ -77,7 +86,7 @@ export function RolesList({
   }, [keyword, navigate, search.keyword])
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-1 flex-col gap-4">
       <section className="flex gap-4">
         <InputGroup className="w-100">
           <InputGroupInput
@@ -105,7 +114,9 @@ export function RolesList({
         />
       </section>
 
-      {isError ? <p className="text-sm text-destructive">角色列表加载失败</p> : null}
+      {isError && roles.length === 0 ? (
+        <p className="text-sm text-destructive">角色列表加载失败</p>
+      ) : null}
 
       {showSkeleton ? (
         <div className="grid grid-cols-1 gap-4 @xl:grid-cols-2 @4xl:grid-cols-3">
@@ -115,7 +126,7 @@ export function RolesList({
         </div>
       ) : null}
 
-      {!showSkeleton && !isError && data.length === 0 ? (
+      {!showSkeleton && !isError && roles.length === 0 ? (
         <Empty className="border border-dashed">
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -127,14 +138,26 @@ export function RolesList({
         </Empty>
       ) : null}
 
-      {!showSkeleton && data.length > 0 ? (
-        <section className={cn('@container transition-opacity', isFetching && 'opacity-70')}>
-          <div className="grid grid-cols-1 gap-4 @xl:grid-cols-2 @4xl:grid-cols-3 @6xl:grid-cols-4">
-            {data.map((role) => (
-              <RolesCard key={role.id} role={role} />
-            ))}
-          </div>
-        </section>
+      {!showSkeleton && roles.length > 0 ? (
+        <>
+          <section
+            className={cn('@container transition-opacity', isFilterFetching && 'opacity-70')}
+          >
+            <div className="grid grid-cols-1 gap-4 @xl:grid-cols-2 @4xl:grid-cols-3 @6xl:grid-cols-4">
+              {roles.map((role) => (
+                <RolesCard key={role.id} role={role} />
+              ))}
+            </div>
+          </section>
+          <InfiniteScrollSentinel
+            hasNextPage={Boolean(hasNextPage)}
+            isFetchingNextPage={isFetchingNextPage}
+            isError={isFetchNextPageError}
+            onLoadMore={() => {
+              void fetchNextPage()
+            }}
+          />
+        </>
       ) : null}
     </div>
   )

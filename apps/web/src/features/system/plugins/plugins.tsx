@@ -21,7 +21,7 @@ import { Puzzle, Settings2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { ConfigDrawer, ConfirmDialog, ProfileDropdown, Search, ThemeSwitch } from '@/components'
+import { ConfirmDialog, ProfileDropdown, Search, ThemeSwitch } from '@/components'
 import { Can } from '@/components/auth/can'
 import { EmptyState } from '@/components/empty-state'
 import { Header, Main } from '@/components/layouts'
@@ -51,7 +51,6 @@ export function PluginsPage() {
         <Search />
         <div className="ms-auto flex items-center gap-4">
           <ThemeSwitch />
-          <ConfigDrawer />
           <ProfileDropdown />
         </div>
       </Header>

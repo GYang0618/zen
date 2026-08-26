@@ -1,10 +1,17 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ROLE_MEMBER_PREVIEW_LIMIT } from '@zen/shared'
 
-import { roleApi } from './api'
-import { ROLE_DETAIL_QUERY_KEY, ROLE_MEMBERS_QUERY_KEY, ROLES_LIST_QUERY_KEY } from './queries'
+import { mapInfinitePageItems } from '@/lib/infinite-list'
 
-import type { QueryClient } from '@tanstack/react-query'
+import { roleApi } from './api'
+import {
+  ROLE_DETAIL_QUERY_KEY,
+  ROLE_MEMBERS_QUERY_KEY,
+  ROLES_INFINITE_QUERY_KEY,
+  ROLES_LIST_QUERY_KEY
+} from './queries'
+
+import type { InfiniteData, QueryClient } from '@tanstack/react-query'
 import type {
   AssignRoleDataScope,
   AssignRoleMembers,
@@ -19,12 +26,16 @@ async function invalidateRoleQueries(
   queryClient: ReturnType<typeof useQueryClient>,
   roleId?: string
 ) {
-  const tasks = [queryClient.invalidateQueries({ queryKey: ROLES_LIST_QUERY_KEY })]
+  const tasks = [
+    queryClient.invalidateQueries({ queryKey: ROLES_LIST_QUERY_KEY }),
+    queryClient.invalidateQueries({ queryKey: ROLES_INFINITE_QUERY_KEY })
+  ]
   if (roleId) {
     tasks.push(
       queryClient.invalidateQueries({ queryKey: [...ROLE_MEMBERS_QUERY_KEY, roleId] }),
       queryClient.invalidateQueries({ queryKey: [...ROLE_DETAIL_QUERY_KEY, roleId] }),
-      queryClient.invalidateQueries({ queryKey: ['system', 'users', 'list'] })
+      queryClient.invalidateQueries({ queryKey: ['system', 'users', 'list'] }),
+      queryClient.invalidateQueries({ queryKey: ['system', 'users', 'infinite'] })
     )
   }
   await Promise.all(tasks)
@@ -63,6 +74,13 @@ function updateRoleMemberCaches(
       }
     }
   )
+  queryClient.setQueriesData<InfiniteData<PaginationResponse<Role>>>(
+    { queryKey: ROLES_INFINITE_QUERY_KEY },
+    (current) =>
+      mapInfinitePageItems(current, (role) =>
+        role.id === roleId ? patchRoleMembers(role, membersPage) : role
+      )
+  )
 }
 
 export function useCreateRoleMutation() {
@@ -72,7 +90,7 @@ export function useCreateRoleMutation() {
     mutationKey: ['system', 'roles', 'create'],
     mutationFn: roleApi.createRole,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ROLES_LIST_QUERY_KEY })
+      await invalidateRoleQueries(queryClient)
     }
   })
 }
@@ -84,7 +102,7 @@ export function useCloneRoleMutation() {
     mutationKey: ['system', 'roles', 'clone'],
     mutationFn: ({ id, data }: { id: string; data: CloneRole }) => roleApi.cloneRole(id, data),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ROLES_LIST_QUERY_KEY })
+      await invalidateRoleQueries(queryClient)
     }
   })
 }
@@ -135,7 +153,7 @@ export function useDeleteRolesMutation() {
     mutationKey: ['system', 'roles', 'delete'],
     mutationFn: (ids: string[]) => roleApi.deleteRoles({ ids }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ROLES_LIST_QUERY_KEY })
+      await invalidateRoleQueries(queryClient)
     }
   })
 }

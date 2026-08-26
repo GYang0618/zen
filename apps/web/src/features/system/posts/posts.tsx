@@ -1,6 +1,7 @@
 import { getRouteApi } from '@tanstack/react-router'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@zen/ui'
 import { CreditCard, TextAlignJustify } from 'lucide-react'
+import { useState } from 'react'
 
 import { AppHeader, Main } from '@/components/layouts'
 import { AppPageHeader } from '@/components/layouts/app-page-header'
@@ -22,13 +23,17 @@ function toFilterArray<T>(value: T | T[] | undefined): T[] {
 function PostsContent() {
   const search = route.useSearch()
   const navigate = route.useNavigate()
+  const [view, setView] = useState('card')
   const statusFilter = toFilterArray(search.status)
-  const { data, isLoading, isFetching, isError } = useJobProfilesQuery({
-    page: 1,
-    pageSize: 100,
-    keyword: search.keyword,
-    status: statusFilter.length === 1 ? statusFilter[0] : undefined
-  })
+  const { data, isLoading, isFetching } = useJobProfilesQuery(
+    {
+      page: 1,
+      pageSize: 100,
+      keyword: search.keyword,
+      status: statusFilter.length === 1 ? statusFilter[0] : undefined
+    },
+    { enabled: view === 'table' }
+  )
   const profiles = data?.items ?? []
 
   return (
@@ -36,7 +41,7 @@ function PostsContent() {
       <AppHeader />
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
         <AppPageHeader actions={<PostsPrimaryButtons />} />
-        <Tabs defaultValue="card">
+        <Tabs value={view} onValueChange={setView}>
           <TabsList className="mx-auto">
             <TabsTrigger value="card" aria-label="卡片视图">
               <CreditCard />
@@ -47,14 +52,7 @@ function PostsContent() {
           </TabsList>
 
           <TabsContent value="card">
-            <PostsList
-              data={profiles}
-              isLoading={isLoading}
-              isFetching={isFetching}
-              isError={isError}
-              search={search}
-              navigate={navigate}
-            />
+            <PostsList search={search} navigate={navigate} />
           </TabsContent>
           <TabsContent value="table">
             <PostsTable

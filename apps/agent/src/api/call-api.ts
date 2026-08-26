@@ -54,6 +54,17 @@ function formatApiError(error: unknown): string {
   return String(error)
 }
 
+/** OpenAPI 未完整生成 body/query 时的调用参数断言 */
+export function asSdkOptions<T>(options: object): T {
+  return options as T
+}
+
+/** 将「单个或数组」查询参数规范成 SDK 需要的数组 */
+export function toQueryArray<T>(value: T | T[] | undefined): T[] | undefined {
+  if (value === undefined) return undefined
+  return Array.isArray(value) ? value : [value]
+}
+
 /**
  * 执行 SDK 请求并将业务 data 序列化为工具返回值。
  * token 从 RunnableConfig 读取并注入当前异步上下文，无需在各工具 / SDK 调用中重复传入 auth。
@@ -66,7 +77,11 @@ export async function executeApiCall<T>(
 
   try {
     const body = await runWithAccessToken(accessToken, call)
-    return JSON.stringify(unwrapApiSuccessData<T>(body), null, 2)
+    const data = unwrapApiSuccessData<T>(body)
+    if (data === undefined) {
+      return JSON.stringify({ success: true })
+    }
+    return JSON.stringify(data, null, 2)
   } catch (error) {
     throw new Error(`API 调用失败: ${formatApiError(error)}`)
   }

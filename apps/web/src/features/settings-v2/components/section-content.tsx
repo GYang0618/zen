@@ -4,10 +4,16 @@ import { AppPageHeader } from '@/components/layouts/app-page-header'
 
 import type { ReactNode } from 'react'
 
-export function SectionContent({ children }: { children: ReactNode }) {
+export function SectionContent({
+  children,
+  actions
+}: {
+  children: ReactNode
+  actions?: ReactNode
+}) {
   return (
     <section className="flex-1">
-      <AppPageHeader size="sm" />
+      <AppPageHeader size="sm" actions={actions} />
       <Separator className="my-4 flex-none" />
       {children}
     </section>

@@ -61,41 +61,4 @@ export class SessionService {
       data: { revokedAt: new Date() }
     })
   }
-
-  listActiveSummariesByUser(userId: string) {
-    return this.prisma.session.findMany({
-      where: {
-        userId,
-        revokedAt: null,
-        expiresAt: { gt: new Date() }
-      },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        ip: true,
-        userAgent: true,
-        expiresAt: true,
-        createdAt: true
-      }
-    })
-  }
-
-  async revokeByIdForUser(userId: string, sessionId: string) {
-    const result = await this.prisma.session.updateMany({
-      where: { id: sessionId, userId, revokedAt: null },
-      data: { revokedAt: new Date() }
-    })
-    return result.count > 0
-  }
-
-  async revokeOthersForUser(userId: string, keepSessionId: string) {
-    await this.prisma.session.updateMany({
-      where: {
-        userId,
-        revokedAt: null,
-        id: { not: keepSessionId }
-      },
-      data: { revokedAt: new Date() }
-    })
-  }
 }

@@ -1,6 +1,7 @@
 import { getRouteApi } from '@tanstack/react-router'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@zen/ui'
 import { CreditCard, TextAlignJustify } from 'lucide-react'
+import { useState } from 'react'
 
 import { AppHeader, Main } from '@/components/layouts'
 import { AppPageHeader } from '@/components/layouts/app-page-header'
@@ -17,13 +18,17 @@ const route = getRouteApi('/_authenticated/system/_identity/roles')
 function RolesContent() {
   const search = route.useSearch()
   const navigate = route.useNavigate()
-  const { data, isLoading, isFetching, isError } = useRolesQuery({
-    keyword: search.keyword,
-    effectiveStatus: search.effectiveStatus,
-    dataScope: search.dataScope,
-    page: 1,
-    pageSize: 100
-  })
+  const [view, setView] = useState('card')
+  const { data, isLoading, isFetching } = useRolesQuery(
+    {
+      keyword: search.keyword,
+      effectiveStatus: search.effectiveStatus,
+      dataScope: search.dataScope,
+      page: 1,
+      pageSize: 100
+    },
+    { enabled: view === 'table' }
+  )
   const roles = data?.items ?? []
 
   return (
@@ -32,7 +37,7 @@ function RolesContent() {
 
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
         <AppPageHeader actions={<RolesPrimaryButtons />} />
-        <Tabs defaultValue="card">
+        <Tabs value={view} onValueChange={setView}>
           <TabsList className="mx-auto">
             <TabsTrigger value="card" aria-label="卡片视图">
               <CreditCard />
@@ -43,14 +48,7 @@ function RolesContent() {
           </TabsList>
 
           <TabsContent value="card">
-            <RolesList
-              data={roles}
-              isLoading={isLoading}
-              isFetching={isFetching}
-              isError={isError}
-              search={search}
-              navigate={navigate}
-            />
+            <RolesList search={search} navigate={navigate} />
           </TabsContent>
           <TabsContent value="table">
             <RolesTable

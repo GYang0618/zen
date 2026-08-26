@@ -3,7 +3,7 @@ import { Button, Field, FieldGroup, FieldLabel } from '@zen/ui'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { ConfigDrawer, PasswordInput, ProfileDropdown, Search, ThemeSwitch } from '@/components'
+import { PasswordInput, ProfileDropdown, Search, ThemeSwitch } from '@/components'
 import { Header, Main } from '@/components/layouts'
 import { authApi } from '@/features/auth/api'
 import { useAuthStore } from '@/stores'
@@ -22,7 +22,6 @@ export function ChangePasswordPage() {
         <Search />
         <div className="ms-auto flex items-center gap-4">
           <ThemeSwitch />
-          <ConfigDrawer />
           <ProfileDropdown />
         </div>
       </Header>

@@ -13,15 +13,6 @@ export interface SignUpData {
   password: string
 }
 
-export interface AuthSessionItem {
-  id: string
-  ip: string | null
-  userAgent: string | null
-  expiresAt: string
-  createdAt: string
-  current?: boolean
-}
-
 export interface MeResponse {
   id: string
   profile: {
@@ -113,9 +104,6 @@ export const authApi = {
   signOut: () => request.post<void, void>('/auth/logout'),
   getMe: () => request.get<MeResponse>('/auth/me'),
   updateMe: (data: UpdateMyProfile) => request.patch<MeResponse, UpdateMyProfile>('/auth/me', data),
-  listSessions: () => request.get<{ items: AuthSessionItem[] }>('/auth/sessions'),
-  revokeSession: (id: string) => request.delete<void>(`/auth/sessions/${id}`),
-  revokeOtherSessions: () => request.delete<void>('/auth/sessions/others'),
   forgotPassword: (email: string) =>
     request.post<{ ok: true; resetToken?: string }, { email: string }>('/auth/forgot-password', {
       email

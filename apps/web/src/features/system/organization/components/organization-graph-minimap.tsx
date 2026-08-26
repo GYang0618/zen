@@ -8,7 +8,7 @@ import { OrganizationMiniMapNode } from './organization-minimap-node'
 import type { OrganizationGraphNode } from '../build-organization-graph'
 
 export function OrganizationGraphMiniMap() {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
 
   return (
     <Panel position="bottom-right" className="organization-graph-minimap nowheel nopan m-3">
@@ -20,7 +20,7 @@ export function OrganizationGraphMiniMap() {
             ariaLabel="组织图谱缩略图"
             nodeComponent={OrganizationMiniMapNode}
             style={{ width: 280, height: 200 }}
-            className="static m-0 overflow-hidden rounded-lg border border-border bg-muted"
+            className="static m-0 overflow-hidden rounded-xl border border-border bg-muted shadow-xs"
             bgColor="transparent"
             maskColor="color-mix(in oklab, var(--foreground) 16%, transparent)"
           />

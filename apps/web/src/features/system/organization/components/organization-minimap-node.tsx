@@ -11,11 +11,15 @@ import { getOrganizationTypeIcon } from './organization-icon'
 import type { MiniMapNodeProps } from '@xyflow/react'
 import type { OrganizationGraphNode } from '../build-organization-graph'
 
+const NODE_RADIUS = 12
 const PADDING = 16
 const ICON_BOX = 36
+const ICON_RADIUS = 8
 const ICON_SIZE = 20
+const GAP = 12
 const NAME_FONT_SIZE = 28
 const TYPE_FONT_SIZE = 20
+const TEXT_GAP = 8
 
 export function OrganizationMiniMapNode({ id, x, y, width, height, selected }: MiniMapNodeProps) {
   const { getNode } = useReactFlow<OrganizationGraphNode>()
@@ -29,14 +33,17 @@ export function OrganizationMiniMapNode({ id, x, y, width, height, selected }: M
   const clipId = `organization-minimap-clip-${id}`
   const iconX = x + PADDING
   const iconY = y + (nodeHeight - ICON_BOX) / 2
-  const textX = iconX + ICON_BOX + 12
+  const textX = iconX + ICON_BOX + GAP
   const textWidth = Math.max(nodeWidth - (textX - x) - PADDING, 0)
+  const textBlockHeight = NAME_FONT_SIZE + TEXT_GAP + TYPE_FONT_SIZE
+  const nameY = y + (nodeHeight - textBlockHeight) / 2
+  const typeY = nameY + NAME_FONT_SIZE + TEXT_GAP
 
   return (
     <g>
       <defs>
         <clipPath id={clipId}>
-          <rect x={textX} y={y} width={textWidth} height={nodeHeight} />
+          <rect x={textX} y={nameY} width={textWidth} height={textBlockHeight} />
         </clipPath>
       </defs>
       <rect
@@ -44,44 +51,44 @@ export function OrganizationMiniMapNode({ id, x, y, width, height, selected }: M
         y={y}
         width={nodeWidth}
         height={nodeHeight}
-        rx={12}
-        ry={12}
-        strokeWidth={4}
-        className={cn(selected ? 'fill-primary stroke-primary' : 'fill-card stroke-border')}
+        rx={NODE_RADIUS}
+        ry={NODE_RADIUS}
+        strokeWidth={selected ? 5 : 2}
+        className={cn(selected ? 'fill-primary/10 stroke-primary' : 'fill-card stroke-border')}
       />
       <rect
         x={iconX}
         y={iconY}
         width={ICON_BOX}
         height={ICON_BOX}
-        rx={8}
-        ry={8}
-        className={selected ? 'fill-primary-foreground/20' : 'fill-muted'}
+        rx={ICON_RADIUS}
+        ry={ICON_RADIUS}
+        className={selected ? 'fill-primary/15' : 'fill-muted'}
       />
       <Icon
         x={iconX + (ICON_BOX - ICON_SIZE) / 2}
         y={iconY + (ICON_BOX - ICON_SIZE) / 2}
         width={ICON_SIZE}
         height={ICON_SIZE}
-        className={cn(selected ? 'text-primary-foreground' : defaultColor)}
+        className={defaultColor}
       />
       <text
         x={textX}
-        y={y + nodeHeight / 2 - 8}
-        dominantBaseline="auto"
+        y={nameY}
+        dominantBaseline="hanging"
         clipPath={`url(#${clipId})`}
-        className={cn(selected ? 'fill-primary-foreground' : 'fill-foreground')}
-        style={{ fontSize: NAME_FONT_SIZE, fontWeight: 600 }}
+        className="fill-foreground"
+        style={{ fontSize: NAME_FONT_SIZE, fontWeight: 500 }}
       >
         {name}
       </text>
       <text
         x={textX}
-        y={y + nodeHeight / 2 + 18}
+        y={typeY}
         dominantBaseline="hanging"
         clipPath={`url(#${clipId})`}
-        className={cn(selected ? 'fill-primary-foreground/80' : 'fill-muted-foreground')}
-        style={{ fontSize: TYPE_FONT_SIZE, fontWeight: 500 }}
+        className="fill-muted-foreground"
+        style={{ fontSize: TYPE_FONT_SIZE, fontWeight: 400 }}
       >
         {typeLabel}
       </text>

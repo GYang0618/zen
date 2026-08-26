@@ -22,8 +22,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "prisma:generate": "prisma generate",
     "prisma:format": "prisma format",
-    "prisma:migrate:dev": "prisma migrate dev",
-    "agent:dev": "langgraphjs dev"
+    "prisma:migrate:dev": "prisma migrate dev"
   },
   "dependencies": {
     "@ai-sdk/langchain": "^3.0.37",

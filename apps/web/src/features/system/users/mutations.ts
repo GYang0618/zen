@@ -1,12 +1,16 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
+import { mapInfinitePageItems } from '@/lib/infinite-list'
+
 import { userApi } from './api'
 import { usersQueryKeys } from './queries'
 
+import type { InfiniteData } from '@tanstack/react-query'
 import type { User } from '@zen/shared'
 import type { PaginationResponse } from '@/lib/request'
 
 const USERS_LIST_QUERY_KEY = ['system', 'users', 'list'] as const
+const USERS_INFINITE_QUERY_KEY = ['system', 'users', 'infinite'] as const
 const ROLES_LIST_QUERY_KEY = ['system', 'roles', 'list'] as const
 const ROLE_DETAIL_QUERY_KEY = ['system', 'roles', 'detail'] as const
 const ROLE_MEMBERS_QUERY_KEY = ['system', 'roles', 'members'] as const
@@ -16,6 +20,8 @@ function mergeUserCaches(
   userId: string,
   patch: Partial<User>
 ) {
+  const applyPatch = (user: User) => (user.id === userId ? { ...user, ...patch } : user)
+
   queryClient.setQueryData<User>(usersQueryKeys.detail(userId), (current) =>
     current ? { ...current, ...patch } : current
   )
@@ -25,15 +31,20 @@ function mergeUserCaches(
       if (!current) return current
       return {
         ...current,
-        items: current.items.map((user) => (user.id === userId ? { ...user, ...patch } : user))
+        items: current.items.map(applyPatch)
       }
     }
+  )
+  queryClient.setQueriesData<InfiniteData<PaginationResponse<User>>>(
+    { queryKey: USERS_INFINITE_QUERY_KEY },
+    (current) => mapInfinitePageItems(current, applyPatch)
   )
 }
 
 function invalidateUserQueries(queryClient: ReturnType<typeof useQueryClient>, userId?: string) {
   const tasks = [
     queryClient.invalidateQueries({ queryKey: USERS_LIST_QUERY_KEY }),
+    queryClient.invalidateQueries({ queryKey: USERS_INFINITE_QUERY_KEY }),
     queryClient.invalidateQueries({ queryKey: ['organization'] }),
     queryClient.invalidateQueries({ queryKey: ['system', 'roles'] })
   ]
@@ -157,6 +168,10 @@ export function useAssignUserRolesMutation() {
       const staleQueries = [
         queryClient.invalidateQueries({
           queryKey: ROLES_LIST_QUERY_KEY,
+          refetchType: 'none'
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['system', 'roles', 'infinite'],
           refetchType: 'none'
         }),
         queryClient.invalidateQueries({

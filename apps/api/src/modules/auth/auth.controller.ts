@@ -1,12 +1,10 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   HttpCode,
   HttpStatus,
   Inject,
-  Param,
   Patch,
   Post,
   Req,
@@ -218,40 +216,6 @@ export class AuthController {
   ): Promise<UserInfoResponse> {
     const userId = this.requireUserId(request)
     return this.authService.updateMe(userId, body)
-  }
-
-  @Get('sessions')
-  @HttpCode(HttpStatus.OK)
-  async listSessions(@Req() request: Request) {
-    const userId = this.requireUserId(request)
-    const refreshToken = request.cookies?.[REFRESH_TOKEN_COOKIE_NAME] as string | undefined
-    const currentId = await this.authService.resolveCurrentSessionId(userId, refreshToken)
-    const items = await this.authService.listSessions(userId)
-    return {
-      items: items.map((item) => ({
-        id: item.id,
-        ip: item.ip,
-        userAgent: item.userAgent,
-        expiresAt: item.expiresAt.toISOString(),
-        createdAt: item.createdAt.toISOString(),
-        current: item.id === currentId
-      }))
-    }
-  }
-
-  @Delete('sessions/others')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async revokeOtherSessions(@Req() request: Request): Promise<void> {
-    const userId = this.requireUserId(request)
-    const refreshToken = request.cookies?.[REFRESH_TOKEN_COOKIE_NAME] as string | undefined
-    await this.authService.revokeOtherSessions(userId, refreshToken)
-  }
-
-  @Delete('sessions/:id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async revokeSession(@Req() request: Request, @Param('id') sessionId: string): Promise<void> {
-    const userId = this.requireUserId(request)
-    await this.authService.revokeSession(userId, sessionId)
   }
 
   private requestMeta(request: Request) {

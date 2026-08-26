@@ -1,14 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Settings } from 'lucide-react'
+import { Palette } from 'lucide-react'
 
-import { AppearancePage } from '@/features/settings'
+import { SettingsAppearance } from '@/features/settings-v2/appearance'
 
 export const Route = createFileRoute('/_authenticated/_other/settings/appearance')({
-  component: AppearancePage,
+  component: SettingsAppearance,
   staticData: {
     title: '外观界面',
-    description: '自定义系统的视觉主题模式 (日间/夜间/跟随系统)、侧边栏形态及界面布局。',
-    icon: Settings,
-    order: 40
+    description: '自定义主题模式、配色、字体、样式、侧边栏形态与界面布局。',
+    icon: Palette,
+    order: 30
   }
 })

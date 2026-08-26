@@ -44,3 +44,13 @@ pnpm run openapi:generate
 pnpm run dev          # LangGraph CLI
 pnpm run service      # Hono 服务（watch）
 ```
+
+只跑根目录 `pnpm dev`。Ctrl+C 等到退出，不要叉终端。Copilot 连不上时：
+
+```powershell
+# 检查 3600 是否被占用（OwningProcess 即 PID）
+Get-NetTCPConnection -LocalPort 3600 -ErrorAction SilentlyContinue | Select-Object State, OwningProcess
+
+# 把上面的 OwningProcess 填进来，杀掉整棵进程树
+taskkill /F /T /PID <OwningProcess>
+```

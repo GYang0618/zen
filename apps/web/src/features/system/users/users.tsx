@@ -1,6 +1,7 @@
 import { getRouteApi } from '@tanstack/react-router'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@zen/ui'
 import { CreditCard, TextAlignJustify } from 'lucide-react'
+import { useState } from 'react'
 
 import { AppHeader, Main } from '@/components/layouts'
 import { AppPageHeader } from '@/components/layouts/app-page-header'
@@ -18,13 +19,17 @@ const route = getRouteApi('/_authenticated/system/_identity/users')
 function UsersContent() {
   const search = route.useSearch()
   const navigate = route.useNavigate()
-  const { data, isLoading, isFetching } = useUsersQuery({
-    keyword: search.keyword,
-    status: search.status,
-    role: search.role,
-    sortBy: search.sortBy,
-    sortOrder: search.sortOrder
-  })
+  const [view, setView] = useState('card')
+  const { data, isLoading, isFetching } = useUsersQuery(
+    {
+      keyword: search.keyword,
+      status: search.status,
+      role: search.role,
+      sortBy: search.sortBy,
+      sortOrder: search.sortOrder
+    },
+    { enabled: view === 'table' }
+  )
   const users = data?.items ?? []
 
   return (
@@ -34,7 +39,7 @@ function UsersContent() {
 
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
         <AppPageHeader actions={<UsersPrimaryButtons />} />
-        <Tabs defaultValue="card">
+        <Tabs value={view} onValueChange={setView}>
           <TabsList className="mx-auto">
             <TabsTrigger value="card">
               <CreditCard />
@@ -45,7 +50,13 @@ function UsersContent() {
           </TabsList>
 
           <TabsContent value="card">
-            <UsersCardList data={users} isLoading={isLoading} isFetching={isFetching} />
+            <UsersCardList
+              keyword={search.keyword}
+              status={search.status}
+              role={search.role}
+              sortBy={search.sortBy}
+              sortOrder={search.sortOrder}
+            />
           </TabsContent>
           <TabsContent value="table">
             <UsersTable

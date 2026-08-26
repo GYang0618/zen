@@ -4,7 +4,7 @@ import { configs } from '../configs/env'
 import { getCurrentAccessToken } from './request-context'
 
 export * from '../api-client'
-export { executeApiCall, unwrapApiSuccessData } from './call-api'
+export { asSdkOptions, executeApiCall, toQueryArray, unwrapApiSuccessData } from './call-api'
 export { getAccessTokenFromConfig, getCurrentAccessToken } from './request-context'
 
 export { client, createClient }

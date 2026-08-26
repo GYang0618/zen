@@ -27,7 +27,6 @@ import { Route as Errors404RouteImport } from './routes/errors/404'
 import { Route as Errors500RouteImport } from './routes/errors/500'
 import { Route as Errors503RouteImport } from './routes/errors/503'
 import { Route as AuthenticatedOtherSettingsRouteRouteImport } from './routes/_authenticated/_other/settings/route'
-import { Route as AuthenticatedOtherSettingsV2RouteRouteImport } from './routes/_authenticated/_other/settings-v2/route'
 import { Route as AuthenticatedWorkbenchIndexRouteImport } from './routes/_authenticated/_workbench/index'
 import { Route as AuthenticatedWorkbenchBimRouteImport } from './routes/_authenticated/_workbench/bim'
 import { Route as AuthenticatedWorkbenchChatRouteImport } from './routes/_authenticated/_workbench/chat'
@@ -40,21 +39,16 @@ import { Route as AuthenticatedPluginsJobsRouteImport } from './routes/_authenti
 import { Route as AuthenticatedPluginsNotesRouteImport } from './routes/_authenticated/plugins/notes'
 import { Route as AuthenticatedPluginsNotificationsRouteImport } from './routes/_authenticated/plugins/notifications'
 import { Route as AuthenticatedSystemIdentityRouteRouteImport } from './routes/_authenticated/system/_identity/route'
-import { Route as AuthenticatedSystemArrayDictV2RouteImport } from './routes/_authenticated/system/array-dict-v2'
 import { Route as AuthenticatedSystemDictRouteImport } from './routes/_authenticated/system/dict'
+import { Route as AuthenticatedSystemDictV2RouteImport } from './routes/_authenticated/system/dict-v2'
 import { Route as AuthenticatedSystemFilesRouteImport } from './routes/_authenticated/system/files'
 import { Route as AuthenticatedSystemIconSetRouteImport } from './routes/_authenticated/system/icon-set'
 import { Route as AuthenticatedSystemPluginsRouteImport } from './routes/_authenticated/system/plugins'
-import { Route as AuthenticatedOtherSettingsV2AccountRouteImport } from './routes/_authenticated/_other/settings-v2/account'
-import { Route as AuthenticatedOtherSettingsV2AppearanceRouteImport } from './routes/_authenticated/_other/settings-v2/appearance'
-import { Route as AuthenticatedOtherSettingsV2NotificationsRouteImport } from './routes/_authenticated/_other/settings-v2/notifications'
-import { Route as AuthenticatedOtherSettingsV2ProfileRouteImport } from './routes/_authenticated/_other/settings-v2/profile'
-import { Route as AuthenticatedOtherSettingsV2SystemRouteImport } from './routes/_authenticated/_other/settings-v2/system'
 import { Route as AuthenticatedOtherSettingsAccountRouteImport } from './routes/_authenticated/_other/settings/account'
-import { Route as AuthenticatedOtherSettingsActivityRouteImport } from './routes/_authenticated/_other/settings/activity'
 import { Route as AuthenticatedOtherSettingsAppearanceRouteImport } from './routes/_authenticated/_other/settings/appearance'
 import { Route as AuthenticatedOtherSettingsNotificationsRouteImport } from './routes/_authenticated/_other/settings/notifications'
 import { Route as AuthenticatedOtherSettingsProfileRouteImport } from './routes/_authenticated/_other/settings/profile'
+import { Route as AuthenticatedOtherSettingsSystemRouteImport } from './routes/_authenticated/_other/settings/system'
 import { Route as AuthenticatedSystemIdentityOrganizationRouteImport } from './routes/_authenticated/system/_identity/organization'
 import { Route as AuthenticatedSystemIdentityPostsRouteImport } from './routes/_authenticated/system/_identity/posts'
 import { Route as AuthenticatedSystemIdentityRolesRouteImport } from './routes/_authenticated/system/_identity/roles'
@@ -154,12 +148,6 @@ const AuthenticatedOtherSettingsRouteRoute =
     path: '/settings',
     getParentRoute: () => AuthenticatedOtherRouteRoute,
   } as any)
-const AuthenticatedOtherSettingsV2RouteRoute =
-  AuthenticatedOtherSettingsV2RouteRouteImport.update({
-    id: '/settings-v2',
-    path: '/settings-v2',
-    getParentRoute: () => AuthenticatedOtherRouteRoute,
-  } as any)
 const AuthenticatedWorkbenchIndexRoute =
   AuthenticatedWorkbenchIndexRouteImport.update({
     id: '/',
@@ -229,17 +217,17 @@ const AuthenticatedSystemIdentityRouteRoute =
     id: '/_identity',
     getParentRoute: () => AuthenticatedSystemRouteRoute,
   } as any)
-const AuthenticatedSystemArrayDictV2Route =
-  AuthenticatedSystemArrayDictV2RouteImport.update({
-    id: '/array-dict-v2',
-    path: '/array-dict-v2',
-    getParentRoute: () => AuthenticatedSystemRouteRoute,
-  } as any)
 const AuthenticatedSystemDictRoute = AuthenticatedSystemDictRouteImport.update({
   id: '/dict',
   path: '/dict',
   getParentRoute: () => AuthenticatedSystemRouteRoute,
 } as any)
+const AuthenticatedSystemDictV2Route =
+  AuthenticatedSystemDictV2RouteImport.update({
+    id: '/dict-v2',
+    path: '/dict-v2',
+    getParentRoute: () => AuthenticatedSystemRouteRoute,
+  } as any)
 const AuthenticatedSystemFilesRoute =
   AuthenticatedSystemFilesRouteImport.update({
     id: '/files',
@@ -258,46 +246,10 @@ const AuthenticatedSystemPluginsRoute =
     path: '/plugins',
     getParentRoute: () => AuthenticatedSystemRouteRoute,
   } as any)
-const AuthenticatedOtherSettingsV2AccountRoute =
-  AuthenticatedOtherSettingsV2AccountRouteImport.update({
-    id: '/account',
-    path: '/account',
-    getParentRoute: () => AuthenticatedOtherSettingsV2RouteRoute,
-  } as any)
-const AuthenticatedOtherSettingsV2AppearanceRoute =
-  AuthenticatedOtherSettingsV2AppearanceRouteImport.update({
-    id: '/appearance',
-    path: '/appearance',
-    getParentRoute: () => AuthenticatedOtherSettingsV2RouteRoute,
-  } as any)
-const AuthenticatedOtherSettingsV2NotificationsRoute =
-  AuthenticatedOtherSettingsV2NotificationsRouteImport.update({
-    id: '/notifications',
-    path: '/notifications',
-    getParentRoute: () => AuthenticatedOtherSettingsV2RouteRoute,
-  } as any)
-const AuthenticatedOtherSettingsV2ProfileRoute =
-  AuthenticatedOtherSettingsV2ProfileRouteImport.update({
-    id: '/profile',
-    path: '/profile',
-    getParentRoute: () => AuthenticatedOtherSettingsV2RouteRoute,
-  } as any)
-const AuthenticatedOtherSettingsV2SystemRoute =
-  AuthenticatedOtherSettingsV2SystemRouteImport.update({
-    id: '/system',
-    path: '/system',
-    getParentRoute: () => AuthenticatedOtherSettingsV2RouteRoute,
-  } as any)
 const AuthenticatedOtherSettingsAccountRoute =
   AuthenticatedOtherSettingsAccountRouteImport.update({
     id: '/account',
     path: '/account',
-    getParentRoute: () => AuthenticatedOtherSettingsRouteRoute,
-  } as any)
-const AuthenticatedOtherSettingsActivityRoute =
-  AuthenticatedOtherSettingsActivityRouteImport.update({
-    id: '/activity',
-    path: '/activity',
     getParentRoute: () => AuthenticatedOtherSettingsRouteRoute,
   } as any)
 const AuthenticatedOtherSettingsAppearanceRoute =
@@ -316,6 +268,12 @@ const AuthenticatedOtherSettingsProfileRoute =
   AuthenticatedOtherSettingsProfileRouteImport.update({
     id: '/profile',
     path: '/profile',
+    getParentRoute: () => AuthenticatedOtherSettingsRouteRoute,
+  } as any)
+const AuthenticatedOtherSettingsSystemRoute =
+  AuthenticatedOtherSettingsSystemRouteImport.update({
+    id: '/system',
+    path: '/system',
     getParentRoute: () => AuthenticatedOtherSettingsRouteRoute,
   } as any)
 const AuthenticatedSystemIdentityOrganizationRoute =
@@ -377,7 +335,6 @@ export interface FileRoutesByFullPath {
   '/errors/500': typeof Errors500Route
   '/errors/503': typeof Errors503Route
   '/settings': typeof AuthenticatedOtherSettingsRouteRouteWithChildren
-  '/settings-v2': typeof AuthenticatedOtherSettingsV2RouteRouteWithChildren
   '/bim': typeof AuthenticatedWorkbenchBimRoute
   '/chat': typeof AuthenticatedWorkbenchChatRoute
   '/chat-v2': typeof AuthenticatedWorkbenchChatV2Route
@@ -388,21 +345,16 @@ export interface FileRoutesByFullPath {
   '/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
   '/plugins/notes': typeof AuthenticatedPluginsNotesRoute
   '/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
-  '/system/array-dict-v2': typeof AuthenticatedSystemArrayDictV2Route
   '/system/dict': typeof AuthenticatedSystemDictRoute
+  '/system/dict-v2': typeof AuthenticatedSystemDictV2Route
   '/system/files': typeof AuthenticatedSystemFilesRoute
   '/system/icon-set': typeof AuthenticatedSystemIconSetRoute
   '/system/plugins': typeof AuthenticatedSystemPluginsRoute
-  '/settings-v2/account': typeof AuthenticatedOtherSettingsV2AccountRoute
-  '/settings-v2/appearance': typeof AuthenticatedOtherSettingsV2AppearanceRoute
-  '/settings-v2/notifications': typeof AuthenticatedOtherSettingsV2NotificationsRoute
-  '/settings-v2/profile': typeof AuthenticatedOtherSettingsV2ProfileRoute
-  '/settings-v2/system': typeof AuthenticatedOtherSettingsV2SystemRoute
   '/settings/account': typeof AuthenticatedOtherSettingsAccountRoute
-  '/settings/activity': typeof AuthenticatedOtherSettingsActivityRoute
   '/settings/appearance': typeof AuthenticatedOtherSettingsAppearanceRoute
   '/settings/notifications': typeof AuthenticatedOtherSettingsNotificationsRoute
   '/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
+  '/settings/system': typeof AuthenticatedOtherSettingsSystemRoute
   '/system/organization': typeof AuthenticatedSystemIdentityOrganizationRoute
   '/system/posts': typeof AuthenticatedSystemIdentityPostsRoute
   '/system/roles': typeof AuthenticatedSystemIdentityRolesRoute
@@ -427,7 +379,6 @@ export interface FileRoutesByTo {
   '/errors/500': typeof Errors500Route
   '/errors/503': typeof Errors503Route
   '/settings': typeof AuthenticatedOtherSettingsRouteRouteWithChildren
-  '/settings-v2': typeof AuthenticatedOtherSettingsV2RouteRouteWithChildren
   '/bim': typeof AuthenticatedWorkbenchBimRoute
   '/chat': typeof AuthenticatedWorkbenchChatRoute
   '/chat-v2': typeof AuthenticatedWorkbenchChatV2Route
@@ -438,21 +389,16 @@ export interface FileRoutesByTo {
   '/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
   '/plugins/notes': typeof AuthenticatedPluginsNotesRoute
   '/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
-  '/system/array-dict-v2': typeof AuthenticatedSystemArrayDictV2Route
   '/system/dict': typeof AuthenticatedSystemDictRoute
+  '/system/dict-v2': typeof AuthenticatedSystemDictV2Route
   '/system/files': typeof AuthenticatedSystemFilesRoute
   '/system/icon-set': typeof AuthenticatedSystemIconSetRoute
   '/system/plugins': typeof AuthenticatedSystemPluginsRoute
-  '/settings-v2/account': typeof AuthenticatedOtherSettingsV2AccountRoute
-  '/settings-v2/appearance': typeof AuthenticatedOtherSettingsV2AppearanceRoute
-  '/settings-v2/notifications': typeof AuthenticatedOtherSettingsV2NotificationsRoute
-  '/settings-v2/profile': typeof AuthenticatedOtherSettingsV2ProfileRoute
-  '/settings-v2/system': typeof AuthenticatedOtherSettingsV2SystemRoute
   '/settings/account': typeof AuthenticatedOtherSettingsAccountRoute
-  '/settings/activity': typeof AuthenticatedOtherSettingsActivityRoute
   '/settings/appearance': typeof AuthenticatedOtherSettingsAppearanceRoute
   '/settings/notifications': typeof AuthenticatedOtherSettingsNotificationsRoute
   '/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
+  '/settings/system': typeof AuthenticatedOtherSettingsSystemRoute
   '/system/organization': typeof AuthenticatedSystemIdentityOrganizationRoute
   '/system/posts': typeof AuthenticatedSystemIdentityPostsRoute
   '/system/roles': typeof AuthenticatedSystemIdentityRolesRoute
@@ -481,7 +427,6 @@ export interface FileRoutesById {
   '/errors/500': typeof Errors500Route
   '/errors/503': typeof Errors503Route
   '/_authenticated/_other/settings': typeof AuthenticatedOtherSettingsRouteRouteWithChildren
-  '/_authenticated/_other/settings-v2': typeof AuthenticatedOtherSettingsV2RouteRouteWithChildren
   '/_authenticated/system/_identity': typeof AuthenticatedSystemIdentityRouteRouteWithChildren
   '/_authenticated/_workbench/bim': typeof AuthenticatedWorkbenchBimRoute
   '/_authenticated/_workbench/chat': typeof AuthenticatedWorkbenchChatRoute
@@ -493,22 +438,17 @@ export interface FileRoutesById {
   '/_authenticated/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
   '/_authenticated/plugins/notes': typeof AuthenticatedPluginsNotesRoute
   '/_authenticated/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
-  '/_authenticated/system/array-dict-v2': typeof AuthenticatedSystemArrayDictV2Route
   '/_authenticated/system/dict': typeof AuthenticatedSystemDictRoute
+  '/_authenticated/system/dict-v2': typeof AuthenticatedSystemDictV2Route
   '/_authenticated/system/files': typeof AuthenticatedSystemFilesRoute
   '/_authenticated/system/icon-set': typeof AuthenticatedSystemIconSetRoute
   '/_authenticated/system/plugins': typeof AuthenticatedSystemPluginsRoute
   '/_authenticated/_workbench/': typeof AuthenticatedWorkbenchIndexRoute
-  '/_authenticated/_other/settings-v2/account': typeof AuthenticatedOtherSettingsV2AccountRoute
-  '/_authenticated/_other/settings-v2/appearance': typeof AuthenticatedOtherSettingsV2AppearanceRoute
-  '/_authenticated/_other/settings-v2/notifications': typeof AuthenticatedOtherSettingsV2NotificationsRoute
-  '/_authenticated/_other/settings-v2/profile': typeof AuthenticatedOtherSettingsV2ProfileRoute
-  '/_authenticated/_other/settings-v2/system': typeof AuthenticatedOtherSettingsV2SystemRoute
   '/_authenticated/_other/settings/account': typeof AuthenticatedOtherSettingsAccountRoute
-  '/_authenticated/_other/settings/activity': typeof AuthenticatedOtherSettingsActivityRoute
   '/_authenticated/_other/settings/appearance': typeof AuthenticatedOtherSettingsAppearanceRoute
   '/_authenticated/_other/settings/notifications': typeof AuthenticatedOtherSettingsNotificationsRoute
   '/_authenticated/_other/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
+  '/_authenticated/_other/settings/system': typeof AuthenticatedOtherSettingsSystemRoute
   '/_authenticated/system/_identity/organization': typeof AuthenticatedSystemIdentityOrganizationRoute
   '/_authenticated/system/_identity/posts': typeof AuthenticatedSystemIdentityPostsRoute
   '/_authenticated/system/_identity/roles': typeof AuthenticatedSystemIdentityRolesRoute
@@ -535,7 +475,6 @@ export interface FileRouteTypes {
     | '/errors/500'
     | '/errors/503'
     | '/settings'
-    | '/settings-v2'
     | '/bim'
     | '/chat'
     | '/chat-v2'
@@ -546,21 +485,16 @@ export interface FileRouteTypes {
     | '/plugins/jobs'
     | '/plugins/notes'
     | '/plugins/notifications'
-    | '/system/array-dict-v2'
     | '/system/dict'
+    | '/system/dict-v2'
     | '/system/files'
     | '/system/icon-set'
     | '/system/plugins'
-    | '/settings-v2/account'
-    | '/settings-v2/appearance'
-    | '/settings-v2/notifications'
-    | '/settings-v2/profile'
-    | '/settings-v2/system'
     | '/settings/account'
-    | '/settings/activity'
     | '/settings/appearance'
     | '/settings/notifications'
     | '/settings/profile'
+    | '/settings/system'
     | '/system/organization'
     | '/system/posts'
     | '/system/roles'
@@ -585,7 +519,6 @@ export interface FileRouteTypes {
     | '/errors/500'
     | '/errors/503'
     | '/settings'
-    | '/settings-v2'
     | '/bim'
     | '/chat'
     | '/chat-v2'
@@ -596,21 +529,16 @@ export interface FileRouteTypes {
     | '/plugins/jobs'
     | '/plugins/notes'
     | '/plugins/notifications'
-    | '/system/array-dict-v2'
     | '/system/dict'
+    | '/system/dict-v2'
     | '/system/files'
     | '/system/icon-set'
     | '/system/plugins'
-    | '/settings-v2/account'
-    | '/settings-v2/appearance'
-    | '/settings-v2/notifications'
-    | '/settings-v2/profile'
-    | '/settings-v2/system'
     | '/settings/account'
-    | '/settings/activity'
     | '/settings/appearance'
     | '/settings/notifications'
     | '/settings/profile'
+    | '/settings/system'
     | '/system/organization'
     | '/system/posts'
     | '/system/roles'
@@ -638,7 +566,6 @@ export interface FileRouteTypes {
     | '/errors/500'
     | '/errors/503'
     | '/_authenticated/_other/settings'
-    | '/_authenticated/_other/settings-v2'
     | '/_authenticated/system/_identity'
     | '/_authenticated/_workbench/bim'
     | '/_authenticated/_workbench/chat'
@@ -650,22 +577,17 @@ export interface FileRouteTypes {
     | '/_authenticated/plugins/jobs'
     | '/_authenticated/plugins/notes'
     | '/_authenticated/plugins/notifications'
-    | '/_authenticated/system/array-dict-v2'
     | '/_authenticated/system/dict'
+    | '/_authenticated/system/dict-v2'
     | '/_authenticated/system/files'
     | '/_authenticated/system/icon-set'
     | '/_authenticated/system/plugins'
     | '/_authenticated/_workbench/'
-    | '/_authenticated/_other/settings-v2/account'
-    | '/_authenticated/_other/settings-v2/appearance'
-    | '/_authenticated/_other/settings-v2/notifications'
-    | '/_authenticated/_other/settings-v2/profile'
-    | '/_authenticated/_other/settings-v2/system'
     | '/_authenticated/_other/settings/account'
-    | '/_authenticated/_other/settings/activity'
     | '/_authenticated/_other/settings/appearance'
     | '/_authenticated/_other/settings/notifications'
     | '/_authenticated/_other/settings/profile'
+    | '/_authenticated/_other/settings/system'
     | '/_authenticated/system/_identity/organization'
     | '/_authenticated/system/_identity/posts'
     | '/_authenticated/system/_identity/roles'
@@ -813,13 +735,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOtherSettingsRouteRouteImport
       parentRoute: typeof AuthenticatedOtherRouteRoute
     }
-    '/_authenticated/_other/settings-v2': {
-      id: '/_authenticated/_other/settings-v2'
-      path: '/settings-v2'
-      fullPath: '/settings-v2'
-      preLoaderRoute: typeof AuthenticatedOtherSettingsV2RouteRouteImport
-      parentRoute: typeof AuthenticatedOtherRouteRoute
-    }
     '/_authenticated/_workbench/': {
       id: '/_authenticated/_workbench/'
       path: '/'
@@ -904,18 +819,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSystemIdentityRouteRouteImport
       parentRoute: typeof AuthenticatedSystemRouteRoute
     }
-    '/_authenticated/system/array-dict-v2': {
-      id: '/_authenticated/system/array-dict-v2'
-      path: '/array-dict-v2'
-      fullPath: '/system/array-dict-v2'
-      preLoaderRoute: typeof AuthenticatedSystemArrayDictV2RouteImport
-      parentRoute: typeof AuthenticatedSystemRouteRoute
-    }
     '/_authenticated/system/dict': {
       id: '/_authenticated/system/dict'
       path: '/dict'
       fullPath: '/system/dict'
       preLoaderRoute: typeof AuthenticatedSystemDictRouteImport
+      parentRoute: typeof AuthenticatedSystemRouteRoute
+    }
+    '/_authenticated/system/dict-v2': {
+      id: '/_authenticated/system/dict-v2'
+      path: '/dict-v2'
+      fullPath: '/system/dict-v2'
+      preLoaderRoute: typeof AuthenticatedSystemDictV2RouteImport
       parentRoute: typeof AuthenticatedSystemRouteRoute
     }
     '/_authenticated/system/files': {
@@ -939,53 +854,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSystemPluginsRouteImport
       parentRoute: typeof AuthenticatedSystemRouteRoute
     }
-    '/_authenticated/_other/settings-v2/account': {
-      id: '/_authenticated/_other/settings-v2/account'
-      path: '/account'
-      fullPath: '/settings-v2/account'
-      preLoaderRoute: typeof AuthenticatedOtherSettingsV2AccountRouteImport
-      parentRoute: typeof AuthenticatedOtherSettingsV2RouteRoute
-    }
-    '/_authenticated/_other/settings-v2/appearance': {
-      id: '/_authenticated/_other/settings-v2/appearance'
-      path: '/appearance'
-      fullPath: '/settings-v2/appearance'
-      preLoaderRoute: typeof AuthenticatedOtherSettingsV2AppearanceRouteImport
-      parentRoute: typeof AuthenticatedOtherSettingsV2RouteRoute
-    }
-    '/_authenticated/_other/settings-v2/notifications': {
-      id: '/_authenticated/_other/settings-v2/notifications'
-      path: '/notifications'
-      fullPath: '/settings-v2/notifications'
-      preLoaderRoute: typeof AuthenticatedOtherSettingsV2NotificationsRouteImport
-      parentRoute: typeof AuthenticatedOtherSettingsV2RouteRoute
-    }
-    '/_authenticated/_other/settings-v2/profile': {
-      id: '/_authenticated/_other/settings-v2/profile'
-      path: '/profile'
-      fullPath: '/settings-v2/profile'
-      preLoaderRoute: typeof AuthenticatedOtherSettingsV2ProfileRouteImport
-      parentRoute: typeof AuthenticatedOtherSettingsV2RouteRoute
-    }
-    '/_authenticated/_other/settings-v2/system': {
-      id: '/_authenticated/_other/settings-v2/system'
-      path: '/system'
-      fullPath: '/settings-v2/system'
-      preLoaderRoute: typeof AuthenticatedOtherSettingsV2SystemRouteImport
-      parentRoute: typeof AuthenticatedOtherSettingsV2RouteRoute
-    }
     '/_authenticated/_other/settings/account': {
       id: '/_authenticated/_other/settings/account'
       path: '/account'
       fullPath: '/settings/account'
       preLoaderRoute: typeof AuthenticatedOtherSettingsAccountRouteImport
-      parentRoute: typeof AuthenticatedOtherSettingsRouteRoute
-    }
-    '/_authenticated/_other/settings/activity': {
-      id: '/_authenticated/_other/settings/activity'
-      path: '/activity'
-      fullPath: '/settings/activity'
-      preLoaderRoute: typeof AuthenticatedOtherSettingsActivityRouteImport
       parentRoute: typeof AuthenticatedOtherSettingsRouteRoute
     }
     '/_authenticated/_other/settings/appearance': {
@@ -1007,6 +880,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/settings/profile'
       preLoaderRoute: typeof AuthenticatedOtherSettingsProfileRouteImport
+      parentRoute: typeof AuthenticatedOtherSettingsRouteRoute
+    }
+    '/_authenticated/_other/settings/system': {
+      id: '/_authenticated/_other/settings/system'
+      path: '/system'
+      fullPath: '/settings/system'
+      preLoaderRoute: typeof AuthenticatedOtherSettingsSystemRouteImport
       parentRoute: typeof AuthenticatedOtherSettingsRouteRoute
     }
     '/_authenticated/system/_identity/organization': {
@@ -1081,24 +961,24 @@ const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
 
 interface AuthenticatedOtherSettingsRouteRouteChildren {
   AuthenticatedOtherSettingsAccountRoute: typeof AuthenticatedOtherSettingsAccountRoute
-  AuthenticatedOtherSettingsActivityRoute: typeof AuthenticatedOtherSettingsActivityRoute
   AuthenticatedOtherSettingsAppearanceRoute: typeof AuthenticatedOtherSettingsAppearanceRoute
   AuthenticatedOtherSettingsNotificationsRoute: typeof AuthenticatedOtherSettingsNotificationsRoute
   AuthenticatedOtherSettingsProfileRoute: typeof AuthenticatedOtherSettingsProfileRoute
+  AuthenticatedOtherSettingsSystemRoute: typeof AuthenticatedOtherSettingsSystemRoute
 }
 
 const AuthenticatedOtherSettingsRouteRouteChildren: AuthenticatedOtherSettingsRouteRouteChildren =
   {
     AuthenticatedOtherSettingsAccountRoute:
       AuthenticatedOtherSettingsAccountRoute,
-    AuthenticatedOtherSettingsActivityRoute:
-      AuthenticatedOtherSettingsActivityRoute,
     AuthenticatedOtherSettingsAppearanceRoute:
       AuthenticatedOtherSettingsAppearanceRoute,
     AuthenticatedOtherSettingsNotificationsRoute:
       AuthenticatedOtherSettingsNotificationsRoute,
     AuthenticatedOtherSettingsProfileRoute:
       AuthenticatedOtherSettingsProfileRoute,
+    AuthenticatedOtherSettingsSystemRoute:
+      AuthenticatedOtherSettingsSystemRoute,
   }
 
 const AuthenticatedOtherSettingsRouteRouteWithChildren =
@@ -1106,44 +986,14 @@ const AuthenticatedOtherSettingsRouteRouteWithChildren =
     AuthenticatedOtherSettingsRouteRouteChildren,
   )
 
-interface AuthenticatedOtherSettingsV2RouteRouteChildren {
-  AuthenticatedOtherSettingsV2AccountRoute: typeof AuthenticatedOtherSettingsV2AccountRoute
-  AuthenticatedOtherSettingsV2AppearanceRoute: typeof AuthenticatedOtherSettingsV2AppearanceRoute
-  AuthenticatedOtherSettingsV2NotificationsRoute: typeof AuthenticatedOtherSettingsV2NotificationsRoute
-  AuthenticatedOtherSettingsV2ProfileRoute: typeof AuthenticatedOtherSettingsV2ProfileRoute
-  AuthenticatedOtherSettingsV2SystemRoute: typeof AuthenticatedOtherSettingsV2SystemRoute
-}
-
-const AuthenticatedOtherSettingsV2RouteRouteChildren: AuthenticatedOtherSettingsV2RouteRouteChildren =
-  {
-    AuthenticatedOtherSettingsV2AccountRoute:
-      AuthenticatedOtherSettingsV2AccountRoute,
-    AuthenticatedOtherSettingsV2AppearanceRoute:
-      AuthenticatedOtherSettingsV2AppearanceRoute,
-    AuthenticatedOtherSettingsV2NotificationsRoute:
-      AuthenticatedOtherSettingsV2NotificationsRoute,
-    AuthenticatedOtherSettingsV2ProfileRoute:
-      AuthenticatedOtherSettingsV2ProfileRoute,
-    AuthenticatedOtherSettingsV2SystemRoute:
-      AuthenticatedOtherSettingsV2SystemRoute,
-  }
-
-const AuthenticatedOtherSettingsV2RouteRouteWithChildren =
-  AuthenticatedOtherSettingsV2RouteRoute._addFileChildren(
-    AuthenticatedOtherSettingsV2RouteRouteChildren,
-  )
-
 interface AuthenticatedOtherRouteRouteChildren {
   AuthenticatedOtherSettingsRouteRoute: typeof AuthenticatedOtherSettingsRouteRouteWithChildren
-  AuthenticatedOtherSettingsV2RouteRoute: typeof AuthenticatedOtherSettingsV2RouteRouteWithChildren
 }
 
 const AuthenticatedOtherRouteRouteChildren: AuthenticatedOtherRouteRouteChildren =
   {
     AuthenticatedOtherSettingsRouteRoute:
       AuthenticatedOtherSettingsRouteRouteWithChildren,
-    AuthenticatedOtherSettingsV2RouteRoute:
-      AuthenticatedOtherSettingsV2RouteRouteWithChildren,
   }
 
 const AuthenticatedOtherRouteRouteWithChildren =
@@ -1242,8 +1092,8 @@ const AuthenticatedSystemIdentityRouteRouteWithChildren =
 
 interface AuthenticatedSystemRouteRouteChildren {
   AuthenticatedSystemIdentityRouteRoute: typeof AuthenticatedSystemIdentityRouteRouteWithChildren
-  AuthenticatedSystemArrayDictV2Route: typeof AuthenticatedSystemArrayDictV2Route
   AuthenticatedSystemDictRoute: typeof AuthenticatedSystemDictRoute
+  AuthenticatedSystemDictV2Route: typeof AuthenticatedSystemDictV2Route
   AuthenticatedSystemFilesRoute: typeof AuthenticatedSystemFilesRoute
   AuthenticatedSystemIconSetRoute: typeof AuthenticatedSystemIconSetRoute
   AuthenticatedSystemPluginsRoute: typeof AuthenticatedSystemPluginsRoute
@@ -1253,8 +1103,8 @@ const AuthenticatedSystemRouteRouteChildren: AuthenticatedSystemRouteRouteChildr
   {
     AuthenticatedSystemIdentityRouteRoute:
       AuthenticatedSystemIdentityRouteRouteWithChildren,
-    AuthenticatedSystemArrayDictV2Route: AuthenticatedSystemArrayDictV2Route,
     AuthenticatedSystemDictRoute: AuthenticatedSystemDictRoute,
+    AuthenticatedSystemDictV2Route: AuthenticatedSystemDictV2Route,
     AuthenticatedSystemFilesRoute: AuthenticatedSystemFilesRoute,
     AuthenticatedSystemIconSetRoute: AuthenticatedSystemIconSetRoute,
     AuthenticatedSystemPluginsRoute: AuthenticatedSystemPluginsRoute,

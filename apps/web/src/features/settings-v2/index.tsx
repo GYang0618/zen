@@ -13,7 +13,7 @@ import { SidebarNav } from './components/sidebar-nav'
 import type { RouteTreeNode } from '@/components/layouts/build-nav-from-routes'
 import type { AppPath } from '@/types/router'
 
-const SETTINGS_V2_PATH = '/settings-v2' satisfies AppPath
+const SETTINGS_V2_PATH = '/settings' satisfies AppPath
 
 export function Settings() {
   const router = useRouter()

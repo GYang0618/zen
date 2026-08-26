@@ -1,19 +1,19 @@
 import { useUsersTable } from '../generative-ui'
-import { useNavigateTool, useQueryRouteTool, useThemeTool } from '../tools'
+import { useAppearanceTool, useNavigateTool, useQueryRouteTool } from '../tools'
 
-function useCopilotSharedRegistry() {
-  useThemeTool()
+/** 全树只注册一次的工具。必须挂在 CopilotProvider 下，不能同时出现在 Popup / Chat 里。 */
+export function CopilotSharedRegistrations() {
+  useAppearanceTool()
+  return null
 }
 
 export function PopupChatRegistrations() {
-  useCopilotSharedRegistry()
   useNavigateTool()
   useQueryRouteTool()
   return null
 }
 
 export function ChatRegistrations() {
-  useCopilotSharedRegistry()
   useUsersTable()
   return null
 }

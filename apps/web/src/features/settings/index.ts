@@ -1,5 +1,0 @@
-export { AccountPage } from './account/account-page'
-export { ActivityPage } from './activity/activity-page'
-export { AppearancePage } from './appearance/appearance-page'
-export { NotificationsPage } from './notifications/notifications-page'
-export { ProfilePage } from './profile/profile-page'

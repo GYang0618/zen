@@ -100,6 +100,7 @@ export function SignInForm() {
             <FieldLabel htmlFor="mfa">验证码</FieldLabel>
             <Input
               id="mfa"
+              autoComplete="one-time-code"
               value={mfaCode}
               onChange={(e) => setMfaCode(e.target.value)}
               maxLength={8}
@@ -138,7 +139,12 @@ export function SignInForm() {
           render={({ field, fieldState }) => (
             <Field>
               <FieldLabel htmlFor="identifier">账号</FieldLabel>
-              <Input {...field} id="identifier" placeholder="用户名/邮箱/手机号" />
+              <Input
+                {...field}
+                id="identifier"
+                autoComplete="username"
+                placeholder="用户名/邮箱/手机号"
+              />
               {fieldState.error && <FieldError errors={[fieldState.error]}></FieldError>}
             </Field>
           )}

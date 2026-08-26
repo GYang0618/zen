@@ -1,5 +1,6 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
 
+import { CARD_PAGE_SIZE, getNextPageParam } from '@/lib/infinite-list'
 import { request } from '@/lib/request'
 
 import { userApi } from './api'
@@ -7,9 +8,12 @@ import { userApi } from './api'
 import type { Role, UsersQuery } from '@zen/shared'
 import type { PaginationResponse } from '@/lib/request'
 
+type UsersListFilters = Omit<UsersQuery, 'page' | 'pageSize'>
+
 export const usersQueryKeys = {
   all: ['system', 'users'] as const,
   list: (params: UsersQuery) => [...usersQueryKeys.all, 'list', params] as const,
+  infinite: (params: UsersListFilters) => [...usersQueryKeys.all, 'infinite', params] as const,
   detail: (id: string) => [...usersQueryKeys.all, 'detail', id] as const
 }
 
@@ -19,6 +23,17 @@ export function useUsersQuery(params: UsersQuery = {}, options?: { enabled?: boo
     queryFn: () => userApi.getUserList(params),
     placeholderData: keepPreviousData,
     enabled: options?.enabled ?? true
+  })
+}
+
+export function useUsersInfiniteQuery(params: UsersListFilters = {}) {
+  return useInfiniteQuery({
+    queryKey: usersQueryKeys.infinite(params),
+    queryFn: ({ pageParam }) =>
+      userApi.getUserList({ ...params, page: pageParam, pageSize: CARD_PAGE_SIZE }),
+    initialPageParam: 1,
+    getNextPageParam,
+    placeholderData: keepPreviousData
   })
 }
 

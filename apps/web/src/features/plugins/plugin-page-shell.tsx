@@ -1,4 +1,4 @@
-import { ConfigDrawer, ProfileDropdown, Search, ThemeSwitch } from '@/components'
+import { ProfileDropdown, Search, ThemeSwitch } from '@/components'
 import { Header, Main } from '@/components/layouts'
 import { canAccess } from '@/lib/auth/permissions'
 import { request } from '@/lib/request/client'
@@ -23,7 +23,6 @@ export function PluginPageShell({ page: Page }: PluginPageShellProps) {
         <Search />
         <div className="ms-auto flex items-center gap-2">
           <ThemeSwitch />
-          <ConfigDrawer />
           <ProfileDropdown />
         </div>
       </Header>

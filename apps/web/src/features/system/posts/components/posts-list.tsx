@@ -14,11 +14,14 @@ import { BriefcaseBusiness, Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { FacetedFilter } from '@/components/faceted-filter'
+import { InfiniteScrollSentinel } from '@/components/infinite-scroll-sentinel'
+import { flattenPages } from '@/lib/infinite-list'
 
+import { useJobProfilesInfiniteQuery } from '../queries'
 import { JOB_PROFILE_STATUS_OPTIONS } from '../utils'
 import { PostsCard } from './posts-card'
 
-import type { JobProfile, JobProfileStatus } from '@zen/shared'
+import type { JobProfileStatus } from '@zen/shared'
 import type { NavigateFn } from '@/hooks'
 
 type PostsSearch = {
@@ -29,10 +32,6 @@ type PostsSearch = {
 }
 
 type PostsListProps = {
-  data: JobProfile[]
-  isLoading?: boolean
-  isFetching?: boolean
-  isError?: boolean
   search: PostsSearch
   navigate: NavigateFn
 }
@@ -45,17 +44,25 @@ function toFilterArray<T>(value: T | T[] | undefined): T[] {
 const SKELETON_COUNT = 8
 const SEARCH_DEBOUNCE_MS = 300
 
-export function PostsList({
-  data,
-  isLoading = false,
-  isFetching = false,
-  isError = false,
-  search,
-  navigate
-}: PostsListProps) {
+export function PostsList({ search, navigate }: PostsListProps) {
   const [keyword, setKeyword] = useState(search.keyword ?? '')
   const statusFilter = toFilterArray(search.status)
-  const showSkeleton = isLoading && data.length === 0
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isFetchingNextPage,
+    isError,
+    isFetchNextPageError,
+    hasNextPage,
+    fetchNextPage
+  } = useJobProfilesInfiniteQuery({
+    keyword: search.keyword,
+    status: statusFilter.length === 1 ? statusFilter[0] : undefined
+  })
+  const profiles = flattenPages(data)
+  const showSkeleton = isLoading && profiles.length === 0
+  const isFilterFetching = isFetching && !isFetchingNextPage
 
   useEffect(() => {
     setKeyword(search.keyword ?? '')
@@ -77,7 +84,7 @@ export function PostsList({
   }, [keyword, navigate, search.keyword])
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-1 flex-col gap-4">
       <section className="flex flex-wrap gap-4">
         <InputGroup className="max-w-sm min-w-56 flex-1">
           <InputGroupInput
@@ -108,7 +115,9 @@ export function PostsList({
         />
       </section>
 
-      {isError ? <p className="text-sm text-destructive">岗位列表加载失败</p> : null}
+      {isError && profiles.length === 0 ? (
+        <p className="text-sm text-destructive">岗位列表加载失败</p>
+      ) : null}
 
       {showSkeleton ? (
         <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2 @2xl:grid-cols-3 @4xl:grid-cols-4">
@@ -118,7 +127,7 @@ export function PostsList({
         </div>
       ) : null}
 
-      {!showSkeleton && !isError && data.length === 0 ? (
+      {!showSkeleton && !isError && profiles.length === 0 ? (
         <Empty className="border border-dashed">
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -130,14 +139,26 @@ export function PostsList({
         </Empty>
       ) : null}
 
-      {!showSkeleton && data.length > 0 ? (
-        <section className={cn('@container transition-opacity', isFetching && 'opacity-70')}>
-          <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2 @2xl:grid-cols-3 @4xl:grid-cols-4">
-            {data.map((item) => (
-              <PostsCard key={item.id} item={item} />
-            ))}
-          </div>
-        </section>
+      {!showSkeleton && profiles.length > 0 ? (
+        <>
+          <section
+            className={cn('@container transition-opacity', isFilterFetching && 'opacity-70')}
+          >
+            <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2 @2xl:grid-cols-3 @4xl:grid-cols-4">
+              {profiles.map((item) => (
+                <PostsCard key={item.id} item={item} />
+              ))}
+            </div>
+          </section>
+          <InfiniteScrollSentinel
+            hasNextPage={Boolean(hasNextPage)}
+            isFetchingNextPage={isFetchingNextPage}
+            isError={isFetchNextPageError}
+            onLoadMore={() => {
+              void fetchNextPage()
+            }}
+          />
+        </>
       ) : null}
     </div>
   )
