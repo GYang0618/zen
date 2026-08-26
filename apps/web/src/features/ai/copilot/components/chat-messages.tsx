@@ -8,7 +8,6 @@ import {
 import {
   Alert,
   AlertTitle,
-  GradientText,
   Message,
   MessageContent,
   MessageResponse,
@@ -18,8 +17,6 @@ import {
 } from '@zen/ui'
 import { AlertCircle } from 'lucide-react'
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
-
-import { useAuthStore } from '@/stores'
 
 type UserMessageContentPart = { type: string; text?: string }
 
@@ -195,7 +192,6 @@ function useDisplayMessages(messages: CopilotkitMessage[]): CopilotkitMessage[] 
 export function ChatMessages() {
   const { agent } = useAgent()
   const { renderActivityMessage } = useRenderActivityMessage()
-  const user = useAuthStore((state) => state.user)
   const { messages: agentMessages, isRunning } = agent
   const messages = agentMessages as CopilotkitMessage[]
   const [runError, setRunError] = useState<string | null>(null)
@@ -232,15 +228,7 @@ export function ChatMessages() {
       )
     }
 
-    return (
-      <div className="flex min-h-full items-end justify-center px-4">
-        <span className="text-center text-4xl font-bold leading-normal">
-          <GradientText text={`${user?.nickname || user?.username}，你好！`} />
-          <br />
-          <GradientText text="有什么可以帮你的吗？" />
-        </span>
-      </div>
-    )
+    return null
   }
 
   return (

@@ -2,7 +2,7 @@
 
 import { randomUUID, useAgent, useCopilotKit } from '@copilotkit/react-core/v2'
 import { Button, cn } from '@zen/ui'
-import { Globe, Lightbulb, Mic, Paperclip, Send } from 'lucide-react'
+import { Globe, Lightbulb, Mic, Paperclip, Send, Square } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 
@@ -65,8 +65,24 @@ export function ChatInput({ className }: { className?: string }) {
     }
   }
 
+  const isRunning = agent.isRunning
+  const canSend = inputValue.trim().length > 0 && !isRunning
+
+  const stopAgent = () => {
+    try {
+      copilotkit.stopAgent({ agent })
+    } catch (error) {
+      console.error('CopilotChat: stopAgent failed', error)
+      try {
+        agent.abortRun()
+      } catch (abortError) {
+        console.error('CopilotChat: abortRun fallback failed', abortError)
+      }
+    }
+  }
+
   const sendMessage = async () => {
-    if (!inputValue.trim()) return
+    if (!canSend) return
     agent.addMessage({
       id: randomUUID(),
       role: 'user',
@@ -80,11 +96,19 @@ export function ChatInput({ className }: { className?: string }) {
     }
   }
 
+  const handlePrimaryAction = () => {
+    if (isRunning) {
+      stopAgent()
+      return
+    }
+    void sendMessage()
+  }
+
   return (
     <div className={cn('w-full flex justify-center items-center', className)}>
       <motion.div
         ref={wrapperRef}
-        className="w-full rounded-4xl overflow-hidden bg-background"
+        className="w-full rounded-4xl overflow-hidden bg-background dark:bg-input/30"
         variants={containerVariants}
         animate={isActive || inputValue ? 'expanded' : 'collapsed'}
         initial="collapsed"
@@ -115,7 +139,7 @@ export function ChatInput({ className }: { className?: string }) {
                   if (e.key !== 'Enter' || e.nativeEvent.isComposing) return
                   e.preventDefault()
                   e.stopPropagation()
-                  void sendMessage()
+                  handlePrimaryAction()
                 }}
               />
               <div className="absolute left-0 top-0 w-full h-full pointer-events-none flex items-center  py-2">
@@ -134,16 +158,22 @@ export function ChatInput({ className }: { className?: string }) {
 
             <Button
               className="rounded-full size-11"
-              title="send"
+              type="button"
+              title={isRunning ? '停止' : '发送'}
+              aria-label={isRunning ? '停止生成' : '发送'}
               tabIndex={-1}
-              disabled={!inputValue}
+              disabled={!isRunning && !canSend}
               onClick={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
-                sendMessage()
+                handlePrimaryAction()
               }}
             >
-              <Send className="size-4.5" />
+              {isRunning ? (
+                <Square className="size-3.5 fill-current" />
+              ) : (
+                <Send className="size-4.5" />
+              )}
             </Button>
           </div>
 
