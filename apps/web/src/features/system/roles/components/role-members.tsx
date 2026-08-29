@@ -28,6 +28,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { EmptyState } from '@/components/empty-state'
 import { useRemoveRoleMemberMutation } from '@/features/system/roles/mutations'
 import { useRoleMembersQuery } from '@/features/system/roles/queries'
+import { isCurrentUserId, useAccessChangeFeedback } from '@/lib/auth/access-change'
 
 import { RoleAddMembersDialog } from './role-add-members-dialog'
 
@@ -50,6 +51,7 @@ function initials(name: string) {
 export function RoleMembers({ roleId, roleName, memberCount }: RoleMembersProps) {
   const { data, isLoading } = useRoleMembersQuery(roleId)
   const { mutate: removeMember, isPending: isRemoving } = useRemoveRoleMemberMutation()
+  const notifyAccessChange = useAccessChangeFeedback()
 
   const members = data?.items ?? []
   const [addOpen, setAddOpen] = useState(false)
@@ -65,7 +67,7 @@ export function RoleMembers({ roleId, roleName, memberCount }: RoleMembersProps)
       { id: roleId, userId: targetUnbindId },
       {
         onSuccess: () => {
-          toast.success('已将人员从当前角色解绑')
+          notifyAccessChange(targetUnbindId, '已将人员从当前角色解绑')
           setUnbindOpen(false)
           setTargetUnbindId(null)
         },
@@ -174,7 +176,9 @@ export function RoleMembers({ roleId, roleName, memberCount }: RoleMembersProps)
         title="解绑关联用户？"
         desc={
           removeTarget
-            ? `确认将「${displayName(removeTarget)}」从角色「${roleName}」解绑？目标用户需重新登录后权限生效。`
+            ? isCurrentUserId(removeTarget.id)
+              ? `确认将自己从角色「${roleName}」解绑？保存后请重新登录。`
+              : `确认将「${displayName(removeTarget)}」从角色「${roleName}」解绑？`
             : '确认解绑该用户？'
         }
         cancelBtnText="取消"

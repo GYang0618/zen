@@ -27,6 +27,7 @@ import { useTableUrlState } from '@/hooks'
 import { toOptions } from '@/lib/config-utils'
 
 import { dataScopeOptions, roleEffectiveStatusConfig } from '../data/data'
+import { RolesBulkActions } from './roles-bulk-actions'
 import { rolesColumns as columns } from './roles-columns'
 
 import type { VisibilityState } from '@tanstack/react-table'
@@ -62,6 +63,7 @@ export function RolesTable({
   navigate
 }: RolesTableProps) {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+  const [rowSelection, setRowSelection] = useState({})
 
   const {
     globalFilter,
@@ -105,12 +107,16 @@ export function RolesTable({
     state: {
       globalFilter,
       pagination,
+      rowSelection,
       columnFilters,
       columnVisibility
     },
+    enableRowSelection: true,
+    getRowId: (row) => row.id,
     onPaginationChange,
     onGlobalFilterChange,
     onColumnFiltersChange,
+    onRowSelectionChange: setRowSelection,
     onColumnVisibilityChange: setColumnVisibility,
     globalFilterFn: (row, _columnId, filterValue) => {
       const normalizedKeyword = String(filterValue ?? '')
@@ -202,7 +208,11 @@ export function RolesTable({
               ))
             ) : rows.length ? (
               rows.map((row) => (
-                <TableRow key={row.id} className="group/row">
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && 'selected'}
+                  className="group/row"
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
@@ -229,6 +239,10 @@ export function RolesTable({
       </div>
 
       <DataTablePagination table={table} className="mt-auto" />
+      <RolesBulkActions
+        selectedItems={table.getFilteredSelectedRowModel().rows.map((row) => row.original)}
+        onClearSelection={() => table.resetRowSelection()}
+      />
     </div>
   )
 }

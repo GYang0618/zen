@@ -18,6 +18,7 @@ import { PasswordInput } from '@/components'
 import { Can } from '@/components/auth/can'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { authApi } from '@/features/auth/api'
+import { isCurrentUserId, useAccessChangeFeedback } from '@/lib/auth/access-change'
 
 import { useAssignUserRolesMutation } from '../mutations'
 import { useRoleOptionsQuery } from '../queries'
@@ -38,6 +39,8 @@ type AssignUserRolesDialogProps = {
 export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRolesDialogProps) {
   const { data, isLoading } = useRoleOptionsQuery(open)
   const { mutateAsync: assignRoles, isPending } = useAssignUserRolesMutation()
+  const notifyAccessChange = useAccessChangeFeedback()
+  const isSelf = isCurrentUserId(user.id)
   const [roleIds, setRoleIds] = useState<string[]>([])
   const [password, setPassword] = useState('')
   const [keyword, setKeyword] = useState('')
@@ -91,7 +94,7 @@ export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRo
     try {
       const { stepUpToken } = await authApi.stepUp({ password })
       await assignRoles({ id: user.id, roleIds, stepUpToken })
-      toast.success('角色已更新，目标用户需重新登录')
+      notifyAccessChange(user.id, '角色已更新')
       onOpenChange(false)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '分配角色失败')
@@ -119,7 +122,7 @@ export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRo
     user.roles.find((item) => item.id === roleId)?.name ??
     roleId
 
-  const copy = getSheetCopy(step, getUserDisplayName(user))
+  const copy = getSheetCopy(step, getUserDisplayName(user), isSelf)
 
   return (
     <>
@@ -154,7 +157,7 @@ export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRo
                   placeholder="输入当前登录密码以确认变更"
                 />
               </Field>
-              <AssignmentSessionAlert />
+              <AssignmentSessionAlert isSelf={isSelf} />
             </div>
           ) : null}
 
@@ -250,11 +253,13 @@ export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRo
   )
 }
 
-function getSheetCopy(step: AssignStep, displayName: string) {
+function getSheetCopy(step: AssignStep, displayName: string, isSelf: boolean) {
   if (step === 'confirm') {
     return {
       title: '确认角色变更',
-      description: `保存后将覆盖 ${displayName} 的角色，并强制下线现有会话。`
+      description: isSelf
+        ? '保存后将覆盖你的角色，当前账号需重新登录。'
+        : `保存后将覆盖 ${displayName} 的角色。`
     }
   }
   return {

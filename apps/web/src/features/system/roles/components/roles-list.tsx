@@ -15,10 +15,12 @@ import { useEffect, useState } from 'react'
 
 import { FacetedFilter } from '@/components/faceted-filter'
 import { InfiniteScrollSentinel } from '@/components/infinite-scroll-sentinel'
+import { selectItemsById, useListSelection } from '@/hooks'
 import { flattenPages } from '@/lib/infinite-list'
 
 import { roleEffectiveStatusOptions } from '../data/data'
 import { useRolesInfiniteQuery } from '../queries'
+import { RolesBulkActions } from './roles-bulk-actions'
 import { RolesCard } from './roles-card'
 
 import type { RoleDataScope, RoleEffectiveStatus } from '@zen/shared'
@@ -48,6 +50,7 @@ const SEARCH_DEBOUNCE_MS = 300
 export function RolesList({ search, navigate }: RolesListProps) {
   const [keyword, setKeyword] = useState(search.keyword ?? '')
   const statusFilter = toFilterArray(search.effectiveStatus)
+  const selection = useListSelection()
   const {
     data,
     isLoading,
@@ -63,6 +66,7 @@ export function RolesList({ search, navigate }: RolesListProps) {
     dataScope: search.dataScope
   })
   const roles = flattenPages(data)
+  const selectedItems = selectItemsById(roles, selection.selectedIds)
   const showSkeleton = isLoading && roles.length === 0
   const isFilterFetching = isFetching && !isFetchingNextPage
 
@@ -74,6 +78,7 @@ export function RolesList({ search, navigate }: RolesListProps) {
     const next = keyword.trim() || undefined
     if (next === (search.keyword || undefined)) return
     const timer = window.setTimeout(() => {
+      selection.clear()
       navigate({
         search: (prev) => ({
           ...prev,
@@ -83,10 +88,21 @@ export function RolesList({ search, navigate }: RolesListProps) {
       })
     }, SEARCH_DEBOUNCE_MS)
     return () => window.clearTimeout(timer)
-  }, [keyword, navigate, search.keyword])
+  }, [keyword, navigate, search.keyword, selection.clear])
+
+  useEffect(() => {
+    if (!selection.isSelecting) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      if (document.querySelector('[data-slot="alert-dialog-content"]')) return
+      selection.clear()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [selection.isSelecting, selection.clear])
 
   return (
-    <div className="flex flex-1 flex-col gap-4">
+    <div className={cn('max-sm:has-[div[role="toolbar"]]:mb-16', 'flex flex-1 flex-col gap-4')}>
       <section className="flex gap-4">
         <InputGroup className="w-100">
           <InputGroupInput
@@ -102,7 +118,8 @@ export function RolesList({ search, navigate }: RolesListProps) {
         <FacetedFilter
           options={roleEffectiveStatusOptions}
           value={statusFilter}
-          onValueChange={(values) =>
+          onValueChange={(values) => {
+            selection.clear()
             navigate({
               search: (prev) => ({
                 ...prev,
@@ -110,7 +127,7 @@ export function RolesList({ search, navigate }: RolesListProps) {
                 effectiveStatus: values.length > 0 ? values : undefined
               })
             })
-          }
+          }}
         />
       </section>
 
@@ -145,7 +162,14 @@ export function RolesList({ search, navigate }: RolesListProps) {
           >
             <div className="grid grid-cols-1 gap-4 @xl:grid-cols-2 @4xl:grid-cols-3 @6xl:grid-cols-4">
               {roles.map((role) => (
-                <RolesCard key={role.id} role={role} />
+                <RolesCard
+                  key={role.id}
+                  role={role}
+                  isSelecting={selection.isSelecting}
+                  selected={selection.isSelected(role.id)}
+                  onEnterSelecting={selection.enterSelecting}
+                  onSelectedChange={(nextSelected) => selection.setSelected(role.id, nextSelected)}
+                />
               ))}
             </div>
           </section>
@@ -156,6 +180,11 @@ export function RolesList({ search, navigate }: RolesListProps) {
             onLoadMore={() => {
               void fetchNextPage()
             }}
+          />
+          <RolesBulkActions
+            selectedItems={selectedItems}
+            isSelecting={selection.isSelecting}
+            onClearSelection={selection.clear}
           />
         </>
       ) : null}

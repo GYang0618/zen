@@ -18,8 +18,27 @@ import type {
   AssignRolePermissions,
   CloneRole,
   Role,
-  RoleMember
+  RoleMember,
+  RoleStatus
 } from '@zen/shared'
+
+type BulkMutationResult = {
+  successCount: number
+  failedCount: number
+}
+
+async function settleUpdates(tasks: Array<Promise<unknown>>): Promise<BulkMutationResult> {
+  const results = await Promise.allSettled(tasks)
+  const failedCount = results.filter((item) => item.status === 'rejected').length
+  if (failedCount === results.length) {
+    const first = results.find((item) => item.status === 'rejected')
+    throw first && first.status === 'rejected' && first.reason instanceof Error
+      ? first.reason
+      : new Error('批量操作失败')
+  }
+  return { successCount: results.length - failedCount, failedCount }
+}
+
 import type { PaginationResponse } from '@/lib/request'
 
 async function invalidateRoleQueries(
@@ -152,6 +171,19 @@ export function useDeleteRolesMutation() {
   return useMutation({
     mutationKey: ['system', 'roles', 'delete'],
     mutationFn: (ids: string[]) => roleApi.deleteRoles({ ids }),
+    onSuccess: async () => {
+      await invalidateRoleQueries(queryClient)
+    }
+  })
+}
+
+export function useUpdateRolesStatusMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationKey: ['system', 'roles', 'status'],
+    mutationFn: ({ ids, status }: { ids: string[]; status: RoleStatus }) =>
+      settleUpdates(ids.map((id) => roleApi.updateRole(id, { status }))),
     onSuccess: async () => {
       await invalidateRoleQueries(queryClient)
     }

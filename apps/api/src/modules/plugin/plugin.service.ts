@@ -246,7 +246,7 @@ export class PluginService {
   private async afterStateChange(tenantId: string) {
     this.pluginState.invalidate(tenantId)
     await this.permissionCatalogSync.syncCatalog(tenantId)
-    await this.authContextService.bumpPermVer()
+    this.authContextService.invalidateCache()
   }
 }
 

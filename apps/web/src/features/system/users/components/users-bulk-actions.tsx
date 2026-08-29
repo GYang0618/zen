@@ -7,43 +7,51 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { Can } from '@/components/auth/can'
-import { DataTableBulkActions as BulkActionsToolbar } from '@/components/data-table'
+import { BulkActionsToolbar } from '@/components/data-table'
 
 import { useUpdateUsersStatusMutation } from '../mutations'
 import { UsersMultiDeleteDialog } from './users-multi-delete-dialog'
 
-import type { Table } from '@tanstack/react-table'
 import type { User } from '@zen/shared'
 
-type DataTableBulkActionsProps<TData> = {
-  table: Table<TData>
+type UsersBulkActionsProps = {
+  selectedItems: User[]
+  onClearSelection: () => void
+  isSelecting?: boolean
 }
 
-export function DataTableBulkActions<TData>({ table }: DataTableBulkActionsProps<TData>) {
+export function UsersBulkActions({
+  selectedItems,
+  onClearSelection,
+  isSelecting = false
+}: UsersBulkActionsProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const { mutate: updateUsersStatus, isPending: isUpdatingStatus } = useUpdateUsersStatusMutation()
-  const selectedRows = table.getFilteredSelectedRowModel().rows
+  const hasSelection = selectedItems.length > 0
 
   const handleBulkStatusChange = (status: Extract<User['status'], 'active' | 'suspended'>) => {
-    const selectedUsers = selectedRows.map((row) => row.original as User)
-    const ids = selectedUsers.map((user) => user.id)
+    if (!hasSelection) return
+    const ids = selectedItems.map((user) => user.id)
     updateUsersStatus(
       { ids, status },
       {
         onSuccess: () => {
           const actionText = status === 'active' ? '激活' : '停用'
-          toast.success(`已${actionText} ${selectedUsers.length} 个用户`)
-          table.resetRowSelection()
+          toast.success(`已${actionText} ${selectedItems.length} 个用户`)
+          onClearSelection()
         }
       }
     )
   }
 
-  const hasSelection = selectedRows.length > 0
-
   return (
     <>
-      <BulkActionsToolbar table={table} entityName="用户">
+      <BulkActionsToolbar
+        selectedCount={selectedItems.length}
+        entityName="用户"
+        visible={isSelecting}
+        onClearSelection={onClearSelection}
+      >
         <Can permission={PermissionCode.USER_STATUS}>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -100,16 +108,17 @@ export function DataTableBulkActions<TData>({ table }: DataTableBulkActionsProps
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>删除已选择的用户</p>
+              <p>{hasSelection ? '删除已选择的用户' : '请先选择用户'}</p>
             </TooltipContent>
           </Tooltip>
         </Can>
       </BulkActionsToolbar>
 
       <UsersMultiDeleteDialog
-        table={table}
+        users={selectedItems}
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
+        onDeleted={onClearSelection}
       />
     </>
   )

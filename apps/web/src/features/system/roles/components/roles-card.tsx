@@ -15,24 +15,47 @@ import {
 import { ShieldCheck } from 'lucide-react'
 import { DynamicIcon } from 'lucide-react/dynamic'
 
+import { preventSelectionNavigation, toggleListItemFromCardClick } from '@/hooks'
+
 import { getRoleIconColorClassName, roleEffectiveStatusConfig } from '../data/data'
 import { RolesRowActions } from './roles-row-actions'
 
 import type { Role, RoleIcon } from '@zen/shared'
+import type { ListSelectionActionProps } from '@/hooks'
 
-type RolesCardProps = {
+type RolesCardProps = ListSelectionActionProps & {
   role: Role
 }
 
-export function RolesCard({ role }: RolesCardProps) {
+export function RolesCard({
+  role,
+  isSelecting,
+  selected = false,
+  onEnterSelecting,
+  onSelectedChange
+}: RolesCardProps) {
   const previewMembers = role.memberPreview.slice(0, ROLE_MEMBER_PREVIEW_LIMIT)
   const overflowCount = role.memberCount - previewMembers.length
 
   return (
-    <Card className="rounded-2xl">
+    <Card
+      className={cn(
+        'rounded-2xl',
+        isSelecting && 'cursor-pointer select-none',
+        selected && 'ring-2 ring-ring'
+      )}
+      onClick={(event) =>
+        toggleListItemFromCardClick(event, { isSelecting, selected, onSelectedChange })
+      }
+    >
       <CardHeader>
         <div className="flex gap-3">
-          <Link to="/system/roles/$id" params={{ id: role.id }} className="flex flex-1 gap-3">
+          <Link
+            to="/system/roles/$id"
+            params={{ id: role.id }}
+            className="flex flex-1 gap-3"
+            onClick={(event) => preventSelectionNavigation(event, isSelecting)}
+          >
             <div
               className={cn(
                 'flex size-12 items-center justify-center rounded-full',
@@ -62,7 +85,13 @@ export function RolesCard({ role }: RolesCardProps) {
             </div>
           </Link>
 
-          <RolesRowActions role={role} />
+          <RolesRowActions
+            role={role}
+            isSelecting={isSelecting}
+            selected={selected}
+            onEnterSelecting={onEnterSelecting}
+            onSelectedChange={onSelectedChange}
+          />
         </div>
       </CardHeader>
       <CardContent>

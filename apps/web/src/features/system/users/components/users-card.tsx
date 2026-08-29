@@ -5,6 +5,7 @@ import { DynamicIcon } from 'lucide-react/dynamic'
 import { toast } from 'sonner'
 
 import { getRoleIconColorClassName } from '@/features/system/roles/data/data'
+import { preventSelectionNavigation, toggleListItemFromCardClick } from '@/hooks'
 
 import { statusConfig } from '../data/data'
 import {
@@ -17,8 +18,9 @@ import { UserAvatar } from './user-avatar'
 import { UsersCardActions } from './users-card-actions'
 
 import type { RoleIcon, User } from '@zen/shared'
+import type { ListSelectionActionProps } from '@/hooks'
 
-type UsersCardProps = {
+type UsersCardProps = ListSelectionActionProps & {
   user: User
 }
 
@@ -31,7 +33,13 @@ async function copyText(value: string, successLabel: string) {
   }
 }
 
-export function UsersCard({ user }: UsersCardProps) {
+export function UsersCard({
+  user,
+  isSelecting,
+  selected = false,
+  onEnterSelecting,
+  onSelectedChange
+}: UsersCardProps) {
   const name = getUserDisplayName(user)
   const status = statusConfig[user.status]
   const primary = getPrimaryMembership(user)
@@ -39,12 +47,22 @@ export function UsersCard({ user }: UsersCardProps) {
   const jobLabel = [primary?.postName, primary?.postLevel].filter(Boolean).join(' • ')
 
   return (
-    <Card className="min-w-0 gap-0">
+    <Card
+      className={cn(
+        'min-w-0 gap-0',
+        isSelecting && 'cursor-pointer select-none',
+        selected && 'ring-2 ring-ring'
+      )}
+      onClick={(event) =>
+        toggleListItemFromCardClick(event, { isSelecting, selected, onSelectedChange })
+      }
+    >
       <CardHeader>
         <Link
           to="/system/users/$userId"
           params={{ userId: user.id }}
           className="w-fit rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={(event) => preventSelectionNavigation(event, isSelecting)}
         >
           <UserAvatar user={user} className="size-14" fallbackClassName="text-2xl" />
         </Link>
@@ -58,14 +76,24 @@ export function UsersCard({ user }: UsersCardProps) {
                 已锁定
               </Badge>
             ) : null}
-            <UsersCardActions user={user} />
+            <UsersCardActions
+              user={user}
+              isSelecting={isSelecting}
+              selected={selected}
+              onEnterSelecting={onEnterSelecting}
+              onSelectedChange={onSelectedChange}
+            />
           </div>
         </CardAction>
       </CardHeader>
       <CardContent>
         <div className="mt-4 min-w-0">
           <h2 className="truncate text-lg font-semibold">
-            <Link to="/system/users/$userId" params={{ userId: user.id }}>
+            <Link
+              to="/system/users/$userId"
+              params={{ userId: user.id }}
+              onClick={(event) => preventSelectionNavigation(event, isSelecting)}
+            >
               {name}
               <span className="ml-1 font-mono text-sm font-normal text-muted-foreground">
                 @{user.username}
@@ -123,7 +151,10 @@ export function UsersCard({ user }: UsersCardProps) {
               variant="ghost"
               size="icon-xs"
               aria-label={`复制${name}的邮箱`}
-              onClick={() => void copyText(user.email, '邮箱')}
+              onClick={() => {
+                if (isSelecting) return
+                void copyText(user.email, '邮箱')
+              }}
             >
               <CopyIcon />
             </Button>

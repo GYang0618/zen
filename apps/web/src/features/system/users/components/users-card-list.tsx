@@ -1,10 +1,13 @@
 import { cn, Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, Skeleton } from '@zen/ui'
 import { Users } from 'lucide-react'
+import { useEffect } from 'react'
 
 import { InfiniteScrollSentinel } from '@/components/infinite-scroll-sentinel'
+import { selectItemsById, useListSelection } from '@/hooks'
 import { flattenPages } from '@/lib/infinite-list'
 
 import { useUsersInfiniteQuery } from '../queries'
+import { UsersBulkActions } from './users-bulk-actions'
 import { UsersCard } from './users-card'
 
 import type { UsersQuery } from '@zen/shared'
@@ -25,8 +28,27 @@ export function UsersCardList({ keyword, status, role, sortBy, sortOrder }: User
     fetchNextPage
   } = useUsersInfiniteQuery({ keyword, status, role, sortBy, sortOrder })
   const users = flattenPages(data)
+  const selection = useListSelection()
+  const selectedItems = selectItemsById(users, selection.selectedIds)
   const showSkeleton = isLoading && users.length === 0
   const isFilterFetching = isFetching && !isFetchingNextPage
+  const selectionResetKey = JSON.stringify({ keyword, status, role, sortBy, sortOrder })
+
+  useEffect(() => {
+    void selectionResetKey
+    selection.clear()
+  }, [selectionResetKey, selection.clear])
+
+  useEffect(() => {
+    if (!selection.isSelecting) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      if (document.querySelector('[data-slot="alert-dialog-content"]')) return
+      selection.clear()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [selection.isSelecting, selection.clear])
 
   if (showSkeleton) {
     return <UsersCardListSkeleton count={SKELETON_COUNT} />
@@ -61,11 +83,18 @@ export function UsersCardList({ keyword, status, role, sortBy, sortOrder }: User
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4">
+    <div className={cn('max-sm:has-[div[role="toolbar"]]:mb-16', 'flex flex-1 flex-col gap-4')}>
       <div className={cn('@container transition-opacity', isFilterFetching && 'opacity-70')}>
         <div className="grid grid-cols-1 gap-4 @lg:grid-cols-2 @4xl:grid-cols-3">
           {users.map((user) => (
-            <UsersCard key={user.id} user={user} />
+            <UsersCard
+              key={user.id}
+              user={user}
+              isSelecting={selection.isSelecting}
+              selected={selection.isSelected(user.id)}
+              onEnterSelecting={selection.enterSelecting}
+              onSelectedChange={(nextSelected) => selection.setSelected(user.id, nextSelected)}
+            />
           ))}
         </div>
       </div>
@@ -76,6 +105,11 @@ export function UsersCardList({ keyword, status, role, sortBy, sortOrder }: User
         onLoadMore={() => {
           void fetchNextPage()
         }}
+      />
+      <UsersBulkActions
+        selectedItems={selectedItems}
+        isSelecting={selection.isSelecting}
+        onClearSelection={selection.clear}
       />
     </div>
   )

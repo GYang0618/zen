@@ -60,12 +60,14 @@ export function AssignmentChangeSummary({
   )
 }
 
-export function AssignmentSessionAlert() {
+export function AssignmentSessionAlert({ isSelf }: { isSelf: boolean }) {
+  if (!isSelf) return null
+
   return (
     <Alert>
-      <AlertTitle>保存后将强制下线</AlertTitle>
+      <AlertTitle>保存后需要重新登录</AlertTitle>
       <AlertDescription>
-        目标用户的现有会话会被注销，需重新登录后权限与数据范围才会生效。
+        当前账号的会话将被注销，请重新登录后权限与数据范围才会生效。
       </AlertDescription>
     </Alert>
   )

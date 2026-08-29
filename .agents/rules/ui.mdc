@@ -1,0 +1,61 @@
+---
+description: 前端 UI 编写与美化规范。涉及页面布局、区块组装、视觉美化、交互体验、营销/落地页、表单页、仪表盘区块，或从社区 shadcn block 取灵感时必须遵循。
+alwaysApply: false
+---
+
+# 前端 UI / 用户体验规范
+
+适用范围：编写或美化 `apps/web` 前端 UI。**用户体验至上**——视觉服务于交互，不以牺牲可用性换取「好看」。
+
+## 1. 核心原则：用户体验优先
+
+- **用户为中心**：先回答「用户要完成什么、下一步在哪、出错怎么办」，再谈配色与装饰。
+- **交互先于视觉**：美化必须建立在清晰流程、可预期反馈、低认知负担之上；禁止为动效/装饰牺牲可读性或操作效率。
+- **现代化交互**：采用社区主流做法（shadcn/ui、Radix、主流 SaaS）。禁止古法交互，例如：
+  - 用 `alert` / `confirm` / 全页刷新替代 Dialog、Toast、乐观更新
+  - 无加载态、无空态、无错误态的「空白等待」
+  - 仅图标无文案/无 `aria-label` 的危险操作
+  - 破坏浏览器习惯的行为（禁用选中、劫持返回、无法键盘操作）
+  - 过时模式：多级嵌套 modal 堆叠、强制整页跳转完成轻量操作、无撤销的毁灭性操作
+- **即时反馈**：点击、提交、筛选须有 loading / disabled / 成功或失败反馈；长操作可取消或可感知进度。
+- **容错与可逆**：表单校验贴近字段；危险操作二次确认；能撤销的优先于「点了就没了」。
+
+## 2. Shadcn Block 参考来源（按优先级）
+
+布局与交互模式优先检索，勿从零臆造常见区块：
+
+1. [shadcn/ui Blocks](https://ui.shadcn.com/blocks) — 官方 blocks，最贴近 shadcn 约定
+2. [21st.dev](https://21st.dev/) — 社区注册表，可复制 prompt 或 CLI 安装
+3. [Shadcn UI Blocks](https://www.shadcn-ui-blocks.com/) — Marketing / Application / Portfolio 区块
+4. [Shadcnblocks](https://www.shadcnblocks.com/) — Hero、Feature、Dashboard、Data Table 等
+
+同类站点仅作补充灵感；实现必须对齐本仓库 shadcn/ui + Tailwind token。
+
+## 3. 落地原则
+
+- **先搜再写**：Hero、Login、Dashboard、Data Table、Settings 等先对照上述站点，同时核对交互是否符合第 1 节。
+- **适配本项目**：借结构与交互模式，不借整站审美；样式用项目 CSS 变量 / token，禁止冲突硬编码色与第三方主题包。
+- **复用已有原语**：优先 `components/ui/*`（Button、Dialog、Sheet、Sonner、Sidebar 等）。
+- **源码归属**：copy-paste / registry 进仓，禁止把整站 UI 挂成运行时依赖。
+- **克制装饰**：动效服务于层级与反馈；后台页以信息架构为先，勿堆营销特效。
+
+## 4. 与现有规范
+
+- 组件拆分、Props、a11y、状态边界遵循 `rules-dev`。
+- 与现有布局壳冲突时以项目壳为准，只抽内容区结构。
+
+## 5. 反例 / 正例
+
+```tsx
+// ❌ BAD：古法交互 + 硬编码视觉
+window.confirm("删除？")
+<button className="bg-purple-600 shadow-2xl" onClick={onDelete}>删</button>
+
+// ✅ GOOD：现代确认流 + 项目 token + 明确反馈
+<AlertDialog>
+  <AlertDialogTrigger asChild>
+    <Button variant="destructive">删除</Button>
+  </AlertDialogTrigger>
+  {/* 说明后果；确认后 Toast 成功/失败 */}
+</AlertDialog>
+```

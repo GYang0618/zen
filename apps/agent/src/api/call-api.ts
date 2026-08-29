@@ -1,7 +1,8 @@
 import { getAccessTokenFromConfig, runWithAccessToken } from './request-context'
+import { toToolFailureResult } from './tool-failure'
 
 import type { RunnableConfig } from '@langchain/core/runnables'
-import type { ApiErrorResponseSwaggerDto } from '../api-client/types.gen'
+import type { RecoverableHint } from './tool-failure'
 
 interface ApiSuccessEnvelope<T> {
   code: number
@@ -26,34 +27,6 @@ export function unwrapApiSuccessData<T>(body: unknown): T {
   return body as T
 }
 
-function formatApiError(error: unknown): string {
-  if (typeof error === 'object' && error !== null) {
-    const record = error as Record<string, unknown>
-
-    if (typeof record.message === 'string' && record.message.trim() !== '') {
-      return record.message
-    }
-
-    const nested = record.error
-    if (typeof nested === 'object' && nested !== null && 'message' in nested) {
-      const apiError = nested as ApiErrorResponseSwaggerDto
-      if (typeof apiError.message === 'string') {
-        return apiError.message
-      }
-    }
-
-    if (typeof record.code === 'number' && typeof record.message === 'string') {
-      return record.message
-    }
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return String(error)
-}
-
 /** OpenAPI 未完整生成 body/query 时的调用参数断言 */
 export function asSdkOptions<T>(options: object): T {
   return options as T
@@ -68,10 +41,12 @@ export function toQueryArray<T>(value: T | T[] | undefined): T[] | undefined {
 /**
  * 执行 SDK 请求并将业务 data 序列化为工具返回值。
  * token 从 RunnableConfig 读取并注入当前异步上下文，无需在各工具 / SDK 调用中重复传入 auth。
+ * 业务/网络错误转为 `{ success: false }` JSON，不抛出，以便模型继续纠偏或追问。
  */
 export async function executeApiCall<T>(
   config: RunnableConfig | undefined,
-  call: () => Promise<unknown>
+  call: () => Promise<unknown>,
+  hints: RecoverableHint[] = []
 ): Promise<string> {
   const accessToken = getAccessTokenFromConfig(config)
 
@@ -83,6 +58,6 @@ export async function executeApiCall<T>(
     }
     return JSON.stringify(data, null, 2)
   } catch (error) {
-    throw new Error(`API 调用失败: ${formatApiError(error)}`)
+    return toToolFailureResult(error, hints)
   }
 }

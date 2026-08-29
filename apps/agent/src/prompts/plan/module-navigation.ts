@@ -4,6 +4,7 @@ export const MODULE_NAVIGATION_RULES = `
 - 用户管理：/system/users
 - 角色管理：/system/roles
 - 组织架构：/system/organization
+- 岗位管理：/system/posts
 - 三维场景（BIM）： /bim
 
 ## 模块导航规则

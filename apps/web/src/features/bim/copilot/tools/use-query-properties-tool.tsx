@@ -1,6 +1,8 @@
 import { useFrontendTool } from '@copilotkit/react-core/v2'
 import { z } from 'zod'
 
+import { emptyToolRender } from '@/components/ai/empty-tool-render'
+
 import { bimMeshRegistry } from '../../lib/mesh-registry'
 import { getObjectUserData } from '../../lib/object'
 import { ObjectPropertiesCard } from '../components/object-properties-card'
@@ -28,8 +30,9 @@ export function useQueryPropertiesTool() {
         data: userData
       }
     },
-    render: ({ result }) => {
-      if (!result) return null
+    render: ({ status, result }) => {
+      if (status !== 'complete' || !result) return emptyToolRender()
+
       const data = PropertiesDataSchema.parse(JSON.parse(result).data)
       return <ObjectPropertiesCard data={data} />
     }

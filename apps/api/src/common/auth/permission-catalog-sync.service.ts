@@ -69,7 +69,7 @@ export class PermissionCatalogSyncService implements OnModuleInit, OnModuleDestr
     const grantedToSuperAdmin = await this.grantCatalogToSuperAdmin(activeCodes)
 
     if (removed.count > 0 || grantedToSuperAdmin) {
-      await this.authContextService.bumpPermVer()
+      this.authContextService.invalidateCache()
     }
 
     await this.prisma.role.updateMany({
@@ -95,9 +95,9 @@ export class PermissionCatalogSyncService implements OnModuleInit, OnModuleDestr
 
     if (expired.length === 0) return
 
-    await this.authContextService.bumpPermVer()
+    this.authContextService.invalidateCache()
     this.logger.log(
-      `Expired roles detected (${expired.length}): ${expired.map((role) => role.code).join(', ')}; permVer bumped`
+      `Expired roles detected (${expired.length}): ${expired.map((role) => role.code).join(', ')}; auth cache cleared`
     )
   }
 

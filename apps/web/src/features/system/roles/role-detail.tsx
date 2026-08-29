@@ -44,7 +44,6 @@ import {
   useUpdateRoleMutation
 } from '@/features/system/roles/mutations'
 import { usePermissionsQuery, useRoleQuery } from '@/features/system/roles/queries'
-import { silentRefreshAuthSession } from '@/lib/request'
 
 import { PermissionMatrix } from './components/permission-matrix'
 import { RoleActionDialog } from './components/role-action-dialog'
@@ -252,8 +251,7 @@ function RoleDetailContent({ role }: { role: Role }) {
     }
 
     Promise.all(tasks)
-      .then(async () => {
-        await silentRefreshAuthSession()
+      .then(() => {
         toast.success('角色配置已保存')
       })
       .catch((error: unknown) => {

@@ -28,7 +28,7 @@ import { toOptions } from '@/lib/config-utils'
 
 import { statusConfig } from '../data/data'
 import { useRoleOptionsQuery } from '../queries'
-import { DataTableBulkActions } from './data-table-bulk-actions'
+import { UsersBulkActions } from './users-bulk-actions'
 import { usersColumns as columns } from './users-columns'
 
 import type { OnChangeFn, SortingState, VisibilityState } from '@tanstack/react-table'
@@ -266,7 +266,10 @@ export function UsersTable({
       </div>
 
       <DataTablePagination table={table} className="mt-auto" />
-      <DataTableBulkActions table={table} />
+      <UsersBulkActions
+        selectedItems={table.getFilteredSelectedRowModel().rows.map((row) => row.original)}
+        onClearSelection={() => table.resetRowSelection()}
+      />
     </div>
   )
 }

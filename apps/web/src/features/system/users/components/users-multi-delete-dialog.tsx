@@ -2,7 +2,7 @@
 
 import { Alert, AlertDescription, AlertTitle, Input, Label } from '@zen/ui'
 import { AlertTriangle } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { ConfirmDialog, PasswordInput } from '@/components'
@@ -10,27 +10,32 @@ import { authApi } from '@/features/auth/api'
 
 import { useDeleteUsersMutation } from '../mutations'
 
-import type { Table } from '@tanstack/react-table'
 import type { User } from '@zen/shared'
 
-type UserMultiDeleteDialogProps<TData> = {
+type UsersMultiDeleteDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  table: Table<TData>
+  users: User[]
+  onDeleted: () => void
 }
 
 const CONFIRM_WORD = 'DELETE'
 
-export function UsersMultiDeleteDialog<TData>({
+export function UsersMultiDeleteDialog({
   open,
   onOpenChange,
-  table
-}: UserMultiDeleteDialogProps<TData>) {
+  users,
+  onDeleted
+}: UsersMultiDeleteDialogProps) {
   const [value, setValue] = useState('')
   const [password, setPassword] = useState('')
   const { mutate: deleteUsers, isPending } = useDeleteUsersMutation()
 
-  const selectedRows = table.getFilteredSelectedRowModel().rows
+  useEffect(() => {
+    if (!open) return
+    setValue('')
+    setPassword('')
+  }, [open])
 
   const handleDelete = async () => {
     if (value.trim() !== CONFIRM_WORD) {
@@ -40,7 +45,7 @@ export function UsersMultiDeleteDialog<TData>({
 
     try {
       const { stepUpToken } = await authApi.stepUp({ password })
-      const ids = selectedRows.map((row) => (row.original as User).id)
+      const ids = users.map((user) => user.id)
       deleteUsers(
         { ids, stepUpToken },
         {
@@ -48,8 +53,8 @@ export function UsersMultiDeleteDialog<TData>({
             setValue('')
             setPassword('')
             onOpenChange(false)
-            table.resetRowSelection()
-            toast.success(`已删除 ${selectedRows.length} 个用户`)
+            onDeleted()
+            toast.success(`已删除 ${users.length} 个用户`)
           }
         }
       )
@@ -65,12 +70,12 @@ export function UsersMultiDeleteDialog<TData>({
       handleConfirm={() => {
         void handleDelete()
       }}
-      disabled={value.trim() !== CONFIRM_WORD || !password}
+      disabled={value.trim() !== CONFIRM_WORD || !password || users.length === 0}
       isLoading={isPending}
       title={
         <span className="text-destructive">
           <AlertTriangle className="me-1 inline-block stroke-destructive" size={18} /> 删除{' '}
-          {selectedRows.length} 个用户
+          {users.length} 个用户
         </span>
       }
       desc={

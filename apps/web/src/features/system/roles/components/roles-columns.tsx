@@ -10,6 +10,7 @@ import {
   AvatarGroupCount,
   AvatarImage,
   Badge,
+  Checkbox,
   cn
 } from '@zen/ui'
 import { ShieldCheck } from 'lucide-react'
@@ -26,6 +27,33 @@ import type { Role, RoleDataScope, RoleEffectiveStatus, RoleIcon } from '@zen/sh
 const columnHelper = createColumnHelper<Role>()
 
 export const rolesColumns = [
+  columnHelper.display({
+    id: 'select',
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="全选"
+        className="translate-y-0.5"
+      />
+    ),
+    meta: {
+      className: cn('max-md:sticky start-0 z-10 rounded-tl-[inherit]')
+    },
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="选择行"
+        className="translate-y-0.5"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false
+  }),
+
   columnHelper.accessor('name', {
     header: ({ column }) => <DataTableColumnHeader column={column} title="角色" />,
     cell: ({ row }) => {

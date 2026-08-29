@@ -29,6 +29,11 @@ import {
   roleControllerUpdate,
   toQueryArray
 } from '../api'
+import { executeApiCallOrRecover, isToolFailureResult } from './recoverable-error'
+import { parsePermissionCatalog, unknownPermissionCodesResult } from './role-permission-guard'
+
+import type { RunnableConfig } from '@langchain/core/runnables'
+import type { RecoverableHint } from './recoverable-error'
 
 const roleIdSchema = z.object({
   id: z.string().min(1, '角色 ID 不能为空').describe('角色 ID')
@@ -72,6 +77,86 @@ function normalizeRolesQuery(input: z.input<typeof rolesQuerySchema>): RolesFind
   return query
 }
 
+const ROLE_WRITE_HINTS: RecoverableHint[] = [
+  {
+    match: '部分权限编码不存在',
+    reason: 'PERMISSION_CODE_INVALID',
+    hint: '请先 query_permissions_list，只使用 status=active 的 code，不要编造编码。'
+  },
+  {
+    match: '角色编码已存在',
+    reason: 'ROLE_CODE_CONFLICT',
+    hint: '请先 query_roles_list 换一个未被占用的编码（小写字母开头，仅字母数字下划线）。'
+  },
+  {
+    match: '角色已被他人修改',
+    reason: 'ROLE_VERSION_CONFLICT',
+    hint: '请先 query_role_detail，把最新 updatedAt 作为 baseVersion 再重试。'
+  },
+  {
+    match: '自定义数据范围时至少选择一个组织',
+    reason: 'CUSTOM_ORG_REQUIRED',
+    hint: 'dataScope=custom 时必须提供 customOrgIds，ID 来自 query_organization_tree。'
+  },
+  {
+    match: '部分组织不存在',
+    reason: 'ORGANIZATION_ID_INVALID',
+    hint: '请先 query_organization_tree，使用返回节点的 id。'
+  },
+  {
+    match: '系统角色不可克隆',
+    reason: 'SYSTEM_ROLE_LOCKED',
+    hint: '请改用自定义角色作为克隆源。'
+  },
+  {
+    match: '系统内置角色不可删除',
+    reason: 'SYSTEM_ROLE_LOCKED',
+    hint: '只能删除没有成员的自定义角色。'
+  },
+  {
+    match: '系统内置超级管理员角色权限不可修改',
+    reason: 'SYSTEM_ROLE_LOCKED',
+    hint: '超级管理员权限不可通过此工具修改。'
+  },
+  {
+    match: '存在已分配成员的角色',
+    reason: 'ROLE_HAS_MEMBERS',
+    hint: '请先 remove_role_member 解绑全部成员后再删除。'
+  },
+  {
+    match: '用户至少需要保留一个角色',
+    reason: 'ROLE_REQUIRED',
+    hint: '该用户只剩此角色，无法解绑。请先 assign_user_roles 补其他角色。'
+  },
+  {
+    match: '系统至少需要保留一名超级管理员',
+    reason: 'SUPER_ADMIN_REQUIRED',
+    hint: '不能移除最后一名超级管理员。'
+  },
+  {
+    match: '部分用户不存在或已删除',
+    reason: 'USER_ID_INVALID',
+    hint: '请先 query_users_list，使用返回的用户 id。'
+  }
+]
+
+async function ensurePermissionCodesExist(
+  codes: string[] | undefined,
+  config: RunnableConfig | undefined
+): Promise<string | undefined> {
+  if (!codes || codes.length === 0) return undefined
+  const raw = await executeApiCall(config, () => roleControllerListPermissions())
+  if (isToolFailureResult(raw)) return raw
+  const catalog = parsePermissionCatalog(raw)
+  if (!catalog) return undefined
+  const known = new Set(catalog.map((item) => item.code))
+  const missing = [...new Set(codes.map((code) => code.trim()).filter(Boolean))].filter(
+    (code) => !known.has(code)
+  )
+  if (missing.length > 0) return unknownPermissionCodesResult(missing, catalog)
+  return undefined
+}
+
 export const getRolesTool = tool(
   async (input, config) =>
     executeApiCall(config, () =>
@@ -90,19 +175,26 @@ export const getRolesTool = tool(
 )
 
 export const createRoleTool = tool(
-  async (input, config) =>
-    executeApiCall(config, () =>
-      roleControllerCreate(
-        asSdkOptions({
-          body: input
-        })
-      )
-    ),
+  async (input, config) => {
+    const blocked = await ensurePermissionCodesExist(input.permissionCodes, config)
+    if (blocked) return blocked
+    return executeApiCallOrRecover(
+      config,
+      () =>
+        roleControllerCreate(
+          asSdkOptions({
+            body: input
+          })
+        ),
+      ROLE_WRITE_HINTS
+    )
+  },
   {
     name: 'create_role',
     description:
-      '创建自定义角色壳。dataScope 默认为 self；为 custom 时必须提供 customOrgIds。' +
-      '可同时传入 permissionCodes；未传则详情页再配置权限。系统角色不可通过此接口创建。',
+      '创建自定义角色壳。dataScope 默认为 self；为 custom 时必须提供来自组织树的 customOrgIds。' +
+      'permissionCodes 必须来自 query_permissions_list 的 active code，禁止编造；未传则详情页再配置。' +
+      '系统角色不可通过此接口创建。',
     schema: createRoleSchema
   }
 )
@@ -125,13 +217,16 @@ export const getRoleTool = tool(
 
 export const updateRoleTool = tool(
   async ({ id, ...data }, config) =>
-    executeApiCall(config, () =>
-      roleControllerUpdate(
-        asSdkOptions({
-          path: { id },
-          body: data
-        })
-      )
+    executeApiCallOrRecover(
+      config,
+      () =>
+        roleControllerUpdate(
+          asSdkOptions({
+            path: { id },
+            body: data
+          })
+        ),
+      ROLE_WRITE_HINTS
     ),
   {
     name: 'update_role_info',
@@ -144,13 +239,16 @@ export const updateRoleTool = tool(
 
 export const cloneRoleTool = tool(
   async ({ id, ...data }, config) =>
-    executeApiCall(config, () =>
-      roleControllerClone(
-        asSdkOptions({
-          path: { id },
-          body: data
-        })
-      )
+    executeApiCallOrRecover(
+      config,
+      () =>
+        roleControllerClone(
+          asSdkOptions({
+            path: { id },
+            body: data
+          })
+        ),
+      ROLE_WRITE_HINTS
     ),
   {
     name: 'clone_role',
@@ -164,7 +262,9 @@ export const listPermissionsTool = tool(
   async (_input, config) => executeApiCall(config, () => roleControllerListPermissions()),
   {
     name: 'query_permissions_list',
-    description: '获取按模块分组的权限目录（含 deprecated 标记），供角色权限配置参考',
+    description:
+      '获取按模块分组的权限目录（含 deprecated 标记）。' +
+      '创建角色或 assign_role_permissions 前必须先调用，只使用 status=active 的 code。',
     schema: z.object({})
   }
 )
@@ -191,13 +291,16 @@ export const listRoleMembersTool = tool(
 
 export const addRoleMembersTool = tool(
   async ({ id, userIds }, config) =>
-    executeApiCall(config, () =>
-      roleControllerAddMembers(
-        asSdkOptions({
-          path: { id },
-          body: { userIds }
-        })
-      )
+    executeApiCallOrRecover(
+      config,
+      () =>
+        roleControllerAddMembers(
+          asSdkOptions({
+            path: { id },
+            body: { userIds }
+          })
+        ),
+      ROLE_WRITE_HINTS
     ),
   {
     name: 'add_role_members',
@@ -208,10 +311,10 @@ export const addRoleMembersTool = tool(
 
 export const removeRoleMemberTool = tool(
   async ({ id, userId }, config) =>
-    executeApiCall(config, () =>
-      roleControllerRemoveMember({
-        path: { id, userId }
-      })
+    executeApiCallOrRecover(
+      config,
+      () => roleControllerRemoveMember({ path: { id, userId } }),
+      ROLE_WRITE_HINTS
     ),
   {
     name: 'remove_role_member',
@@ -221,38 +324,48 @@ export const removeRoleMemberTool = tool(
 )
 
 export const assignRolePermissionsTool = tool(
-  async ({ id, permissionCodes, baseVersion }, config) =>
-    executeApiCall(config, () =>
-      roleControllerAssignPermissions(
-        asSdkOptions({
-          path: { id },
-          body: { permissionCodes, baseVersion }
-        })
-      )
-    ),
+  async ({ id, permissionCodes, baseVersion }, config) => {
+    const blocked = await ensurePermissionCodesExist(permissionCodes, config)
+    if (blocked) return blocked
+    return executeApiCallOrRecover(
+      config,
+      () =>
+        roleControllerAssignPermissions(
+          asSdkOptions({
+            path: { id },
+            body: { permissionCodes, baseVersion }
+          })
+        ),
+      ROLE_WRITE_HINTS
+    )
+  },
   {
     name: 'assign_role_permissions',
     description:
-      '覆盖式保存角色权限。必须传入 baseVersion（角色详情的 updatedAt）做乐观锁。' +
-      '冲突时先 query_role_detail 再重试。系统超级管理员权限不可改。',
+      '覆盖式保存角色权限。permissionCodes 必须来自 query_permissions_list 的 active code。' +
+      '必须传入 baseVersion（角色详情的 updatedAt）做乐观锁。冲突时先 query_role_detail 再重试。' +
+      '系统超级管理员权限不可改。',
     schema: assignRolePermissionsToolSchema
   }
 )
 
 export const assignRoleDataScopeTool = tool(
   async ({ id, dataScope, customOrgIds, baseVersion }, config) =>
-    executeApiCall(config, () =>
-      roleControllerAssignDataScope(
-        asSdkOptions({
-          path: { id },
-          body: { dataScope, customOrgIds, baseVersion }
-        })
-      )
+    executeApiCallOrRecover(
+      config,
+      () =>
+        roleControllerAssignDataScope(
+          asSdkOptions({
+            path: { id },
+            body: { dataScope, customOrgIds, baseVersion }
+          })
+        ),
+      ROLE_WRITE_HINTS
     ),
   {
     name: 'assign_role_data_scope',
     description:
-      '保存角色数据范围。dataScope 为 custom 时必须提供 customOrgIds。' +
+      '保存角色数据范围。dataScope 为 custom 时必须提供来自组织树的 customOrgIds。' +
       '必须传入 baseVersion（角色详情的 updatedAt）做乐观锁。',
     schema: assignRoleDataScopeToolSchema
   }
@@ -260,12 +373,15 @@ export const assignRoleDataScopeTool = tool(
 
 export const deleteRolesTool = tool(
   async ({ ids }, config) =>
-    executeApiCall(config, () =>
-      roleControllerRemoveMany(
-        asSdkOptions({
-          body: { ids }
-        })
-      )
+    executeApiCallOrRecover(
+      config,
+      () =>
+        roleControllerRemoveMany(
+          asSdkOptions({
+            body: { ids }
+          })
+        ),
+      ROLE_WRITE_HINTS
     ),
   {
     name: 'delete_roles',

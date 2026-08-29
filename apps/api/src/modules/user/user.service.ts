@@ -549,10 +549,7 @@ export class UserService {
       resourceId: userId,
       diff: { roleIds, roleCodes: nextCodes }
     })
-    await this.authContextService.bumpPermVer()
-    if (options.revokeSessions) {
-      await this.sessionService.revokeAllForUser(userId)
-    }
+    await this.refreshUserAccess(userId, options.revokeSessions)
   }
 
   private async syncOrganizations(
@@ -610,8 +607,16 @@ export class UserService {
       resourceId: userId,
       diff: { organizations }
     })
-    await this.authContextService.bumpPermVer()
-    if (options.revokeSessions) {
+    await this.refreshUserAccess(userId, options.revokeSessions)
+  }
+
+  /**
+   * 角色 / 组织变更只影响当事人。清空其鉴权快照；需要强制其重新登录时再注销会话。
+   * 不 bump 租户 permVer，否则操作者及其他在线用户会被 401。
+   */
+  private async refreshUserAccess(userId: string, revokeSessions: boolean) {
+    this.authContextService.invalidateCache(userId)
+    if (revokeSessions) {
       await this.sessionService.revokeAllForUser(userId)
     }
   }

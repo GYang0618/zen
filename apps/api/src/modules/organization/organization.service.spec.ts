@@ -6,6 +6,7 @@ import type { AuthContext } from '@zen/shared'
 import type { AuditService } from '@/common/auth/audit.service'
 import type { AuthContextService } from '@/common/auth/auth-context.service'
 import type { SessionService } from '@/common/auth/session.service'
+import type { PostService } from '@/modules/post'
 import type { OrganizationRepository, OrganizationWithRelations } from './organization.repository'
 
 const auth: AuthContext = {
@@ -72,6 +73,7 @@ describe('OrganizationService', () => {
     addMember: jest.fn(),
     removeMember: jest.fn()
   } as unknown as jest.Mocked<OrganizationRepository>
+  const postService = {} as unknown as PostService
   const auditService = { write: jest.fn() } as unknown as AuditService
   const authContextService = {
     bumpPermVer: jest.fn(),
@@ -80,6 +82,7 @@ describe('OrganizationService', () => {
   const sessionService = { revokeAllForUser: jest.fn() } as unknown as SessionService
   const service = new OrganizationService(
     repository,
+    postService,
     auditService,
     authContextService,
     sessionService
@@ -149,7 +152,8 @@ describe('OrganizationService', () => {
         level: 2
       }
     ])
-    expect(authContextService.bumpPermVer).toHaveBeenCalled()
+    expect(authContextService.bumpPermVer).not.toHaveBeenCalled()
+    expect(authContextService.invalidateCache).toHaveBeenCalledWith()
   })
 
   it('scopes an added member to the affected user without bumping tenant permVer', async () => {

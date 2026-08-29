@@ -10,6 +10,7 @@ import { PostsDialogs } from './components/posts-dialogs'
 import { PostsList } from './components/posts-list'
 import { PostsPrimaryButtons } from './components/posts-primary-buttons'
 import { PostsTable } from './components/posts-table'
+import { Copilot } from './copilot'
 import { PostsProvider } from './posts-provider'
 import { useJobProfilesQuery } from './queries'
 
@@ -38,6 +39,7 @@ function PostsContent() {
 
   return (
     <>
+      <Copilot />
       <AppHeader />
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
         <AppPageHeader actions={<PostsPrimaryButtons />} />

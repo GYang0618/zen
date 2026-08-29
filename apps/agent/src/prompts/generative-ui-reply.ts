@@ -1,5 +1,5 @@
 /** 前端 useRenderTool / Generative UI 已渲染工具结果时的回复约束 */
-const FRONTEND_RENDERED_TOOLS = ['query_users_list'] as const
+const FRONTEND_RENDERED_TOOLS = ['query_users_list', 'query_job_profiles_list'] as const
 
 const frontendRenderedToolList = FRONTEND_RENDERED_TOOLS.map((name) => `\`${name}\``).join('、')
 

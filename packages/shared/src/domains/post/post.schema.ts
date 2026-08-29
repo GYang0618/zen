@@ -138,7 +138,9 @@ export const jobProfileDetailSchema = jobProfileSchema.extend({
 /** 将岗位目录关联到组织并设置编制 */
 export const linkOrganizationPositionSchema = z
   .object({
-    jobProfileId: idSchema,
+    jobProfileId: idSchema.describe(
+      '岗位目录 ID，来自 query_job_profiles_list（须为启用且尚未挂到该组织）'
+    ),
     headcount: z.number().int().min(1).max(999),
     level: jobProfileLevelSchema.optional(),
     description: z.string().trim().max(500).optional()

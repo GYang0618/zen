@@ -78,6 +78,10 @@ export class AuthContextService {
     }
   }
 
+  /**
+   * 抬升租户权限版本，使所有 accessToken 的 permVer 失效并触发 401。
+   * 仅用于必须让全员重新签发 token 的场景；改单个用户/角色时请用 invalidateCache。
+   */
   async bumpPermVer(): Promise<number> {
     const tenant = await this.prisma.tenant.findUnique({ where: { id: DEFAULT_TENANT_ID } })
     const settings =

@@ -107,7 +107,10 @@ const createRoleObjectSchema = z.object({
     .optional()
     .describe('CUSTOM 数据范围时的组织 ID 白名单'),
   sort: z.number().int().min(0).max(9999).optional().describe('排序值，越小越靠前'),
-  permissionCodes: z.array(z.string().trim().min(1)).optional().describe('权限编码列表')
+  permissionCodes: z
+    .array(z.string().trim().min(1))
+    .optional()
+    .describe('权限编码列表（必须来自 query_permissions_list 的 active code）')
 })
 
 export const createRoleSchema = createRoleObjectSchema.superRefine((value, ctx) => {
@@ -148,7 +151,9 @@ export const deleteRolesSchema = z.object({
 })
 
 export const assignRolePermissionsSchema = z.object({
-  permissionCodes: z.array(z.string().trim().min(1)).describe('权限编码列表'),
+  permissionCodes: z
+    .array(z.string().trim().min(1))
+    .describe('权限编码列表（必须来自 query_permissions_list 的 active code）'),
   /** 乐观锁：打开编辑时的 updatedAt */
   baseVersion: z.string().min(1).describe('并发基线版本（ISO 8601）')
 })

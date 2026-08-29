@@ -11,7 +11,29 @@ import { CARD_PAGE_SIZE, getNextPageParam } from '@/lib/infinite-list'
 
 import { postApi } from './api'
 
-import type { CreateJobProfile, FindJobProfilesQuery, UpdateJobProfile } from '@zen/shared'
+import type {
+  CreateJobProfile,
+  FindJobProfilesQuery,
+  JobProfileStatus,
+  UpdateJobProfile
+} from '@zen/shared'
+
+type BulkMutationResult = {
+  successCount: number
+  failedCount: number
+}
+
+async function settleUpdates(tasks: Array<Promise<unknown>>): Promise<BulkMutationResult> {
+  const results = await Promise.allSettled(tasks)
+  const failedCount = results.filter((item) => item.status === 'rejected').length
+  if (failedCount === results.length) {
+    const first = results.find((item) => item.status === 'rejected')
+    throw first && first.status === 'rejected' && first.reason instanceof Error
+      ? first.reason
+      : new Error('批量操作失败')
+  }
+  return { successCount: results.length - failedCount, failedCount }
+}
 
 export const postKeys = {
   all: ['posts'] as const,
@@ -79,6 +101,17 @@ export function useDisableJobProfileMutation() {
   })
 }
 
+export function useUpdateJobProfilesStatusMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ ids, status }: { ids: string[]; status: JobProfileStatus }) =>
+      settleUpdates(ids.map((id) => postApi.update(id, { status }))),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: postKeys.all })
+    }
+  })
+}
+
 export function useDeleteJobProfileMutation() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -88,5 +121,15 @@ export function useDeleteJobProfileMutation() {
       toast.success('岗位已删除')
     },
     onError: (error: Error) => toast.error(error.message || '删除失败')
+  })
+}
+
+export function useDeleteJobProfilesMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (ids: string[]) => settleUpdates(ids.map((id) => postApi.remove(id))),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: postKeys.all })
+    }
   })
 }

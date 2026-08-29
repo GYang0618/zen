@@ -27,6 +27,7 @@ import { useTableUrlState } from '@/hooks'
 import { toOptions } from '@/lib/config-utils'
 
 import { jobProfileStatusConfig } from '../utils'
+import { PostsBulkActions } from './posts-bulk-actions'
 import { postsColumns as columns } from './posts-columns'
 
 import type { VisibilityState } from '@tanstack/react-table'
@@ -61,6 +62,7 @@ export function PostsTable({
   navigate
 }: PostsTableProps) {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+  const [rowSelection, setRowSelection] = useState({})
 
   const {
     globalFilter,
@@ -98,12 +100,16 @@ export function PostsTable({
     state: {
       globalFilter,
       pagination,
+      rowSelection,
       columnFilters,
       columnVisibility
     },
+    enableRowSelection: true,
+    getRowId: (row) => row.id,
     onPaginationChange,
     onGlobalFilterChange,
     onColumnFiltersChange,
+    onRowSelectionChange: setRowSelection,
     onColumnVisibilityChange: setColumnVisibility,
     globalFilterFn: (row, _columnId, filterValue) => {
       const normalizedKeyword = String(filterValue ?? '')
@@ -191,7 +197,11 @@ export function PostsTable({
               ))
             ) : rows.length ? (
               rows.map((row) => (
-                <TableRow key={row.id} className="group/row">
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && 'selected'}
+                  className="group/row"
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
@@ -218,6 +228,10 @@ export function PostsTable({
       </div>
 
       <DataTablePagination table={table} className="mt-auto" />
+      <PostsBulkActions
+        selectedItems={table.getFilteredSelectedRowModel().rows.map((row) => row.original)}
+        onClearSelection={() => table.resetRowSelection()}
+      />
     </div>
   )
 }

@@ -71,7 +71,13 @@ export const userOrganizationMembershipSchema = z.object({
 export const userOrganizationInputSchema = z.object({
   organizationId: z.string().trim().min(1, '组织 ID 不能为空').describe('组织 ID'),
   isPrimary: z.boolean().optional().describe('是否主职'),
-  postId: z.string().trim().min(1).nullable().optional().describe('岗位 ID')
+  postId: z
+    .string()
+    .trim()
+    .min(1)
+    .nullable()
+    .optional()
+    .describe('组织岗位编制 ID（query_organization_positions 的 id，不是岗位目录 jobProfileId）')
 })
 
 /**
@@ -129,11 +135,13 @@ export const createUserSchema = z.object({
   roleIds: z
     .array(z.string().trim().min(1, '角色 ID 不能为空'))
     .optional()
-    .describe('初始角色 ID 列表；省略时分配默认 user 角色'),
+    .describe(
+      '初始角色 ID 列表（来自 query_roles_list 的 id，不是 code）；省略时分配默认 user 角色'
+    ),
   organizations: z
     .array(userOrganizationInputSchema)
     .optional()
-    .describe('初始组织归属；省略时不绑定组织')
+    .describe('初始组织归属（organizationId 来自组织树；postId 为编制 ID）；省略时不绑定组织')
 })
 
 /**
@@ -184,7 +192,7 @@ export const assignUserRolesSchema = z.object({
   roleIds: z
     .array(z.string().trim().min(1, '角色 ID 不能为空'))
     .min(1, '至少需要一个角色')
-    .describe('角色 ID 列表（覆盖式）')
+    .describe('角色 ID 列表（覆盖式，来自 query_roles_list 的 id，不是 code）')
 })
 
 /** 覆盖式同步用户组织归属 */

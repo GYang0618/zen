@@ -10,7 +10,7 @@ import { toast } from 'sonner'
 
 import { postKeys } from '@/features/system/posts/queries'
 import { userApi } from '@/features/system/users/api'
-import { silentRefreshAuthSession } from '@/lib/request'
+import { useAccessChangeFeedback } from '@/lib/auth/access-change'
 
 import { organizationApi } from './api'
 
@@ -254,8 +254,6 @@ export function useChangeOrganizationParent() {
     mutationFn: ({ id, data }: { id: string; data: ChangeOrganizationParent }) =>
       organizationApi.changeParent(id, data),
     onSuccess: async (_data, variables) => {
-      // 变更父级会 bump permVer，先刷新 token 再拉树/详情
-      await silentRefreshAuthSession()
       await invalidateOrganizationQueries(queryClient, variables.id)
     },
     onError: (error: Error) => toast.error(error.message || '移动失败')
@@ -264,6 +262,7 @@ export function useChangeOrganizationParent() {
 
 export function useAddOrganizationMember(organizationId: string) {
   const queryClient = useQueryClient()
+  const notifyAccessChange = useAccessChangeFeedback()
   return useMutation({
     mutationFn: (data: AddOrganizationMember) => organizationApi.addMember(organizationId, data),
     onSuccess: async (members) => {
@@ -276,7 +275,10 @@ export function useAddOrganizationMember(organizationId: string) {
           return [...prev, ...added.filter((item) => !existingIds.has(item.id))]
         }
       })
-      toast.success(added.length > 1 ? `已添加 ${added.length} 名成员` : '成员已添加')
+      notifyAccessChange(
+        added.map((item) => item.id),
+        added.length > 1 ? `已添加 ${added.length} 名成员` : '成员已添加'
+      )
     },
     onError: (error: Error) => toast.error(error.message || '添加失败')
   })
@@ -284,6 +286,7 @@ export function useAddOrganizationMember(organizationId: string) {
 
 export function useRemoveOrganizationMember(organizationId: string) {
   const queryClient = useQueryClient()
+  const notifyAccessChange = useAccessChangeFeedback()
   return useMutation({
     mutationFn: (userId: string) => organizationApi.removeMember(organizationId, userId),
     onSuccess: async (_data, userId) => {
@@ -291,7 +294,7 @@ export function useRemoveOrganizationMember(organizationId: string) {
         delta: -1,
         updateMembers: (prev) => prev?.filter((item) => item.id !== userId)
       })
-      toast.success('成员已移除')
+      notifyAccessChange(userId, '成员已移除')
     },
     onError: (error: Error) => toast.error(error.message || '移除失败')
   })

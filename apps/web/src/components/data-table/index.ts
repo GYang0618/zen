@@ -1,4 +1,4 @@
-export { DataTableBulkActions } from './bulk-actions'
+export { BulkActionsToolbar, DataTableBulkActions } from './bulk-actions'
 export { DataTableColumnHeader } from './column-header'
 export { DataTableFacetedFilter } from './faceted-filter'
 export { ListPagination } from './list-pagination'

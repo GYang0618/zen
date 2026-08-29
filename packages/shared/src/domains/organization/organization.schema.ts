@@ -40,7 +40,7 @@ export const createOrganizationSchema = z
   .object({
     code: organizationCodeSchema.describe('组织编码，创建后不可修改'),
     name: organizationNameSchema,
-    type: organizationTypeSchema,
+    type: organizationTypeSchema.describe('组织类型，必须是本企业已启用的类型'),
     parentId: idSchema.nullable().default(null),
     leaderId: idSchema.nullable().optional(),
     effectiveDate: dateSchema,
@@ -60,7 +60,7 @@ export const createOrganizationSchema = z
 export const updateOrganizationSchema = z
   .object({
     name: organizationNameSchema.optional(),
-    type: organizationTypeSchema.optional(),
+    type: organizationTypeSchema.optional().describe('组织类型，必须是本企业已启用的类型'),
     effectiveDate: dateSchema.optional(),
     description: z.string().trim().max(500).nullable().optional()
   })

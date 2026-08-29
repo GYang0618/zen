@@ -17,23 +17,41 @@ import {
 import { Building2, CalendarDays } from 'lucide-react'
 import { DynamicIcon } from 'lucide-react/dynamic'
 
+import { toggleListItemFromCardClick } from '@/hooks'
+
 import { getJobProfileIconColorClassName } from '../data'
 import { formatJobProfileLevel, jobProfileStatusConfig } from '../utils'
 import { PostsRowActions } from './posts-row-actions'
 
 import type { JobProfile } from '@zen/shared'
+import type { ListSelectionActionProps } from '@/hooks'
 
-type PostsCardProps = {
+type PostsCardProps = ListSelectionActionProps & {
   item: JobProfile
 }
 
-export function PostsCard({ item }: PostsCardProps) {
+export function PostsCard({
+  item,
+  isSelecting,
+  selected = false,
+  onEnterSelecting,
+  onSelectedChange
+}: PostsCardProps) {
   const previewMembers = (item.memberPreview ?? []).slice(0, POSITION_MEMBER_PREVIEW_LIMIT)
   const overflowCount = Math.max(item.activeCount - previewMembers.length, 0)
   const status = jobProfileStatusConfig[item.status]
 
   return (
-    <Card className="gap-3">
+    <Card
+      className={cn(
+        'gap-3',
+        isSelecting && 'cursor-pointer select-none',
+        selected && 'ring-2 ring-ring'
+      )}
+      onClick={(event) =>
+        toggleListItemFromCardClick(event, { isSelecting, selected, onSelectedChange })
+      }
+    >
       <CardHeader>
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
@@ -56,7 +74,13 @@ export function PostsCard({ item }: PostsCardProps) {
             <Badge variant="outline" className={status.className}>
               {status.label}
             </Badge>
-            <PostsRowActions item={item} />
+            <PostsRowActions
+              item={item}
+              isSelecting={isSelecting}
+              selected={selected}
+              onEnterSelecting={onEnterSelecting}
+              onSelectedChange={onSelectedChange}
+            />
           </div>
         </div>
       </CardHeader>

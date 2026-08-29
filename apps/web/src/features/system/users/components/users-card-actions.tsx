@@ -2,15 +2,18 @@ import { useNavigate } from '@tanstack/react-router'
 import { PermissionCode } from '@zen/shared'
 import {
   Button,
+  Checkbox,
   cn,
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuTrigger
 } from '@zen/ui'
 import {
+  CheckSquare,
   Eye,
   KeyRound,
   LockOpen,
@@ -29,8 +32,16 @@ import { useUnlockUserMutation, useUpdateUsersStatusMutation } from '../mutation
 import { useUsers } from '../users-provider'
 
 import type { User } from '@zen/shared'
+import type { ListSelectionActionProps } from '@/hooks'
 
-export function UsersCardActions({ user, className }: { user: User; className?: string }) {
+export function UsersCardActions({
+  user,
+  className,
+  isSelecting = false,
+  selected = false,
+  onEnterSelecting,
+  onSelectedChange
+}: ListSelectionActionProps & { user: User; className?: string }) {
   const navigate = useNavigate()
   const { setOpen, setCurrentRow } = useUsers()
   const { mutate: updateUsersStatus, isPending } = useUpdateUsersStatusMutation()
@@ -47,6 +58,18 @@ export function UsersCardActions({ user, className }: { user: User; className?: 
           toast.success(nextStatus === 'active' ? '用户已激活' : '用户已停用')
         }
       }
+    )
+  }
+
+  if (isSelecting) {
+    return (
+      <span className="inline-flex size-8 items-center justify-center">
+        <Checkbox
+          checked={selected}
+          onCheckedChange={(value) => onSelectedChange?.(!!value)}
+          aria-label={`选择${user.username}`}
+        />
+      </span>
     )
   }
 
@@ -70,6 +93,19 @@ export function UsersCardActions({ user, className }: { user: User; className?: 
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-45">
+        {onEnterSelecting ? (
+          <>
+            <DropdownMenuGroup>
+              <DropdownMenuItem onSelect={onEnterSelecting}>
+                选择
+                <DropdownMenuShortcut>
+                  <CheckSquare />
+                </DropdownMenuShortcut>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+          </>
+        ) : null}
         <DropdownMenuItem
           onClick={() => {
             void navigate({ to: '/system/users/$userId', params: { userId: user.id } })

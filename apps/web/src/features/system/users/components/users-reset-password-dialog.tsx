@@ -15,10 +15,10 @@ import {
 } from '@zen/ui'
 import { Loader2 } from 'lucide-react'
 import { Controller, useForm } from 'react-hook-form'
-import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { PasswordInput } from '@/components'
+import { isCurrentUserId, useAccessChangeFeedback } from '@/lib/auth/access-change'
 
 import { useAdminResetPasswordMutation } from '../mutations'
 
@@ -55,6 +55,8 @@ export function UsersResetPasswordDialog({
   onOpenChange
 }: UsersResetPasswordDialogProps) {
   const { mutateAsync, isPending } = useAdminResetPasswordMutation()
+  const notifyAccessChange = useAccessChangeFeedback()
+  const isSelf = isCurrentUserId(currentRow.id)
   const form = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(resetPasswordFormSchema),
     defaultValues: {
@@ -70,7 +72,7 @@ export function UsersResetPasswordDialog({
       password: values.password,
       mustChangePassword: values.mustChangePassword
     })
-    toast.success('密码已重置')
+    notifyAccessChange(currentRow.id, '密码已重置', '密码已重置，请重新登录')
     onOpenChange(false)
     form.reset({ password: '', confirmPassword: '', mustChangePassword: true })
   })
@@ -88,7 +90,9 @@ export function UsersResetPasswordDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>重置密码</DialogTitle>
-          <DialogDescription>为用户 {currentRow.username} 设置新密码</DialogDescription>
+          <DialogDescription>
+            {isSelf ? '为当前账号设置新密码，保存后请重新登录。' : `为用户 ${currentRow.username} 设置新密码`}
+          </DialogDescription>
         </DialogHeader>
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
           <FieldGroup>

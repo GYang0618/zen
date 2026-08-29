@@ -2,13 +2,16 @@
 
 import { randomUUID, useAgent, useCopilotKit } from '@copilotkit/react-core/v2'
 import { Button, cn } from '@zen/ui'
-import { Globe, Lightbulb, Mic, Paperclip, Send, Square } from 'lucide-react'
+import { Mic, Paperclip, Send, Square } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import type { Variants } from 'motion/react'
 
 const PLACEHOLDERS = ['设置主题为亮色、暗色、跟随系统', '查询、删除、更新、新增用户']
+const TEXTAREA_MAX_HEIGHT_PX = 200
+/** 单行布局下两侧按钮占用的大致宽度，用于跨行检测时避免宽窄切换抖动 */
+const SIDE_ACTIONS_WIDTH_PX = 160
 
 export function ChatInput({ className }: { className?: string }) {
   const { agent } = useAgent()
@@ -17,13 +20,16 @@ export function ChatInput({ className }: { className?: string }) {
   const [placeholderIndex, setPlaceholderIndex] = useState(0)
   const [showPlaceholder, setShowPlaceholder] = useState(true)
   const [isActive, setIsActive] = useState(false)
-
   const [inputValue, setInputValue] = useState('')
+  const [isMultiline, setIsMultiline] = useState(false)
+
   const wrapperRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const singleLineHeightRef = useRef<number | null>(null)
+
   const dynamicPlaceholderActive =
     showPlaceholder && !isActive && !inputValue && agent.messages.length === 0
 
-  // Cycle placeholder text when input is inactive
   useEffect(() => {
     if (isActive || inputValue) return
 
@@ -38,7 +44,6 @@ export function ChatInput({ className }: { className?: string }) {
     return () => clearInterval(interval)
   }, [isActive, inputValue])
 
-  // Close input when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
@@ -50,20 +55,42 @@ export function ChatInput({ className }: { className?: string }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [inputValue])
 
-  const handleActivate = () => setIsActive(true)
+  useLayoutEffect(() => {
+    const el = textareaRef.current
+    if (!el) return
 
-  const containerVariants: Variants = {
-    collapsed: {
-      height: 68,
-      boxShadow: '0 2px 8px 0 rgba(0,0,0,0.08)',
-      transition: { type: 'spring' as const, stiffness: 120, damping: 18 }
-    },
-    expanded: {
-      height: 128,
-      boxShadow: '0 8px 32px 0 rgba(0,0,0,0.16)',
-      transition: { type: 'spring' as const, stiffness: 120, damping: 18 }
+    el.style.height = 'auto'
+    if (singleLineHeightRef.current === null) {
+      singleLineHeightRef.current = el.scrollHeight
     }
-  }
+
+    const singleLineHeight = singleLineHeightRef.current
+    const nextHeight = Math.min(el.scrollHeight, TEXTAREA_MAX_HEIGHT_PX)
+    el.style.height = `${nextHeight}px`
+
+    if (!inputValue) {
+      setIsMultiline(false)
+      return
+    }
+
+    if (inputValue.includes('\n')) {
+      setIsMultiline(true)
+      return
+    }
+
+    // 在「单行布局」对应的窄宽度下测量，避免按钮移到底部后变宽又判回单行
+    const probeWidth = Math.max(el.clientWidth - (isMultiline ? SIDE_ACTIONS_WIDTH_PX : 0), 80)
+    const prevWidth = el.style.width
+    el.style.width = `${probeWidth}px`
+    el.style.height = 'auto'
+    const probedScrollHeight = el.scrollHeight
+    el.style.width = prevWidth
+    el.style.height = `${nextHeight}px`
+
+    setIsMultiline(probedScrollHeight > singleLineHeight + 2)
+  }, [inputValue, isMultiline])
+
+  const handleActivate = () => setIsActive(true)
 
   const isRunning = agent.isRunning
   const canSend = inputValue.trim().length > 0 && !isRunning
@@ -104,83 +131,107 @@ export function ChatInput({ className }: { className?: string }) {
     void sendMessage()
   }
 
+  const attachButton = (
+    <Button
+      variant="ghost"
+      className="rounded-full size-11 shrink-0"
+      title="attach file"
+      tabIndex={-1}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <Paperclip className="size-5" />
+    </Button>
+  )
+
+  const trailingActions = (
+    <>
+      <Button
+        variant="ghost"
+        className="rounded-full size-11 shrink-0"
+        title="Voice input"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <Mic className="size-5" />
+      </Button>
+
+      <Button
+        className="rounded-full size-11 shrink-0"
+        type="button"
+        title={isRunning ? '停止' : '发送'}
+        aria-label={isRunning ? '停止生成' : '发送'}
+        tabIndex={-1}
+        disabled={!isRunning && !canSend}
+        onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          handlePrimaryAction()
+        }}
+      >
+        {isRunning ? (
+          <Square className="size-3.5 fill-current" />
+        ) : (
+          <Send className="size-4.5" />
+        )}
+      </Button>
+    </>
+  )
+
   return (
     <div className={cn('w-full flex justify-center items-center', className)}>
-      <motion.div
+      <div
         ref={wrapperRef}
-        className="w-full rounded-4xl overflow-hidden bg-background dark:bg-input/30"
-        variants={containerVariants}
-        animate={isActive || inputValue ? 'expanded' : 'collapsed'}
-        initial="collapsed"
-        onClick={handleActivate}
+        className="w-full rounded-4xl overflow-hidden bg-background dark:bg-input/30 shadow-sm"
       >
-        <div className="flex flex-col items-stretch w-full h-full">
+        <div className="flex flex-col items-stretch w-full">
           {/* todo: 添加上传的文件或者图片预览展示 */}
-          <div className="flex items-center gap-2 p-3 rounded-full w-full">
-            <Button
-              variant="ghost"
-              className="rounded-full size-11"
-              title="attach file"
-              tabIndex={-1}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Paperclip className="size-5" />
-            </Button>
+          <div
+            className={cn('flex gap-2 p-3 w-full', isMultiline ? 'items-start' : 'items-center')}
+          >
+            {!isMultiline && attachButton}
 
-            <div className="relative flex-1">
-              <input
-                type="text"
+            <div className="relative flex-1 min-w-0">
+              <textarea
+                ref={textareaRef}
+                rows={1}
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                className="flex-1 border-0 outline-0 rounded-md py-2 text-base bg-transparent w-full font-normal"
+                className="flex-1 border-0 outline-0 rounded-md py-2 text-base bg-transparent w-full font-normal resize-none overflow-y-auto leading-6"
                 style={{ position: 'relative', zIndex: 1 }}
                 onFocus={handleActivate}
                 onKeyDown={(e) => {
-                  if (e.key !== 'Enter' || e.nativeEvent.isComposing) return
+                  if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing) return
                   e.preventDefault()
                   e.stopPropagation()
                   handlePrimaryAction()
                 }}
               />
-              <div className="absolute left-0 top-0 w-full h-full pointer-events-none flex items-center  py-2">
+              <div className="absolute left-0 top-0 w-full h-full pointer-events-none flex items-start py-2">
                 <DynamicTexts active={dynamicPlaceholderActive} activeIndex={placeholderIndex} />
               </div>
             </div>
 
-            <Button
-              variant="ghost"
-              className="rounded-full size-11"
-              title="Voice input"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Mic className="size-5" />
-            </Button>
-
-            <Button
-              className="rounded-full size-11"
-              type="button"
-              title={isRunning ? '停止' : '发送'}
-              aria-label={isRunning ? '停止生成' : '发送'}
-              tabIndex={-1}
-              disabled={!isRunning && !canSend}
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                handlePrimaryAction()
-              }}
-            >
-              {isRunning ? (
-                <Square className="size-3.5 fill-current" />
-              ) : (
-                <Send className="size-4.5" />
-              )}
-            </Button>
+            {!isMultiline && trailingActions}
           </div>
 
-          {/* Expanded Controls */}
-          <ExpandedControls active={isActive || !!inputValue} />
+          <AnimatePresence initial={false}>
+            {isMultiline && (
+              <motion.div
+                key="multiline-actions"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 120, damping: 18 }}
+                className="overflow-hidden"
+              >
+                <div className="flex w-full items-center justify-between gap-3 px-3 pb-3">
+                  {attachButton}
+                  <div className="flex items-center gap-2">{trailingActions}</div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-      </motion.div>
+      </div>
     </div>
   )
 }
@@ -244,88 +295,5 @@ function DynamicTexts({ active, activeIndex }: { active: boolean; activeIndex: n
         </motion.span>
       )}
     </AnimatePresence>
-  )
-}
-
-function ExpandedControls({ active }: { active: boolean }) {
-  const TOGGLE_PILL_BASE =
-    'flex items-center gap-1 border px-4 py-2 rounded-full font-medium transition-colors whitespace-nowrap overflow-hidden justify-start'
-  const TOGGLE_PILL_INACTIVE =
-    'border-border bg-secondary text-secondary-foreground hover:bg-muted hover:text-foreground'
-  const TOGGLE_PILL_ACTIVE =
-    'border-primary bg-primary text-primary-foreground shadow-md hover:bg-primary/90'
-
-  const [thinkActive, setThinkActive] = useState(false)
-  const [deepSearchActive, setDeepSearchActive] = useState(false)
-  return (
-    <motion.div
-      className="w-full flex justify-start px-4 items-center text-sm"
-      variants={{
-        hidden: {
-          opacity: 0,
-          y: 20,
-          pointerEvents: 'none' as const,
-          transition: { duration: 0.25 }
-        },
-        visible: {
-          opacity: 1,
-          y: 0,
-          pointerEvents: 'auto' as const,
-          transition: { duration: 0.35, delay: 0.08 }
-        }
-      }}
-      initial="hidden"
-      animate={active ? 'visible' : 'hidden'}
-      style={{ marginTop: 8 }}
-    >
-      <div className="flex gap-3 items-center">
-        {/* Think Toggle */}
-
-        <button
-          className={`${TOGGLE_PILL_BASE} group ${
-            thinkActive ? TOGGLE_PILL_ACTIVE : TOGGLE_PILL_INACTIVE
-          }`}
-          title="Think"
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            setThinkActive((a) => !a)
-          }}
-        >
-          <Lightbulb className="group-hover:fill-yellow-300 transition-all" size={18} />
-          深度思考
-        </button>
-
-        {/* Deep Search Toggle */}
-        <motion.button
-          className={`${TOGGLE_PILL_BASE} ${
-            deepSearchActive ? TOGGLE_PILL_ACTIVE : TOGGLE_PILL_INACTIVE
-          }`}
-          title="Deep Search"
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            setDeepSearchActive((a) => !a)
-          }}
-          initial={false}
-          animate={{
-            width: deepSearchActive ? 'max-content' : 36,
-            paddingLeft: deepSearchActive ? 8 : 9
-          }}
-        >
-          <div className="flex-1">
-            <Globe size={18} />
-          </div>
-          <motion.span
-            initial={false}
-            animate={{
-              opacity: deepSearchActive ? 1 : 0
-            }}
-          >
-            深度搜索
-          </motion.span>
-        </motion.button>
-      </div>
-    </motion.div>
   )
 }

@@ -16,6 +16,7 @@ import { Can } from '@/components/auth/can'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { useOrganizationTree } from '@/features/system/organization/queries'
 import { findOrganization, flattenOrganizations } from '@/features/system/organization/utils'
+import { isCurrentUserId, useAccessChangeFeedback } from '@/lib/auth/access-change'
 
 import { useReplaceUserOrganizationsMutation } from '../mutations'
 import { getMembershipChanges, getUserDisplayName, seedMembershipDrafts } from '../utils'
@@ -39,6 +40,8 @@ export function AssignUserOrganizationsDialog({
   user
 }: AssignUserOrganizationsDialogProps) {
   const { mutateAsync: replaceOrganizations, isPending } = useReplaceUserOrganizationsMutation()
+  const notifyAccessChange = useAccessChangeFeedback()
+  const isSelf = isCurrentUserId(user.id)
   const {
     data: tree = [],
     isLoading: treeLoading,
@@ -132,7 +135,7 @@ export function AssignUserOrganizationsDialog({
           postId: item.postId || null
         }))
       })
-      toast.success('组织归属已更新，目标用户需重新登录')
+      notifyAccessChange(user.id, '组织归属已更新')
       onOpenChange(false)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '更新组织失败')
@@ -160,7 +163,7 @@ export function AssignUserOrganizationsDialog({
     })
   ]
 
-  const copy = getSheetCopy(step, getUserDisplayName(user))
+  const copy = getSheetCopy(step, getUserDisplayName(user), isSelf)
 
   return (
     <>
@@ -179,7 +182,7 @@ export function AssignUserOrganizationsDialog({
                 removed={changes.removedIds.map((id) => ({ id, label: resolveOrgName(id) }))}
                 details={changeDetails}
               />
-              <AssignmentSessionAlert />
+              <AssignmentSessionAlert isSelf={isSelf} />
             </div>
           ) : null}
 
@@ -273,11 +276,13 @@ export function AssignUserOrganizationsDialog({
   )
 }
 
-function getSheetCopy(step: AssignStep, displayName: string) {
+function getSheetCopy(step: AssignStep, displayName: string, isSelf: boolean) {
   if (step === 'confirm') {
     return {
       title: '确认组织变更',
-      description: `保存后将覆盖 ${displayName} 的组织归属，并强制下线现有会话。`
+      description: isSelf
+        ? '保存后将覆盖你的组织归属，当前账号需重新登录。'
+        : `保存后将覆盖 ${displayName} 的组织归属。`
     }
   }
   return {

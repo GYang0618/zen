@@ -369,7 +369,9 @@ export class OrganizationService {
           : null
       )
     )
-    await this.authContextService.bumpPermVer()
+    // 组织路径变化会影响成员数据范围：清全量快照即可在下次请求加载新 path。
+    // 不 bump 租户 permVer，否则所有在线用户（含操作者）会立刻 401。
+    this.authContextService.invalidateCache()
     return toOrganizationResponse(await this.requireVisible(id, auth))
   }
 

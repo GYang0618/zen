@@ -3,6 +3,7 @@ import { usersPageSchema } from '@zen/shared'
 import z from 'zod'
 
 import { AITable } from '@/components/ai'
+import { emptyToolRender } from '@/components/ai/empty-tool-render'
 import { columns } from '@/features/system/users'
 
 const tableColumns = columns.filter((col) => col.id !== 'select' && col.id !== 'actions')
@@ -21,9 +22,13 @@ export function useUsersTable() {
     {
       name: 'query_users_list',
       parameters: z.object({}),
-      render: ({ result }) => {
+      render: ({ status, result }) => {
+        if (status !== 'complete') return emptyToolRender()
+
         const data = parseUsersPageResult(result ?? '')
-        return <AITable data={data?.items ?? []} columns={tableColumns} />
+        if (!data) return emptyToolRender()
+
+        return <AITable data={data.items} columns={tableColumns} />
       }
     },
     []

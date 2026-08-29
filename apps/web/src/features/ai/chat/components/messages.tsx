@@ -14,6 +14,7 @@ import { AlertCircle } from 'lucide-react'
 import { Fragment } from 'react'
 
 // import { ToolFallback } from '@/components/tool-ui'
+import { sanitizeReasoningContent } from '@/components/ai/tool-display'
 import { useAuthStore } from '@/stores'
 
 import { useCopilot } from '../copilot-provider'
@@ -64,7 +65,9 @@ export function Messages() {
                         return (
                           <Reasoning className="w-full" isStreaming={isStreaming}>
                             <ReasoningTrigger />
-                            <ReasoningContent>{part.text}</ReasoningContent>
+                            <ReasoningContent>
+                              {sanitizeReasoningContent(part.text)}
+                            </ReasoningContent>
                           </Reasoning>
                         )
                       }

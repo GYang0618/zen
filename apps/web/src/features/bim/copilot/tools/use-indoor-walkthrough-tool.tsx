@@ -1,6 +1,8 @@
 import { useFrontendTool } from '@copilotkit/react-core/v2'
 import { z } from 'zod'
 
+import { emptyToolRender } from '@/components/ai/empty-tool-render'
+
 import { useWalkthroughStore, WALKTHROUGH_MIN_WAYPOINTS } from '../../stores/walkthrough'
 import { WaypointCollectPanel } from '../components/waypoint-collect-panel'
 
@@ -70,23 +72,7 @@ export function useIndoorWalkthroughTool() {
         return <WaypointCollectPanel />
       }
 
-      if (status === 'executing' && !needsCollection) {
-        return (
-          <p className="text-muted-foreground rounded-md border bg-muted/30 px-3 py-2 text-sm">
-            正在按 {provided.length} 个点位启动室内漫游…
-          </p>
-        )
-      }
-
-      if (status === 'complete') {
-        return (
-          <p className="text-muted-foreground rounded-md border bg-muted/30 px-3 py-2 text-sm">
-            室内漫游已启动
-          </p>
-        )
-      }
-
-      return null
+      return emptyToolRender()
     }
   })
 }

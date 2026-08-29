@@ -98,10 +98,6 @@ export class RoleService {
           : undefined
     })
 
-    if (permissionIds.length > 0) {
-      await this.authContextService.bumpPermVer()
-    }
-
     await this.auditService.write({
       action: 'system.role.created',
       resource: 'role',
@@ -492,16 +488,23 @@ export class RoleService {
       )
     })
 
-    // 仅 bump permVer：成员下次请求因 token.permVer 不匹配触发 401 → 静默 refresh，避免自己改权限被硬踢
-    await this.authContextService.bumpPermVer()
+    await this.invalidateRoleMembers(id)
 
     const role = await this.roleRepo.findById(id)
     if (!role) throw new NotFoundException('角色不存在')
     return toRoleResponse(role)
   }
 
-  private async invalidateRoleMembers(_roleId: string) {
-    await this.authContextService.bumpPermVer()
+  /**
+   * 权限 / 数据范围变更只影响该角色成员。
+   * 鉴权快照按 userId:permVer 缓存，清空当事人缓存即可在下次请求加载新权限。
+   * 不 bump 租户 permVer：否则所有在线用户（含操作者）的 accessToken 会立即 401。
+   */
+  private async invalidateRoleMembers(roleId: string) {
+    const userIds = await this.roleRepo.findUserIdsByRoleId(roleId)
+    for (const userId of userIds) {
+      this.authContextService.invalidateCache(userId)
+    }
   }
 
   async remove(idsInput: string[]): Promise<RoleListItemResponse[]> {

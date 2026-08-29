@@ -26,6 +26,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { EmptyState } from '@/components/empty-state'
 import { organizationIconConfig } from '@/features/system/organization/data/data'
 import { useOrganizationTypeCatalog } from '@/features/system/organization/queries'
+import { isCurrentUserId, useAccessChangeFeedback } from '@/lib/auth/access-change'
 
 import { useReplaceUserOrganizationsMutation } from '../mutations'
 import { formatFromNow, getUserDisplayName } from '../utils'
@@ -45,6 +46,8 @@ export function UserOrganizationsCard({ user, onAssign }: UserOrganizationsCardP
   const currentPrimary = memberships.find((item) => item.isPrimary)
   const [pendingPrimary, setPendingPrimary] = useState<UserOrganizationMembership>()
   const { mutate: replaceOrganizations, isPending } = useReplaceUserOrganizationsMutation()
+  const notifyAccessChange = useAccessChangeFeedback()
+  const isSelf = isCurrentUserId(user.id)
   const canSwitchPrimary = memberships.length > 1
 
   const handleConfirmPrimary = () => {
@@ -60,7 +63,7 @@ export function UserOrganizationsCard({ user, onAssign }: UserOrganizationsCardP
       },
       {
         onSuccess: () => {
-          toast.success('主职组织已更新，目标用户需重新登录')
+          notifyAccessChange(user.id, '主职组织已更新')
           setPendingPrimary(undefined)
         },
         onError: (error) => toast.error(error instanceof Error ? error.message : '更新主职失败')
@@ -197,7 +200,11 @@ export function UserOrganizationsCard({ user, onAssign }: UserOrganizationsCardP
           if (!open && !isPending) setPendingPrimary(undefined)
         }}
         title="设为主职组织？"
-        desc={`将「${pendingPrimary?.organizationName ?? ''}」设为 ${getUserDisplayName(user)} 的主职${currentPrimary ? `（当前主职为「${currentPrimary.organizationName}」）` : ''}。数据范围会随之变化，对方现有会话将被强制下线。`}
+        desc={
+          isSelf
+            ? `将「${pendingPrimary?.organizationName ?? ''}」设为你的主职${currentPrimary ? `（当前主职为「${currentPrimary.organizationName}」）` : ''}。数据范围会随之变化，保存后请重新登录。`
+            : `将「${pendingPrimary?.organizationName ?? ''}」设为 ${getUserDisplayName(user)} 的主职${currentPrimary ? `（当前主职为「${currentPrimary.organizationName}」）` : ''}。数据范围会随之变化。`
+        }
         cancelBtnText="取消"
         confirmText="设为主职"
         isLoading={isPending}

@@ -43,7 +43,10 @@ function Chat() {
 
       <div
         ref={inputDockRef}
-        className={cn('absolute bottom-0 z-10 inset-x-0 w-full px-6', !hasMessages && 'bottom-1/2')}
+        className={cn(
+          'absolute bottom-0 z-10 inset-x-0 w-full px-6',
+          !hasMessages && 'bottom-1/2 translate-y-1/2'
+        )}
       >
         <div className="@5xl/content:mx-auto @5xl/content:w-full @5xl/content:max-w-5xl relative pb-4">
           {!hasMessages && <ChatGreeting className="relative z-10" />}

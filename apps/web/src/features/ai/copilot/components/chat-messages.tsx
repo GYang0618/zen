@@ -1,13 +1,10 @@
 'use client'
 
-import {
-  CopilotChatToolCallsView,
-  useAgent,
-  useRenderActivityMessage
-} from '@copilotkit/react-core/v2'
+import { useAgent, useRenderActivityMessage } from '@copilotkit/react-core/v2'
 import {
   Alert,
   AlertTitle,
+  Button,
   Message,
   MessageContent,
   MessageResponse,
@@ -15,8 +12,20 @@ import {
   ReasoningContent,
   ReasoningTrigger
 } from '@zen/ui'
-import { AlertCircle } from 'lucide-react'
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { AlertCircle, RefreshCw } from 'lucide-react'
+import { Fragment, useMemo, useRef } from 'react'
+
+import {
+  formatActiveToolsLabel,
+  hasDedicatedResultUi,
+  resolveActivityToolNames,
+  sanitizeReasoningContent
+} from '@/components/ai/tool-display'
+
+import { useAgentRetry } from '../hooks/use-agent-retry'
+import { getToolCallName, resolveAssistantToolCalls } from '../lib/group-tool-calls'
+import { ChatActivityIndicator } from './chat-activity'
+import { GroupedToolCallsView } from './grouped-tool-calls-view'
 
 type UserMessageContentPart = { type: string; text?: string }
 
@@ -30,7 +39,13 @@ type CopilotkitAssistantMessage = {
   id: string
   role: 'assistant'
   content?: string
-  toolCalls?: unknown[]
+  toolCalls?: Array<{
+    id?: string
+    function?: {
+      name?: string
+      arguments?: string
+    }
+  }>
 }
 
 type CopilotkitReasoningMessage = {
@@ -46,12 +61,20 @@ type CopilotkitActivityMessage = {
   content: Record<string, unknown>
 }
 
+type CopilotkitToolMessage = {
+  id: string
+  role: 'tool'
+  toolCallId?: string
+  content?: unknown
+  toolCalls?: unknown
+}
+
 type CopilotkitMessage =
   | CopilotkitUserMessage
   | CopilotkitAssistantMessage
   | CopilotkitReasoningMessage
   | CopilotkitActivityMessage
-  | { id: string; role: 'tool'; content?: unknown; toolCalls?: unknown }
+  | CopilotkitToolMessage
 
 function flattenUserMessageContent(content: CopilotkitUserMessage['content']): string {
   if (!content) return ''
@@ -91,8 +114,13 @@ function AssistantMessage({ message, messages, isRunning }: AssistantMessageProp
   const hasContent = Boolean(message.content?.trim())
   const isLatestAssistant = messages[messages.length - 1]?.id === message.id
   const isStreaming = Boolean(isRunning && isLatestAssistant)
+  const { hidden, toolCalls } = resolveAssistantToolCalls(messages, message.id)
+  const resultToolCalls = toolCalls.filter((toolCall) =>
+    hasDedicatedResultUi(getToolCallName(toolCall))
+  )
 
-  if (!hasContent && !message.toolCalls?.length) return null
+  if (hidden && !hasContent) return null
+  if (!hasContent && resultToolCalls.length === 0) return null
 
   return (
     <>
@@ -103,10 +131,9 @@ function AssistantMessage({ message, messages, isRunning }: AssistantMessageProp
           </MessageContent>
         </Message>
       )}
-      <CopilotChatToolCallsView
-        message={message as never}
-        messages={messages as never}
-      />
+      {!hidden && resultToolCalls.length > 0 && (
+        <GroupedToolCallsView toolCalls={resultToolCalls} messages={messages} />
+      )}
     </>
   )
 }
@@ -127,7 +154,7 @@ function ReasoningMessage({ message, messages, isRunning }: ReasoningMessageProp
   return (
     <Reasoning className="w-full" isStreaming={isStreaming}>
       <ReasoningTrigger />
-      <ReasoningContent>{message.content ?? ''}</ReasoningContent>
+      <ReasoningContent>{sanitizeReasoningContent(message.content ?? '')}</ReasoningContent>
     </Reasoning>
   )
 }
@@ -189,41 +216,52 @@ function useDisplayMessages(messages: CopilotkitMessage[]): CopilotkitMessage[] 
   }, [messages])
 }
 
+function collectUnresolvedToolNames(messages: CopilotkitMessage[]): string[] {
+  const resolvedIds = new Set(
+    messages
+      .filter((message): message is CopilotkitToolMessage => message.role === 'tool')
+      .map((message) => message.toolCallId)
+      .filter((id): id is string => Boolean(id))
+  )
+
+  const names: string[] = []
+  for (const message of messages) {
+    if (message.role !== 'assistant' || !message.toolCalls?.length) continue
+    for (const toolCall of message.toolCalls) {
+      if (!toolCall.id || resolvedIds.has(toolCall.id)) continue
+      const name = toolCall.function?.name
+      if (name) names.push(name)
+    }
+  }
+  return names
+}
+
 export function ChatMessages() {
   const { agent } = useAgent()
   const { renderActivityMessage } = useRenderActivityMessage()
   const { messages: agentMessages, isRunning } = agent
   const messages = agentMessages as CopilotkitMessage[]
-  const [runError, setRunError] = useState<string | null>(null)
+  const { runError, retryLastRun } = useAgentRetry()
 
   const displayMessages = useDisplayMessages(messages)
+  const canRetry = displayMessages.some((message) => message.role === 'user')
+  const activityLabel = formatActiveToolsLabel(
+    resolveActivityToolNames(collectUnresolvedToolNames(displayMessages))
+  )
 
-  useEffect(() => {
-    const subscription = agent.subscribe({
-      onRunInitialized: () => setRunError(null),
-      onRunFailed: () => {
-        setRunError('请求失败，请稍后重试')
-      },
-      onRunErrorEvent: () => {
-        setRunError('请求失败，请稍后重试')
-      }
-    })
-
-    return () => subscription.unsubscribe()
-  }, [agent])
+  const handleRetry = () => {
+    void retryLastRun(displayMessages)
+  }
 
   if (displayMessages.length === 0) {
     if (runError) {
       return (
         <div className="flex flex-col gap-4">
-          <Message from="assistant">
-            <MessageContent>
-              <Alert variant="destructive" className="max-w-max">
-                <AlertCircle />
-                <AlertTitle>{runError}</AlertTitle>
-              </Alert>
-            </MessageContent>
-          </Message>
+          <ChatRunError
+            message={runError}
+            onRetry={handleRetry}
+            disabled={isRunning || !canRetry}
+          />
         </div>
       )
     }
@@ -238,9 +276,7 @@ export function ChatMessages() {
 
         return (
           <Fragment key={message.id}>
-            {message.role === 'user' && (
-              <UserMessage message={message as CopilotkitUserMessage} />
-            )}
+            {message.role === 'user' && <UserMessage message={message as CopilotkitUserMessage} />}
             {message.role === 'assistant' && (
               <AssistantMessage
                 message={message as CopilotkitAssistantMessage}
@@ -260,15 +296,45 @@ export function ChatMessages() {
         )
       })}
       {runError && (
-        <Message from="assistant">
-          <MessageContent>
-            <Alert variant="destructive" className="max-w-max">
-              <AlertCircle />
-              <AlertTitle>{runError}</AlertTitle>
-            </Alert>
-          </MessageContent>
-        </Message>
+        <ChatRunError message={runError} onRetry={handleRetry} disabled={isRunning || !canRetry} />
       )}
+      <ChatActivityIndicator
+        isRunning={isRunning && !runError}
+        isStreamingText={isStreamingAssistantText(displayMessages, isRunning)}
+        activityLabel={activityLabel}
+      />
     </div>
   )
+}
+
+interface ChatRunErrorProps {
+  message: string
+  onRetry: () => void
+  disabled: boolean
+}
+
+function ChatRunError({ message, onRetry, disabled }: ChatRunErrorProps) {
+  return (
+    <Message from="assistant">
+      <MessageContent>
+        <div className="flex flex-col items-start gap-2">
+          <Alert variant="destructive" className="max-w-max">
+            <AlertCircle />
+            <AlertTitle>{message}</AlertTitle>
+          </Alert>
+          <Button type="button" variant="outline" size="sm" onClick={onRetry} disabled={disabled}>
+            <RefreshCw data-icon="inline-start" />
+            重试
+          </Button>
+        </div>
+      </MessageContent>
+    </Message>
+  )
+}
+
+function isStreamingAssistantText(messages: CopilotkitMessage[], isRunning: boolean): boolean {
+  if (!isRunning) return false
+  const last = messages.at(-1)
+  if (last?.role === 'reasoning') return true
+  return last?.role === 'assistant' && Boolean(last.content?.trim())
 }

@@ -31,6 +31,7 @@ import { toast } from 'sonner'
 import { useAddRoleMembersMutation } from '@/features/system/roles/mutations'
 import { userApi } from '@/features/system/users/api'
 import { usersQueryKeys } from '@/features/system/users/queries'
+import { useAccessChangeFeedback } from '@/lib/auth/access-change'
 
 import type { User } from '@zen/shared'
 
@@ -84,6 +85,7 @@ export function RoleAddMembersDialog({
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const debouncedKeyword = useDebouncedValue(keyword, SEARCH_DEBOUNCE_MS)
   const { mutate: addMembers, isPending } = useAddRoleMembersMutation()
+  const notifyAccessChange = useAccessChangeFeedback()
 
   const searchKeyword = debouncedKeyword.trim()
   const listParams = useMemo(
@@ -166,7 +168,7 @@ export function RoleAddMembersDialog({
       { id: roleId, data: { userIds: selectedIds } },
       {
         onSuccess: () => {
-          toast.success(`已成功添加 ${selectedIds.length} 人至该角色`)
+          notifyAccessChange(selectedIds, `已成功添加 ${selectedIds.length} 人至该角色`)
           handleOpenChange(false)
         },
         onError: (error) => toast.error(error instanceof Error ? error.message : '添加失败')

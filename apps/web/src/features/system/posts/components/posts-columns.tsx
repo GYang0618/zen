@@ -9,6 +9,7 @@ import {
   AvatarGroupCount,
   AvatarImage,
   Badge,
+  Checkbox,
   cn
 } from '@zen/ui'
 import { Building2 } from 'lucide-react'
@@ -26,6 +27,33 @@ import type { JobProfile, JobProfileStatus } from '@zen/shared'
 const columnHelper = createColumnHelper<JobProfile>()
 
 export const postsColumns = [
+  columnHelper.display({
+    id: 'select',
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="全选"
+        className="translate-y-0.5"
+      />
+    ),
+    meta: {
+      className: cn('max-md:sticky start-0 z-10 rounded-tl-[inherit]')
+    },
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="选择行"
+        className="translate-y-0.5"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false
+  }),
+
   columnHelper.accessor('name', {
     header: ({ column }) => <DataTableColumnHeader column={column} title="岗位" />,
     cell: ({ row }) => {

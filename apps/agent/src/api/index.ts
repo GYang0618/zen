@@ -6,6 +6,12 @@ import { getCurrentAccessToken } from './request-context'
 export * from '../api-client'
 export { asSdkOptions, executeApiCall, toQueryArray, unwrapApiSuccessData } from './call-api'
 export { getAccessTokenFromConfig, getCurrentAccessToken } from './request-context'
+export {
+  formatUnhandledToolError,
+  isToolFailureResult,
+  type RecoverableHint,
+  toToolFailureResult
+} from './tool-failure'
 
 export { client, createClient }
 
