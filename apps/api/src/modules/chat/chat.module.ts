@@ -10,6 +10,9 @@ import { CHAT_AGENTS } from './interfaces/agent.interface'
 
 import type { ChatAgent } from './interfaces/agent.interface'
 
+/**
+ * @deprecated 正式 AI 链路使用 CopilotModule + default_agent；此模块仅保留兼容引用，禁止新增能力。
+ */
 @Module({
   imports: [UserModule],
   controllers: [ChatController],

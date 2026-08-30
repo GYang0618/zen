@@ -12,9 +12,57 @@ export type ToolFailureResult = {
   message: string
 }
 
+export type ToolErrorReason =
+  | 'VALIDATION_ERROR'
+  | 'UNAUTHORIZED'
+  | 'FORBIDDEN'
+  | 'BUSINESS_ERROR'
+  | 'NETWORK_ERROR'
+  | 'RATE_LIMITED'
+  | 'TIMEOUT'
+  | 'TOOL_UNAVAILABLE'
+  | 'UNKNOWN_ERROR'
+
 const GENERIC_RETRY_HINT = '请根据错误修正参数后重试；若缺少用户提供的信息，向用户询问后再调用。'
 
-const DEFAULT_FAILURE_REASON = 'TOOL_CALL_FAILED'
+function errorStatus(error: unknown): number | undefined {
+  if (typeof error !== 'object' || error === null) return undefined
+  const record = error as Record<string, unknown>
+  if (typeof record.status === 'number') return record.status
+  // The generated OpenAPI client throws the parsed API error envelope directly.
+  // Its HTTP status is exposed as the top-level numeric `code` field.
+  if (typeof record.code === 'number') return record.code
+  const response = record.response
+  if (typeof response === 'object' && response !== null) {
+    const status = (response as Record<string, unknown>).status
+    if (typeof status === 'number') return status
+  }
+  return undefined
+}
+
+export function classifyToolError(error: unknown): ToolErrorReason {
+  const status = errorStatus(error)
+  if (status === 400 || status === 422) return 'VALIDATION_ERROR'
+  if (status === 401) return 'UNAUTHORIZED'
+  if (status === 403) return 'FORBIDDEN'
+  if (status === 429) return 'RATE_LIMITED'
+  if (status !== undefined && status >= 400 && status < 500) return 'BUSINESS_ERROR'
+  if (status !== undefined && status >= 500) return 'TOOL_UNAVAILABLE'
+
+  const record =
+    typeof error === 'object' && error !== null ? (error as Record<string, unknown>) : undefined
+  const code = typeof record?.code === 'string' ? record.code : ''
+  const message = formatApiError(error).toLowerCase()
+  if (code === 'ABORT_ERR' || code === 'ETIMEDOUT' || message.includes('timeout')) return 'TIMEOUT'
+  if (
+    ['ECONNRESET', 'ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN'].includes(code) ||
+    message.includes('fetch failed') ||
+    message.includes('network')
+  ) {
+    return 'NETWORK_ERROR'
+  }
+  return 'UNKNOWN_ERROR'
+}
 
 export function formatApiError(error: unknown): string {
   if (typeof error === 'object' && error !== null) {
@@ -61,7 +109,7 @@ export function toToolFailureResult(error: unknown, hints: RecoverableHint[] = [
       }
     : {
         success: false,
-        reason: DEFAULT_FAILURE_REASON,
+        reason: classifyToolError(error),
         message: `${apiMessage}。${GENERIC_RETRY_HINT}`
       }
 
@@ -84,7 +132,7 @@ export function formatUnhandledToolError(error: unknown, toolName: string): stri
   const message = formatApiError(error)
   const result: ToolFailureResult = {
     success: false,
-    reason: 'TOOL_ERROR',
+    reason: classifyToolError(error),
     message: `工具「${toolName}」执行失败：${message}。${GENERIC_RETRY_HINT}`
   }
   return JSON.stringify(result)

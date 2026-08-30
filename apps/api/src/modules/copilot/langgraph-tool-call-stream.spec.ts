@@ -157,6 +157,33 @@ describe('langgraph-tool-call-stream', () => {
     expect(sink.activeRun?.hasFunctionStreaming).toBe(true)
   })
 
+  it('多个 Tool Call 按模型顺序逐个发送完整事件组', () => {
+    const sink = createSink()
+
+    emitPendingToolCalls(
+      sink,
+      [
+        { id: 'call-1', name: 'query_users_list', args: { page: 1 } },
+        { id: 'call-2', name: 'query_roles_list', args: { page: 1 } }
+      ],
+      { event: 'on_chat_model_end' }
+    )
+
+    expect(
+      sink.events.map((event) => {
+        const item = event as { type: string; toolCallId: string }
+        return `${item.toolCallId}:${item.type}`
+      })
+    ).toEqual([
+      'call-1:TOOL_CALL_START',
+      'call-1:TOOL_CALL_ARGS',
+      'call-1:TOOL_CALL_END',
+      'call-2:TOOL_CALL_START',
+      'call-2:TOOL_CALL_ARGS',
+      'call-2:TOOL_CALL_END'
+    ])
+  })
+
   it('stringifyToolArgs 保留已是字符串的增量', () => {
     expect(stringifyToolArgs('{"code":')).toBe('{"code":')
     expect(stringifyToolArgs({ code: 'POS-1001' })).toBe('{"code":"POS-1001"}')

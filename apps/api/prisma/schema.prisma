@@ -153,6 +153,308 @@ model Tenant {
   @@map("tenants")
 }
 
+/// Default Agent 对话线程。Popup/plan_agent 不写入该表。
+model AgentThread {
+  id            String   @id
+  tenantId      String   @map("tenant_id")
+  userId        String   @map("user_id")
+  agentId       String   @default("default_agent") @map("agent_id")
+  title         String?
+  status        String   @default("active")
+  lastMessageAt DateTime? @map("last_message_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  runs       AgentRun[]
+  messages   AgentMessage[]
+  checkpoints AgentCheckpoint[]
+  memories   AgentMemory[]
+
+  @@index([tenantId, userId, updatedAt])
+  @@index([tenantId, agentId, status])
+  @@map("agent_threads")
+}
+
+/// 一次模型执行；runId 直接复用 AG-UI runId，便于端到端追踪。
+model AgentRun {
+  id             String   @id
+  threadId       String   @map("thread_id")
+  tenantId       String   @map("tenant_id")
+  userId         String   @map("user_id")
+  agentId        String   @default("default_agent") @map("agent_id")
+  status         String   @default("pending")
+  endReason      String?  @map("end_reason")
+  budget         Json
+  error          Json?
+  eventSequence  Int      @default(0) @map("event_sequence")
+  inputTokens    Int      @default(0) @map("input_tokens")
+  outputTokens   Int      @default(0) @map("output_tokens")
+  modelCalls     Int      @default(0) @map("model_calls")
+  failureCount   Int      @default(0) @map("failure_count")
+  traceId        String?  @map("trace_id")
+  modelVersion   String?  @map("model_version")
+  promptVersion  String?  @map("prompt_version")
+  toolSchemaVersion String? @map("tool_schema_version")
+  firstTokenAt   DateTime? @map("first_token_at")
+  lastHeartbeatAt DateTime? @map("last_heartbeat_at")
+  leaseOwner     String?  @map("lease_owner")
+  leaseExpiresAt DateTime? @map("lease_expires_at")
+  resumeCount    Int      @default(0) @map("resume_count")
+  startedAt      DateTime? @map("started_at")
+  endedAt        DateTime? @map("ended_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  thread         AgentThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  turns          AgentTurn[]
+  events         AgentEvent[]
+  approvals      AgentApproval[]
+  toolExecutions AgentToolExecution[]
+  evaluations    AgentEvaluation[]
+  artifacts      AgentArtifact[]
+
+  @@index([tenantId, userId, createdAt])
+  @@index([threadId, createdAt])
+  @@index([status, updatedAt])
+  @@index([leaseExpiresAt])
+  @@map("agent_runs")
+}
+
+/// 当前实现中一次 AG-UI Run 对应一个 Turn；模型允许后续扩展为多 Turn Run。
+model AgentTurn {
+  id        String   @id
+  runId     String   @map("run_id")
+  tenantId  String   @map("tenant_id")
+  sequence  Int      @default(0)
+  status    String   @default("pending")
+  endReason String?  @map("end_reason")
+  startedAt DateTime? @map("started_at")
+  endedAt   DateTime? @map("ended_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  run      AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  messages AgentMessage[]
+
+  @@unique([runId, sequence])
+  @@index([tenantId, createdAt])
+  @@map("agent_turns")
+}
+
+/// 可回传模型的规范消息。reasoning/activity 仅存 AgentEvent。
+model AgentMessage {
+  id         String   @id
+  threadId   String   @map("thread_id")
+  turnId     String?  @map("turn_id")
+  tenantId   String   @map("tenant_id")
+  sequence   Int
+  role       String
+  content    String   @default("")
+  toolCallId String?  @map("tool_call_id")
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  thread AgentThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  turn   AgentTurn?  @relation(fields: [turnId], references: [id], onDelete: SetNull)
+
+  @@unique([threadId, sequence])
+  @@index([tenantId, threadId, createdAt])
+  @@index([toolCallId])
+  @@map("agent_messages")
+}
+
+/// 可按 sequence 游标重放的 AG-UI 事件日志。
+model AgentEvent {
+  id        String   @id @default(cuid())
+  runId     String   @map("run_id")
+  threadId  String   @map("thread_id")
+  tenantId  String   @map("tenant_id")
+  sequence  Int
+  type      String
+  payload   Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  run AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, sequence])
+  @@index([tenantId, threadId, sequence])
+  @@index([runId, type])
+  @@map("agent_events")
+}
+
+/// 会话状态快照；reasoning/activity 会在写入前过滤。
+model AgentCheckpoint {
+  id        String   @id @default(cuid())
+  threadId  String   @map("thread_id")
+  runId     String   @map("run_id")
+  tenantId  String   @map("tenant_id")
+  version   Int
+  state     Json
+  summary   String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  thread AgentThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@unique([threadId, version])
+  @@index([tenantId, threadId, createdAt])
+  @@map("agent_checkpoints")
+}
+
+/// 高风险 Tool 的人工审批记录。
+model AgentApproval {
+  id            String   @id @default(cuid())
+  runId         String   @map("run_id")
+  tenantId      String   @map("tenant_id")
+  userId        String   @map("user_id")
+  toolCallId    String   @map("tool_call_id")
+  interruptId   String   @map("interrupt_id")
+  toolName      String   @map("tool_name")
+  operation     String?
+  targetSummary String?  @map("target_summary")
+  impactSummary String?  @map("impact_summary")
+  riskLevel     String?  @map("risk_level")
+  parameterSummary String? @map("parameter_summary")
+  arguments     Json
+  argumentsHash String   @map("arguments_hash")
+  status        String   @default("pending")
+  decision      String?
+  reason        String?
+  decidedBy     String?  @map("decided_by")
+  decidedAt     DateTime? @map("decided_at")
+  expiresAt     DateTime @map("expires_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  run AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, toolCallId])
+  @@unique([runId, interruptId])
+  @@index([tenantId, userId, status, createdAt])
+  @@map("agent_approvals")
+}
+
+/// Tool 执行账本；idempotencyKey 防止重连或重试造成重复写入。
+model AgentToolExecution {
+  id             String   @id @default(cuid())
+  runId          String   @map("run_id")
+  tenantId       String   @map("tenant_id")
+  toolCallId     String   @map("tool_call_id")
+  toolName       String   @map("tool_name")
+  permissionCode String?  @map("permission_code")
+  riskLevel      String?  @map("risk_level")
+  sideEffect     String?  @map("side_effect")
+  traceId        String?  @map("trace_id")
+  idempotencyKey String   @map("idempotency_key")
+  arguments      Json?
+  result         Json?
+  status         String   @default("pending")
+  attempt        Int      @default(1)
+  errorReason    String?  @map("error_reason")
+  startedAt      DateTime? @map("started_at")
+  endedAt        DateTime? @map("ended_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  run AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  artifacts AgentArtifact[]
+
+  @@unique([tenantId, idempotencyKey])
+  @@unique([runId, toolCallId])
+  @@index([tenantId, toolName, status, createdAt])
+  @@map("agent_tool_executions")
+}
+
+/// Tool 大结果或可独立查看的运行产物。
+model AgentArtifact {
+  id              String   @id @default(cuid())
+  runId           String   @map("run_id")
+  threadId        String   @map("thread_id")
+  tenantId        String   @map("tenant_id")
+  userId          String   @map("user_id")
+  toolExecutionId String?  @map("tool_execution_id")
+  kind            String
+  name            String
+  mimeType        String   @default("application/json") @map("mime_type")
+  size            Int
+  summary         String?
+  content         Json?
+  storageKey      String?  @map("storage_key")
+  status          String   @default("available")
+  expiresAt       DateTime? @map("expires_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  run           AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  toolExecution AgentToolExecution? @relation(fields: [toolExecutionId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, userId, createdAt])
+  @@index([runId, createdAt])
+  @@index([threadId, createdAt])
+  @@map("agent_artifacts")
+}
+
+/// 显式写入的用户/线程记忆；不自动保存敏感 Tool 参数。
+model AgentMemory {
+  id        String   @id @default(cuid())
+  threadId  String?  @map("thread_id")
+  tenantId  String   @map("tenant_id")
+  userId    String   @map("user_id")
+  scope     String
+  kind      String
+  key       String
+  content   Json
+  sensitivity String  @default("private")
+  shareWithModel Boolean @default(false) @map("share_with_model")
+  modelProvider String? @map("model_provider")
+  approvedForModelAt DateTime? @map("approved_for_model_at")
+  expiresAt DateTime? @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  thread AgentThread? @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId, scope, key])
+  @@index([tenantId, userId, expiresAt])
+  @@map("agent_memories")
+}
+
+/// 离线或人工评测结果，不进入在线模型上下文。
+model AgentEvaluation {
+  id        String   @id @default(cuid())
+  runId     String   @map("run_id")
+  tenantId  String   @map("tenant_id")
+  evaluator String
+  metric    String
+  score     Float
+  details   Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  run AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, evaluator, metric])
+  @@index([tenantId, metric, createdAt])
+  @@map("agent_evaluations")
+}
+
+/// Agent 写请求的 API 级幂等结果；按租户与用户隔离，在业务 Controller 前去重。
+model AgentIdempotencyRecord {
+  id          String   @id @default(cuid())
+  tenantId    String   @map("tenant_id")
+  userId      String   @map("user_id")
+  key         String
+  requestHash String   @map("request_hash")
+  status      String   @default("running")
+  response    Json?
+  expiresAt   DateTime @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([tenantId, userId, key])
+  @@index([expiresAt])
+  @@map("agent_idempotency_records")
+}
+
 /// 操作审计日志
 model AuditLog {
   /// 审计 ID

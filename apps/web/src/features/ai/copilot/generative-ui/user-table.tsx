@@ -10,11 +10,17 @@ const tableColumns = columns.filter((col) => col.id !== 'select' && col.id !== '
 
 function parseUsersPageResult(result: string) {
   try {
-    const parsed = usersPageSchema.safeParse(JSON.parse(result) as unknown)
+    const parsed = usersPageSchema.safeParse(unwrapToolData(JSON.parse(result) as unknown))
     return parsed.success ? parsed.data : undefined
   } catch {
     return undefined
   }
+}
+
+function unwrapToolData(value: unknown): unknown {
+  if (typeof value !== 'object' || value === null || !('success' in value)) return value
+  const result = value as { success?: unknown; data?: unknown }
+  return result.success === true ? result.data : value
 }
 
 export function useUsersTable() {

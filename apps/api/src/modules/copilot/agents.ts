@@ -1,33 +1,76 @@
-import { ACCESS_TOKEN_CONFIGURABLE_KEY } from '@zen/shared'
+import {
+  ACCESS_TOKEN_CONFIGURABLE_KEY,
+  ACTIVE_AGENT_PLUGINS_CONFIGURABLE_KEY,
+  AGENT_MEMORY_CONFIGURABLE_KEY,
+  AGENT_RUN_ID_CONFIGURABLE_KEY,
+  DEFAULT_AGENT_GRAPH_ID,
+  DEFAULT_AGENT_RUN_BUDGET
+} from '@zen/shared'
 
 import { LangGraphAgent } from './langgraph-runtime-agent'
 
+import type { DefaultAgentRuntimeHooks } from './default-agent-runtime.types'
+import type { DefaultAgentRunControl } from './default-agent-run-control'
+
 const agents = {
-  default: { graphId: 'default_agent' },
+  default: { graphId: DEFAULT_AGENT_GRAPH_ID },
   plan: { graphId: 'plan_agent' }
 } as const
 
 export const defaultAgent = ({
   deploymentUrl,
-  accessToken
+  accessToken,
+  activePluginIds,
+  memory,
+  runId,
+  runControl,
+  runtimeHooks
 }: {
   deploymentUrl: string
   accessToken?: string
+  activePluginIds?: string[]
+  memory?: string
+  runId?: string
+  runControl?: DefaultAgentRunControl
+  runtimeHooks?: DefaultAgentRuntimeHooks
 }) =>
   new LangGraphAgent({
     deploymentUrl,
     graphId: agents.default.graphId,
-    assistantConfig: accessToken
-      ? {
-          configurable: {
-            [ACCESS_TOKEN_CONFIGURABLE_KEY]: accessToken
+    assistantConfig: {
+      recursion_limit: DEFAULT_AGENT_RUN_BUDGET.recursionLimit,
+      ...(accessToken || memory || activePluginIds || runId
+        ? {
+            configurable: {
+              ...(accessToken ? { [ACCESS_TOKEN_CONFIGURABLE_KEY]: accessToken } : {}),
+              ...(activePluginIds
+                ? { [ACTIVE_AGENT_PLUGINS_CONFIGURABLE_KEY]: activePluginIds }
+                : {}),
+              ...(memory ? { [AGENT_MEMORY_CONFIGURABLE_KEY]: memory } : {}),
+              ...(runId ? { [AGENT_RUN_ID_CONFIGURABLE_KEY]: runId } : {})
+            }
           }
-        }
-      : undefined
+        : {})
+    }
   })
+    .setRuntimeHooks(runtimeHooks ?? createNoopRuntimeHooks())
+    .setRunControl(runControl ?? createNoopRunControl())
 
 export const planAgent = ({ deploymentUrl }: { deploymentUrl: string }) =>
   new LangGraphAgent({
     deploymentUrl,
     graphId: agents.plan.graphId
   })
+
+function createNoopRuntimeHooks(): DefaultAgentRuntimeHooks {
+  return {
+    onStart: async () => undefined,
+    onEvent: async () => undefined,
+    onError: async () => undefined,
+    onComplete: async () => undefined
+  }
+}
+
+function createNoopRunControl(): Pick<DefaultAgentRunControl, 'register' | 'unregister'> {
+  return { register: () => undefined, unregister: () => undefined }
+}

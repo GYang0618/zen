@@ -10,11 +10,17 @@ const tableColumns = columns.filter((col) => col.id !== 'actions')
 
 function parseJobProfilesPageResult(result: string) {
   try {
-    const parsed = jobProfilesPageSchema.safeParse(JSON.parse(result) as unknown)
+    const parsed = jobProfilesPageSchema.safeParse(unwrapToolData(JSON.parse(result) as unknown))
     return parsed.success ? parsed.data : undefined
   } catch {
     return undefined
   }
+}
+
+function unwrapToolData(value: unknown): unknown {
+  if (typeof value !== 'object' || value === null || !('success' in value)) return value
+  const result = value as { success?: unknown; data?: unknown }
+  return result.success === true ? result.data : value
 }
 
 export function useJobProfilesTable() {
