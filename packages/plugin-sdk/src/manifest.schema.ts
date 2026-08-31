@@ -47,18 +47,7 @@ export const pluginWidgetContributionSchema = z.object({
 
 export const pluginAgentToolsContributionSchema = z.object({
   entry: z.string().min(1),
-  export: z.string().min(1),
-  requiredPermissions: z.array(z.string()).default([]),
-  toolUi: z
-    .array(
-      z.object({
-        toolName: z.string().min(1),
-        entry: z.string().min(1),
-        componentExport: z.string().min(1)
-      })
-    )
-    .default([]),
-  agentPrompts: z.array(z.string().min(1)).default([])
+  export: z.string().min(1)
 })
 
 export const zenPluginManifestSchema = z.object({

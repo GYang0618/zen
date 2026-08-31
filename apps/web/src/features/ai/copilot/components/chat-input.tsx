@@ -13,21 +13,7 @@ const TEXTAREA_MAX_HEIGHT_PX = 200
 /** 单行布局下两侧按钮占用的大致宽度，用于跨行检测时避免宽窄切换抖动 */
 const SIDE_ACTIONS_WIDTH_PX = 160
 
-export function ChatInput({
-  className,
-  online = true,
-  threadId,
-  onRunStart,
-  onRunSettled,
-  onStop
-}: {
-  className?: string
-  online?: boolean
-  threadId?: string
-  onRunStart?: (runId: string) => void
-  onRunSettled?: (runId: string) => void
-  onStop?: () => Promise<void>
-}) {
+export function ChatInput({ className }: { className?: string }) {
   const { agent } = useAgent()
   const { copilotkit } = useCopilotKit()
 
@@ -36,7 +22,6 @@ export function ChatInput({
   const [isActive, setIsActive] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const [isMultiline, setIsMultiline] = useState(false)
-  const [loadedDraftThreadId, setLoadedDraftThreadId] = useState<string>()
 
   const wrapperRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -44,21 +29,6 @@ export function ChatInput({
 
   const dynamicPlaceholderActive =
     showPlaceholder && !isActive && !inputValue && agent.messages.length === 0
-
-  useEffect(() => {
-    if (!threadId) {
-      setLoadedDraftThreadId(undefined)
-      return
-    }
-    setInputValue(localStorage.getItem(`default-agent:draft:${threadId}`) ?? '')
-    setLoadedDraftThreadId(threadId)
-  }, [threadId])
-
-  useEffect(() => {
-    if (!threadId || loadedDraftThreadId !== threadId) return
-    if (inputValue) localStorage.setItem(`default-agent:draft:${threadId}`, inputValue)
-    else localStorage.removeItem(`default-agent:draft:${threadId}`)
-  }, [inputValue, loadedDraftThreadId, threadId])
 
   useEffect(() => {
     if (isActive || inputValue) return
@@ -123,13 +93,9 @@ export function ChatInput({
   const handleActivate = () => setIsActive(true)
 
   const isRunning = agent.isRunning
-  const canSend = inputValue.trim().length > 0 && !isRunning && online
+  const canSend = inputValue.trim().length > 0 && !isRunning
 
-  const stopAgent = async () => {
-    if (onStop) {
-      await onStop()
-      return
-    }
+  const stopAgent = () => {
     try {
       copilotkit.stopAgent({ agent })
     } catch (error) {
@@ -144,35 +110,22 @@ export function ChatInput({
 
   const sendMessage = async () => {
     if (!canSend) return
-    const message = {
+    agent.addMessage({
       id: randomUUID(),
       role: 'user',
       content: inputValue
-    } as const
-    agent.addMessage(message)
+    })
     setInputValue('')
-    const runId = randomUUID()
-    onRunStart?.(runId)
     try {
-      await copilotkit.runAgent({ agent, runId })
+      await copilotkit.runAgent({ agent })
     } catch (error) {
-      // A failed run may emit an empty MESSAGES_SNAPSHOT and remove the
-      // optimistic user message. Restore it so the error can be retried.
-      if (!agent.messages.some((item) => item.id === message.id)) {
-        agent.addMessage(message)
-      }
-      setInputValue(message.content)
       console.error('CopilotChat: runAgent failed', error)
-    } finally {
-      onRunSettled?.(runId)
     }
   }
 
   const handlePrimaryAction = () => {
     if (isRunning) {
-      void stopAgent().catch((error) => {
-        console.error('CopilotChat: persistent stop failed', error)
-      })
+      stopAgent()
       return
     }
     void sendMessage()
@@ -186,7 +139,7 @@ export function ChatInput({
       tabIndex={-1}
       onClick={(e) => e.stopPropagation()}
     >
-      <Paperclip data-icon="inline-start" />
+      <Paperclip className="size-5" />
     </Button>
   )
 
@@ -198,7 +151,7 @@ export function ChatInput({
         title="Voice input"
         onClick={(e) => e.stopPropagation()}
       >
-        <Mic data-icon="inline-start" />
+        <Mic className="size-5" />
       </Button>
 
       <Button
@@ -215,9 +168,9 @@ export function ChatInput({
         }}
       >
         {isRunning ? (
-          <Square className="fill-current" data-icon="inline-start" />
+          <Square className="size-3.5 fill-current" />
         ) : (
-          <Send data-icon="inline-start" />
+          <Send className="size-4.5" />
         )}
       </Button>
     </>
@@ -241,10 +194,8 @@ export function ChatInput({
                 ref={textareaRef}
                 rows={1}
                 value={inputValue}
-                disabled={!online}
-                aria-label="发送消息"
                 onChange={(e) => setInputValue(e.target.value)}
-                className="flex-1 border-0 outline-0 rounded-md py-2 text-base bg-transparent w-full font-normal resize-none overflow-y-auto leading-6 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex-1 border-0 outline-0 rounded-md py-2 text-base bg-transparent w-full font-normal resize-none overflow-y-auto leading-6"
                 style={{ position: 'relative', zIndex: 1 }}
                 onFocus={handleActivate}
                 onKeyDown={(e) => {

@@ -15,20 +15,24 @@ export function FeaturedSkillCard({ skill, installed, onToggle, onSelect }: Skil
   return (
     <article className="flex min-w-0 gap-3 rounded-lg border bg-card p-4 transition-shadow hover:shadow-sm">
       <SkillIcon skill={skill} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <button className="min-w-0 text-left" type="button" onClick={() => onSelect(skill)}>
-          <SkillTitle skill={skill} />
-          <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
-            {skill.description}
-          </p>
-        </button>
+      <button className="min-w-0 flex-1 text-left" type="button" onClick={() => onSelect(skill)}>
+        <SkillTitle skill={skill} />
+        <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
+          {skill.description}
+        </p>
         <div className="mt-3 flex items-center justify-between gap-2">
           <span className="text-xs text-muted-foreground">
             {skill.publisher} · {skill.installs} 安装
           </span>
-          <SkillAction installed={installed} onClick={() => onToggle(skill.id)} />
+          <SkillAction
+            installed={installed}
+            onClick={(event) => {
+              event.stopPropagation()
+              onToggle(skill.id)
+            }}
+          />
         </div>
-      </div>
+      </button>
     </article>
   )
 }

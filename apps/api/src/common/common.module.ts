@@ -6,7 +6,6 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler'
 import { authConfig, securityConfig } from '@/config'
 import { LoggerModule } from '@/infra/logger'
 import { PrismaModule } from '@/infra/prisma'
-import { TenantPluginStateService } from '@/modules/plugin/tenant-plugin-state.service'
 
 import { AuditService } from './auth/audit.service'
 import { AuthContextService } from './auth/auth-context.service'
@@ -20,8 +19,8 @@ import { AuthContextGuard } from './guards/auth-context.guard'
 import { PermissionGuard } from './guards/permission.guard'
 import { PluginActiveGuard } from './guards/plugin-active.guard'
 import { StepUpGuard } from './guards/step-up.guard'
-import { AgentIdempotencyInterceptor } from './interceptors/agent-idempotency.interceptor'
 import { TransformInterceptor } from './interceptors/transform.interceptor'
+import { TenantPluginStateService } from '@/modules/plugin/tenant-plugin-state.service'
 
 import type { AuthConfig, SecurityConfig } from '@/config'
 
@@ -86,10 +85,6 @@ import type { AuthConfig, SecurityConfig } from '@/config'
     {
       provide: APP_INTERCEPTOR,
       useClass: TransformInterceptor
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: AgentIdempotencyInterceptor
     }
   ],
   exports: [

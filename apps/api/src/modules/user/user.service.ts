@@ -134,9 +134,6 @@ export class UserService {
   }
 
   async getUserInfoByUserId(userId: string): Promise<UserInfoResponse> {
-    const existing = await this.userRepo.findActiveBasicInfoById(userId)
-    if (!existing) throw new NotFoundException('用户不存在')
-
     await this.userRepo.ensureDomainData(userId)
 
     const user = await this.userRepo.findActiveWithDomainById(userId)
@@ -146,9 +143,6 @@ export class UserService {
   }
 
   async getUserById(userId: string): Promise<UserResponse> {
-    const existing = await this.userRepo.findActiveBasicInfoById(userId)
-    if (!existing) throw new NotFoundException('用户不存在')
-
     await this.userRepo.ensureDomainData(userId)
 
     const user = await this.userRepo.findActiveWithDomainById(userId)

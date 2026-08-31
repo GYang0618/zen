@@ -48,18 +48,6 @@ export interface PluginLifecycleHooks {
   onDisable?: (ctx: PluginContext) => Promise<void> | void
 }
 
-/**
- * Agent 插件与宿主之间的最小执行契约。插件只声明 OpenAPI operationId，
- * 认证、租户、重试、幂等和错误标准化由 Agent 宿主统一完成。
- */
-export interface PluginAgentToolHost<TTool, TConfig, TInput = unknown, TSchema = unknown> {
-  createTool: (
-    handler: (input: TInput, config: TConfig) => Promise<string>,
-    definition: { name: string; description: string; schema: TSchema }
-  ) => TTool
-  callApi: (operationId: string, options: unknown, config: TConfig) => Promise<string>
-}
-
 /** 生成注册表条目（编译期） */
 export interface PluginRegistryEntry {
   id: string

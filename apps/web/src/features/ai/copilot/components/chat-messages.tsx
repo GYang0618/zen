@@ -22,13 +22,10 @@ import {
   sanitizeReasoningContent
 } from '@/components/ai/tool-display'
 
-import { DisplayMessageCache } from '../display-messages'
 import { useAgentRetry } from '../hooks/use-agent-retry'
 import { getToolCallName, resolveAssistantToolCalls } from '../lib/group-tool-calls'
 import { ChatActivityIndicator } from './chat-activity'
 import { GroupedToolCallsView } from './grouped-tool-calls-view'
-
-import type { AssistantToolMessageLike } from '../lib/group-tool-calls'
 
 type UserMessageContentPart = { type: string; text?: string }
 
@@ -110,20 +107,14 @@ function UserMessage({ message }: UserMessageProps) {
 interface AssistantMessageProps {
   message: CopilotkitAssistantMessage
   messages: CopilotkitMessage[]
-  toolGroupingMessages: AssistantToolMessageLike[]
   isRunning: boolean
 }
 
-function AssistantMessage({
-  message,
-  messages,
-  toolGroupingMessages,
-  isRunning
-}: AssistantMessageProps) {
+function AssistantMessage({ message, messages, isRunning }: AssistantMessageProps) {
   const hasContent = Boolean(message.content?.trim())
   const isLatestAssistant = messages[messages.length - 1]?.id === message.id
   const isStreaming = Boolean(isRunning && isLatestAssistant)
-  const { hidden, toolCalls } = resolveAssistantToolCalls(toolGroupingMessages, message.id)
+  const { hidden, toolCalls } = resolveAssistantToolCalls(messages, message.id)
   const resultToolCalls = toolCalls.filter((toolCall) =>
     hasDedicatedResultUi(getToolCallName(toolCall))
   )
@@ -192,13 +183,37 @@ function deduplicateMessages(messages: CopilotkitMessage[]): CopilotkitMessage[]
  * Agent 在 RUN_ERROR / 空 MESSAGES_SNAPSHOT 时可能清掉乐观添加的用户消息；
  * 本地缓存已展示过的 user 消息，并在 agent 状态中缺失时合并回列表。
  */
-function useDisplayMessages(messages: CopilotkitMessage[], threadId: string): CopilotkitMessage[] {
-  const cacheRef = useRef(new DisplayMessageCache<CopilotkitMessage>())
+function useDisplayMessages(messages: CopilotkitMessage[]): CopilotkitMessage[] {
+  const orderRef = useRef<string[]>([])
+  const persistedUsersRef = useRef<Map<string, CopilotkitUserMessage>>(new Map())
 
   return useMemo(() => {
     const deduped = deduplicateMessages(messages)
-    return cacheRef.current.merge(threadId, deduped)
-  }, [messages, threadId])
+    const byId = new Map<string, CopilotkitMessage>()
+
+    for (const message of deduped) {
+      byId.set(message.id, message)
+      if (!orderRef.current.includes(message.id)) {
+        orderRef.current.push(message.id)
+      }
+      if (message.role === 'user') {
+        persistedUsersRef.current.set(message.id, message as CopilotkitUserMessage)
+      }
+    }
+
+    for (const [id, userMessage] of persistedUsersRef.current) {
+      if (!byId.has(id)) {
+        byId.set(id, userMessage)
+        if (!orderRef.current.includes(id)) {
+          orderRef.current.push(id)
+        }
+      }
+    }
+
+    return orderRef.current
+      .map((id) => byId.get(id))
+      .filter((message): message is CopilotkitMessage => message !== undefined)
+  }, [messages])
 }
 
 function collectUnresolvedToolNames(messages: CopilotkitMessage[]): string[] {
@@ -221,28 +236,14 @@ function collectUnresolvedToolNames(messages: CopilotkitMessage[]): string[] {
   return names
 }
 
-export function ChatMessages({ threadId }: { threadId: string }) {
+export function ChatMessages() {
   const { agent } = useAgent()
   const { renderActivityMessage } = useRenderActivityMessage()
   const { messages: agentMessages, isRunning } = agent
   const messages = agentMessages as CopilotkitMessage[]
-  const { runError, retryLastRun, failedUserMessage } = useAgentRetry()
+  const { runError, retryLastRun } = useAgentRetry()
 
-  const displayMessages = useDisplayMessages(
-    failedUserMessage ? [failedUserMessage as CopilotkitMessage, ...messages] : messages,
-    threadId
-  )
-  const toolGroupingMessages = useMemo(
-    () =>
-      displayMessages.map((message) => ({
-        id: message.id,
-        role: message.role,
-        ...(message.role === 'assistant'
-          ? { content: message.content, toolCalls: message.toolCalls }
-          : {})
-      })),
-    [displayMessages]
-  )
+  const displayMessages = useDisplayMessages(messages)
   const canRetry = displayMessages.some((message) => message.role === 'user')
   const activityLabel = formatActiveToolsLabel(
     resolveActivityToolNames(collectUnresolvedToolNames(displayMessages))
@@ -280,7 +281,6 @@ export function ChatMessages({ threadId }: { threadId: string }) {
               <AssistantMessage
                 message={message as CopilotkitAssistantMessage}
                 messages={displayMessages}
-                toolGroupingMessages={toolGroupingMessages}
                 isRunning={isRunning}
               />
             )}

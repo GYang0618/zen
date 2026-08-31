@@ -139,33 +139,6 @@ export type PluginLifecycleId = keyof typeof PLUGIN_LIFECYCLE_HOOKS
 `
 }
 
-export function renderAgentLoaderSource(entries: PluginRegistryEntry[]): string {
-  const withAgentTools = entries.filter((entry) => entry.agentTools)
-  const imports = withAgentTools
-    .map(
-      (entry) =>
-        `import { ${entry.agentTools!.export} } from '${packageName(entry.id)}/agent'`
-    )
-    .join('\n')
-  const items = withAgentTools
-    .map(
-      (entry) => `  {
-    pluginId: '${entry.id}' as const,
-    factory: ${entry.agentTools!.export},
-    requiredPermissions: ${JSON.stringify(entry.agentTools!.requiredPermissions)} as readonly string[],
-    agentPrompts: ${JSON.stringify(entry.agentTools!.agentPrompts)} as readonly string[]
-  }`
-    )
-    .join(',\n')
-
-  return `${headerComment()}${imports}
-
-export const PLUGIN_AGENT_TOOL_FACTORIES = [
-${items}
-] as const
-`
-}
-
 export interface GeneratedLoaderFiles {
   relativePath: string
   absolutePath: string
@@ -202,11 +175,6 @@ export function buildPluginRegistryPackageSources(
       relativePath: 'packages/plugin-registry/src/generated/lifecycle.gen.ts',
       absolutePath: join(base, 'lifecycle.gen.ts'),
       source: `${renderLifecycleLoaderSource(entries)}\n`
-    },
-    {
-      relativePath: 'packages/plugin-registry/src/generated/agent.gen.ts',
-      absolutePath: join(base, 'agent.gen.ts'),
-      source: `${renderAgentLoaderSource(entries)}\n`
     }
   ]
 }

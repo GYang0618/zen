@@ -74,14 +74,7 @@ export const PLUGIN_CATALOG = [
     ],
     "agentTools": {
       "entry": "./src/agent/tools.ts",
-      "export": "createDemoNotesAgentTools",
-      "requiredPermissions": [
-        "demo:note:list"
-      ],
-      "toolUi": [],
-      "agentPrompts": [
-        "Only use demo note tools when the demo-notes plugin is active."
-      ]
+      "export": "demoNotesAgentTools"
     },
     "packageDir": "plugins/demo-notes"
   },

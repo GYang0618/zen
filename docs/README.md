@@ -45,9 +45,6 @@
 | 文档 | 说明 |
 |------|------|
 | [platform-overview.md](./architecture/platform-overview.md) | 运行时拓扑、模块边界、依赖方向 |
-| [default-agent.md](./architecture/default-agent.md) | 默认 Chat 的 `default_agent` 运行链路、Tool 清单与边界门禁 |
-| [default-agent-chat-plan.md](./default-agent-chat-plan.md) | 默认模式 Chat 完整规划与验收基线 |
-| [operations/default-agent.md](./operations/default-agent.md) | Default Agent 指标、对账、故障处理与扩容触发条件 |
 | [domain-and-security.md](./architecture/domain-and-security.md) | 领域模型、认证授权、审计 |
 | [plugin-system.md](./architecture/plugin-system.md) | 插件契约、生命周期、贡献点 |
 | [contracts-and-events.md](./architecture/contracts-and-events.md) | 契约策略、事件、可观测 |
