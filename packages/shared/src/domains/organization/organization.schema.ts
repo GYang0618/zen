@@ -150,6 +150,7 @@ export const organizationSchema = z.object({
 
 export type OrganizationType = z.infer<typeof organizationTypeSchema>
 export type RootOrganizationType = z.infer<typeof rootOrganizationTypeSchema>
+export type OrganizationLeader = z.infer<typeof organizationLeaderSchema>
 export type CreateOrganization = z.infer<typeof createOrganizationSchema>
 export type UpdateOrganization = z.infer<typeof updateOrganizationSchema>
 export type UpdateOrganizationLeader = z.infer<typeof updateOrganizationLeaderSchema>

@@ -1,5 +1,6 @@
 import { Shimmer } from '@zen/ui'
 import { Loader2Icon } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 interface ChatActivityIndicatorProps {
   isRunning: boolean
@@ -7,15 +8,31 @@ interface ChatActivityIndicatorProps {
   activityLabel?: string
 }
 
+/** 收尾时 isRunning 还会停几百毫秒；延迟亮条，避免闪一下占位状态。 */
+const SHOW_DELAY_MS = 240
+const DEFAULT_ACTIVITY_LABEL = '正在处理…'
+
 export function ChatActivityIndicator({
   isRunning,
   isStreamingText,
   activityLabel
 }: ChatActivityIndicatorProps) {
-  if (!isRunning) return null
-  if (!activityLabel && isStreamingText) return null
+  const shouldShow = Boolean(isRunning && (activityLabel || !isStreamingText))
+  const [visible, setVisible] = useState(false)
 
-  const label = activityLabel ?? '正在思考...'
+  useEffect(() => {
+    if (!shouldShow) {
+      setVisible(false)
+      return
+    }
+
+    const timer = window.setTimeout(() => setVisible(true), SHOW_DELAY_MS)
+    return () => window.clearTimeout(timer)
+  }, [shouldShow])
+
+  if (!visible) return null
+
+  const label = activityLabel ?? DEFAULT_ACTIVITY_LABEL
 
   return (
     <div

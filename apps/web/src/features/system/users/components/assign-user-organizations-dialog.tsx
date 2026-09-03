@@ -169,94 +169,94 @@ export function AssignUserOrganizationsDialog({
     <>
       <Sheet open={open} onOpenChange={(nextOpen) => (nextOpen ? undefined : requestClose())}>
         <SheetContent className="sm:max-w-lg">
-        <SheetHeader className="border-b">
-          <SheetTitle>{copy.title}</SheetTitle>
-          <SheetDescription>{copy.description}</SheetDescription>
-        </SheetHeader>
+          <SheetHeader className="border-b">
+            <SheetTitle>{copy.title}</SheetTitle>
+            <SheetDescription>{copy.description}</SheetDescription>
+          </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto overscroll-contain px-4">
-          {step === 'confirm' ? (
-            <div className="flex flex-col gap-4 py-2">
-              <AssignmentChangeSummary
-                added={changes.addedIds.map((id) => ({ id, label: resolveOrgName(id) }))}
-                removed={changes.removedIds.map((id) => ({ id, label: resolveOrgName(id) }))}
-                details={changeDetails}
-              />
-              <AssignmentSessionAlert isSelf={isSelf} />
-            </div>
-          ) : null}
+          <div className="flex-1 overflow-y-auto overscroll-contain px-4">
+            {step === 'confirm' ? (
+              <div className="flex flex-col gap-4 py-2">
+                <AssignmentChangeSummary
+                  added={changes.addedIds.map((id) => ({ id, label: resolveOrgName(id) }))}
+                  removed={changes.removedIds.map((id) => ({ id, label: resolveOrgName(id) }))}
+                  details={changeDetails}
+                />
+                <AssignmentSessionAlert isSelf={isSelf} />
+              </div>
+            ) : null}
 
-          {step === 'edit' ? (
-            <AssignUserOrganizationsEditor
-              treeLoading={treeLoading && tree.length === 0}
-              treeError={treeError}
-              hasAvailableOrgs={selectableIds.size > 0}
-              tree={tree}
-              selectableIds={selectableIds}
-              memberships={memberships}
-              primaryOrgId={primaryOrgId}
-              resolveOrgName={resolveOrgName}
-              resolveOrgType={resolveOrgType}
-              onRetry={() => {
-                void refetch()
-              }}
-              onAdd={handleAdd}
-              onPrimaryChange={setPrimaryOrgId}
-              onPostChange={(organizationId, postId, postName) => {
-                setMemberships((prev) =>
-                  prev.map((item) =>
-                    item.organizationId === organizationId ? { ...item, postId, postName } : item
+            {step === 'edit' ? (
+              <AssignUserOrganizationsEditor
+                treeLoading={treeLoading && tree.length === 0}
+                treeError={treeError}
+                hasAvailableOrgs={selectableIds.size > 0}
+                tree={tree}
+                selectableIds={selectableIds}
+                memberships={memberships}
+                primaryOrgId={primaryOrgId}
+                resolveOrgName={resolveOrgName}
+                resolveOrgType={resolveOrgType}
+                onRetry={() => {
+                  void refetch()
+                }}
+                onAdd={handleAdd}
+                onPrimaryChange={setPrimaryOrgId}
+                onPostChange={(organizationId, postId, postName) => {
+                  setMemberships((prev) =>
+                    prev.map((item) =>
+                      item.organizationId === organizationId ? { ...item, postId, postName } : item
+                    )
                   )
-                )
-              }}
-              onRemove={handleRemove}
-            />
-          ) : null}
-        </div>
+                }}
+                onRemove={handleRemove}
+              />
+            ) : null}
+          </div>
 
-        <SheetFooter className="border-t sm:flex-row sm:justify-end">
-          {step === 'edit' ? (
-            <>
-              <Button type="button" variant="outline" onClick={requestClose}>
-                取消
-              </Button>
-              <Can permission={PermissionCode.ORG_UPDATE}>
-                <Button
-                  type="button"
-                  disabled={treeLoading || !changes.isDirty}
-                  onClick={() => setStep('confirm')}
-                >
-                  查看变更
+          <SheetFooter className="border-t sm:flex-row sm:justify-end">
+            {step === 'edit' ? (
+              <>
+                <Button type="button" variant="outline" onClick={requestClose}>
+                  取消
                 </Button>
-              </Can>
-            </>
-          ) : null}
-          {step === 'confirm' ? (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isPending}
-                onClick={() => setStep('edit')}
-              >
-                返回
-              </Button>
-              <Can permission={PermissionCode.ORG_UPDATE}>
+                <Can permission={PermissionCode.ORG_UPDATE}>
+                  <Button
+                    type="button"
+                    disabled={treeLoading || !changes.isDirty}
+                    onClick={() => setStep('confirm')}
+                  >
+                    查看变更
+                  </Button>
+                </Can>
+              </>
+            ) : null}
+            {step === 'confirm' ? (
+              <>
                 <Button
                   type="button"
+                  variant="outline"
                   disabled={isPending}
-                  onClick={() => {
-                    void handleSubmit()
-                  }}
+                  onClick={() => setStep('edit')}
                 >
-                  {isPending ? <Loader2 className="animate-spin" /> : null}
-                  {isPending ? '保存中…' : '确认保存'}
+                  返回
                 </Button>
-              </Can>
-            </>
-          ) : null}
-        </SheetFooter>
-      </SheetContent>
+                <Can permission={PermissionCode.ORG_UPDATE}>
+                  <Button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => {
+                      void handleSubmit()
+                    }}
+                  >
+                    {isPending ? <Loader2 className="animate-spin" /> : null}
+                    {isPending ? '保存中…' : '确认保存'}
+                  </Button>
+                </Can>
+              </>
+            ) : null}
+          </SheetFooter>
+        </SheetContent>
       </Sheet>
 
       <ConfirmDialog

@@ -1,3 +1,4 @@
+export { APPROVAL_FLOW_RULES } from './approval-flow'
 export { GENERATIVE_UI_REPLY_RULES } from './generative-ui-reply'
 export { IDENTITY_TOOL_RULES } from './identity'
 export { ORGANIZATION_TYPE_CATALOG_RULES } from './organization'

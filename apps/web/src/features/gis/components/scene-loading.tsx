@@ -39,11 +39,7 @@ export function SceneLoading({ active }: SceneLoadingProps) {
           <span className="absolute inset-0 rounded-full border border-border/80" />
           <span className="absolute inset-0 animate-[spin_1.2s_linear_infinite] rounded-full border-2 border-transparent border-t-primary border-l-primary/40" />
           <span className="absolute inset-3 animate-[spin_3.2s_linear_infinite_reverse] rounded-full border border-dashed border-muted-foreground/35" />
-          <Globe
-            aria-hidden
-            className="relative size-8 text-foreground/80"
-            strokeWidth={1.25}
-          />
+          <Globe aria-hidden className="relative size-8 text-foreground/80" strokeWidth={1.25} />
         </div>
 
         <div className="flex flex-col items-center gap-1.5">

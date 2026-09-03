@@ -128,112 +128,112 @@ export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRo
     <>
       <Sheet open={open} onOpenChange={(nextOpen) => (nextOpen ? undefined : requestClose())}>
         <SheetContent className="sm:max-w-lg">
-        <SheetHeader className="border-b">
-          <SheetTitle>{copy.title}</SheetTitle>
-          <SheetDescription>{copy.description}</SheetDescription>
-        </SheetHeader>
+          <SheetHeader className="border-b">
+            <SheetTitle>{copy.title}</SheetTitle>
+            <SheetDescription>{copy.description}</SheetDescription>
+          </SheetHeader>
 
-        <div
-          className={
-            step === 'edit'
-              ? 'flex min-h-0 flex-1 flex-col overflow-hidden px-4'
-              : 'flex-1 overflow-y-auto overscroll-contain px-4'
-          }
-        >
-          {step === 'confirm' ? (
-            <div className="flex flex-col gap-4 py-2">
-              <AssignmentChangeSummary
-                added={addedIds.map((id) => ({ id, label: resolveRoleLabel(id) }))}
-                removed={removedIds.map((id) => ({ id, label: resolveRoleLabel(id) }))}
-              />
-              <Field>
-                <FieldLabel htmlFor="assign-role-password">当前登录密码</FieldLabel>
-                <PasswordInput
-                  id="assign-role-password"
-                  name="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder="输入当前登录密码以确认变更"
+          <div
+            className={
+              step === 'edit'
+                ? 'flex min-h-0 flex-1 flex-col overflow-hidden px-4'
+                : 'flex-1 overflow-y-auto overscroll-contain px-4'
+            }
+          >
+            {step === 'confirm' ? (
+              <div className="flex flex-col gap-4 py-2">
+                <AssignmentChangeSummary
+                  added={addedIds.map((id) => ({ id, label: resolveRoleLabel(id) }))}
+                  removed={removedIds.map((id) => ({ id, label: resolveRoleLabel(id) }))}
                 />
-              </Field>
-              <AssignmentSessionAlert isSelf={isSelf} />
-            </div>
-          ) : null}
+                <Field>
+                  <FieldLabel htmlFor="assign-role-password">当前登录密码</FieldLabel>
+                  <PasswordInput
+                    id="assign-role-password"
+                    name="password"
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="输入当前登录密码以确认变更"
+                  />
+                </Field>
+                <AssignmentSessionAlert isSelf={isSelf} />
+              </div>
+            ) : null}
 
-          {step === 'edit' ? (
-            <div className="flex min-h-0 flex-1 flex-col py-2">
-              <AssignUserRolesPicker
-                isLoading={isLoading}
-                roles={roles}
-                visibleRoles={visibleRoles}
-                selectedRoles={selectedRoles}
-                roleIds={roleIds}
-                keyword={keyword}
-                showSelectedOnly={showSelectedOnly}
-                selectionError={selectionError}
-                onKeywordChange={setKeyword}
-                onShowSelectedOnlyChange={setShowSelectedOnly}
-                onToggle={toggleRole}
-                onClear={() => {
-                  setRoleIds([])
-                  setShowSelectedOnly(false)
-                  setSelectionError('至少保留一个角色')
-                }}
-              />
-            </div>
-          ) : null}
-        </div>
+            {step === 'edit' ? (
+              <div className="flex min-h-0 flex-1 flex-col py-2">
+                <AssignUserRolesPicker
+                  isLoading={isLoading}
+                  roles={roles}
+                  visibleRoles={visibleRoles}
+                  selectedRoles={selectedRoles}
+                  roleIds={roleIds}
+                  keyword={keyword}
+                  showSelectedOnly={showSelectedOnly}
+                  selectionError={selectionError}
+                  onKeywordChange={setKeyword}
+                  onShowSelectedOnlyChange={setShowSelectedOnly}
+                  onToggle={toggleRole}
+                  onClear={() => {
+                    setRoleIds([])
+                    setShowSelectedOnly(false)
+                    setSelectionError('至少保留一个角色')
+                  }}
+                />
+              </div>
+            ) : null}
+          </div>
 
-        <SheetFooter className="border-t sm:flex-row sm:justify-end">
-          {step === 'edit' ? (
-            <>
-              <Button type="button" variant="outline" onClick={requestClose}>
-                取消
-              </Button>
-              <Can permission={PermissionCode.ROLE_ASSIGN}>
+          <SheetFooter className="border-t sm:flex-row sm:justify-end">
+            {step === 'edit' ? (
+              <>
+                <Button type="button" variant="outline" onClick={requestClose}>
+                  取消
+                </Button>
+                <Can permission={PermissionCode.ROLE_ASSIGN}>
+                  <Button
+                    type="button"
+                    disabled={isLoading || !isDirty || roleIds.length === 0}
+                    onClick={() => {
+                      if (roleIds.length === 0) {
+                        setSelectionError('至少保留一个角色')
+                        return
+                      }
+                      setStep('confirm')
+                    }}
+                  >
+                    查看变更
+                  </Button>
+                </Can>
+              </>
+            ) : null}
+            {step === 'confirm' ? (
+              <>
                 <Button
                   type="button"
-                  disabled={isLoading || !isDirty || roleIds.length === 0}
-                  onClick={() => {
-                    if (roleIds.length === 0) {
-                      setSelectionError('至少保留一个角色')
-                      return
-                    }
-                    setStep('confirm')
-                  }}
+                  variant="outline"
+                  disabled={isPending}
+                  onClick={() => setStep('edit')}
                 >
-                  查看变更
+                  返回
                 </Button>
-              </Can>
-            </>
-          ) : null}
-          {step === 'confirm' ? (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isPending}
-                onClick={() => setStep('edit')}
-              >
-                返回
-              </Button>
-              <Can permission={PermissionCode.ROLE_ASSIGN}>
-                <Button
-                  type="button"
-                  disabled={isPending || !password}
-                  onClick={() => {
-                    void handleSubmit()
-                  }}
-                >
-                  {isPending ? <Loader2 className="animate-spin" /> : null}
-                  {isPending ? '保存中…' : '确认保存'}
-                </Button>
-              </Can>
-            </>
-          ) : null}
-        </SheetFooter>
-      </SheetContent>
+                <Can permission={PermissionCode.ROLE_ASSIGN}>
+                  <Button
+                    type="button"
+                    disabled={isPending || !password}
+                    onClick={() => {
+                      void handleSubmit()
+                    }}
+                  >
+                    {isPending ? <Loader2 className="animate-spin" /> : null}
+                    {isPending ? '保存中…' : '确认保存'}
+                  </Button>
+                </Can>
+              </>
+            ) : null}
+          </SheetFooter>
+        </SheetContent>
       </Sheet>
 
       <ConfirmDialog

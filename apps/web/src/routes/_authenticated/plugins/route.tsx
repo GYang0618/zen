@@ -5,6 +5,6 @@ export const Route = createFileRoute('/_authenticated/plugins')({
   component: () => <Outlet />,
   staticData: {
     title: '插件系统',
-    order: 4,
+    order: 4
   }
 })

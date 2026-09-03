@@ -64,7 +64,10 @@ describe('classifyToolError', () => {
     assert.equal(classifyToolError({ response: { status: 401 } }), 'UNAUTHORIZED')
     assert.equal(classifyToolError({ response: { status: 403 } }), 'FORBIDDEN')
     assert.equal(classifyToolError({ response: { status: 429 } }), 'RATE_LIMITED')
-    assert.equal(classifyToolError({ code: 'ECONNRESET', message: 'socket closed' }), 'NETWORK_ERROR')
+    assert.equal(
+      classifyToolError({ code: 'ECONNRESET', message: 'socket closed' }),
+      'NETWORK_ERROR'
+    )
     assert.equal(classifyToolError({ code: 'ETIMEDOUT', message: 'timeout' }), 'TIMEOUT')
   })
 })

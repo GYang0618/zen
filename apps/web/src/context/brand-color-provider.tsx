@@ -1,8 +1,4 @@
-import {
-  ACCENT_THEME_IDS,
-  DEFAULT_ACCENT_THEME_ID,
-  isAccentThemeId
-} from '@zen/ui'
+import { ACCENT_THEME_IDS, DEFAULT_ACCENT_THEME_ID, isAccentThemeId } from '@zen/ui'
 import { createContext, useContext, useEffect, useState } from 'react'
 
 import { getCookie, removeCookie, setCookie } from '@/lib/cookies'

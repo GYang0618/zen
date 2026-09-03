@@ -1,6 +1,18 @@
 import { describe, expect, it } from 'vitest'
 
-import { DisplayMessageCache } from './display-messages'
+import { DisplayMessageCache, snapshotMessages } from './display-messages'
+
+describe('snapshotMessages', () => {
+  it('copies messages so in-place stream mutations do not leak into previous snapshots', () => {
+    const original = { id: 'a', role: 'assistant' as const, content: '你' }
+    const [snapshot] = snapshotMessages([original])
+
+    original.content = '你好'
+
+    expect(snapshot).not.toBe(original)
+    expect(snapshot.content).toBe('你')
+  })
+})
 
 describe('DisplayMessageCache', () => {
   it('does not carry optimistic user messages across threads', () => {

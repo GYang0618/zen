@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vitest'
-
 import { formatFromNow } from '@zen/shared'
+import { describe, expect, it } from 'vitest'
 
 import { getUserPresence } from './utils'
 

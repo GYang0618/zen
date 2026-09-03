@@ -8,7 +8,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import type { Variants } from 'motion/react'
 
-const PLACEHOLDERS = ['设置主题为亮色、暗色、跟随系统', '查询、删除、更新、新增用户']
+const PLACEHOLDERS = ['设置主题颜色、字体、样式风格', '用户、组织、角色、权限管理']
 const TEXTAREA_MAX_HEIGHT_PX = 200
 /** 单行布局下两侧按钮占用的大致宽度，用于跨行检测时避免宽窄切换抖动 */
 const SIDE_ACTIONS_WIDTH_PX = 160
@@ -16,6 +16,7 @@ const SIDE_ACTIONS_WIDTH_PX = 160
 export function ChatInput({
   className,
   online = true,
+  awaitingApproval = false,
   threadId,
   onRunStart,
   onRunSettled,
@@ -23,6 +24,8 @@ export function ChatInput({
 }: {
   className?: string
   online?: boolean
+  /** 存在待处理的高风险操作审批时为 true：禁止发送新消息，避免绕过审批卡片继续对话 */
+  awaitingApproval?: boolean
   threadId?: string
   onRunStart?: (runId: string) => void
   onRunSettled?: (runId: string) => void
@@ -123,7 +126,7 @@ export function ChatInput({
   const handleActivate = () => setIsActive(true)
 
   const isRunning = agent.isRunning
-  const canSend = inputValue.trim().length > 0 && !isRunning && online
+  const canSend = inputValue.trim().length > 0 && !isRunning && !awaitingApproval && online
 
   const stopAgent = async () => {
     if (onStop) {
@@ -224,10 +227,18 @@ export function ChatInput({
   )
 
   return (
-    <div className={cn('w-full flex justify-center items-center', className)}>
+    <div className={cn('w-full flex flex-col items-center gap-2', className)}>
+      {awaitingApproval && (
+        <p className="text-muted-foreground text-center text-xs" role="status">
+          请先处理上方待确认的操作，通过或拒绝后才能继续对话
+        </p>
+      )}
       <div
         ref={wrapperRef}
-        className="w-full rounded-4xl overflow-hidden bg-background dark:bg-input/30 shadow-sm"
+        className={cn(
+          'w-full overflow-hidden bg-background dark:bg-input/30 shadow-sm transition-[border-radius] duration-200',
+          isMultiline ? 'rounded-4xl' : 'rounded-full'
+        )}
       >
         <div className="flex flex-col items-stretch w-full">
           {/* todo: 添加上传的文件或者图片预览展示 */}
@@ -236,16 +247,15 @@ export function ChatInput({
           >
             {!isMultiline && attachButton}
 
-            <div className="relative flex-1 min-w-0">
+            <div className="relative grid flex-1 min-w-0">
               <textarea
                 ref={textareaRef}
                 rows={1}
                 value={inputValue}
-                disabled={!online}
+                disabled={!online || awaitingApproval}
                 aria-label="发送消息"
                 onChange={(e) => setInputValue(e.target.value)}
-                className="flex-1 border-0 outline-0 rounded-md py-2 text-base bg-transparent w-full font-normal resize-none overflow-y-auto leading-6 disabled:cursor-not-allowed disabled:opacity-60"
-                style={{ position: 'relative', zIndex: 1 }}
+                className="col-start-1 row-start-1 border-0 outline-0 rounded-md py-2 text-base bg-transparent w-full font-normal resize-none overflow-y-auto leading-6 disabled:cursor-not-allowed disabled:opacity-60"
                 onFocus={handleActivate}
                 onKeyDown={(e) => {
                   if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing) return
@@ -254,7 +264,7 @@ export function ChatInput({
                   handlePrimaryAction()
                 }}
               />
-              <div className="absolute left-0 top-0 w-full h-full pointer-events-none flex items-start py-2">
+              <div className="col-start-1 row-start-1 pointer-events-none flex items-center min-w-0">
                 <DynamicTexts active={dynamicPlaceholderActive} activeIndex={placeholderIndex} />
               </div>
             </div>
@@ -324,7 +334,7 @@ function DynamicTexts({ active, activeIndex }: { active: boolean; activeIndex: n
       {active && (
         <motion.span
           key={activeIndex}
-          className="text-gray-400 select-none pointer-events-none"
+          className="flex items-center text-base leading-none text-muted-foreground select-none pointer-events-none"
           style={{
             whiteSpace: 'nowrap',
             overflow: 'hidden',
@@ -337,7 +347,11 @@ function DynamicTexts({ active, activeIndex }: { active: boolean; activeIndex: n
           exit="exit"
         >
           {PLACEHOLDERS[activeIndex].split('').map((char, i) => (
-            <motion.span key={i} variants={letterVariants} style={{ display: 'inline-block' }}>
+            <motion.span
+              key={`${activeIndex}-${i}`}
+              variants={letterVariants}
+              className="inline-block leading-none"
+            >
               {char === ' ' ? '\u00A0' : char}
             </motion.span>
           ))}

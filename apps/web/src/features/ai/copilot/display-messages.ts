@@ -3,6 +3,14 @@ export interface DisplayMessageLike {
   role: string
 }
 
+/**
+ * AG-UI 在流式输出时会原地改 `content`，同一条消息对象引用不变。
+ * 浅拷贝后 React / React Compiler 才能把每一帧当成新 props 渲染。
+ */
+export function snapshotMessages<T extends DisplayMessageLike>(messages: readonly T[]): T[] {
+  return messages.map((message) => ({ ...message }))
+}
+
 export class DisplayMessageCache<TMessage extends DisplayMessageLike = DisplayMessageLike> {
   private threadId?: string
   private order: string[] = []

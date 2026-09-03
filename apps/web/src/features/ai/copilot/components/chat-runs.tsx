@@ -33,15 +33,7 @@ import {
   TimelineTimestamp,
   TimelineTitle
 } from '@zen/ui'
-import {
-  Ban,
-  ChevronDown,
-  FileJson,
-  History,
-  LoaderCircle,
-  RefreshCw,
-  Wrench
-} from 'lucide-react'
+import { Ban, ChevronDown, FileJson, History, LoaderCircle, RefreshCw, Wrench } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 
 import { defaultAgentRuntimeApi } from '../runtime-api'
@@ -159,18 +151,23 @@ export function ChatRuns({ open, onOpenChange, threadId, onResume, onCancel }: C
                         onClick={() => void selectRun(run.id)}
                       >
                         <span className="flex w-full items-center justify-between gap-2">
-                          <span className="truncate text-sm font-medium">{formatRunTime(run.createdAt)}</span>
+                          <span className="truncate text-sm font-medium">
+                            {formatRunTime(run.createdAt)}
+                          </span>
                           <RunStatusBadge status={run.status} />
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {run._count.toolExecutions} 个工具 · {run.inputTokens + run.outputTokens} tokens
+                          {run._count.toolExecutions} 个工具 · {run.inputTokens + run.outputTokens}{' '}
+                          tokens
                         </span>
                       </button>
                     ))}
                 {!loading && runs.length === 0 && (
                   <Empty className="border-0 py-10">
                     <EmptyHeader>
-                      <EmptyMedia variant="icon"><History /></EmptyMedia>
+                      <EmptyMedia variant="icon">
+                        <History />
+                      </EmptyMedia>
                       <EmptyTitle>暂无运行记录</EmptyTitle>
                     </EmptyHeader>
                   </Empty>
@@ -189,7 +186,9 @@ export function ChatRuns({ open, onOpenChange, threadId, onResume, onCancel }: C
             ) : (
               <Empty className="h-full border-0">
                 <EmptyHeader>
-                  <EmptyMedia variant="icon"><History /></EmptyMedia>
+                  <EmptyMedia variant="icon">
+                    <History />
+                  </EmptyMedia>
                   <EmptyTitle>选择一次运行</EmptyTitle>
                   <EmptyDescription>可查看时间线、审批和 Artifact。</EmptyDescription>
                 </EmptyHeader>
@@ -225,7 +224,11 @@ function RunDetail({
         <div className="flex items-center gap-2">
           {canResume && (
             <Button size="sm" disabled={acting} onClick={onResume}>
-              {acting ? <LoaderCircle className="animate-spin" data-icon="inline-start" /> : <RefreshCw data-icon="inline-start" />}
+              {acting ? (
+                <LoaderCircle className="animate-spin" data-icon="inline-start" />
+              ) : (
+                <RefreshCw data-icon="inline-start" />
+              )}
               恢复为新运行
             </Button>
           )}
@@ -243,43 +246,60 @@ function RunDetail({
         <Metric label="失败次数" value={run.failureCount} />
       </div>
       <section className="flex flex-col gap-3" aria-labelledby="tool-timeline-title">
-        <h3 id="tool-timeline-title" className="text-sm font-semibold">Tool 时间线</h3>
+        <h3 id="tool-timeline-title" className="text-sm font-semibold">
+          Tool 时间线
+        </h3>
         {run.toolExecutions.length ? (
           <Timeline>
             {run.toolExecutions.map((execution) => (
               <TimelineItem key={execution.id}>
-                <TimelineIndicator><Wrench className="size-4 text-muted-foreground" /></TimelineIndicator>
+                <TimelineIndicator>
+                  <Wrench className="size-4 text-muted-foreground" />
+                </TimelineIndicator>
                 <TimelineConnector />
                 <TimelineContent>
                   <TimelineTitle>{execution.toolName}</TimelineTitle>
-                  <TimelineTimestamp>{formatRunTime(execution.startedAt || execution.createdAt)}</TimelineTimestamp>
+                  <TimelineTimestamp>
+                    {formatRunTime(execution.startedAt || execution.createdAt)}
+                  </TimelineTimestamp>
                   <TimelineDescription>
-                    {execution.status}{execution.errorReason ? ` · ${execution.errorReason}` : ''}
+                    {execution.status}
+                    {execution.errorReason ? ` · ${execution.errorReason}` : ''}
                   </TimelineDescription>
                 </TimelineContent>
               </TimelineItem>
             ))}
           </Timeline>
-        ) : <p className="text-sm text-muted-foreground">本次运行未调用 Tool。</p>}
+        ) : (
+          <p className="text-sm text-muted-foreground">本次运行未调用 Tool。</p>
+        )}
       </section>
       {run.approvals.length > 0 && (
         <section className="flex flex-col gap-2" aria-labelledby="approval-title">
-          <h3 id="approval-title" className="text-sm font-semibold">审批记录</h3>
+          <h3 id="approval-title" className="text-sm font-semibold">
+            审批记录
+          </h3>
           {run.approvals.map((approval) => (
             <div key={approval.id} className="rounded-md border p-3 text-sm">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium">{approval.operation || approval.toolName}</span>
                 <Badge variant="outline">{approval.status}</Badge>
               </div>
-              <p className="mt-1 text-muted-foreground">{approval.impactSummary || approval.targetSummary}</p>
+              <p className="mt-1 text-muted-foreground">
+                {approval.impactSummary || approval.targetSummary}
+              </p>
             </div>
           ))}
         </section>
       )}
       {run.artifacts.length > 0 && (
         <section className="flex flex-col gap-2" aria-labelledby="artifact-title">
-          <h3 id="artifact-title" className="text-sm font-semibold">Artifact</h3>
-          {run.artifacts.map((artifact) => <ArtifactRow key={artifact.id} artifact={artifact} />)}
+          <h3 id="artifact-title" className="text-sm font-semibold">
+            Artifact
+          </h3>
+          {run.artifacts.map((artifact) => (
+            <ArtifactRow key={artifact.id} artifact={artifact} />
+          ))}
         </section>
       )}
     </div>
@@ -292,8 +312,11 @@ function ArtifactRow({ artifact }: { artifact: AgentArtifact }) {
   const load = async (open: boolean) => {
     if (!open || content !== undefined) return
     setLoading(true)
-    try { setContent((await defaultAgentRuntimeApi.getArtifact(artifact.id)).content) }
-    finally { setLoading(false) }
+    try {
+      setContent((await defaultAgentRuntimeApi.getArtifact(artifact.id)).content)
+    } finally {
+      setLoading(false)
+    }
   }
   return (
     <Collapsible onOpenChange={(open) => void load(open)}>
@@ -306,7 +329,9 @@ function ArtifactRow({ artifact }: { artifact: AgentArtifact }) {
         <ChevronDown className="size-4" />
       </CollapsibleTrigger>
       <CollapsibleContent className="pt-2">
-        {loading ? <Skeleton className="h-24 w-full" /> : (
+        {loading ? (
+          <Skeleton className="h-24 w-full" />
+        ) : (
           <pre className="max-h-72 overflow-auto rounded-md bg-muted p-3 text-xs whitespace-pre-wrap break-all">
             {JSON.stringify(content, null, 2)}
           </pre>
@@ -317,16 +342,35 @@ function ArtifactRow({ artifact }: { artifact: AgentArtifact }) {
 }
 
 function Metric({ label, value }: { label: string; value: number }) {
-  return <div className="rounded-md border p-3"><span className="block text-xs text-muted-foreground">{label}</span><strong>{value}</strong></div>
+  return (
+    <div className="rounded-md border p-3">
+      <span className="block text-xs text-muted-foreground">{label}</span>
+      <strong>{value}</strong>
+    </div>
+  )
 }
 
 function RunStatusBadge({ status }: { status: string }) {
-  const variant = status === 'failed' || status === 'timed_out' ? 'destructive' : status === 'succeeded' ? 'default' : 'secondary'
-  return <Badge variant={variant}>{STATUS_OPTIONS.find((option) => option.value === status)?.label ?? status}</Badge>
+  const variant =
+    status === 'failed' || status === 'timed_out'
+      ? 'destructive'
+      : status === 'succeeded'
+        ? 'default'
+        : 'secondary'
+  return (
+    <Badge variant={variant}>
+      {STATUS_OPTIONS.find((option) => option.value === status)?.label ?? status}
+    </Badge>
+  )
 }
 
 function formatRunTime(value: string) {
-  return new Intl.DateTimeFormat('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value))
+  return new Intl.DateTimeFormat('zh-CN', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(value))
 }
 
 function formatBytes(value: number) {

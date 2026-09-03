@@ -140,8 +140,7 @@ export const defaultAgentRuntimeApi = {
   },
   listRuns: (params: { threadId?: string; status?: string; limit?: number } = {}) =>
     request.get<AgentRunSummary[]>('/copilot/runtime/runs', { params }),
-  getRun: (runId: string) =>
-    request.get<AgentRunDetail>(`/copilot/runtime/runs/${runId}`),
+  getRun: (runId: string) => request.get<AgentRunDetail>(`/copilot/runtime/runs/${runId}`),
   cancelRun: (runId: string) =>
     request.post<AgentRunDetail>(`/copilot/runtime/runs/${runId}/cancel`),
   prepareRunResume: (runId: string, reason?: string) =>

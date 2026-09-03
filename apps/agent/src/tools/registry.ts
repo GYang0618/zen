@@ -2,11 +2,11 @@ import { PLUGIN_AGENT_TOOL_FACTORIES } from '@zen/plugin-registry/agent'
 import { tool } from 'langchain'
 
 import { asSdkOptions, executeApiCall, noteControllerList } from '../api'
+import { getToolExecutionPolicy } from '../tool-policy'
 import { organizationTools } from './organization'
 import { postTools } from './post'
 import { roleTools } from './role'
 import { userTools } from './user'
-import { getToolExecutionPolicy } from '../tool-policy'
 
 import type { RunnableConfig } from '@langchain/core/runnables'
 

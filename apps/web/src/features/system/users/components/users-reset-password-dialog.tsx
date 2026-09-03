@@ -91,7 +91,9 @@ export function UsersResetPasswordDialog({
         <DialogHeader>
           <DialogTitle>重置密码</DialogTitle>
           <DialogDescription>
-            {isSelf ? '为当前账号设置新密码，保存后请重新登录。' : `为用户 ${currentRow.username} 设置新密码`}
+            {isSelf
+              ? '为当前账号设置新密码，保存后请重新登录。'
+              : `为用户 ${currentRow.username} 设置新密码`}
           </DialogDescription>
         </DialogHeader>
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>

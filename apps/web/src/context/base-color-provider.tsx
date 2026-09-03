@@ -1,8 +1,4 @@
-import {
-  BASE_THEME_IDS,
-  DEFAULT_BASE_THEME_ID,
-  isBaseThemeId
-} from '@zen/ui'
+import { BASE_THEME_IDS, DEFAULT_BASE_THEME_ID, isBaseThemeId } from '@zen/ui'
 import { createContext, useContext, useEffect, useState } from 'react'
 
 import { getCookie, removeCookie, setCookie } from '@/lib/cookies'

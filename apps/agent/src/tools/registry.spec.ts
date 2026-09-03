@@ -28,7 +28,9 @@ describe('Default Agent tool registry', () => {
   })
 
   it('装载生成的插件 Tool 并保留插件身份', () => {
-    assert.ok(registry.defaultAgentTools.some((registeredTool) => registeredTool.name === 'list_demo_notes'))
+    assert.ok(
+      registry.defaultAgentTools.some((registeredTool) => registeredTool.name === 'list_demo_notes')
+    )
     assert.equal(registry.getAgentToolPluginId('list_demo_notes'), 'demo-notes')
     assert.deepEqual(registry.getActivePluginAgentPrompts([]), [])
     assert.equal(registry.getActivePluginAgentPrompts(['demo-notes']).length, 1)

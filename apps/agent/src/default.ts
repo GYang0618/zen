@@ -18,6 +18,7 @@ import {
 import { formatUnhandledToolError } from '@/api/tool-failure'
 import { createQwenModel } from '@/models'
 import {
+  APPROVAL_FLOW_RULES,
   GENERATIVE_UI_REPLY_RULES,
   IDENTITY_TOOL_RULES,
   ORGANIZATION_TYPE_CATALOG_RULES,
@@ -26,11 +27,7 @@ import {
 } from '@/prompts'
 import { ContextSchema } from '@/schema/context'
 import { createApprovalPolicy } from '@/tool-policy'
-import {
-  defaultAgentTools,
-  getActivePluginAgentPrompts,
-  getAgentToolPluginId
-} from '@/tools'
+import { defaultAgentTools, getActivePluginAgentPrompts, getAgentToolPluginId } from '@/tools'
 
 import type { z } from 'zod'
 
@@ -39,6 +36,7 @@ const BASE_SYSTEM_PROMPT = [
   ORGANIZATION_TYPE_CATALOG_RULES,
   IDENTITY_TOOL_RULES,
   TOOL_FAILURE_RULES,
+  APPROVAL_FLOW_RULES,
   GENERATIVE_UI_REPLY_RULES,
   REASONING_STYLE_RULES
 ].join('\n')
@@ -51,8 +49,7 @@ const pluginToolVisibilityMiddleware = createMiddleware({
   name: 'pluginToolVisibility',
   contextSchema: ContextSchema,
   wrapModelCall: (request, handler) => {
-    const activePluginIds =
-      request.runtime.context?.[ACTIVE_AGENT_PLUGINS_CONFIGURABLE_KEY] ?? []
+    const activePluginIds = request.runtime.context?.[ACTIVE_AGENT_PLUGINS_CONFIGURABLE_KEY] ?? []
     const active = new Set(activePluginIds)
     return handler({
       ...request,
@@ -67,8 +64,7 @@ const pluginToolVisibilityMiddleware = createMiddleware({
   },
   wrapToolCall: (request, handler) => {
     const pluginId = getAgentToolPluginId(request.toolCall.name)
-    const activePluginIds =
-      request.runtime.context?.[ACTIVE_AGENT_PLUGINS_CONFIGURABLE_KEY] ?? []
+    const activePluginIds = request.runtime.context?.[ACTIVE_AGENT_PLUGINS_CONFIGURABLE_KEY] ?? []
     if (pluginId && !activePluginIds.includes(pluginId)) {
       return new ToolMessage({
         content: JSON.stringify({
@@ -91,8 +87,7 @@ const agent = createAgent({
     copilotkitMiddleware,
     dynamicSystemPromptMiddleware<z.infer<typeof ContextSchema>>((_state, runtime) => {
       const memory = runtime.context?.[AGENT_MEMORY_CONFIGURABLE_KEY]
-      const activePluginIds =
-        runtime.context?.[ACTIVE_AGENT_PLUGINS_CONFIGURABLE_KEY] ?? []
+      const activePluginIds = runtime.context?.[ACTIVE_AGENT_PLUGINS_CONFIGURABLE_KEY] ?? []
       const pluginPrompts = getActivePluginAgentPrompts(activePluginIds)
       return [
         BASE_SYSTEM_PROMPT,

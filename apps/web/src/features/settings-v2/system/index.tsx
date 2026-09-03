@@ -59,7 +59,12 @@ export function SettingsSystem() {
             />
             <Field>
               <FieldLabel htmlFor="system-name">系统名称</FieldLabel>
-              <Input id="system-name" type="text" placeholder="Zen Admin" defaultValue="Zen Admin" />
+              <Input
+                id="system-name"
+                type="text"
+                placeholder="Zen Admin"
+                defaultValue="Zen Admin"
+              />
               <FieldDescription>完整产品名称，显示在页面标题与登录页。</FieldDescription>
             </Field>
             <Field>
@@ -94,7 +99,9 @@ export function SettingsSystem() {
                 placeholder="© 2026 Zen Admin. All rights reserved."
                 defaultValue="© 2026 Zen Admin. All rights reserved."
               />
-              <FieldDescription>显示在页面页脚，可使用 {'{year}'} 占位符表示当前年份。</FieldDescription>
+              <FieldDescription>
+                显示在页面页脚，可使用 {'{year}'} 占位符表示当前年份。
+              </FieldDescription>
             </Field>
             <Field>
               <FieldLabel htmlFor="icp-number">ICP 备案号</FieldLabel>
@@ -211,7 +218,9 @@ export function SettingsSystem() {
             <Field className="rounded-lg border p-4" orientation="horizontal">
               <FieldContent>
                 <FieldLabel htmlFor="allow-registration">允许新用户注册</FieldLabel>
-                <FieldDescription>关闭后登录页隐藏注册入口，仅可通过邀请创建账号。</FieldDescription>
+                <FieldDescription>
+                  关闭后登录页隐藏注册入口，仅可通过邀请创建账号。
+                </FieldDescription>
               </FieldContent>
               <Switch id="allow-registration" defaultChecked />
             </Field>

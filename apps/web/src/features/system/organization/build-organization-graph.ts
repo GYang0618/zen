@@ -1,4 +1,5 @@
 import dagre, { graphlib } from '@dagrejs/dagre'
+import { Position } from '@xyflow/react'
 
 import type { Edge, Node } from '@xyflow/react'
 import type { Organization } from './type'
@@ -117,8 +118,8 @@ export function buildOrganizationGraph(
         isExpanded,
         hiddenChildCount: hasChildren && !isExpanded ? (organization.children?.length ?? 0) : 0
       },
-      sourcePosition: isHorizontal ? 'right' : 'bottom',
-      targetPosition: isHorizontal ? 'left' : 'top',
+      sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
+      targetPosition: isHorizontal ? Position.Left : Position.Top,
       connectable: false,
       draggable: false,
       width: ORGANIZATION_GRAPH_NODE_WIDTH,

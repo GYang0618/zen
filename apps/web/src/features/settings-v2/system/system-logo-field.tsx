@@ -1,10 +1,4 @@
-import {
-  Button,
-  Field,
-  FieldContent,
-  FieldDescription,
-  FieldTitle
-} from '@zen/ui'
+import { Button, Field, FieldContent, FieldDescription, FieldTitle } from '@zen/ui'
 import { ImageIcon } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 

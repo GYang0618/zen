@@ -1,6 +1,6 @@
 'use client'
 
-import { useAgent, useRenderActivityMessage } from '@copilotkit/react-core/v2'
+import { UseAgentUpdate, useAgent, useRenderActivityMessage } from '@copilotkit/react-core/v2'
 import {
   Alert,
   AlertTitle,
@@ -22,8 +22,14 @@ import {
   sanitizeReasoningContent
 } from '@/components/ai/tool-display'
 
+import {
+  isStreamingAssistantText,
+  isTrailingReasoningAfterReply,
+  lastMeaningfulMessage
+} from '../activity-state'
 import { DisplayMessageCache } from '../display-messages'
 import { useAgentRetry } from '../hooks/use-agent-retry'
+import { useLiveAgentMessages } from '../hooks/use-live-agent-messages'
 import { getToolCallName, resolveAssistantToolCalls } from '../lib/group-tool-calls'
 import { ChatActivityIndicator } from './chat-activity'
 import { GroupedToolCallsView } from './grouped-tool-calls-view'
@@ -109,6 +115,7 @@ function UserMessage({ message }: UserMessageProps) {
 
 interface AssistantMessageProps {
   message: CopilotkitAssistantMessage
+  content: string
   messages: CopilotkitMessage[]
   toolGroupingMessages: AssistantToolMessageLike[]
   isRunning: boolean
@@ -116,13 +123,15 @@ interface AssistantMessageProps {
 
 function AssistantMessage({
   message,
+  content,
   messages,
   toolGroupingMessages,
   isRunning
 }: AssistantMessageProps) {
-  const hasContent = Boolean(message.content?.trim())
-  const isLatestAssistant = messages[messages.length - 1]?.id === message.id
-  const isStreaming = Boolean(isRunning && isLatestAssistant)
+  'use no memo'
+  const hasContent = Boolean(content.trim())
+  const last = lastMeaningfulMessage(messages)
+  const isStreaming = Boolean(isRunning && last?.id === message.id && last.role === 'assistant')
   const { hidden, toolCalls } = resolveAssistantToolCalls(toolGroupingMessages, message.id)
   const resultToolCalls = toolCalls.filter((toolCall) =>
     hasDedicatedResultUi(getToolCallName(toolCall))
@@ -136,7 +145,7 @@ function AssistantMessage({
       {hasContent && (
         <Message from="assistant">
           <MessageContent className="transition-all duration-300">
-            <MessageResponse isAnimating={isStreaming}>{message.content ?? ''}</MessageResponse>
+            <MessageResponse isAnimating={isStreaming}>{content}</MessageResponse>
           </MessageContent>
         </Message>
       )}
@@ -149,21 +158,25 @@ function AssistantMessage({
 
 interface ReasoningMessageProps {
   message: CopilotkitReasoningMessage
+  content: string
   messages: CopilotkitMessage[]
   isRunning: boolean
 }
 
-function ReasoningMessage({ message, messages, isRunning }: ReasoningMessageProps) {
-  const isLatest = messages[messages.length - 1]?.id === message.id
-  const isStreaming = Boolean(isRunning && isLatest)
-  const hasContent = Boolean(message.content?.length)
+function ReasoningMessage({ message, content, messages, isRunning }: ReasoningMessageProps) {
+  'use no memo'
+  const last = lastMeaningfulMessage(messages)
+  const isStreaming = Boolean(isRunning && last?.id === message.id && last.role === 'reasoning')
+  const hasContent = Boolean(content.length)
 
-  if (!hasContent && !isStreaming) return null
+  // 空 reasoning、以及纯文本答案之后冒出来的收尾 reasoning，都不要露出「思考中」。
+  if (!hasContent) return null
+  if (isTrailingReasoningAfterReply(messages, message.id)) return null
 
   return (
     <Reasoning className="w-full" isStreaming={isStreaming}>
       <ReasoningTrigger />
-      <ReasoningContent>{sanitizeReasoningContent(message.content ?? '')}</ReasoningContent>
+      <ReasoningContent>{sanitizeReasoningContent(content)}</ReasoningContent>
     </Reasoning>
   )
 }
@@ -222,10 +235,14 @@ function collectUnresolvedToolNames(messages: CopilotkitMessage[]): string[] {
 }
 
 export function ChatMessages({ threadId }: { threadId: string }) {
-  const { agent } = useAgent()
+  'use no memo'
+  const { agent } = useAgent({
+    updates: [UseAgentUpdate.OnMessagesChanged, UseAgentUpdate.OnRunStatusChanged],
+    throttleMs: 0
+  })
   const { renderActivityMessage } = useRenderActivityMessage()
-  const { messages: agentMessages, isRunning } = agent
-  const messages = agentMessages as CopilotkitMessage[]
+  const { messages: liveMessages, isRunning } = useLiveAgentMessages(agent)
+  const messages = liveMessages as CopilotkitMessage[]
   const { runError, retryLastRun, failedUserMessage } = useAgentRetry()
 
   const displayMessages = useDisplayMessages(
@@ -279,6 +296,7 @@ export function ChatMessages({ threadId }: { threadId: string }) {
             {message.role === 'assistant' && (
               <AssistantMessage
                 message={message as CopilotkitAssistantMessage}
+                content={typeof message.content === 'string' ? message.content : ''}
                 messages={displayMessages}
                 toolGroupingMessages={toolGroupingMessages}
                 isRunning={isRunning}
@@ -287,6 +305,7 @@ export function ChatMessages({ threadId }: { threadId: string }) {
             {message.role === 'reasoning' && (
               <ReasoningMessage
                 message={message as CopilotkitReasoningMessage}
+                content={typeof message.content === 'string' ? message.content : ''}
                 messages={displayMessages}
                 isRunning={isRunning}
               />
@@ -330,11 +349,4 @@ function ChatRunError({ message, onRetry, disabled }: ChatRunErrorProps) {
       </MessageContent>
     </Message>
   )
-}
-
-function isStreamingAssistantText(messages: CopilotkitMessage[], isRunning: boolean): boolean {
-  if (!isRunning) return false
-  const last = messages.at(-1)
-  if (last?.role === 'reasoning') return true
-  return last?.role === 'assistant' && Boolean(last.content?.trim())
 }

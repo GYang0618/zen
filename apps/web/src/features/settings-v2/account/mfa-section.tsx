@@ -25,7 +25,12 @@ import { Copy, Loader2, ShieldCheck, ShieldOff } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
-import { useDisableMfaMutation, useEnableMfaMutation, useMeQuery, useSetupMfaMutation } from '../queries'
+import {
+  useDisableMfaMutation,
+  useEnableMfaMutation,
+  useMeQuery,
+  useSetupMfaMutation
+} from '../queries'
 
 export function MfaSection() {
   const { data: me } = useMeQuery()
@@ -45,7 +50,7 @@ export function MfaSection() {
       setEnableCode('')
       setupMfa.mutate()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enableOpen])
 
   useEffect(() => {

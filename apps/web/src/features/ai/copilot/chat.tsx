@@ -7,22 +7,23 @@ import {
   ConversationScrollButton,
   cn
 } from '@zen/ui'
-import { Activity, CheckCircle2, History, Plus, WifiOff } from 'lucide-react'
+import { Activity, CheckCircle2, History, Plus, ShieldAlert, WifiOff } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { AppHeader, Main } from '@/components/layouts'
 import { useElementHeight } from '@/hooks'
 
+import { ChatApprovalRegistration } from './components/chat-approval'
 import { ChatGreeting } from './components/chat-greeting'
 import { ChatHistory } from './components/chat-history'
 import { ChatInput } from './components/chat-input'
 import { ChatMessages } from './components/chat-messages'
-import { ChatRegistrations } from './components/registrations'
 import { ChatRuns } from './components/chat-runs'
+import { ChatRegistrations } from './components/registrations'
 import { useOnlineStatus } from './hooks/use-online-status'
 import { restoreMessages } from './restore-messages'
-import { defaultAgentRuntimeApi } from './runtime-api'
 import { deriveChatRunState } from './run-state'
+import { defaultAgentRuntimeApi } from './runtime-api'
 
 import type { AgentThreadSummary } from './runtime-api'
 
@@ -50,11 +51,17 @@ function Chat() {
   const [historyLoading, setHistoryLoading] = useState(false)
   const [currentThreadId, setCurrentThreadId] = useState(agent.threadId)
   const [recovered, setRecovered] = useState(false)
+  const [awaitingApproval, setAwaitingApproval] = useState(false)
   const wasRunningRef = useRef(agent.isRunning)
   const threadSelectionVersionRef = useRef(0)
-  const activeRunIdRef = useRef<string>()
+  const activeRunIdRef = useRef<string | undefined>(undefined)
   const hasMessages = agent.messages.length > 0
-  const runState = deriveChatRunState({ online, isRunning: agent.isRunning, recovered })
+  const runState = deriveChatRunState({
+    online,
+    isRunning: agent.isRunning,
+    recovered,
+    persistedStatus: awaitingApproval ? 'interrupted' : undefined
+  })
 
   const loadThreads = useCallback(async () => {
     setHistoryLoading(true)
@@ -204,23 +211,32 @@ function Chat() {
               已离线
             </Badge>
           )}
-          {online && recovered && !agent.isRunning && (
+          {online && recovered && !agent.isRunning && runState !== 'waiting-approval' && (
             <Badge variant="outline">
               <CheckCircle2 data-icon="inline-start" />
               已恢复
             </Badge>
           )}
           {agent.isRunning && <Badge variant="secondary">正在运行</Badge>}
-          <span className="sr-only" aria-live="polite">Default Agent 状态：{runState}</span>
+          {runState === 'waiting-approval' && (
+            <Badge variant="destructive">
+              <ShieldAlert data-icon="inline-start" />
+              等待审批
+            </Badge>
+          )}
+          <span className="sr-only" aria-live="polite">
+            Default Agent 状态：{runState}
+          </span>
         </div>
       </div>
       <Conversation>
         <ConversationContent>
           <div
-            className="@5xl/content:mx-auto @5xl/content:w-full @5xl/content:max-w-5xl"
+            className="@5xl/content:mx-auto @5xl/content:w-full @5xl/content:max-w-5xl flex flex-col gap-4"
             style={{ paddingBottom: inputDockHeight }}
           >
             <ChatMessages key={currentThreadId} threadId={currentThreadId} />
+            <ChatApprovalRegistration onPendingChange={setAwaitingApproval} />
           </div>
         </ConversationContent>
         <ConversationScrollButton style={{ bottom: inputDockHeight + 10 }} />
@@ -238,6 +254,7 @@ function Chat() {
           <ChatInput
             className="relative z-10"
             online={online}
+            awaitingApproval={awaitingApproval}
             threadId={currentThreadId}
             onRunStart={(runId) => {
               activeRunIdRef.current = runId
@@ -252,6 +269,7 @@ function Chat() {
           </div>
         </div>
       </div>
+
       <ChatHistory
         open={historyOpen}
         onOpenChange={setHistoryOpen}
@@ -263,10 +281,13 @@ function Chat() {
         onArchive={(threadId) => void archiveThread(threadId)}
         onDelete={(threadId) => void deleteThread(threadId)}
       />
+
       <ChatRuns
         open={runsOpen}
         onOpenChange={setRunsOpen}
-        threadId={threads.some((thread) => thread.id === currentThreadId) ? currentThreadId : undefined}
+        threadId={
+          threads.some((thread) => thread.id === currentThreadId) ? currentThreadId : undefined
+        }
         onResume={resumeRun}
         onCancel={cancelRun}
       />

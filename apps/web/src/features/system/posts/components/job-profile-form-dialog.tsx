@@ -112,7 +112,8 @@ export function JobProfileFormDialog({
       if (mode === 'create') {
         await createMutation.mutateAsync({
           ...payload,
-          code: values.code.trim().toUpperCase()
+          code: values.code.trim().toUpperCase(),
+          status: 'active'
         })
       } else if (currentRow) {
         await updateMutation.mutateAsync({

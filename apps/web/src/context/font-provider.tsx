@@ -1,8 +1,4 @@
-import {
-  DEFAULT_FONT_THEME_ID,
-  FONT_THEME_IDS,
-  isFontThemeId
-} from '@zen/ui'
+import { DEFAULT_FONT_THEME_ID, FONT_THEME_IDS, isFontThemeId } from '@zen/ui'
 import { createContext, useContext, useEffect, useState } from 'react'
 
 import { getCookie, removeCookie, setCookie } from '@/lib/cookies'

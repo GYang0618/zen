@@ -5,6 +5,6 @@ export const Route = createFileRoute('/_authenticated/system')({
   component: () => <Outlet />,
   staticData: {
     title: '系统',
-    order: 3,
+    order: 3
   }
 })
