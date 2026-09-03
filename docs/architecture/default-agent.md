@@ -147,7 +147,7 @@ tool.call.started
 
 | Tool | 注册位置 | 作用 |
 |---|---|---|
-| `appearance` | `CopilotSharedRegistrations` | 修改外观设置 |
+| `appearance` | `AgentSharedRegistrations` | 修改外观设置 |
 | `navigate_to_page` | `PopupChatRegistrations` | Popup 专属导航能力 |
 | `query_route_info` | `PopupChatRegistrations` | Popup 专属路由查询 |
 | `query_users_list`, `query_job_profiles_list` | 默认 Chat Generative UI | 渲染查询结果表格 |

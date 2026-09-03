@@ -1,12 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { MessageCircleMore } from 'lucide-react'
 
-import { CopilotChat } from '@/features/ai/copilot'
+import { AgentChat } from '@/features/agent'
 
-export const Route = createFileRoute('/_authenticated/_workbench/chat-v2')({
-  component: CopilotChat,
+export const Route = createFileRoute('/_authenticated/_workbench/chat')({
+  component: AgentChat,
   staticData: {
-    title: 'Copilot',
+    title: 'Agent',
     icon: MessageCircleMore,
     order: 30
   }

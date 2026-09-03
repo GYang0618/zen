@@ -136,11 +136,11 @@ export function ChatInput({
     try {
       copilotkit.stopAgent({ agent })
     } catch (error) {
-      console.error('CopilotChat: stopAgent failed', error)
+      console.error('AgentChat: stopAgent failed', error)
       try {
         agent.abortRun()
       } catch (abortError) {
-        console.error('CopilotChat: abortRun fallback failed', abortError)
+        console.error('AgentChat: abortRun fallback failed', abortError)
       }
     }
   }
@@ -165,7 +165,7 @@ export function ChatInput({
         agent.addMessage(message)
       }
       setInputValue(message.content)
-      console.error('CopilotChat: runAgent failed', error)
+      console.error('AgentChat: runAgent failed', error)
     } finally {
       onRunSettled?.(runId)
     }
@@ -174,7 +174,7 @@ export function ChatInput({
   const handlePrimaryAction = () => {
     if (isRunning) {
       void stopAgent().catch((error) => {
-        console.error('CopilotChat: persistent stop failed', error)
+        console.error('AgentChat: persistent stop failed', error)
       })
       return
     }

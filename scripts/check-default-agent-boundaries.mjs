@@ -26,12 +26,12 @@ const expectExcludes = (relativePath, fragment, description) => {
 }
 
 expectIncludes(
-  'apps/web/src/features/ai/copilot/popup.tsx',
+  'apps/web/src/features/agent/popup.tsx',
   'agentId="plan"',
   'Popup 必须保持 plan Agent'
 )
 expectExcludes(
-  'apps/web/src/features/ai/copilot/chat.tsx',
+  'apps/web/src/features/agent/chat.tsx',
   'agentId="plan"',
   '默认 Chat 不得显式绑定 plan Agent'
 )
@@ -142,17 +142,17 @@ expectIncludes(
   'Runtime Store 必须通过消息白名单规范化 Checkpoint'
 )
 expectIncludes(
-  'apps/web/src/features/ai/copilot/components/chat-approval.tsx',
+  'apps/web/src/features/agent/components/chat-approval.tsx',
   'useInterrupt',
   'Default Chat 必须注册 LangGraph interrupt 审批 UI'
 )
 expectIncludes(
-  'apps/web/src/features/ai/copilot/runtime-api.ts',
+  'apps/web/src/features/agent/runtime-api.ts',
   'prepareRunResume',
   'Default Chat 必须提供 Run 恢复 API'
 )
 expectIncludes(
-  'apps/web/src/features/ai/copilot/components/chat-runs.tsx',
+  'apps/web/src/features/agent/components/chat-runs.tsx',
   'onResume',
   'Default Chat 必须提供 Run 恢复和历史界面'
 )

@@ -1,7 +1,7 @@
 'use client'
 
 import { useAgent, useCopilotKit } from '@copilotkit/react-core/v2'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 
 import { buildRetryMessages } from '../lib/messages'
 import { isRunCancellation } from '../run-state'
@@ -23,7 +23,7 @@ export function useAgentRetry() {
   const lastUserMessageRef = useRef<UserMessage | undefined>(undefined)
   const [failedUserMessage, setFailedUserMessage] = useState<UserMessage | null>(null)
 
-  const restoreFailedUserMessage = () => {
+  const restoreFailedUserMessage = useEffectEvent(() => {
     const message = lastUserMessageRef.current
     if (!message) return
     // Run error events can be delivered before the corresponding empty
@@ -34,7 +34,7 @@ export function useAgentRetry() {
         agent.addMessage(message)
       }
     }, 0)
-  }
+  })
 
   useEffect(() => {
     const subscription = agent.subscribe({
@@ -82,7 +82,7 @@ export function useAgentRetry() {
       try {
         await copilotkit.runAgent({ agent })
       } catch (error) {
-        console.error('CopilotChat: retry runAgent failed', error)
+        console.error('AgentChat: retry runAgent failed', error)
       }
     },
     [agent, copilotkit]

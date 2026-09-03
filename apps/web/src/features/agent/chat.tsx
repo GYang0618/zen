@@ -27,7 +27,7 @@ import { defaultAgentRuntimeApi } from './runtime-api'
 
 import type { AgentThreadSummary } from './runtime-api'
 
-export function CopilotChat() {
+export function AgentChat() {
   return (
     <>
       <AppHeader />
@@ -75,7 +75,7 @@ function Chat() {
   useEffect(() => {
     void defaultAgentRuntimeApi
       .reconcile()
-      .catch((error) => console.error('CopilotChat: runtime reconciliation failed', error))
+      .catch((error) => console.error('AgentChat: runtime reconciliation failed', error))
       .finally(() => void loadThreads())
   }, [loadThreads])
 

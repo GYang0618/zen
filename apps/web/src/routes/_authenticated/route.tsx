@@ -3,7 +3,7 @@ import { cn } from '@zen/ui'
 
 import { AuthenticatedLayout } from '@/components/layouts'
 import { CopilotProvider } from '@/context/copilot-provider'
-import { CopilotPopup } from '@/features/ai/copilot'
+import { AgentPopup } from '@/features/agent'
 import { authApi } from '@/features/auth/api'
 import { canAccess } from '@/lib/auth/permissions'
 import { isForbidden, isSessionExpired } from '@/lib/request/utils'
@@ -59,19 +59,19 @@ export const Route = createFileRoute('/_authenticated')({
   component: AuthenticatedLayoutComponent
 })
 
-/** 不需要显示 CopilotPopup 的页面 */
-const COPILOT_POPUP_EXCLUDED_PATHS: readonly AppPath[] = ['/chat', '/chat-v2']
+/** 不需要显示 AgentPopup 的页面 */
+const AGENT_POPUP_EXCLUDED_PATHS: readonly AppPath[] = ['/chat', '/chat-v2']
 
 function AuthenticatedLayoutComponent() {
   const { pathname } = useLocation()
-  const shouldShowCopilotPopup = !COPILOT_POPUP_EXCLUDED_PATHS.includes(pathname as AppPath)
+  const shouldShowAgentPopup = !AGENT_POPUP_EXCLUDED_PATHS.includes(pathname as AppPath)
 
   return (
     <AuthenticatedLayout>
       <CopilotProvider>
         <Outlet />
-        <div className={cn(!shouldShowCopilotPopup && 'hidden')}>
-          <CopilotPopup />
+        <div className={cn(!shouldShowAgentPopup && 'hidden')}>
+          <AgentPopup />
         </div>
       </CopilotProvider>
     </AuthenticatedLayout>

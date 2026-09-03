@@ -12,7 +12,7 @@ import type { MouseEventHandler } from 'react'
 /** 悬浮球直径，与 size-14 保持一致 */
 const LAUNCHER_SIZE = 56
 const EDGE_MARGIN = 24
-const POSITION_STORAGE_KEY = 'zen.copilot.launcher-position'
+const POSITION_STORAGE_KEY = 'zen.agent.launcher-position'
 /** 吸附隐藏时藏到视口外的比例 */
 const TUCK_HIDDEN_RATIO = 0.55
 /** 吸附隐藏时的水平位移（px）：先跨过边距，再把大半个球藏到视口外 */
@@ -22,14 +22,14 @@ const INITIAL_REVEAL_DURATION = 2000
 /** 唤醒热区在球体外扩展的距离（px） */
 const HOT_ZONE_PADDING = 8
 
-type CopilotLauncherButtonProps = Omit<CopilotChatToggleButtonProps, 'openIcon' | 'closeIcon'>
+type AgentLauncherButtonProps = Omit<CopilotChatToggleButtonProps, 'openIcon' | 'closeIcon'>
 
 /**
- * 可拖拽的 Copilot 悬浮球：松手后吸附到最近的视口边缘，
+ * 可拖拽的 Agent 悬浮球：松手后吸附到最近的视口边缘，
  * 空闲时半隐藏，指针悬停、键盘聚焦或会话打开时恢复完整显示。
  */
-export const CopilotLauncherButton = forwardRef<HTMLButtonElement, CopilotLauncherButtonProps>(
-  function CopilotLauncherButton({ className, onClick, ...props }, ref) {
+export const AgentLauncherButton = forwardRef<HTMLButtonElement, AgentLauncherButtonProps>(
+  function AgentLauncherButton({ className, onClick, ...props }, ref) {
     const configuration = useCopilotChatConfiguration()
     const isInert = useBodyPointerBlocked()
     const [isPointerNear, setIsPointerNear] = useState(false)
