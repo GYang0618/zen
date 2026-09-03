@@ -1,9 +1,4 @@
-import { useAuthStore } from '@/stores'
-
-import { anonymousHttp } from './client'
-import { unwrapResponseData } from './middleware'
-
-import type { AuthSession } from '@zen/shared'
+import { refreshAuthSessionOnce } from './refresh-session'
 
 /**
  * 权限版本（permVer）变更后主动换发 accessToken，
@@ -11,11 +6,7 @@ import type { AuthSession } from '@zen/shared'
  */
 export async function silentRefreshAuthSession(): Promise<void> {
   try {
-    const response = await anonymousHttp.post('/auth/refresh')
-    const session = unwrapResponseData<AuthSession>(response)
-    if (session) {
-      useAuthStore.getState().setAuth(session)
-    }
+    await refreshAuthSessionOnce()
   } catch {
     // 由 tokenRefreshMiddleware 在后续 401 时再尝试
   }

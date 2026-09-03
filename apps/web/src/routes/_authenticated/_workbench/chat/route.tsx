@@ -8,6 +8,7 @@ export const Route = createFileRoute('/_authenticated/_workbench/chat')({
   staticData: {
     title: 'AI聊天',
     icon: MessageCircleMore,
-    order: 30
+    order: 30,
+    hideInMenu: true
   }
 })

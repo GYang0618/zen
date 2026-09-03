@@ -20,6 +20,7 @@ import { CurrentAuth } from '@/common/decorators/current-auth.decorator'
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
 import { ACCESS_TOKEN_AUTH } from '@/common/swagger'
 
+import { DefaultAgentRunControl } from './default-agent-run-control'
 import {
   approvalDecisionSchema,
   approvalListQuerySchema,
@@ -33,7 +34,6 @@ import {
   threadUpdateSchema
 } from './default-agent-runtime.schemas'
 import { DefaultAgentRuntimeStore } from './default-agent-runtime.store'
-import { DefaultAgentRunControl } from './default-agent-run-control'
 
 import type { AuthContext } from '@zen/shared'
 import type {
@@ -65,7 +65,7 @@ export class DefaultAgentRuntimeController {
   @ApiOperation({ summary: '查询当前用户的 Default Agent 会话历史' })
   @UsePipes(new ZodValidationPipe(threadListQuerySchema, { types: ['query'] }))
   listThreads(@CurrentAuth() auth: AuthContext, @Query() query: ThreadListQuery) {
-    return this.store.listThreads(auth, query.limit)
+    return this.store.listThreads(auth, query)
   }
 
   @Get('threads/:threadId')

@@ -38,7 +38,11 @@ export function Header({ className, fixed, children, ...props }: HeaderProps) {
         )}
       >
         <SidebarTrigger variant="outline" className="max-md:scale-125" />
-        <Separator className="h-6" orientation="vertical" />
+        {/* 无后续内容，或下一项被 ms-auto 推到右侧时隐藏，避免孤立竖线 */}
+        <Separator
+          className="h-6 last:hidden has-[+.ms-auto]:hidden has-[+.ml-auto]:hidden"
+          orientation="vertical"
+        />
         {children}
       </div>
     </header>

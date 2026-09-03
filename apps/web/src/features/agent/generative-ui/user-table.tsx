@@ -32,7 +32,7 @@ export function useUsersTable() {
         if (status !== 'complete') return emptyToolRender()
 
         const data = parseUsersPageResult(result ?? '')
-        if (!data) return emptyToolRender()
+        if (!data || data.items.length === 0) return emptyToolRender()
 
         return <AITable data={data.items} columns={tableColumns} />
       }

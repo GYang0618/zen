@@ -12,12 +12,15 @@ const PLACEHOLDERS = ['设置主题颜色、字体、样式风格', '用户、�
 const TEXTAREA_MAX_HEIGHT_PX = 200
 /** 单行布局下两侧按钮占用的大致宽度，用于跨行检测时避免宽窄切换抖动 */
 const SIDE_ACTIONS_WIDTH_PX = 160
+const NEW_THREAD_DRAFT_KEY = 'default-agent:draft:new'
 
 export function ChatInput({
   className,
   online = true,
   awaitingApproval = false,
+  loading = false,
   threadId,
+  onEnsureThread,
   onRunStart,
   onRunSettled,
   onStop
@@ -26,7 +29,11 @@ export function ChatInput({
   online?: boolean
   /** 存在待处理的高风险操作审批时为 true：禁止发送新消息，避免绕过审批卡片继续对话 */
   awaitingApproval?: boolean
+  /** 正在切换历史对话时禁止输入，避免写入尚未加载完成的会话 */
+  loading?: boolean
   threadId?: string
+  /** 发送前确保已有 threadId；新对话在首条消息时创建并写入历史 */
+  onEnsureThread?: (firstMessage: string) => Promise<string>
   onRunStart?: (runId: string) => void
   onRunSettled?: (runId: string) => void
   onStop?: () => Promise<void>
@@ -50,6 +57,7 @@ export function ChatInput({
 
   useEffect(() => {
     if (!threadId) {
+      setInputValue(localStorage.getItem(NEW_THREAD_DRAFT_KEY) ?? '')
       setLoadedDraftThreadId(undefined)
       return
     }
@@ -58,7 +66,12 @@ export function ChatInput({
   }, [threadId])
 
   useEffect(() => {
-    if (!threadId || loadedDraftThreadId !== threadId) return
+    if (!threadId) {
+      if (inputValue) localStorage.setItem(NEW_THREAD_DRAFT_KEY, inputValue)
+      else localStorage.removeItem(NEW_THREAD_DRAFT_KEY)
+      return
+    }
+    if (loadedDraftThreadId !== threadId) return
     if (inputValue) localStorage.setItem(`default-agent:draft:${threadId}`, inputValue)
     else localStorage.removeItem(`default-agent:draft:${threadId}`)
   }, [inputValue, loadedDraftThreadId, threadId])
@@ -126,7 +139,8 @@ export function ChatInput({
   const handleActivate = () => setIsActive(true)
 
   const isRunning = agent.isRunning
-  const canSend = inputValue.trim().length > 0 && !isRunning && !awaitingApproval && online
+  const canSend =
+    inputValue.trim().length > 0 && !isRunning && !awaitingApproval && online && !loading
 
   const stopAgent = async () => {
     if (onStop) {
@@ -147,10 +161,13 @@ export function ChatInput({
 
   const sendMessage = async () => {
     if (!canSend) return
+    const content = inputValue
+    if (onEnsureThread) await onEnsureThread(content)
+    localStorage.removeItem(NEW_THREAD_DRAFT_KEY)
     const message = {
       id: randomUUID(),
       role: 'user',
-      content: inputValue
+      content
     } as const
     agent.addMessage(message)
     setInputValue('')
@@ -252,7 +269,7 @@ export function ChatInput({
                 ref={textareaRef}
                 rows={1}
                 value={inputValue}
-                disabled={!online || awaitingApproval}
+                disabled={!online || awaitingApproval || loading}
                 aria-label="发送消息"
                 onChange={(e) => setInputValue(e.target.value)}
                 className="col-start-1 row-start-1 border-0 outline-0 rounded-md py-2 text-base bg-transparent w-full font-normal resize-none overflow-y-auto leading-6 disabled:cursor-not-allowed disabled:opacity-60"

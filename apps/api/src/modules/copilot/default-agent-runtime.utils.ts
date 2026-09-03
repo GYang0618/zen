@@ -93,6 +93,25 @@ export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.trunc(value)))
 }
 
+const THREAD_CURSOR_SEPARATOR = '::'
+
+export function encodeThreadCursor(thread: { id: string; updatedAt: Date | string }): string {
+  const updatedAt =
+    thread.updatedAt instanceof Date
+      ? thread.updatedAt.toISOString()
+      : new Date(thread.updatedAt).toISOString()
+  return `${updatedAt}${THREAD_CURSOR_SEPARATOR}${thread.id}`
+}
+
+export function decodeThreadCursor(cursor: string): { id: string; updatedAt: Date } | undefined {
+  const separatorIndex = cursor.indexOf(THREAD_CURSOR_SEPARATOR)
+  if (separatorIndex <= 0) return undefined
+  const updatedAt = new Date(cursor.slice(0, separatorIndex))
+  const id = cursor.slice(separatorIndex + THREAD_CURSOR_SEPARATOR.length).trim()
+  if (!id || Number.isNaN(updatedAt.getTime())) return undefined
+  return { id, updatedAt }
+}
+
 export function findTokenUsage(
   value: unknown,
   depth = 0

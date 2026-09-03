@@ -34,7 +34,7 @@ import {
   TimelineTitle
 } from '@zen/ui'
 import { Ban, ChevronDown, FileJson, History, LoaderCircle, RefreshCw, Wrench } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { defaultAgentRuntimeApi } from '../runtime-api'
 
@@ -64,6 +64,8 @@ export function ChatRuns({ open, onOpenChange, threadId, onResume, onCancel }: C
   const [selected, setSelected] = useState<AgentRunDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [acting, setActing] = useState(false)
+  const selectedIdRef = useRef(selected?.id)
+  selectedIdRef.current = selected?.id
 
   const loadRuns = useCallback(async () => {
     setLoading(true)
@@ -73,14 +75,24 @@ export function ChatRuns({ open, onOpenChange, threadId, onResume, onCancel }: C
         ...(status !== 'all' ? { status } : {})
       })
       setRuns(items)
-      if (selected && !items.some((run) => run.id === selected.id)) setSelected(null)
+      const currentId = selectedIdRef.current
+      if (currentId && items.some((run) => run.id === currentId)) return
+      if (items[0]) {
+        setSelected(await defaultAgentRuntimeApi.getRun(items[0].id))
+      } else {
+        setSelected(null)
+      }
     } finally {
       setLoading(false)
     }
-  }, [selected, status, threadId])
+  }, [status, threadId])
 
   useEffect(() => {
-    if (open) void loadRuns()
+    if (!open) {
+      setSelected(null)
+      return
+    }
+    void loadRuns()
   }, [loadRuns, open])
 
   const selectRun = async (runId: string) => setSelected(await defaultAgentRuntimeApi.getRun(runId))
@@ -110,14 +122,17 @@ export function ChatRuns({ open, onOpenChange, threadId, onResume, onCancel }: C
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[min(94vw,46rem)] sm:max-w-3xl">
-        <SheetHeader className="border-b">
+      <SheetContent
+        side="right"
+        className="w-full gap-0 overflow-hidden p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-3xl sm:max-w-3xl"
+      >
+        <SheetHeader className="shrink-0 border-b px-4 py-3">
           <SheetTitle>运行记录</SheetTitle>
           <SheetDescription>查看 Default Agent 的 Tool、审批和完整结果。</SheetDescription>
         </SheetHeader>
-        <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[16rem_minmax(0,1fr)]">
-          <div className="flex min-h-0 flex-col border-b md:border-r md:border-b-0">
-            <div className="flex items-center gap-2 border-b p-3">
+        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden md:grid-cols-[15rem_minmax(0,1fr)]">
+          <div className="flex min-h-0 min-w-0 flex-col border-b md:border-r md:border-b-0">
+            <div className="flex shrink-0 items-center gap-2 border-b p-3">
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger size="sm" className="flex-1">
                   <SelectValue placeholder="筛选状态" />
@@ -136,7 +151,7 @@ export function ChatRuns({ open, onOpenChange, threadId, onResume, onCancel }: C
                 <RefreshCw data-icon="inline-start" />
               </Button>
             </div>
-            <ScrollArea className="min-h-48 flex-1">
+            <ScrollArea className="min-h-0 flex-1">
               <div className="flex flex-col gap-1 p-2">
                 {loading && runs.length === 0
                   ? Array.from({ length: 4 }, (_, index) => (
@@ -175,7 +190,7 @@ export function ChatRuns({ open, onOpenChange, threadId, onResume, onCancel }: C
               </div>
             </ScrollArea>
           </div>
-          <ScrollArea className="min-h-0">
+          <ScrollArea className="min-h-0 min-w-0">
             {selected ? (
               <RunDetail
                 run={selected}
@@ -184,7 +199,7 @@ export function ChatRuns({ open, onOpenChange, threadId, onResume, onCancel }: C
                 onResume={() => void resumeRun()}
               />
             ) : (
-              <Empty className="h-full border-0">
+              <Empty className="h-full min-h-64 border-0">
                 <EmptyHeader>
                   <EmptyMedia variant="icon">
                     <History />

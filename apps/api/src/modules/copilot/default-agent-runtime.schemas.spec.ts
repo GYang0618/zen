@@ -2,6 +2,7 @@ import {
   approvalDecisionSchema,
   eventListQuerySchema,
   memoryUpsertSchema,
+  threadListQuerySchema,
   threadUpdateSchema
 } from './default-agent-runtime.schemas'
 
@@ -12,6 +13,20 @@ describe('Default Agent runtime HTTP schemas', () => {
       limit: 1000
     })
     expect(eventListQuerySchema.safeParse({ limit: '1001' }).success).toBe(false)
+  })
+
+  it('会话列表支持可选游标分页参数', () => {
+    expect(threadListQuerySchema.parse({})).toEqual({ limit: 30 })
+    expect(
+      threadListQuerySchema.parse({
+        limit: '20',
+        cursor: '2026-09-03T10:00:00.000Z::thread-1'
+      })
+    ).toEqual({
+      limit: 20,
+      cursor: '2026-09-03T10:00:00.000Z::thread-1'
+    })
+    expect(threadListQuerySchema.safeParse({ limit: '101' }).success).toBe(false)
   })
 
   it('拒绝空更新和非法审批决策', () => {

@@ -10,6 +10,14 @@ export interface AgentThreadSummary {
   _count: { messages: number; runs: number }
 }
 
+export interface AgentThreadListPage {
+  items: AgentThreadSummary[]
+  cursor: string | null
+  hasMore: boolean
+}
+
+export const THREAD_HISTORY_PAGE_SIZE = 30
+
 export interface PersistedAgentMessage {
   id: string
   role: 'system' | 'user' | 'assistant' | 'tool'
@@ -118,7 +126,8 @@ export const defaultAgentRuntimeApi = {
       expiredApprovals: number
       deletedIdempotencyRecords: number
     }>('/copilot/runtime/maintenance/reconcile'),
-  listThreads: () => request.get<AgentThreadSummary[]>('/copilot/runtime/threads'),
+  listThreads: (params: { limit?: number; cursor?: string } = {}) =>
+    request.get<AgentThreadListPage>('/copilot/runtime/threads', { params }),
   getThread: (threadId: string) =>
     request.get<AgentThreadDetail>(`/copilot/runtime/threads/${threadId}`),
   listEvents: async (runId: string, after = 0) => {

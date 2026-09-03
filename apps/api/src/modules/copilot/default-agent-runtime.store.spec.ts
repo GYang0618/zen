@@ -711,3 +711,89 @@ describe('DefaultAgentRuntimeStore approval decisions', () => {
     ).rejects.toBeInstanceOf(BadRequestException)
   })
 })
+
+describe('DefaultAgentRuntimeStore thread listing', () => {
+  const threadSelect = {
+    id: true,
+    title: true,
+    status: true,
+    lastMessageAt: true,
+    createdAt: true,
+    updatedAt: true,
+    _count: { select: { messages: true, runs: true } }
+  }
+
+  function thread(id: string, updatedAt: string) {
+    return {
+      id,
+      title: id,
+      status: 'active',
+      lastMessageAt: new Date(updatedAt),
+      createdAt: new Date(updatedAt),
+      updatedAt: new Date(updatedAt),
+      _count: { messages: 1, runs: 1 }
+    }
+  }
+
+  it('按 updatedAt 游标分页并报告 hasMore', async () => {
+    const first = thread('thread-1', '2026-09-03T10:00:00.000Z')
+    const second = thread('thread-2', '2026-09-03T09:00:00.000Z')
+    const extra = thread('thread-3', '2026-09-03T08:00:00.000Z')
+    const findMany = jest.fn().mockResolvedValue([first, second, extra])
+    const store = new DefaultAgentRuntimeStore({
+      agentThread: { findMany }
+    } as unknown as PrismaService)
+
+    await expect(store.listThreads(auth, { limit: 2 })).resolves.toEqual({
+      items: [first, second],
+      cursor: '2026-09-03T09:00:00.000Z::thread-2',
+      hasMore: true
+    })
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 3,
+        orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+        select: threadSelect
+      })
+    )
+  })
+
+  it('从游标之后继续取下一页', async () => {
+    const next = thread('thread-3', '2026-09-03T08:00:00.000Z')
+    const findMany = jest.fn().mockResolvedValue([next])
+    const store = new DefaultAgentRuntimeStore({
+      agentThread: { findMany }
+    } as unknown as PrismaService)
+
+    await expect(
+      store.listThreads(auth, {
+        limit: 2,
+        cursor: '2026-09-03T09:00:00.000Z::thread-2'
+      })
+    ).resolves.toEqual({
+      items: [next],
+      cursor: '2026-09-03T08:00:00.000Z::thread-3',
+      hasMore: false
+    })
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: [
+            { updatedAt: { lt: new Date('2026-09-03T09:00:00.000Z') } },
+            { updatedAt: new Date('2026-09-03T09:00:00.000Z'), id: { lt: 'thread-2' } }
+          ]
+        })
+      })
+    )
+  })
+
+  it('拒绝非法游标', async () => {
+    const store = new DefaultAgentRuntimeStore({
+      agentThread: { findMany: jest.fn() }
+    } as unknown as PrismaService)
+
+    await expect(store.listThreads(auth, { cursor: 'not-a-cursor' })).rejects.toBeInstanceOf(
+      BadRequestException
+    )
+  })
+})

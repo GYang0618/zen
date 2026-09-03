@@ -1,41 +1,61 @@
 import { useAgent, useCopilotKit } from '@copilotkit/react-core/v2'
-import {
-  Badge,
-  Button,
-  Conversation,
-  ConversationContent,
-  ConversationScrollButton,
-  cn
-} from '@zen/ui'
-import { Activity, CheckCircle2, History, Plus, ShieldAlert, WifiOff } from 'lucide-react'
+import { Outlet, useMatch, useNavigate } from '@tanstack/react-router'
+import { Conversation, ConversationContent, ConversationScrollButton, cn } from '@zen/ui'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { AppHeader, Main } from '@/components/layouts'
+import { ProfileDropdown, ThemeSwitch } from '@/components'
+import { Header, Main } from '@/components/layouts'
 import { useElementHeight } from '@/hooks'
+import { isApiClientError } from '@/lib/request/utils'
 
 import { ChatApprovalRegistration } from './components/chat-approval'
 import { ChatGreeting } from './components/chat-greeting'
-import { ChatHistory } from './components/chat-history'
 import { ChatInput } from './components/chat-input'
 import { ChatMessages } from './components/chat-messages'
 import { ChatRuns } from './components/chat-runs'
+import { ChatThreadSkeleton } from './components/chat-thread-skeleton'
 import { ChatRegistrations } from './components/registrations'
 import { useOnlineStatus } from './hooks/use-online-status'
+import { promoteThread } from './lib/thread-list'
 import { restoreMessages } from './restore-messages'
 import { deriveChatRunState } from './run-state'
-import { defaultAgentRuntimeApi } from './runtime-api'
+import { defaultAgentRuntimeApi, THREAD_HISTORY_PAGE_SIZE } from './runtime-api'
+import { useAgentChatShellStore } from './stores/agent-chat-shell'
 
 import type { AgentThreadSummary } from './runtime-api'
+
+const THREAD_TITLE_MAX_LENGTH = 80
+const DRAFT_ROUTE_THREAD_ID = 'draft'
+
+function buildOptimisticThread(id: string, firstMessage: string): AgentThreadSummary {
+  const now = new Date().toISOString()
+  const title =
+    firstMessage.trim().replace(/\s+/g, ' ').slice(0, THREAD_TITLE_MAX_LENGTH) || '新对话'
+  return {
+    id,
+    title,
+    status: 'active',
+    lastMessageAt: now,
+    createdAt: now,
+    updatedAt: now,
+    _count: { messages: 1, runs: 1 }
+  }
+}
 
 export function AgentChat() {
   return (
     <>
-      <AppHeader />
-
+      <Header>
+        <div className="ms-auto flex items-center gap-4">
+          <ThemeSwitch />
+          <ProfileDropdown />
+        </div>
+      </Header>
       <Main fixed fluid className="p-0">
         <ChatRegistrations />
         <Chat />
       </Main>
+      <Outlet />
     </>
   )
 }
@@ -43,19 +63,42 @@ export function AgentChat() {
 function Chat() {
   const { agent } = useAgent()
   const { copilotkit } = useCopilotKit()
+  const navigate = useNavigate()
+  const threadMatch = useMatch({
+    from: '/_authenticated/_workbench/chat/$threadId',
+    shouldThrow: false
+  })
+  const routeThreadId = threadMatch?.params.threadId
   const [inputDockRef, inputDockHeight] = useElementHeight<HTMLDivElement>()
   const online = useOnlineStatus()
-  const [historyOpen, setHistoryOpen] = useState(false)
-  const [runsOpen, setRunsOpen] = useState(false)
-  const [threads, setThreads] = useState<AgentThreadSummary[]>([])
-  const [historyLoading, setHistoryLoading] = useState(false)
-  const [currentThreadId, setCurrentThreadId] = useState(agent.threadId)
+
+  const threads = useAgentChatShellStore((state) => state.threads)
+  const currentThreadId = useAgentChatShellStore((state) => state.currentThreadId)
+  const upsertThread = useAgentChatShellStore((state) => state.upsertThread)
+  const removeThread = useAgentChatShellStore((state) => state.removeThread)
+  const applyThreadPage = useAgentChatShellStore((state) => state.applyThreadPage)
+  const setCurrentThreadId = useAgentChatShellStore((state) => state.setCurrentThreadId)
+  const setHistoryLoading = useAgentChatShellStore((state) => state.setHistoryLoading)
+  const setHistoryLoadingMore = useAgentChatShellStore((state) => state.setHistoryLoadingMore)
+  const setHistoryLoadMoreError = useAgentChatShellStore((state) => state.setHistoryLoadMoreError)
+  const bindHandlers = useAgentChatShellStore((state) => state.bindHandlers)
+  const unbindHandlers = useAgentChatShellStore((state) => state.unbindHandlers)
+  const runsOpen = useAgentChatShellStore((state) => state.runsOpen)
+  const runsThreadId = useAgentChatShellStore((state) => state.runsThreadId)
+  const setRunsOpen = useAgentChatShellStore((state) => state.setRunsOpen)
+  const setRunningThreadId = useAgentChatShellStore((state) => state.setRunningThreadId)
+  const threadLoading = useAgentChatShellStore((state) => state.threadLoading)
+  const setThreadLoading = useAgentChatShellStore((state) => state.setThreadLoading)
+
   const [recovered, setRecovered] = useState(false)
   const [awaitingApproval, setAwaitingApproval] = useState(false)
   const wasRunningRef = useRef(agent.isRunning)
   const threadSelectionVersionRef = useRef(0)
   const activeRunIdRef = useRef<string | undefined>(undefined)
+  const runningAnchorRef = useRef<string | undefined>(undefined)
+  const draftBootedRef = useRef(false)
   const hasMessages = agent.messages.length > 0
+  const showEmptyGreeting = !hasMessages && !threadLoading
   const runState = deriveChatRunState({
     online,
     isRunning: agent.isRunning,
@@ -63,14 +106,56 @@ function Chat() {
     persistedStatus: awaitingApproval ? 'interrupted' : undefined
   })
 
+  useEffect(() => {
+    const busy = agent.isRunning || awaitingApproval
+    if (!busy) {
+      runningAnchorRef.current = undefined
+      setRunningThreadId(undefined)
+      return
+    }
+    if (!runningAnchorRef.current) runningAnchorRef.current = currentThreadId
+    setRunningThreadId(runningAnchorRef.current)
+  }, [agent.isRunning, awaitingApproval, currentThreadId, setRunningThreadId])
+
+  useEffect(() => {
+    return () => setRunningThreadId(undefined)
+  }, [setRunningThreadId])
+
   const loadThreads = useCallback(async () => {
-    setHistoryLoading(true)
+    const isInitial = useAgentChatShellStore.getState().threads.length === 0
+    if (isInitial) setHistoryLoading(true)
     try {
-      setThreads(await defaultAgentRuntimeApi.listThreads())
+      applyThreadPage(
+        await defaultAgentRuntimeApi.listThreads({ limit: THREAD_HISTORY_PAGE_SIZE }),
+        'refresh'
+      )
     } finally {
       setHistoryLoading(false)
     }
-  }, [])
+  }, [applyThreadPage, setHistoryLoading])
+
+  const loadMoreThreads = useCallback(async () => {
+    const { historyHasMore, historyCursor, historyLoading, historyLoadingMore } =
+      useAgentChatShellStore.getState()
+    if (!historyHasMore || !historyCursor || historyLoading || historyLoadingMore) return
+
+    setHistoryLoadingMore(true)
+    setHistoryLoadMoreError(false)
+    try {
+      applyThreadPage(
+        await defaultAgentRuntimeApi.listThreads({
+          limit: THREAD_HISTORY_PAGE_SIZE,
+          cursor: historyCursor
+        }),
+        'append'
+      )
+    } catch (error) {
+      setHistoryLoadMoreError(true)
+      console.error('AgentChat: failed to load more threads', error)
+    } finally {
+      setHistoryLoadingMore(false)
+    }
+  }, [applyThreadPage, setHistoryLoadMoreError, setHistoryLoadingMore])
 
   useEffect(() => {
     void defaultAgentRuntimeApi
@@ -92,151 +177,266 @@ function Chat() {
     }
   }, [agent, copilotkit])
 
-  const stopActiveRun = useCallback(async () => {
-    const trackedRunId = activeRunIdRef.current
-    const runId =
-      trackedRunId ??
-      (await defaultAgentRuntimeApi.listRuns({ threadId: currentThreadId, limit: 10 })).find(
-        (run) => ['pending', 'running', 'finishing'].includes(run.status)
-      )?.id
-    if (!runId) {
+  const stopActiveRun = useCallback(
+    async (threadId = currentThreadId) => {
+      const trackedRunId = activeRunIdRef.current
+      const runId =
+        trackedRunId ??
+        (await defaultAgentRuntimeApi.listRuns({ threadId, limit: 10 })).find((run) =>
+          ['pending', 'running', 'finishing'].includes(run.status)
+        )?.id
+      if (!runId) {
+        stopLocalAgent()
+        return
+      }
+      await defaultAgentRuntimeApi.cancelRun(runId)
+      if (activeRunIdRef.current === runId) activeRunIdRef.current = undefined
       stopLocalAgent()
-      return
-    }
-    await defaultAgentRuntimeApi.cancelRun(runId)
-    if (activeRunIdRef.current === runId) activeRunIdRef.current = undefined
-    stopLocalAgent()
-  }, [currentThreadId, stopLocalAgent])
+    },
+    [currentThreadId, stopLocalAgent]
+  )
 
-  const createThread = async () => {
+  const createThread = useCallback(async () => {
     threadSelectionVersionRef.current += 1
     if (agent.isRunning) await stopActiveRun()
-    const threadId = crypto.randomUUID()
-    agent.threadId = threadId
     agent.setMessages([])
     agent.setState({})
-    setCurrentThreadId(threadId)
+    setCurrentThreadId(undefined)
+    setThreadLoading(false)
     setRecovered(false)
-    setHistoryOpen(false)
-  }
+    setAwaitingApproval(false)
+    await navigate({ to: '/chat' })
+  }, [agent, navigate, setCurrentThreadId, setThreadLoading, stopActiveRun])
 
-  const selectThread = async (threadId: string) => {
-    const selectionVersion = threadSelectionVersionRef.current + 1
-    threadSelectionVersionRef.current = selectionVersion
-    if (agent.isRunning) await stopActiveRun()
-    const thread = await defaultAgentRuntimeApi.getThread(threadId)
-    if (selectionVersion !== threadSelectionVersionRef.current) return
-    const latestRun = thread.runs[0]
-    const replay = latestRun
-      ? await defaultAgentRuntimeApi.listEvents(latestRun.id, 0)
-      : { items: [], cursor: 0 }
-    if (selectionVersion !== threadSelectionVersionRef.current) return
-    const restored = restoreMessages(thread, replay.items)
-    agent.threadId = threadId
-    agent.setMessages(restored as typeof agent.messages)
-    agent.setState((thread.checkpoints[0]?.state ?? {}) as typeof agent.state)
-    setCurrentThreadId(threadId)
-    setRecovered(restored.length > 0)
-    localStorage.setItem(`default-agent:cursor:${latestRun?.id ?? threadId}`, String(replay.cursor))
-    setHistoryOpen(false)
-  }
+  const ensureThread = useCallback(
+    async (firstMessage: string) => {
+      const existing = useAgentChatShellStore.getState().currentThreadId
+      if (existing) {
+        agent.threadId = existing
+        return existing
+      }
 
-  const archiveThread = async (threadId: string) => {
-    await defaultAgentRuntimeApi.updateThread(threadId, { status: 'archived' })
-    if (threadId === currentThreadId) await createThread()
-    await loadThreads()
-  }
+      const threadId = crypto.randomUUID()
+      threadSelectionVersionRef.current += 1
+      agent.threadId = threadId
+      setCurrentThreadId(threadId)
+      setThreadLoading(false)
+      upsertThread(buildOptimisticThread(threadId, firstMessage))
+      await navigate({ to: '/chat/$threadId', params: { threadId }, replace: true })
+      return threadId
+    },
+    [agent, navigate, setCurrentThreadId, setThreadLoading, upsertThread]
+  )
 
-  const deleteThread = async (threadId: string) => {
-    await defaultAgentRuntimeApi.deleteThread(threadId)
-    if (threadId === currentThreadId) await createThread()
-    await loadThreads()
-  }
+  const selectThread = useCallback(
+    async (threadId: string) => {
+      const { currentThreadId: selectedId, threadLoading: loading } =
+        useAgentChatShellStore.getState()
+      if (threadId === selectedId && !loading) return
 
-  const resumeRun = async (runId: string) => {
-    const prepared = await defaultAgentRuntimeApi.prepareRunResume(runId)
-    const [thread, replay] = await Promise.all([
-      defaultAgentRuntimeApi.getThread(prepared.threadId),
-      defaultAgentRuntimeApi.listEvents(runId, 0)
-    ])
-    const restored = restoreMessages(thread, replay.items)
-    agent.threadId = prepared.threadId
-    agent.setMessages(restored as typeof agent.messages)
-    agent.setState((prepared.checkpoint?.state ?? {}) as typeof agent.state)
-    setCurrentThreadId(prepared.threadId)
-    setRecovered(restored.length > 0)
-    const resumedRunId = crypto.randomUUID()
-    activeRunIdRef.current = resumedRunId
+      const previousThreadId = selectedId
+      const previousAgentThreadId = agent.threadId
+      const selectionVersion = threadSelectionVersionRef.current + 1
+      threadSelectionVersionRef.current = selectionVersion
+      setCurrentThreadId(threadId)
+      setThreadLoading(true)
+      setAwaitingApproval(false)
+
+      if (agent.isRunning) {
+        stopLocalAgent()
+        void stopActiveRun(previousAgentThreadId)
+      }
+
+      try {
+        const thread = await defaultAgentRuntimeApi.getThread(threadId)
+        if (selectionVersion !== threadSelectionVersionRef.current) return
+
+        const applySnapshot = (events: Parameters<typeof restoreMessages>[1]) => {
+          const restored = restoreMessages(thread, events)
+          agent.threadId = threadId
+          agent.setMessages(restored as typeof agent.messages)
+          agent.setState((thread.checkpoints[0]?.state ?? {}) as typeof agent.state)
+          setRecovered(restored.length > 0)
+        }
+
+        applySnapshot([])
+        setThreadLoading(false)
+
+        const latestRun = thread.runs[0]
+        if (!latestRun) return
+
+        try {
+          const replay = await defaultAgentRuntimeApi.listEvents(latestRun.id, 0)
+          if (selectionVersion !== threadSelectionVersionRef.current) return
+          applySnapshot(replay.items)
+          localStorage.setItem(`default-agent:cursor:${latestRun.id}`, String(replay.cursor))
+        } catch (error) {
+          console.error('AgentChat: failed to replay thread events', error)
+        }
+      } catch (error) {
+        if (selectionVersion !== threadSelectionVersionRef.current) return
+        if (isApiClientError(error) && error.code === 404) {
+          if (agent.isRunning || agent.messages.length > 0) {
+            setThreadLoading(false)
+            return
+          }
+          agent.threadId = threadId
+          agent.setMessages([])
+          agent.setState({})
+          setRecovered(false)
+          setThreadLoading(false)
+          return
+        }
+        console.error('AgentChat: failed to load thread', error)
+        setCurrentThreadId(previousThreadId)
+        setThreadLoading(false)
+        if (previousThreadId) {
+          void navigate({
+            to: '/chat/$threadId',
+            params: { threadId: previousThreadId },
+            replace: true
+          })
+        } else {
+          void navigate({ to: '/chat', replace: true })
+        }
+      }
+    },
+    [agent, navigate, setCurrentThreadId, setThreadLoading, stopActiveRun, stopLocalAgent]
+  )
+
+  useEffect(() => {
+    if (routeThreadId) {
+      draftBootedRef.current = false
+      void selectThread(routeThreadId)
+      return
+    }
+
+    if (draftBootedRef.current) return
+    draftBootedRef.current = true
+    threadSelectionVersionRef.current += 1
+    agent.setMessages([])
+    agent.setState({})
+    setCurrentThreadId(undefined)
+    setThreadLoading(false)
+    setRecovered(false)
+    setAwaitingApproval(false)
+  }, [agent, routeThreadId, selectThread, setCurrentThreadId, setThreadLoading])
+
+  const renameThread = useCallback(async (threadId: string, title: string) => {
+    const { threads, patchThread, setThreads } = useAgentChatShellStore.getState()
+    const previous = threads.find((item) => item.id === threadId)
+    if (!previous) {
+      await defaultAgentRuntimeApi.updateThread(threadId, { title })
+      return
+    }
+
+    const snapshot = threads
+    setThreads(promoteThread(threads, threadId, { title, updatedAt: new Date().toISOString() }))
     try {
-      await copilotkit.runAgent({ agent, runId: resumedRunId })
-    } finally {
-      if (activeRunIdRef.current === resumedRunId) activeRunIdRef.current = undefined
+      const updated = await defaultAgentRuntimeApi.updateThread(threadId, { title })
+      patchThread(threadId, { title: updated.title ?? title, updatedAt: updated.updatedAt })
+    } catch (error) {
+      setThreads(snapshot)
+      throw error
     }
-  }
+  }, [])
 
-  const cancelRun = async (runId: string) => {
-    await defaultAgentRuntimeApi.cancelRun(runId)
-    if (activeRunIdRef.current === runId) {
-      activeRunIdRef.current = undefined
-      stopLocalAgent()
-    }
-  }
+  const deleteThread = useCallback(
+    async (threadId: string) => {
+      await defaultAgentRuntimeApi.deleteThread(threadId)
+      removeThread(threadId)
+      if (threadId === currentThreadId) await createThread()
+    },
+    [createThread, currentThreadId, removeThread]
+  )
+
+  const resumeRun = useCallback(
+    async (runId: string) => {
+      const prepared = await defaultAgentRuntimeApi.prepareRunResume(runId)
+      const [thread, replay] = await Promise.all([
+        defaultAgentRuntimeApi.getThread(prepared.threadId),
+        defaultAgentRuntimeApi.listEvents(runId, 0)
+      ])
+      const restored = restoreMessages(thread, replay.items)
+      agent.threadId = prepared.threadId
+      agent.setMessages(restored as typeof agent.messages)
+      agent.setState((prepared.checkpoint?.state ?? {}) as typeof agent.state)
+      setCurrentThreadId(prepared.threadId)
+      setRecovered(restored.length > 0)
+      if (prepared.threadId !== routeThreadId) {
+        await navigate({
+          to: '/chat/$threadId',
+          params: { threadId: prepared.threadId },
+          replace: true
+        })
+      }
+      const resumedRunId = crypto.randomUUID()
+      activeRunIdRef.current = resumedRunId
+      try {
+        await copilotkit.runAgent({ agent, runId: resumedRunId })
+      } finally {
+        if (activeRunIdRef.current === resumedRunId) activeRunIdRef.current = undefined
+      }
+    },
+    [agent, copilotkit, navigate, routeThreadId, setCurrentThreadId]
+  )
+
+  const cancelRun = useCallback(
+    async (runId: string) => {
+      await defaultAgentRuntimeApi.cancelRun(runId)
+      if (activeRunIdRef.current === runId) {
+        activeRunIdRef.current = undefined
+        stopLocalAgent()
+      }
+    },
+    [stopLocalAgent]
+  )
+
+  useEffect(() => {
+    bindHandlers({
+      createThread,
+      selectThread,
+      renameThread,
+      deleteThread,
+      loadMoreThreads,
+      resumeRun,
+      cancelRun
+    })
+    return () => unbindHandlers()
+  }, [
+    bindHandlers,
+    cancelRun,
+    createThread,
+    deleteThread,
+    loadMoreThreads,
+    renameThread,
+    resumeRun,
+    selectThread,
+    unbindHandlers
+  ])
 
   return (
-    <div className="h-full flex flex-col relative">
-      <div className="flex h-11 shrink-0 items-center justify-between border-b px-4">
-        <div className="flex min-w-0 items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            title="对话历史"
-            onClick={() => setHistoryOpen(true)}
-          >
-            <History data-icon="inline-start" />
-          </Button>
-          <Button variant="ghost" size="icon-sm" title="新对话" onClick={() => void createThread()}>
-            <Plus data-icon="inline-start" />
-          </Button>
-          <Button variant="ghost" size="icon-sm" title="运行记录" onClick={() => setRunsOpen(true)}>
-            <Activity data-icon="inline-start" />
-          </Button>
-          <span className="truncate text-sm text-muted-foreground">
-            {threads.find((thread) => thread.id === currentThreadId)?.title || '新对话'}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          {!online && (
-            <Badge variant="destructive">
-              <WifiOff data-icon="inline-start" />
-              已离线
-            </Badge>
-          )}
-          {online && recovered && !agent.isRunning && runState !== 'waiting-approval' && (
-            <Badge variant="outline">
-              <CheckCircle2 data-icon="inline-start" />
-              已恢复
-            </Badge>
-          )}
-          {agent.isRunning && <Badge variant="secondary">正在运行</Badge>}
-          {runState === 'waiting-approval' && (
-            <Badge variant="destructive">
-              <ShieldAlert data-icon="inline-start" />
-              等待审批
-            </Badge>
-          )}
-          <span className="sr-only" aria-live="polite">
-            Default Agent 状态：{runState}
-          </span>
-        </div>
-      </div>
+    <div className="relative flex h-full flex-col">
+      <span className="sr-only" aria-live="polite">
+        Default Agent 状态：{runState}
+      </span>
       <Conversation>
         <ConversationContent>
           <div
             className="@5xl/content:mx-auto @5xl/content:w-full @5xl/content:max-w-5xl flex flex-col gap-4"
             style={{ paddingBottom: inputDockHeight }}
           >
-            <ChatMessages key={currentThreadId} threadId={currentThreadId} />
-            <ChatApprovalRegistration onPendingChange={setAwaitingApproval} />
+            {threadLoading ? (
+              <ChatThreadSkeleton />
+            ) : (
+              <>
+                <ChatMessages
+                  key={currentThreadId ?? DRAFT_ROUTE_THREAD_ID}
+                  threadId={currentThreadId ?? DRAFT_ROUTE_THREAD_ID}
+                />
+                <ChatApprovalRegistration onPendingChange={setAwaitingApproval} />
+              </>
+            )}
           </div>
         </ConversationContent>
         <ConversationScrollButton style={{ bottom: inputDockHeight + 10 }} />
@@ -245,17 +445,19 @@ function Chat() {
       <div
         ref={inputDockRef}
         className={cn(
-          'absolute bottom-0 z-10 inset-x-0 w-full px-6',
-          !hasMessages && 'bottom-1/2 translate-y-1/2'
+          'absolute inset-x-0 bottom-0 z-10 w-full px-6',
+          showEmptyGreeting && 'bottom-1/2 translate-y-1/2'
         )}
       >
         <div className="@5xl/content:mx-auto @5xl/content:w-full @5xl/content:max-w-5xl relative pb-4">
-          {!hasMessages && <ChatGreeting className="relative z-10" />}
+          {showEmptyGreeting && <ChatGreeting className="relative z-10" />}
           <ChatInput
             className="relative z-10"
             online={online}
             awaitingApproval={awaitingApproval}
+            loading={threadLoading}
             threadId={currentThreadId}
+            onEnsureThread={ensureThread}
             onRunStart={(runId) => {
               activeRunIdRef.current = runId
             }}
@@ -264,29 +466,19 @@ function Chat() {
             }}
             onStop={stopActiveRun}
           />
-          <div className="pointer-events-none absolute inset-0 z-0  w-full ">
-            <div className="bg-background h-full w-full backdrop-blur-xl mask-[linear-gradient(to_top,black_50%,transparent_85%)] [-webkit-mask-image:linear-gradient(to_top,black_50%,transparent_85%)] [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none"></div>
+          <div className="pointer-events-none absolute inset-0 z-0 w-full">
+            <div className="h-full w-full bg-background backdrop-blur-xl mask-[linear-gradient(to_top,black_50%,transparent_85%)] [-webkit-mask-image:linear-gradient(to_top,black_50%,transparent_85%)] [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none" />
           </div>
         </div>
       </div>
 
-      <ChatHistory
-        open={historyOpen}
-        onOpenChange={setHistoryOpen}
-        threads={threads.filter((thread) => thread.status !== 'archived')}
-        currentThreadId={currentThreadId}
-        loading={historyLoading}
-        onCreate={() => void createThread()}
-        onSelect={(threadId) => void selectThread(threadId)}
-        onArchive={(threadId) => void archiveThread(threadId)}
-        onDelete={(threadId) => void deleteThread(threadId)}
-      />
-
       <ChatRuns
         open={runsOpen}
-        onOpenChange={setRunsOpen}
+        onOpenChange={(open) => setRunsOpen(open, open ? runsThreadId : undefined)}
         threadId={
-          threads.some((thread) => thread.id === currentThreadId) ? currentThreadId : undefined
+          runsThreadId && threads.some((thread) => thread.id === runsThreadId)
+            ? runsThreadId
+            : undefined
         }
         onResume={resumeRun}
         onCancel={cancelRun}

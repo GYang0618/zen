@@ -4,57 +4,36 @@ import {
   createResponseMiddleware,
   isAxiosError
 } from '@zen/request'
-import { toast } from 'sonner'
 
 import { useAuthStore } from '@/stores'
 
 import { isAuthRecoveryExcludedRequestUrl } from './auth-paths'
-import { anonymousHttp, http } from './client'
+import { http } from './client'
+import {
+  beginRefreshAuthSession,
+  ensureFreshAccessToken,
+  notifyRefreshFailure
+} from './refresh-session'
 import { ApiClientError } from './types'
+import { unwrapResponseData } from './unwrap-response'
 import { buildFallback, fallbackMessage, isRequestErrorResponse } from './utils'
 
 import type { AxiosError, AxiosResponse } from '@zen/request'
-import type { AuthSession } from '@zen/shared'
-import type { RequestErrorResponse, RequestResponse, RetryableRequestConfig } from './types'
+import type { RequestErrorResponse, RetryableRequestConfig } from './types'
 
-type RefreshQueueEntry = {
-  resolve: (accessToken: string) => void
-  reject: (error: unknown) => void
-}
+export { unwrapResponseData } from './unwrap-response'
 
-type RefreshAuthResult =
-  | { ok: true; session: AuthSession }
-  | { ok: false; reason: 'auth' | 'transient'; cause: unknown }
-
-export function isRefreshUnauthorizedFailure(cause: unknown): boolean {
-  if (!isAxiosError(cause)) return false
-  return cause.response?.status === 401
-}
-
-/** 将刷新失败转为非 Axios 错误，避免走 globalErrorMiddleware 时误清登录态（如原请求仍为 401）。 */
-function refreshFailureToClientError(cause: unknown): Error {
-  if (!isAxiosError(cause)) {
-    if (cause instanceof Error) return cause
-    return new ApiClientError(buildFallback(503, fallbackMessage(undefined)))
+/* token设置中间件：过期前先换发，避免业务请求先 401 */
+export const withTokenMiddleware = createRequestMiddleware(async (config) => {
+  if (isAuthRecoveryExcludedRequestUrl(config.url)) {
+    const token = useAuthStore.getState().accessToken
+    if (token && config.headers) {
+      config.headers.set('Authorization', `Bearer ${token}`)
+    }
+    return config
   }
 
-  const status = cause.response?.status
-  const data = cause.response?.data as RequestErrorResponse | undefined
-
-  if (status !== undefined && isRequestErrorResponse(data)) {
-    return new ApiClientError(data)
-  }
-
-  if (status !== undefined) {
-    return new ApiClientError(buildFallback(status, fallbackMessage(status)))
-  }
-
-  return new ApiClientError(buildFallback(503, fallbackMessage(undefined)))
-}
-
-/* token设置中间件 */
-export const withTokenMiddleware = createRequestMiddleware((config) => {
-  const token = useAuthStore.getState().accessToken
+  const token = await ensureFreshAccessToken()
   if (token && config.headers) {
     config.headers.set('Authorization', `Bearer ${token}`)
   }
@@ -63,7 +42,6 @@ export const withTokenMiddleware = createRequestMiddleware((config) => {
 
 /* 数据转换中间件 */
 export const dataTransformMiddleware = createResponseMiddleware((response) => {
-  // 断言为AxiosResponse，真实数据跟据具体泛型决定，这只是解决类型兼容问题
   const data = unwrapResponseData(response) as AxiosResponse
   return data ?? response.data ?? response
 })
@@ -92,130 +70,40 @@ export const globalErrorMiddleware = createErrorMiddleware((error) => {
 
 export const tokenRefreshMiddleware = createTokenRefreshMiddleware()
 
-/* token刷新中间件 */
-let isTokenRefreshing = false
-let refreshQueue: RefreshQueueEntry[] = []
-
-// 刷新队列：有 error 则全部拒绝；无 error 则必须带新 accessToken 再 resolve
-function flushRefreshQueue(error: Error | null, accessToken: string | null) {
-  for (const item of refreshQueue) {
-    if (error) {
-      item.reject(error)
-    } else if (accessToken) {
-      item.resolve(accessToken)
-    } else {
-      item.reject(new Error('Unexpected refresh queue state'))
-    }
-  }
-  refreshQueue = []
-}
-
+/* token刷新中间件：401 兜底，与主动续期共用单飞 refresh */
 export function createTokenRefreshMiddleware() {
-  // 检查是否需要刷新
   const refreshCheck = (error: AxiosError): boolean => {
     const status = error.response?.status
     const originalConfig = error.config as RetryableRequestConfig | undefined
 
     if (status !== 401 || !originalConfig) return false
     if (originalConfig._retry) return false
-
-    // 匿名认证和二次验证失败都不代表访问令牌已过期
     if (isAuthRecoveryExcludedRequestUrl(originalConfig.url)) return false
 
     return true
   }
 
-  // 重试请求
   const retryWithAccessToken = (config: RetryableRequestConfig, accessToken: string) => {
     config.headers.set('Authorization', `Bearer ${accessToken}`)
-
     return http(config)
-  }
-
-  const refreshAuthSession = async (): Promise<RefreshAuthResult> => {
-    try {
-      const response = await anonymousHttp.post('/auth/refresh')
-      const session = unwrapResponseData<AuthSession>(response)
-      if (!session) {
-        return {
-          ok: false,
-          reason: 'transient',
-          cause: new Error('刷新接口返回数据异常')
-        }
-      }
-      return { ok: true, session }
-    } catch (cause: unknown) {
-      if (isRefreshUnauthorizedFailure(cause)) {
-        return { ok: false, reason: 'auth', cause }
-      }
-      return { ok: false, reason: 'transient', cause }
-    }
-  }
-
-  const settleRefreshQueue = (
-    options:
-      | { type: 'resolve'; session: AuthSession }
-      | { type: 'reject'; error: Error; clearAuth: boolean }
-  ) => {
-    const { clearAuth, setAuth } = useAuthStore.getState()
-    if (options.type === 'resolve') {
-      setAuth(options.session)
-      isTokenRefreshing = false
-      flushRefreshQueue(null, options.session.accessToken)
-    } else {
-      isTokenRefreshing = false
-      flushRefreshQueue(options.error, null)
-      if (options.clearAuth) {
-        clearAuth()
-      }
-    }
   }
 
   return createErrorMiddleware(async (error) => {
     if (!isAxiosError(error)) return Promise.reject(error)
 
-    const shouldRefresh = refreshCheck(error)
-
-    if (!shouldRefresh) return Promise.reject(error)
+    if (!refreshCheck(error)) return Promise.reject(error)
 
     const originalConfig = error.config as RetryableRequestConfig
-
     originalConfig._retry = true
 
-    if (isTokenRefreshing) {
-      const accessToken = await new Promise<string>((resolve, reject) => {
-        refreshQueue.push({ resolve, reject })
-      })
-      return retryWithAccessToken(originalConfig, accessToken)
+    const { isLeader, promise } = beginRefreshAuthSession()
+
+    try {
+      const session = await promise
+      return retryWithAccessToken(originalConfig, session.accessToken)
+    } catch (cause: unknown) {
+      notifyRefreshFailure(cause, isLeader)
+      return Promise.reject(cause)
     }
-
-    isTokenRefreshing = true
-
-    const refreshed = await refreshAuthSession()
-
-    if (!refreshed.ok) {
-      const clientError = refreshFailureToClientError(refreshed.cause)
-      settleRefreshQueue({
-        type: 'reject',
-        error: clientError,
-        clearAuth: refreshed.reason === 'auth'
-      })
-      toast.error(clientError.message)
-      return Promise.reject(clientError)
-    }
-
-    settleRefreshQueue({ type: 'resolve', session: refreshed.session })
-
-    return retryWithAccessToken(originalConfig, refreshed.session.accessToken)
   })
-}
-
-export function unwrapResponseData<T = unknown>(
-  response: AxiosResponse<RequestResponse<T>>
-): T | null {
-  const body = response.data
-  if (body && typeof body === 'object' && 'data' in body) {
-    return body.data
-  }
-  return null
 }

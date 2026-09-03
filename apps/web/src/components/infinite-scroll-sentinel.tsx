@@ -10,6 +10,8 @@ type InfiniteScrollSentinelProps = {
   onLoadMore: () => void
   onRetry?: () => void
   className?: string
+  rootSelector?: string
+  exhaustedLabel?: string | null
 }
 
 export function InfiniteScrollSentinel({
@@ -18,10 +20,13 @@ export function InfiniteScrollSentinel({
   isError = false,
   onLoadMore,
   onRetry,
-  className
+  className,
+  rootSelector,
+  exhaustedLabel = '已加载全部'
 }: InfiniteScrollSentinelProps) {
   const sentinelRef = useInViewCallback(onLoadMore, {
-    enabled: hasNextPage && !isFetchingNextPage && !isError
+    enabled: hasNextPage && !isFetchingNextPage && !isError,
+    rootSelector
   })
 
   return (
@@ -40,8 +45,8 @@ export function InfiniteScrollSentinel({
         </Button>
       ) : null}
 
-      {!hasNextPage && !isFetchingNextPage && !isError ? (
-        <p className="text-sm text-muted-foreground">已加载全部</p>
+      {!hasNextPage && !isFetchingNextPage && !isError && exhaustedLabel ? (
+        <p className="text-sm text-muted-foreground">{exhaustedLabel}</p>
       ) : null}
     </div>
   )

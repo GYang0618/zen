@@ -15,7 +15,8 @@ const boundedJsonSchema = z.unknown().refine(
 )
 
 export const threadListQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(100).default(30)
+  limit: z.coerce.number().int().min(1).max(100).default(30),
+  cursor: z.string().trim().min(1).max(200).optional()
 })
 
 export const threadUpdateSchema = z
@@ -63,7 +64,16 @@ export const evaluationCreateSchema = z.object({
 export const runListQuerySchema = z.object({
   threadId: z.string().min(1).max(200).optional(),
   status: z
-    .enum(['pending', 'running', 'finishing', 'succeeded', 'failed', 'cancelled', 'timed_out', 'interrupted'])
+    .enum([
+      'pending',
+      'running',
+      'finishing',
+      'succeeded',
+      'failed',
+      'cancelled',
+      'timed_out',
+      'interrupted'
+    ])
     .optional(),
   limit: z.coerce.number().int().min(1).max(100).default(30)
 })

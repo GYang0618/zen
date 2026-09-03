@@ -10,6 +10,8 @@ import { PrismaService } from '@/infra/prisma'
 import {
   asRecord,
   clamp,
+  decodeThreadCursor,
+  encodeThreadCursor,
   findTokenUsage,
   hashJson,
   normalizeRuntimeMessages,
@@ -273,11 +275,29 @@ export class DefaultAgentRuntimeStore {
     )
   }
 
-  async listThreads(auth: AuthContext, limit = 30) {
-    return this.prisma.agentThread.findMany({
-      where: { tenantId: auth.tenantId, userId: auth.userId, agentId: DEFAULT_AGENT_GRAPH_ID },
-      orderBy: { updatedAt: 'desc' },
-      take: clamp(limit, 1, 100),
+  async listThreads(auth: AuthContext, query: { limit?: number; cursor?: string } = {}) {
+    const pageSize = clamp(query.limit ?? 30, 1, 100)
+    const cursor = query.cursor ? decodeThreadCursor(query.cursor) : undefined
+    if (query.cursor && !cursor) {
+      throw new BadRequestException('Invalid thread cursor')
+    }
+
+    const records = await this.prisma.agentThread.findMany({
+      where: {
+        tenantId: auth.tenantId,
+        userId: auth.userId,
+        agentId: DEFAULT_AGENT_GRAPH_ID,
+        ...(cursor
+          ? {
+              OR: [
+                { updatedAt: { lt: cursor.updatedAt } },
+                { updatedAt: cursor.updatedAt, id: { lt: cursor.id } }
+              ]
+            }
+          : {})
+      },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      take: pageSize + 1,
       select: {
         id: true,
         title: true,
@@ -288,6 +308,16 @@ export class DefaultAgentRuntimeStore {
         _count: { select: { messages: true, runs: true } }
       }
     })
+
+    const hasMore = records.length > pageSize
+    const items = hasMore ? records.slice(0, pageSize) : records
+    const last = items.at(-1)
+
+    return {
+      items,
+      cursor: last ? encodeThreadCursor(last) : null,
+      hasMore
+    }
   }
 
   async listRuns(auth: AuthContext, query: { threadId?: string; status?: string; limit?: number }) {
