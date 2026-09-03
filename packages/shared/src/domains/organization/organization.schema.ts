@@ -14,7 +14,11 @@ const idSchema = z.string().trim().min(1)
 const dateSchema = z.iso.date()
 const dateTimeSchema = z.iso.datetime()
 
-export const organizationTypeSchema = z.enum(ORGANIZATION_TYPE_VALUES)
+export const organizationTypeSchema = z
+  .enum(ORGANIZATION_TYPE_VALUES)
+  .describe(
+    `组织类型：${ORGANIZATION_TYPE_VALUES.map((type) => `${type}=${ORGANIZATION_TYPE_LABELS[type]}`).join('；')}。必须为本企业已启用的类型；新建根组织仅限 ${ROOT_ORGANIZATION_TYPES.join('/')}`
+  )
 
 export const rootOrganizationTypeSchema = z.enum(ROOT_ORGANIZATION_TYPES)
 
@@ -38,13 +42,23 @@ export const organizationLeaderSchema = z.object({
 
 export const createOrganizationSchema = z
   .object({
-    code: organizationCodeSchema.describe('组织编码，创建后不可修改'),
-    name: organizationNameSchema,
-    type: organizationTypeSchema.describe('组织类型，必须是本企业已启用的类型'),
-    parentId: idSchema.nullable().default(null),
-    leaderId: idSchema.nullable().optional(),
-    effectiveDate: dateSchema,
-    description: z.string().trim().max(500).optional()
+    code: organizationCodeSchema.describe(
+      '组织编码，创建后不可修改。小写字母开头，仅小写字母/数字/下划线，2–50 字符'
+    ),
+    name: organizationNameSchema.describe('组织名称'),
+    type: organizationTypeSchema,
+    parentId: idSchema
+      .nullable()
+      .default(null)
+      .describe(
+        '父组织 ID，来自 query_organization_tree；null 表示创建根组织（仅已启用的 group/company）'
+      ),
+    leaderId: idSchema
+      .nullable()
+      .optional()
+      .describe('负责人用户 ID，来自 query_users_list；省略或 null 表示不指定'),
+    effectiveDate: dateSchema.describe('生效日期（YYYY-MM-DD）'),
+    description: z.string().trim().max(500).optional().describe('组织描述')
   })
   .strict()
   .superRefine((data, ctx) => {
@@ -59,23 +73,35 @@ export const createOrganizationSchema = z
 
 export const updateOrganizationSchema = z
   .object({
-    name: organizationNameSchema.optional(),
-    type: organizationTypeSchema.optional().describe('组织类型，必须是本企业已启用的类型'),
-    effectiveDate: dateSchema.optional(),
-    description: z.string().trim().max(500).nullable().optional()
+    name: organizationNameSchema.optional().describe('组织名称'),
+    type: organizationTypeSchema.optional(),
+    effectiveDate: dateSchema.optional().describe('生效日期（YYYY-MM-DD）'),
+    description: z
+      .string()
+      .trim()
+      .max(500)
+      .nullable()
+      .optional()
+      .describe('组织描述；null 表示清空')
   })
   .strict()
 
 export const updateOrganizationLeaderSchema = z
   .object({
-    leaderId: idSchema.nullable()
+    leaderId: idSchema
+      .nullable()
+      .describe('负责人用户 ID，来自 query_users_list；null 表示清空负责人')
   })
   .strict()
 
 /** 拖拽仅变更父级，不接受任何排序位置。 */
 export const changeOrganizationParentSchema = z
   .object({
-    parentId: idSchema.nullable()
+    parentId: idSchema
+      .nullable()
+      .describe(
+        '新的父组织 ID，来自 query_organization_tree；null 表示设为根组织（仅已启用的 group/company）'
+      )
   })
   .strict()
 
@@ -128,8 +154,14 @@ export const organizationActivitySchema = z.object({
 
 export const organizationActivitiesQuerySchema = pageQuerySchema
   .extend({
-    page: z.coerce.number().int().min(1).default(1),
-    pageSize: z.coerce.number().int().min(1).max(100).default(20)
+    page: z.coerce.number().int().min(1).default(1).describe('页码，默认 1'),
+    pageSize: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(100)
+      .default(20)
+      .describe('每页数量，默认 20，最大 100')
   })
   .strict()
 
@@ -189,13 +221,22 @@ export const organizationTypeCatalogResponseSchema = z.object({
 
 export const updateOrganizationTypeCatalogSchema = z
   .object({
-    items: z.array(
-      z.object({
-        type: organizationTypeSchema,
-        enabled: z.boolean(),
-        label: z.string().trim().min(1, '类型名称不能为空').max(20, '类型名称不能超过20个字符')
-      })
-    )
+    items: z
+      .array(
+        z.object({
+          type: organizationTypeSchema,
+          enabled: z.boolean().describe('是否启用该类型。company/department/team 为必选，不能关闭'),
+          label: z
+            .string()
+            .trim()
+            .min(1, '类型名称不能为空')
+            .max(20, '类型名称不能超过20个字符')
+            .describe('该类型在本企业的显示名称')
+        })
+      )
+      .describe(
+        '必须包含全部组织类型的完整列表。先 query_organization_type_catalog，再基于返回的 items 修改后整表提交'
+      )
   })
   .strict()
   .superRefine((data, ctx) => {

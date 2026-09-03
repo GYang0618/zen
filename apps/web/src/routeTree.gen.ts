@@ -30,7 +30,6 @@ import { Route as AuthenticatedOtherSettingsRouteRouteImport } from './routes/_a
 import { Route as AuthenticatedWorkbenchIndexRouteImport } from './routes/_authenticated/_workbench/index'
 import { Route as AuthenticatedWorkbenchBimRouteImport } from './routes/_authenticated/_workbench/bim'
 import { Route as AuthenticatedWorkbenchChatRouteImport } from './routes/_authenticated/_workbench/chat'
-import { Route as AuthenticatedWorkbenchChatV2RouteImport } from './routes/_authenticated/_workbench/chat-v2'
 import { Route as AuthenticatedWorkbenchGisRouteImport } from './routes/_authenticated/_workbench/gis'
 import { Route as AuthenticatedAiAgentsRouteImport } from './routes/_authenticated/ai/agents'
 import { Route as AuthenticatedAiSkillsRouteImport } from './routes/_authenticated/ai/skills'
@@ -164,12 +163,6 @@ const AuthenticatedWorkbenchChatRoute =
   AuthenticatedWorkbenchChatRouteImport.update({
     id: '/chat',
     path: '/chat',
-    getParentRoute: () => AuthenticatedWorkbenchRouteRoute,
-  } as any)
-const AuthenticatedWorkbenchChatV2Route =
-  AuthenticatedWorkbenchChatV2RouteImport.update({
-    id: '/chat-v2',
-    path: '/chat-v2',
     getParentRoute: () => AuthenticatedWorkbenchRouteRoute,
   } as any)
 const AuthenticatedWorkbenchGisRoute =
@@ -337,7 +330,6 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedOtherSettingsRouteRouteWithChildren
   '/bim': typeof AuthenticatedWorkbenchBimRoute
   '/chat': typeof AuthenticatedWorkbenchChatRoute
-  '/chat-v2': typeof AuthenticatedWorkbenchChatV2Route
   '/gis': typeof AuthenticatedWorkbenchGisRoute
   '/ai/agents': typeof AuthenticatedAiAgentsRoute
   '/ai/skills': typeof AuthenticatedAiSkillsRoute
@@ -381,7 +373,6 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedOtherSettingsRouteRouteWithChildren
   '/bim': typeof AuthenticatedWorkbenchBimRoute
   '/chat': typeof AuthenticatedWorkbenchChatRoute
-  '/chat-v2': typeof AuthenticatedWorkbenchChatV2Route
   '/gis': typeof AuthenticatedWorkbenchGisRoute
   '/ai/agents': typeof AuthenticatedAiAgentsRoute
   '/ai/skills': typeof AuthenticatedAiSkillsRoute
@@ -430,7 +421,6 @@ export interface FileRoutesById {
   '/_authenticated/system/_identity': typeof AuthenticatedSystemIdentityRouteRouteWithChildren
   '/_authenticated/_workbench/bim': typeof AuthenticatedWorkbenchBimRoute
   '/_authenticated/_workbench/chat': typeof AuthenticatedWorkbenchChatRoute
-  '/_authenticated/_workbench/chat-v2': typeof AuthenticatedWorkbenchChatV2Route
   '/_authenticated/_workbench/gis': typeof AuthenticatedWorkbenchGisRoute
   '/_authenticated/ai/agents': typeof AuthenticatedAiAgentsRoute
   '/_authenticated/ai/skills': typeof AuthenticatedAiSkillsRoute
@@ -477,7 +467,6 @@ export interface FileRouteTypes {
     | '/settings'
     | '/bim'
     | '/chat'
-    | '/chat-v2'
     | '/gis'
     | '/ai/agents'
     | '/ai/skills'
@@ -521,7 +510,6 @@ export interface FileRouteTypes {
     | '/settings'
     | '/bim'
     | '/chat'
-    | '/chat-v2'
     | '/gis'
     | '/ai/agents'
     | '/ai/skills'
@@ -569,7 +557,6 @@ export interface FileRouteTypes {
     | '/_authenticated/system/_identity'
     | '/_authenticated/_workbench/bim'
     | '/_authenticated/_workbench/chat'
-    | '/_authenticated/_workbench/chat-v2'
     | '/_authenticated/_workbench/gis'
     | '/_authenticated/ai/agents'
     | '/_authenticated/ai/skills'
@@ -754,13 +741,6 @@ declare module '@tanstack/react-router' {
       path: '/chat'
       fullPath: '/chat'
       preLoaderRoute: typeof AuthenticatedWorkbenchChatRouteImport
-      parentRoute: typeof AuthenticatedWorkbenchRouteRoute
-    }
-    '/_authenticated/_workbench/chat-v2': {
-      id: '/_authenticated/_workbench/chat-v2'
-      path: '/chat-v2'
-      fullPath: '/chat-v2'
-      preLoaderRoute: typeof AuthenticatedWorkbenchChatV2RouteImport
       parentRoute: typeof AuthenticatedWorkbenchRouteRoute
     }
     '/_authenticated/_workbench/gis': {
@@ -1004,7 +984,6 @@ const AuthenticatedOtherRouteRouteWithChildren =
 interface AuthenticatedWorkbenchRouteRouteChildren {
   AuthenticatedWorkbenchBimRoute: typeof AuthenticatedWorkbenchBimRoute
   AuthenticatedWorkbenchChatRoute: typeof AuthenticatedWorkbenchChatRoute
-  AuthenticatedWorkbenchChatV2Route: typeof AuthenticatedWorkbenchChatV2Route
   AuthenticatedWorkbenchGisRoute: typeof AuthenticatedWorkbenchGisRoute
   AuthenticatedWorkbenchIndexRoute: typeof AuthenticatedWorkbenchIndexRoute
 }
@@ -1013,7 +992,6 @@ const AuthenticatedWorkbenchRouteRouteChildren: AuthenticatedWorkbenchRouteRoute
   {
     AuthenticatedWorkbenchBimRoute: AuthenticatedWorkbenchBimRoute,
     AuthenticatedWorkbenchChatRoute: AuthenticatedWorkbenchChatRoute,
-    AuthenticatedWorkbenchChatV2Route: AuthenticatedWorkbenchChatV2Route,
     AuthenticatedWorkbenchGisRoute: AuthenticatedWorkbenchGisRoute,
     AuthenticatedWorkbenchIndexRoute: AuthenticatedWorkbenchIndexRoute,
   }

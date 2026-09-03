@@ -25,7 +25,7 @@ export const pageMetaSchema = z.object({
 /**
  * 标准列表响应：items + 分页元信息（与 `paginate` 实现一致）
  */
-export function paged<TItem extends z.ZodTypeAny>(item: TItem) {
+export function paged<TItem extends z.ZodType>(item: TItem) {
   return z.object({
     items: z.array(item),
     pagination: pageMetaSchema

@@ -8,9 +8,15 @@ const dateTimeSchema = z.iso.datetime()
 /** 组织岗位卡片中最近入职成员的头像预览上限 */
 export const POSITION_MEMBER_PREVIEW_LIMIT = 3
 
-export const jobProfileLevelSchema = z.enum(['P5', 'P6', 'P7', 'P8'])
-export const jobProfileStatusSchema = z.enum(['active', 'disabled'])
-export const organizationPositionStatusSchema = z.enum(['active', 'frozen'])
+export const jobProfileLevelSchema = z
+  .enum(['P5', 'P6', 'P7', 'P8'])
+  .describe('岗位职级：P5 / P6 / P7 / P8')
+export const jobProfileStatusSchema = z
+  .enum(['active', 'disabled'])
+  .describe('岗位目录状态：active=启用（可关联到组织编制）；disabled=停用')
+export const organizationPositionStatusSchema = z
+  .enum(['active', 'frozen'])
+  .describe('组织岗位编制状态：active=在用；frozen=冻结')
 
 export const JOB_PROFILE_ICON_VALUES = [
   'briefcase-business',
@@ -50,8 +56,12 @@ export const JOB_PROFILE_ICON_COLOR_VALUES = [
   'indigo'
 ] as const
 
-export const jobProfileIconSchema = z.enum(JOB_PROFILE_ICON_VALUES)
-export const jobProfileIconColorSchema = z.enum(JOB_PROFILE_ICON_COLOR_VALUES)
+export const jobProfileIconSchema = z
+  .enum(JOB_PROFILE_ICON_VALUES)
+  .describe('岗位图标（lucide 风格标识）')
+export const jobProfileIconColorSchema = z
+  .enum(JOB_PROFILE_ICON_COLOR_VALUES)
+  .describe('图标颜色 token')
 
 export const jobProfileCodeSchema = z
   .string()
@@ -60,23 +70,31 @@ export const jobProfileCodeSchema = z
 
 export const createJobProfileSchema = z
   .object({
-    code: jobProfileCodeSchema,
-    name: z.string().trim().min(1).max(100),
-    description: z.string().trim().max(500).optional(),
+    code: jobProfileCodeSchema.describe(
+      '岗位编码，格式 POS-四位数字（如 POS-1001），创建后不可修改'
+    ),
+    name: z.string().trim().min(1).max(100).describe('岗位名称'),
+    description: z.string().trim().max(500).optional().describe('岗位描述'),
     level: jobProfileLevelSchema,
-    family: z.string().trim().max(50).optional(),
+    family: z.string().trim().max(50).optional().describe('岗位族，如 研发 / 设计 / 市场'),
     icon: jobProfileIconSchema.nullable().optional(),
     iconColor: jobProfileIconColorSchema.nullable().optional(),
-    status: jobProfileStatusSchema.optional().default('active')
+    status: jobProfileStatusSchema.default('active')
   })
   .strict()
 
 export const updateJobProfileSchema = z
   .object({
-    name: z.string().trim().min(1).max(100).optional(),
-    description: z.string().trim().max(500).nullable().optional(),
+    name: z.string().trim().min(1).max(100).optional().describe('岗位名称'),
+    description: z
+      .string()
+      .trim()
+      .max(500)
+      .nullable()
+      .optional()
+      .describe('岗位描述；null 表示清空'),
     level: jobProfileLevelSchema.optional(),
-    family: z.string().trim().max(50).nullable().optional(),
+    family: z.string().trim().max(50).nullable().optional().describe('岗位族；null 表示清空'),
     icon: jobProfileIconSchema.nullable().optional(),
     iconColor: jobProfileIconColorSchema.nullable().optional(),
     status: jobProfileStatusSchema.optional()
@@ -85,9 +103,15 @@ export const updateJobProfileSchema = z
 
 export const findJobProfilesQuerySchema = pageQuerySchema
   .extend({
-    page: z.coerce.number().int().min(1).default(1),
-    pageSize: z.coerce.number().int().min(1).max(100).default(20),
-    keyword: z.string().trim().optional(),
+    page: z.coerce.number().int().min(1).default(1).describe('页码，默认 1'),
+    pageSize: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(100)
+      .default(20)
+      .describe('每页数量，默认 20，最大 100'),
+    keyword: z.string().trim().optional().describe('关键字：匹配岗位名称或编码'),
     status: jobProfileStatusSchema.optional(),
     level: jobProfileLevelSchema.optional()
   })
@@ -139,11 +163,11 @@ export const jobProfileDetailSchema = jobProfileSchema.extend({
 export const linkOrganizationPositionSchema = z
   .object({
     jobProfileId: idSchema.describe(
-      '岗位目录 ID，来自 query_job_profiles_list（须为启用且尚未挂到该组织）'
+      '岗位目录 ID，来自 query_job_profiles_list（须为启用且尚未挂到该组织）。这不是给用户任职用的 postId'
     ),
-    headcount: z.number().int().min(1).max(999),
+    headcount: z.number().int().min(1).max(999).describe('编制人数，1–999'),
     level: jobProfileLevelSchema.optional(),
-    description: z.string().trim().max(500).optional()
+    description: z.string().trim().max(500).optional().describe('编制说明')
   })
   .strict()
 
@@ -152,9 +176,21 @@ export const createPositionSchema = linkOrganizationPositionSchema
 
 export const updateOrganizationPositionSchema = z
   .object({
-    headcount: z.number().int().min(1).max(999).optional(),
+    headcount: z
+      .number()
+      .int()
+      .min(1)
+      .max(999)
+      .optional()
+      .describe('编制人数，1–999，且不能小于当前在岗人数'),
     level: jobProfileLevelSchema.nullable().optional(),
-    description: z.string().trim().max(500).nullable().optional(),
+    description: z
+      .string()
+      .trim()
+      .max(500)
+      .nullable()
+      .optional()
+      .describe('编制说明；null 表示清空'),
     status: organizationPositionStatusSchema.optional()
   })
   .strict()

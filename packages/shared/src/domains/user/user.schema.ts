@@ -2,26 +2,21 @@ import { z } from 'zod'
 
 import { organizationTypeSchema } from '../organization/organization.schema'
 import { paged, pageQuerySchema } from '../pagination'
+import { roleKindSchema, roleStatusSchema } from '../role/role.schema'
 
-export const userStatusSchema = z.union([
-  z.literal('active').describe('激活，账号正常可用'),
-  z.literal('inactive').describe('未激活，仅用于账号尚未完成激活流程，不表示管理员禁用'),
-  z.literal('pending').describe('待审核，账号等待审批'),
-  z.literal('suspended').describe('已停用/已禁用/已封禁，用于管理员禁用账户')
-])
+export const userStatusSchema = z
+  .enum(['active', 'inactive', 'pending', 'suspended'])
+  .describe(
+    '账号状态：active=正常可用；inactive=尚未完成激活流程（不是管理员禁用）；pending=待审核；suspended=管理员禁用/停用/封禁。禁用账户必须用 suspended，不要用 inactive'
+  )
 
-export const userGenderSchema = z.union([
-  z.literal('male').describe('男'),
-  z.literal('female').describe('女'),
-  z.literal('unknown').describe('未知')
-])
+export const userGenderSchema = z
+  .enum(['male', 'female', 'unknown'])
+  .describe('性别：male=男；female=女；unknown=未知')
 
-export const userMfaTypeSchema = z.union([
-  z.literal('totp'),
-  z.literal('sms'),
-  z.literal('email'),
-  z.literal('off')
-])
+export const userMfaTypeSchema = z
+  .enum(['totp', 'sms', 'email', 'off'])
+  .describe('MFA 类型：totp=验证器；sms=短信；email=邮箱；off=未开启')
 
 export const userPasswordSchema = z
   .string()
@@ -30,7 +25,7 @@ export const userPasswordSchema = z
   .regex(/[a-z]/, '密码必须包含至少一个小写字母')
   .regex(/\d/, '密码必须包含至少一个数字')
   .regex(/[\W_]/, '密码必须包含至少一个特殊字符')
-  .describe('密码')
+  .describe('登录密码，至少 8 位，须同时包含大小写字母、数字和特殊字符')
 
 const usernameSchema = z
   .string()
@@ -51,8 +46,8 @@ export const userRolePreviewSchema = z.object({
   description: z.string().nullable().describe('角色描述'),
   icon: z.string().nullable().describe('角色图标'),
   iconColor: z.string().nullable().describe('图标颜色'),
-  kind: z.union([z.literal('system'), z.literal('custom')]).describe('角色种类'),
-  status: z.union([z.literal('active'), z.literal('disabled')]).describe('角色状态'),
+  kind: roleKindSchema,
+  status: roleStatusSchema,
   permissionCount: z.number().int().nonnegative().describe('权限数量')
 })
 
@@ -60,17 +55,21 @@ export const userOrganizationMembershipSchema = z.object({
   organizationId: z.string().describe('组织 ID'),
   organizationName: z.string().describe('组织名称'),
   organizationCode: z.string().describe('组织编码'),
-  organizationType: organizationTypeSchema.describe('组织类型'),
+  organizationType: organizationTypeSchema,
   isPrimary: z.boolean().describe('是否主职'),
-  postId: z.string().nullable().describe('岗位 ID'),
+  postId: z.string().nullable().describe('组织岗位编制 ID'),
   postName: z.string().nullable().describe('岗位名称'),
   postLevel: z.string().nullable().describe('岗位职级'),
   joinedAt: z.string().nullable().describe('入职时间（ISO 8601）')
 })
 
 export const userOrganizationInputSchema = z.object({
-  organizationId: z.string().trim().min(1, '组织 ID 不能为空').describe('组织 ID'),
-  isPrimary: z.boolean().optional().describe('是否主职'),
+  organizationId: z
+    .string()
+    .trim()
+    .min(1, '组织 ID 不能为空')
+    .describe('组织 ID，来自 query_organization_tree 返回节点的 id'),
+  isPrimary: z.boolean().optional().describe('是否设为主职；同一用户最多一个主职'),
   postId: z
     .string()
     .trim()
@@ -89,16 +88,16 @@ export const userSchema = z.object({
   nickname: z.string().nullable().describe('昵称'),
   realName: z.string().nullable().describe('真实姓名'),
   avatar: z.string().nullable().describe('头像'),
-  gender: userGenderSchema.describe('性别'),
+  gender: userGenderSchema,
   email: z.string().describe('邮箱'),
   phoneNumber: z.string().nullable().describe('手机号码'),
-  status: userStatusSchema.describe('账号状态'),
+  status: userStatusSchema,
   isLocked: z.boolean().describe('是否锁定'),
   lockExpireAt: z.string().nullable().describe('锁定到期时间（ISO 8601）'),
   roles: z.array(userRolePreviewSchema).describe('已绑定角色'),
   organizations: z.array(userOrganizationMembershipSchema).describe('在职组织归属'),
   mfaEnabled: z.boolean().describe('是否启用 MFA'),
-  mfaType: userMfaTypeSchema.describe('MFA 类型'),
+  mfaType: userMfaTypeSchema,
   mustChangePassword: z.boolean().describe('下次登录是否必须改密'),
   lastPasswordChange: z.string().nullable().describe('上次改密时间（ISO 8601）'),
   passwordExpireAt: z
@@ -130,7 +129,7 @@ export const createUserSchema = z.object({
   nickname: nicknameSchema.optional().describe('昵称'),
   realName: realNameSchema.optional().describe('真实姓名'),
   phoneNumber: phoneNumberSchema.optional().describe('手机号码'),
-  gender: userGenderSchema.optional().describe('性别'),
+  gender: userGenderSchema.optional(),
   remark: remarkSchema.optional().describe('备注'),
   roleIds: z
     .array(z.string().trim().min(1, '角色 ID 不能为空'))
@@ -159,7 +158,7 @@ export const updateUserSchema = z
     nickname: nicknameSchema.nullable().optional().describe('昵称'),
     realName: realNameSchema.nullable().optional().describe('真实姓名'),
     phoneNumber: phoneNumberSchema.nullable().optional().describe('手机号码'),
-    gender: userGenderSchema.optional().describe('性别'),
+    gender: userGenderSchema.optional(),
     remark: remarkSchema.nullable().optional().describe('备注'),
     avatar: z.string().trim().max(2048).nullable().optional().describe('头像文件 ID 或兼容 URL')
   })
@@ -167,7 +166,7 @@ export const updateUserSchema = z
 
 export const adminResetPasswordSchema = z.object({
   password: userPasswordSchema,
-  mustChangePassword: z.boolean().optional().describe('下次登录是否必须修改密码')
+  mustChangePassword: z.boolean().optional().describe('下次登录是否必须修改密码；省略时默认为 true')
 })
 
 export const deleteUsersSchema = z.object({
@@ -183,7 +182,7 @@ export const updateUsersStatusSchema = z.object({
     .min(1, '至少需要一个用户 ID')
     .describe('要更新状态的用户 ID 列表'),
   status: userStatusSchema.describe(
-    '目标状态。用户要求禁用、停用、封禁、冻结账户时必须使用 suspended；inactive 只表示账号未完成激活流程'
+    '目标账号状态：active=正常可用；inactive=尚未完成激活（不是禁用）；pending=待审核；suspended=管理员禁用/停用/封禁。用户要求禁用、停用、封禁、冻结时必须用 suspended'
   )
 })
 
@@ -197,7 +196,9 @@ export const assignUserRolesSchema = z.object({
 
 /** 覆盖式同步用户组织归属 */
 export const replaceUserOrganizationsSchema = z.object({
-  organizations: z.array(userOrganizationInputSchema).describe('组织归属列表（覆盖当前在职记录）')
+  organizations: z
+    .array(userOrganizationInputSchema)
+    .describe('组织归属列表，覆盖当前在职记录；传入空数组表示清空全部组织归属')
 })
 
 /** 更新基本资料后的局部响应 */
@@ -225,14 +226,12 @@ export const replaceUserOrganizationsResultSchema = userSchema.pick({
   organizations: true
 })
 
-export const usersSortBySchema = z.enum([
-  'username',
-  'email',
-  'createdAt',
-  'lastLoginAt',
-  'lastActiveAt'
-])
-export const usersSortOrderSchema = z.enum(['asc', 'desc'])
+export const usersSortBySchema = z
+  .enum(['username', 'email', 'createdAt', 'lastLoginAt', 'lastActiveAt'])
+  .describe('排序字段：username / email / createdAt / lastLoginAt / lastActiveAt')
+export const usersSortOrderSchema = z
+  .enum(['asc', 'desc'])
+  .describe('排序方向：asc=升序；desc=降序')
 
 export const usersQuerySchema = pageQuerySchema.extend({
   keyword: z
@@ -243,14 +242,19 @@ export const usersQuerySchema = pageQuerySchema.extend({
   status: z
     .union([userStatusSchema, userStatusSchema.array()])
     .optional()
-    .describe('状态,支持单个或多个,如: `active` 或者 [`active`, `inactive`]'),
+    .describe('按账号状态筛选，支持单个或多个，如 `active` 或 [`active`, `suspended`]'),
   role: z
     .union([z.string(), z.string().array()])
     .optional()
-    .describe('角色编码,支持单个或多个,例如: `admin` 或者 [`admin`, `guest`]'),
-  organizationId: z.string().trim().min(1).optional().describe('按在职组织筛选'),
-  sortBy: usersSortBySchema.optional().describe('排序字段'),
-  sortOrder: usersSortOrderSchema.optional().describe('排序方向')
+    .describe('按角色编码筛选（code，不是 id），支持单个或多个，如 `admin` 或 [`admin`, `guest`]'),
+  organizationId: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe('按在职组织 ID 筛选，来自 query_organization_tree'),
+  sortBy: usersSortBySchema.optional(),
+  sortOrder: usersSortOrderSchema.optional()
 })
 
 export const usersPageSchema = paged(userSchema)

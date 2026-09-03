@@ -1,6 +1,8 @@
 import { z } from 'zod'
 
-export const dictStatusSchema = z.union([z.literal('active'), z.literal('disabled')])
+export const dictStatusSchema = z
+  .enum(['active', 'disabled'])
+  .describe('字典项状态：active=启用；disabled=禁用')
 
 export const createDictTypeSchema = z.object({
   code: z

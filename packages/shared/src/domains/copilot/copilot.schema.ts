@@ -89,7 +89,7 @@ export const copilotRunEventSchema = z.object({
   toolName: z.string().optional(),
   delta: z.string().optional(),
   payload: z.unknown().optional(),
-  createdAt: z.string().datetime()
+  createdAt: z.iso.datetime()
 })
 
 /** 默认预算的结构校验器，供配置加载和测试复用。 */
@@ -102,8 +102,8 @@ export const copilotRunSchema = z.object({
   budget: copilotRunBudgetSchema,
   currentTurnId: z.string().optional(),
   endReason: copilotRunEndReasonSchema.optional(),
-  startedAt: z.string().datetime().optional(),
-  endedAt: z.string().datetime().optional()
+  startedAt: z.iso.datetime().optional(),
+  endedAt: z.iso.datetime().optional()
 })
 
 export const copilotTurnSchema = z.object({
@@ -112,8 +112,8 @@ export const copilotTurnSchema = z.object({
   sequence: z.number().int().nonnegative(),
   status: copilotRunStatusSchema,
   endReason: copilotRunEndReasonSchema.optional(),
-  startedAt: z.string().datetime().optional(),
-  endedAt: z.string().datetime().optional()
+  startedAt: z.iso.datetime().optional(),
+  endedAt: z.iso.datetime().optional()
 })
 
 /** reasoning/activity 是展示事件，不属于可回传模型的 Message。 */
@@ -166,9 +166,9 @@ export const copilotThreadSchema = z.object({
   agentId: z.literal('default_agent'),
   title: z.string().nullable(),
   status: z.enum(['active', 'archived']),
-  lastMessageAt: z.string().datetime().nullable(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime()
+  lastMessageAt: z.iso.datetime().nullable(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime()
 })
 
 export const copilotEventPageSchema = z.object({
@@ -197,7 +197,7 @@ export const copilotApprovalSchema = z.object({
   status: copilotApprovalStatusSchema,
   decision: copilotApprovalDecisionSchema.nullable(),
   reason: z.string().nullable(),
-  expiresAt: z.string().datetime()
+  expiresAt: z.iso.datetime()
 })
 
 export const copilotMemorySchema = z.object({
@@ -210,10 +210,10 @@ export const copilotMemorySchema = z.object({
   sensitivity: z.enum(['private', 'non_sensitive']),
   shareWithModel: z.boolean(),
   modelProvider: z.literal('qwen').nullable(),
-  approvedForModelAt: z.string().datetime().nullable(),
-  expiresAt: z.string().datetime().nullable(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime()
+  approvedForModelAt: z.iso.datetime().nullable(),
+  expiresAt: z.iso.datetime().nullable(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime()
 })
 
 export const copilotEvaluationSchema = z.object({
@@ -223,7 +223,7 @@ export const copilotEvaluationSchema = z.object({
   metric: z.string().min(1),
   score: z.number().min(0).max(1),
   details: z.unknown().optional(),
-  createdAt: z.string().datetime()
+  createdAt: z.iso.datetime()
 })
 
 export const copilotArtifactSchema = z.object({
@@ -237,5 +237,5 @@ export const copilotArtifactSchema = z.object({
   size: z.number().int().nonnegative(),
   summary: z.string().nullable(),
   status: z.enum(['available', 'expired', 'deleted']),
-  createdAt: z.string().datetime()
+  createdAt: z.iso.datetime()
 })
