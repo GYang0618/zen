@@ -16,9 +16,7 @@ export const pluginApiContributionSchema = z.object({
 
 export const pluginRouteContributionSchema = z.object({
   id: z.string().min(1),
-  path: z
-    .string()
-    .regex(PLUGIN_ROUTE_PATH_PATTERN, 'route.path 须匹配 /plugins/[a-z0-9-]+'),
+  path: z.string().regex(PLUGIN_ROUTE_PATH_PATTERN, 'route.path 须匹配 /plugins/[a-z0-9-]+'),
   entry: z.string().min(1),
   componentExport: z.string().min(1),
   title: z.string().min(1),
@@ -47,7 +45,18 @@ export const pluginWidgetContributionSchema = z.object({
 
 export const pluginAgentToolsContributionSchema = z.object({
   entry: z.string().min(1),
-  export: z.string().min(1)
+  export: z.string().min(1),
+  requiredPermissions: z.array(z.string()).default([]),
+  toolUi: z
+    .array(
+      z.object({
+        toolName: z.string().min(1),
+        entry: z.string().min(1),
+        componentExport: z.string().min(1)
+      })
+    )
+    .default([]),
+  agentPrompts: z.array(z.string().min(1)).default([])
 })
 
 export const zenPluginManifestSchema = z.object({

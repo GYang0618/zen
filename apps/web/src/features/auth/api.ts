@@ -1,4 +1,5 @@
 import { request } from '@/lib/request'
+import { refreshAuthSessionOnce } from '@/lib/request/refresh-session'
 
 import type { AuthSession, UpdateMyProfile } from '@zen/shared'
 
@@ -100,7 +101,7 @@ export const authApi = {
       payload
     ),
   signUp: (data: SignUpData) => request.post<AuthSession, SignUpData>('/auth/register', data),
-  refresh: () => request.post<AuthSession, void>('/auth/refresh'),
+  refresh: () => refreshAuthSessionOnce(),
   signOut: () => request.post<void, void>('/auth/logout'),
   getMe: () => request.get<MeResponse>('/auth/me'),
   updateMe: (data: UpdateMyProfile) => request.patch<MeResponse, UpdateMyProfile>('/auth/me', data),

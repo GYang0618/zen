@@ -11,7 +11,7 @@ import {
   TabsList,
   TabsTrigger
 } from '@zen/ui'
-import { LayoutGrid, TextAlignJustify } from 'lucide-react'
+import { LayoutGrid, TextAlignStart } from 'lucide-react'
 import { useState } from 'react'
 
 import { AppHeader, Main } from '@/components/layouts'
@@ -124,10 +124,10 @@ function FilesContent() {
               type="button"
               size="icon"
               variant={view === 'table' ? 'secondary' : 'outline'}
-              aria-label="表格视图"
+              aria-label="列表视图"
               onClick={() => setView('table')}
             >
-              <TextAlignJustify />
+              <TextAlignStart />
             </Button>
           </div>
         </div>

@@ -13,6 +13,7 @@
     "check:permissions": "node scripts/check-permission-codes.mjs",
     "check:unguarded-writes": "node scripts/check-unguarded-writes.mjs",
     "check:plugin-guards": "node scripts/check-plugin-guards.mjs",
+    "check:default-agent": "node scripts/check-default-agent-boundaries.mjs",
     "check:rbac": "pnpm run check:permissions && pnpm run check:unguarded-writes && pnpm run check:plugin-guards",
     "plugin:validate": "pnpm -F @zen/plugin-sdk build && pnpm -F @zen/plugin-sdk validate",
     "plugin:generate": "pnpm -F @zen/plugin-sdk build && pnpm -F @zen/plugin-sdk generate && pnpm -F @zen/plugin-sdk build",

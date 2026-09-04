@@ -4,7 +4,14 @@ import { ACCESS_TOKEN_CONFIGURABLE_KEY } from '@zen/shared'
 
 import type { RunnableConfig } from '@langchain/core/runnables'
 
-const accessTokenStorage = new AsyncLocalStorage<string>()
+interface AgentRequestContext {
+  accessToken: string
+  idempotencyKey?: string
+  stepUpToken?: string
+  signal?: AbortSignal
+}
+
+const requestContextStorage = new AsyncLocalStorage<AgentRequestContext>()
 
 /** LangGraph / ToolNode 注入的运行时 config（含 context） */
 type AgentRunnableConfig = RunnableConfig & {
@@ -43,7 +50,7 @@ export function getAccessTokenFromConfig(config?: RunnableConfig): string {
 
 /** 在当前异步上下文中读取 access token（由 executeApiCall 注入） */
 export function getCurrentAccessToken(): string {
-  const token = accessTokenStorage.getStore()
+  const token = requestContextStorage.getStore()?.accessToken
 
   if (typeof token !== 'string' || token.trim() === '') {
     throw new Error('缺少用户 access token，无法调用后端用户 API')
@@ -52,7 +59,26 @@ export function getCurrentAccessToken(): string {
   return token
 }
 
+export function getCurrentIdempotencyKey(): string | undefined {
+  return requestContextStorage.getStore()?.idempotencyKey
+}
+
+export function getCurrentAbortSignal(): AbortSignal | undefined {
+  return requestContextStorage.getStore()?.signal
+}
+
+export function getCurrentStepUpToken(): string | undefined {
+  const token = requestContextStorage.getStore()?.stepUpToken
+  return typeof token === 'string' && token.trim() !== '' ? token : undefined
+}
+
 /** 在指定 token 的异步上下文中执行（供 SDK client.auth 回调使用） */
-export function runWithAccessToken<T>(accessToken: string, fn: () => Promise<T>): Promise<T> {
-  return accessTokenStorage.run(accessToken, fn)
+export function runWithAccessToken<T>(
+  accessToken: string,
+  fn: () => Promise<T>,
+  idempotencyKey?: string,
+  signal?: AbortSignal,
+  stepUpToken?: string
+): Promise<T> {
+  return requestContextStorage.run({ accessToken, idempotencyKey, signal, stepUpToken }, fn)
 }

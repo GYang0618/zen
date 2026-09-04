@@ -1,5 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { Gender, UserStatusCode } from '@prisma/client'
+import { completePageQuery } from '@zen/shared'
 
 import { toArray } from '@/common'
 import { applyUserListDataScope } from '@/common/auth/apply-data-scope'
@@ -134,6 +135,9 @@ export class UserService {
   }
 
   async getUserInfoByUserId(userId: string): Promise<UserInfoResponse> {
+    const existing = await this.userRepo.findActiveBasicInfoById(userId)
+    if (!existing) throw new NotFoundException('用户不存在')
+
     await this.userRepo.ensureDomainData(userId)
 
     const user = await this.userRepo.findActiveWithDomainById(userId)
@@ -143,6 +147,9 @@ export class UserService {
   }
 
   async getUserById(userId: string): Promise<UserResponse> {
+    const existing = await this.userRepo.findActiveBasicInfoById(userId)
+    if (!existing) throw new NotFoundException('用户不存在')
+
     await this.userRepo.ensureDomainData(userId)
 
     const user = await this.userRepo.findActiveWithDomainById(userId)
@@ -280,14 +287,12 @@ export class UserService {
   }
 
   async findAll(query?: FindUsersQueryDto, auth?: AuthContext): Promise<UserListResponse> {
-    const hasPage = query?.page !== undefined
-    const hasPageSize = query?.pageSize !== undefined
-    if (hasPage !== hasPageSize) {
-      throw new BadRequestException('page 和 pageSize 必须同时传入')
-    }
+    const completedQuery = completePageQuery(query ?? {})
+    const hasPage = completedQuery.page !== undefined
+    const hasPageSize = completedQuery.pageSize !== undefined
 
     const { keyword, status, role, organizationId, page, pageSize, sortBy, sortOrder } =
-      findUsersQuerySchema.parse(query ?? {})
+      findUsersQuerySchema.parse(completedQuery)
     const where = this.buildFindUsersWhere(
       {
         keyword,

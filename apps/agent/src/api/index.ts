@@ -1,7 +1,12 @@
 import { createClient } from '../api-client/client'
 import { client } from '../api-client/client.gen'
 import { configs } from '../configs/env'
-import { getCurrentAccessToken } from './request-context'
+import {
+  getCurrentAbortSignal,
+  getCurrentAccessToken,
+  getCurrentIdempotencyKey,
+  getCurrentStepUpToken
+} from './request-context'
 
 export * from '../api-client'
 export { asSdkOptions, executeApiCall, toQueryArray, unwrapApiSuccessData } from './call-api'
@@ -20,4 +25,13 @@ client.setConfig({
   responseStyle: 'data',
   throwOnError: true,
   auth: getCurrentAccessToken
+})
+
+client.interceptors.request.use((request) => {
+  const idempotencyKey = getCurrentIdempotencyKey()
+  const stepUpToken = getCurrentStepUpToken()
+  const headers = new Headers(request.headers)
+  if (idempotencyKey) headers.set('x-agent-idempotency-key', idempotencyKey)
+  if (stepUpToken) headers.set('x-step-up-token', stepUpToken)
+  return new Request(request, { headers, signal: getCurrentAbortSignal() ?? request.signal })
 })

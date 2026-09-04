@@ -1,9 +1,8 @@
 import { z } from 'zod'
 
-export const permissionCatalogStatusSchema = z.union([
-  z.literal('active').describe('可用'),
-  z.literal('deprecated').describe('已下线')
-])
+export const permissionCatalogStatusSchema = z
+  .enum(['active', 'deprecated'])
+  .describe('权限目录状态：active=可用（分配权限时只能用这个）；deprecated=已下线，禁止再分配')
 
 export const permissionSchema = z.object({
   id: z.string().describe('权限 ID'),
@@ -13,7 +12,7 @@ export const permissionSchema = z.object({
   resource: z.string().nullable().describe('资源'),
   action: z.string().nullable().describe('动作'),
   description: z.string().nullable().describe('描述'),
-  status: permissionCatalogStatusSchema.default('active').describe('目录状态'),
+  status: permissionCatalogStatusSchema.default('active'),
   source: z.string().nullable().describe('来源：kernel 或 plugin:<id>')
 })
 
@@ -23,17 +22,14 @@ export const permissionGroupSchema = z.object({
 })
 
 /** 字段权限策略（本期仅预留类型，业务未启用） */
-export const fieldAccessSchema = z.union([
-  z.literal('none').describe('隐藏'),
-  z.literal('masked').describe('脱敏'),
-  z.literal('read').describe('只读'),
-  z.literal('write').describe('可写')
-])
+export const fieldAccessSchema = z
+  .enum(['none', 'masked', 'read', 'write'])
+  .describe('字段访问级别：none=隐藏；masked=脱敏；read=只读；write=可写')
 
 export const roleFieldPolicySchema = z.object({
   resource: z.string().min(1).describe('资源标识，如 user'),
   fieldKey: z.string().min(1).describe('字段键，如 phoneNumber'),
-  access: fieldAccessSchema.describe('访问级别')
+  access: fieldAccessSchema
 })
 
 export type Permission = z.infer<typeof permissionSchema>

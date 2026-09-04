@@ -32,7 +32,7 @@ import type { Position } from '../type'
 
 const linkPositionFormSchema = z.object({
   jobProfileId: z.string().min(1, '请选择岗位'),
-  headcount: z.coerce.number().int().min(1, '编制人数至少为 1').max(999),
+  headcount: z.number().int().min(1, '编制人数至少为 1').max(999),
   level: z.enum(['P5', 'P6', 'P7', 'P8']).or(z.literal('')),
   description: z.string().trim().max(500)
 })
@@ -153,7 +153,7 @@ export function OrganizationCreatePositionDialog({
                       min={1}
                       max={999}
                       value={field.value}
-                      onChange={(event) => field.onChange(event.target.value)}
+                      onChange={(event) => field.onChange(event.target.valueAsNumber)}
                       aria-invalid={fieldState.invalid || undefined}
                     />
                     {fieldState.error ? <FieldError>{fieldState.error.message}</FieldError> : null}

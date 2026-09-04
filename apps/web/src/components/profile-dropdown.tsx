@@ -64,12 +64,6 @@ export function ProfileDropdown() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link to="/">
-                账单与订阅
-                <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
               <Link to="/settings/profile">
                 账户设置
                 <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
@@ -78,7 +72,6 @@ export function ProfileDropdown() {
             <DropdownMenuItem asChild>
               <Link to="/settings/appearance">外观设置</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>新建团队</DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onClick={() => setOpen(true)}>

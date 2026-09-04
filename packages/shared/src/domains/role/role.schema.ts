@@ -49,34 +49,29 @@ export const ROLE_ICON_COLOR_VALUES = [
   'indigo'
 ] as const
 
-export const roleStatusSchema = z.union([
-  z.literal('active').describe('启用'),
-  z.literal('disabled').describe('禁用')
-])
+export const roleStatusSchema = z
+  .enum(['active', 'disabled'])
+  .describe('角色持久化状态：active=启用；disabled=禁用')
 
-/** 展示用派生状态：locked/expired 由 kind / expiresAt 计算 */
-export const roleEffectiveStatusSchema = z.union([
-  z.literal('active').describe('激活'),
-  z.literal('disabled').describe('冻结'),
-  z.literal('expired').describe('过期'),
-  z.literal('locked').describe('锁定')
-])
+/** 展示用派生状态：locked/expired 由 kind / expiresAt 计算，不可直接写入 */
+export const roleEffectiveStatusSchema = z
+  .enum(['active', 'disabled', 'expired', 'locked'])
+  .describe(
+    '角色派生展示状态（由 kind / expiresAt 计算，不可直接写入）：active=激活；disabled=冻结；expired=已过期；locked=系统角色锁定'
+  )
 
-export const roleKindSchema = z.union([
-  z.literal('system').describe('系统角色'),
-  z.literal('custom').describe('自定义角色')
-])
+export const roleKindSchema = z
+  .enum(['system', 'custom'])
+  .describe('角色种类：system=系统内置；custom=自定义')
 
-export const roleDataScopeSchema = z.union([
-  z.literal('all').describe('全部数据'),
-  z.literal('org_and_child').describe('本组织及下级'),
-  z.literal('org').describe('仅本组织'),
-  z.literal('self').describe('仅本人数据'),
-  z.literal('custom').describe('自定义组织白名单')
-])
+export const roleDataScopeSchema = z
+  .enum(['all', 'org_and_child', 'org', 'self', 'custom'])
+  .describe(
+    '数据权限范围：all=全部数据；org_and_child=本组织及下级；org=仅本组织；self=仅本人数据；custom=自定义组织白名单（须同时提供 customOrgIds）'
+  )
 
-export const roleIconSchema = z.enum(ROLE_ICON_VALUES)
-export const roleIconColorSchema = z.enum(ROLE_ICON_COLOR_VALUES)
+export const roleIconSchema = z.enum(ROLE_ICON_VALUES).describe('角色图标（lucide 风格标识）')
+export const roleIconColorSchema = z.enum(ROLE_ICON_COLOR_VALUES).describe('图标颜色 token')
 
 const roleCodeSchema = z
   .string()
@@ -85,8 +80,16 @@ const roleCodeSchema = z
   .max(50, '角色编码不能超过50个字符')
   .regex(/^[a-z][a-z0-9_]*$/, '角色编码仅支持小写字母、数字和下划线，且以字母开头')
 
+const roleExpiresAtInputSchema = z
+  .union([z.iso.datetime({ offset: true }), z.iso.date()])
+  .nullable()
+  .optional()
+  .describe('过期时间，ISO 日期（YYYY-MM-DD）或带时区的 ISO datetime；null 表示长期有效')
+
 const createRoleObjectSchema = z.object({
-  code: roleCodeSchema.describe('角色编码，创建后不可修改'),
+  code: roleCodeSchema.describe(
+    '角色编码，创建后不可修改。小写字母开头，仅小写字母/数字/下划线，2–50 字符'
+  ),
   name: z
     .string()
     .trim()
@@ -94,23 +97,19 @@ const createRoleObjectSchema = z.object({
     .max(50, '角色名称不能超过50个字符')
     .describe('角色名称'),
   description: z.string().trim().max(200, '描述不能超过200个字符').optional().describe('角色描述'),
-  icon: roleIconSchema.nullable().optional().describe('角色图标'),
-  iconColor: roleIconColorSchema.nullable().optional().describe('图标颜色'),
-  expiresAt: z
-    .union([z.string().datetime({ offset: true }), z.string().date()])
-    .nullable()
-    .optional()
-    .describe('过期时间（ISO date 或 datetime），null 表示长期有效'),
-  dataScope: roleDataScopeSchema.default('self').describe('数据权限范围'),
+  icon: roleIconSchema.nullable().optional(),
+  iconColor: roleIconColorSchema.nullable().optional(),
+  expiresAt: roleExpiresAtInputSchema,
+  dataScope: roleDataScopeSchema.default('self'),
   customOrgIds: z
     .array(z.string().trim().min(1))
     .optional()
-    .describe('CUSTOM 数据范围时的组织 ID 白名单'),
+    .describe('dataScope=custom 时必填的组织 ID 白名单，ID 来自 query_organization_tree'),
   sort: z.number().int().min(0).max(9999).optional().describe('排序值，越小越靠前'),
   permissionCodes: z
     .array(z.string().trim().min(1))
     .optional()
-    .describe('权限编码列表（必须来自 query_permissions_list 的 active code）')
+    .describe('权限编码列表（必须来自 query_permissions_list 的 active code，不要编造）')
 })
 
 export const createRoleSchema = createRoleObjectSchema.superRefine((value, ctx) => {
@@ -127,7 +126,7 @@ export const updateRoleSchema = createRoleObjectSchema
   .omit({ code: true, permissionCodes: true })
   .partial()
   .extend({
-    status: roleStatusSchema.optional().describe('角色状态')
+    status: roleStatusSchema.optional()
   })
   .superRefine((value, ctx) => {
     if (
@@ -153,19 +152,25 @@ export const deleteRolesSchema = z.object({
 export const assignRolePermissionsSchema = z.object({
   permissionCodes: z
     .array(z.string().trim().min(1))
-    .describe('权限编码列表（必须来自 query_permissions_list 的 active code）'),
+    .describe('权限编码列表（必须来自 query_permissions_list 的 active code，不要编造）'),
   /** 乐观锁：打开编辑时的 updatedAt */
-  baseVersion: z.string().min(1).describe('并发基线版本（ISO 8601）')
+  baseVersion: z
+    .string()
+    .min(1)
+    .describe('乐观锁版本，必须传入 query_role_detail 返回的 updatedAt；冲突时先重新查询再重试')
 })
 
 export const assignRoleDataScopeSchema = z
   .object({
-    dataScope: roleDataScopeSchema.describe('数据权限范围'),
+    dataScope: roleDataScopeSchema,
     customOrgIds: z
       .array(z.string().trim().min(1))
       .optional()
-      .describe('CUSTOM 数据范围时的组织 ID 白名单'),
-    baseVersion: z.string().min(1).describe('并发基线版本（ISO 8601）')
+      .describe('dataScope=custom 时必填的组织 ID 白名单，ID 来自 query_organization_tree'),
+    baseVersion: z
+      .string()
+      .min(1)
+      .describe('乐观锁版本，必须传入 query_role_detail 返回的 updatedAt；冲突时先重新查询再重试')
   })
   .superRefine((value, ctx) => {
     if (value.dataScope === 'custom' && (!value.customOrgIds || value.customOrgIds.length === 0)) {
@@ -185,7 +190,9 @@ export const assignRoleMembersSchema = z.object({
 })
 
 export const cloneRoleSchema = z.object({
-  code: roleCodeSchema.describe('新角色编码'),
+  code: roleCodeSchema.describe(
+    '新角色编码。小写字母开头，仅小写字母/数字/下划线，2–50 字符，且不能与现有角色冲突'
+  ),
   name: z
     .string()
     .trim()
@@ -198,11 +205,7 @@ export const cloneRoleSchema = z.object({
     .max(200, '描述不能超过200个字符')
     .optional()
     .describe('新角色描述'),
-  expiresAt: z
-    .union([z.string().datetime({ offset: true }), z.string().date()])
-    .nullable()
-    .optional()
-    .describe('过期时间（ISO date 或 datetime），null 表示长期有效')
+  expiresAt: roleExpiresAtInputSchema
 })
 
 export const rolesQuerySchema = pageQuerySchema.extend({
@@ -210,11 +213,11 @@ export const rolesQuerySchema = pageQuerySchema.extend({
   status: z
     .union([roleStatusSchema, roleStatusSchema.array()])
     .optional()
-    .describe('持久化状态，支持单个或多个'),
+    .describe('持久化状态，支持单个或多个，如 `active` 或 [`active`, `disabled`]'),
   effectiveStatus: z
     .union([roleEffectiveStatusSchema, roleEffectiveStatusSchema.array()])
     .optional()
-    .describe('派生展示状态，支持单个或多个'),
+    .describe('派生展示状态，支持单个或多个。locked=系统角色；expired=已过期；不可作为写入值'),
   dataScope: z
     .union([roleDataScopeSchema, roleDataScopeSchema.array()])
     .optional()
@@ -231,13 +234,13 @@ export const roleSchema = z.object({
   id: z.string().describe('角色 ID'),
   code: z.string().describe('角色编码'),
   name: z.string().describe('角色名称'),
-  status: roleStatusSchema.describe('持久化状态'),
-  effectiveStatus: roleEffectiveStatusSchema.describe('派生展示状态'),
-  kind: roleKindSchema.describe('角色种类'),
-  dataScope: roleDataScopeSchema.describe('数据范围'),
-  customOrgIds: z.array(z.string()).describe('CUSTOM 数据范围组织白名单'),
-  icon: roleIconSchema.nullable().describe('角色图标'),
-  iconColor: roleIconColorSchema.nullable().describe('图标颜色'),
+  status: roleStatusSchema,
+  effectiveStatus: roleEffectiveStatusSchema,
+  kind: roleKindSchema,
+  dataScope: roleDataScopeSchema,
+  customOrgIds: z.array(z.string()).describe('dataScope=custom 时的组织 ID 白名单'),
+  icon: roleIconSchema.nullable(),
+  iconColor: roleIconColorSchema.nullable(),
   expiresAt: z.string().nullable().describe('过期时间（ISO 8601），null 表示长期有效'),
   sort: z.number().describe('排序值'),
   description: z.string().nullable().describe('描述'),

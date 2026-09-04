@@ -29,8 +29,7 @@ import { Route as Errors503RouteImport } from './routes/errors/503'
 import { Route as AuthenticatedOtherSettingsRouteRouteImport } from './routes/_authenticated/_other/settings/route'
 import { Route as AuthenticatedWorkbenchIndexRouteImport } from './routes/_authenticated/_workbench/index'
 import { Route as AuthenticatedWorkbenchBimRouteImport } from './routes/_authenticated/_workbench/bim'
-import { Route as AuthenticatedWorkbenchChatRouteImport } from './routes/_authenticated/_workbench/chat'
-import { Route as AuthenticatedWorkbenchChatV2RouteImport } from './routes/_authenticated/_workbench/chat-v2'
+import { Route as AuthenticatedWorkbenchChatRouteRouteImport } from './routes/_authenticated/_workbench/chat/route'
 import { Route as AuthenticatedWorkbenchGisRouteImport } from './routes/_authenticated/_workbench/gis'
 import { Route as AuthenticatedAiAgentsRouteImport } from './routes/_authenticated/ai/agents'
 import { Route as AuthenticatedAiSkillsRouteImport } from './routes/_authenticated/ai/skills'
@@ -49,6 +48,8 @@ import { Route as AuthenticatedOtherSettingsAppearanceRouteImport } from './rout
 import { Route as AuthenticatedOtherSettingsNotificationsRouteImport } from './routes/_authenticated/_other/settings/notifications'
 import { Route as AuthenticatedOtherSettingsProfileRouteImport } from './routes/_authenticated/_other/settings/profile'
 import { Route as AuthenticatedOtherSettingsSystemRouteImport } from './routes/_authenticated/_other/settings/system'
+import { Route as AuthenticatedWorkbenchChatIndexRouteImport } from './routes/_authenticated/_workbench/chat/index'
+import { Route as AuthenticatedWorkbenchChatThreadIdRouteImport } from './routes/_authenticated/_workbench/chat/$threadId'
 import { Route as AuthenticatedSystemIdentityOrganizationRouteImport } from './routes/_authenticated/system/_identity/organization'
 import { Route as AuthenticatedSystemIdentityPostsRouteImport } from './routes/_authenticated/system/_identity/posts'
 import { Route as AuthenticatedSystemIdentityRolesRouteImport } from './routes/_authenticated/system/_identity/roles'
@@ -160,16 +161,10 @@ const AuthenticatedWorkbenchBimRoute =
     path: '/bim',
     getParentRoute: () => AuthenticatedWorkbenchRouteRoute,
   } as any)
-const AuthenticatedWorkbenchChatRoute =
-  AuthenticatedWorkbenchChatRouteImport.update({
+const AuthenticatedWorkbenchChatRouteRoute =
+  AuthenticatedWorkbenchChatRouteRouteImport.update({
     id: '/chat',
     path: '/chat',
-    getParentRoute: () => AuthenticatedWorkbenchRouteRoute,
-  } as any)
-const AuthenticatedWorkbenchChatV2Route =
-  AuthenticatedWorkbenchChatV2RouteImport.update({
-    id: '/chat-v2',
-    path: '/chat-v2',
     getParentRoute: () => AuthenticatedWorkbenchRouteRoute,
   } as any)
 const AuthenticatedWorkbenchGisRoute =
@@ -276,6 +271,18 @@ const AuthenticatedOtherSettingsSystemRoute =
     path: '/system',
     getParentRoute: () => AuthenticatedOtherSettingsRouteRoute,
   } as any)
+const AuthenticatedWorkbenchChatIndexRoute =
+  AuthenticatedWorkbenchChatIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedWorkbenchChatRouteRoute,
+  } as any)
+const AuthenticatedWorkbenchChatThreadIdRoute =
+  AuthenticatedWorkbenchChatThreadIdRouteImport.update({
+    id: '/$threadId',
+    path: '/$threadId',
+    getParentRoute: () => AuthenticatedWorkbenchChatRouteRoute,
+  } as any)
 const AuthenticatedSystemIdentityOrganizationRoute =
   AuthenticatedSystemIdentityOrganizationRouteImport.update({
     id: '/organization',
@@ -335,9 +342,8 @@ export interface FileRoutesByFullPath {
   '/errors/500': typeof Errors500Route
   '/errors/503': typeof Errors503Route
   '/settings': typeof AuthenticatedOtherSettingsRouteRouteWithChildren
+  '/chat': typeof AuthenticatedWorkbenchChatRouteRouteWithChildren
   '/bim': typeof AuthenticatedWorkbenchBimRoute
-  '/chat': typeof AuthenticatedWorkbenchChatRoute
-  '/chat-v2': typeof AuthenticatedWorkbenchChatV2Route
   '/gis': typeof AuthenticatedWorkbenchGisRoute
   '/ai/agents': typeof AuthenticatedAiAgentsRoute
   '/ai/skills': typeof AuthenticatedAiSkillsRoute
@@ -355,10 +361,12 @@ export interface FileRoutesByFullPath {
   '/settings/notifications': typeof AuthenticatedOtherSettingsNotificationsRoute
   '/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
   '/settings/system': typeof AuthenticatedOtherSettingsSystemRoute
+  '/chat/$threadId': typeof AuthenticatedWorkbenchChatThreadIdRoute
   '/system/organization': typeof AuthenticatedSystemIdentityOrganizationRoute
   '/system/posts': typeof AuthenticatedSystemIdentityPostsRoute
   '/system/roles': typeof AuthenticatedSystemIdentityRolesRoute
   '/system/users': typeof AuthenticatedSystemIdentityUsersRoute
+  '/chat/': typeof AuthenticatedWorkbenchChatIndexRoute
   '/system/organization/$id': typeof AuthenticatedSystemIdentityOrganizationIdRoute
   '/system/roles/$id': typeof AuthenticatedSystemIdentityRolesIdRoute
   '/system/users/$userId': typeof AuthenticatedSystemIdentityUsersUserIdRoute
@@ -380,8 +388,6 @@ export interface FileRoutesByTo {
   '/errors/503': typeof Errors503Route
   '/settings': typeof AuthenticatedOtherSettingsRouteRouteWithChildren
   '/bim': typeof AuthenticatedWorkbenchBimRoute
-  '/chat': typeof AuthenticatedWorkbenchChatRoute
-  '/chat-v2': typeof AuthenticatedWorkbenchChatV2Route
   '/gis': typeof AuthenticatedWorkbenchGisRoute
   '/ai/agents': typeof AuthenticatedAiAgentsRoute
   '/ai/skills': typeof AuthenticatedAiSkillsRoute
@@ -399,10 +405,12 @@ export interface FileRoutesByTo {
   '/settings/notifications': typeof AuthenticatedOtherSettingsNotificationsRoute
   '/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
   '/settings/system': typeof AuthenticatedOtherSettingsSystemRoute
+  '/chat/$threadId': typeof AuthenticatedWorkbenchChatThreadIdRoute
   '/system/organization': typeof AuthenticatedSystemIdentityOrganizationRoute
   '/system/posts': typeof AuthenticatedSystemIdentityPostsRoute
   '/system/roles': typeof AuthenticatedSystemIdentityRolesRoute
   '/system/users': typeof AuthenticatedSystemIdentityUsersRoute
+  '/chat': typeof AuthenticatedWorkbenchChatIndexRoute
   '/system/organization/$id': typeof AuthenticatedSystemIdentityOrganizationIdRoute
   '/system/roles/$id': typeof AuthenticatedSystemIdentityRolesIdRoute
   '/system/users/$userId': typeof AuthenticatedSystemIdentityUsersUserIdRoute
@@ -427,10 +435,9 @@ export interface FileRoutesById {
   '/errors/500': typeof Errors500Route
   '/errors/503': typeof Errors503Route
   '/_authenticated/_other/settings': typeof AuthenticatedOtherSettingsRouteRouteWithChildren
+  '/_authenticated/_workbench/chat': typeof AuthenticatedWorkbenchChatRouteRouteWithChildren
   '/_authenticated/system/_identity': typeof AuthenticatedSystemIdentityRouteRouteWithChildren
   '/_authenticated/_workbench/bim': typeof AuthenticatedWorkbenchBimRoute
-  '/_authenticated/_workbench/chat': typeof AuthenticatedWorkbenchChatRoute
-  '/_authenticated/_workbench/chat-v2': typeof AuthenticatedWorkbenchChatV2Route
   '/_authenticated/_workbench/gis': typeof AuthenticatedWorkbenchGisRoute
   '/_authenticated/ai/agents': typeof AuthenticatedAiAgentsRoute
   '/_authenticated/ai/skills': typeof AuthenticatedAiSkillsRoute
@@ -449,10 +456,12 @@ export interface FileRoutesById {
   '/_authenticated/_other/settings/notifications': typeof AuthenticatedOtherSettingsNotificationsRoute
   '/_authenticated/_other/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
   '/_authenticated/_other/settings/system': typeof AuthenticatedOtherSettingsSystemRoute
+  '/_authenticated/_workbench/chat/$threadId': typeof AuthenticatedWorkbenchChatThreadIdRoute
   '/_authenticated/system/_identity/organization': typeof AuthenticatedSystemIdentityOrganizationRoute
   '/_authenticated/system/_identity/posts': typeof AuthenticatedSystemIdentityPostsRoute
   '/_authenticated/system/_identity/roles': typeof AuthenticatedSystemIdentityRolesRoute
   '/_authenticated/system/_identity/users': typeof AuthenticatedSystemIdentityUsersRoute
+  '/_authenticated/_workbench/chat/': typeof AuthenticatedWorkbenchChatIndexRoute
   '/_authenticated/system/_identity/organization_/$id': typeof AuthenticatedSystemIdentityOrganizationIdRoute
   '/_authenticated/system/_identity/roles_/$id': typeof AuthenticatedSystemIdentityRolesIdRoute
   '/_authenticated/system/_identity/users_/$userId': typeof AuthenticatedSystemIdentityUsersUserIdRoute
@@ -475,9 +484,8 @@ export interface FileRouteTypes {
     | '/errors/500'
     | '/errors/503'
     | '/settings'
-    | '/bim'
     | '/chat'
-    | '/chat-v2'
+    | '/bim'
     | '/gis'
     | '/ai/agents'
     | '/ai/skills'
@@ -495,10 +503,12 @@ export interface FileRouteTypes {
     | '/settings/notifications'
     | '/settings/profile'
     | '/settings/system'
+    | '/chat/$threadId'
     | '/system/organization'
     | '/system/posts'
     | '/system/roles'
     | '/system/users'
+    | '/chat/'
     | '/system/organization/$id'
     | '/system/roles/$id'
     | '/system/users/$userId'
@@ -520,8 +530,6 @@ export interface FileRouteTypes {
     | '/errors/503'
     | '/settings'
     | '/bim'
-    | '/chat'
-    | '/chat-v2'
     | '/gis'
     | '/ai/agents'
     | '/ai/skills'
@@ -539,10 +547,12 @@ export interface FileRouteTypes {
     | '/settings/notifications'
     | '/settings/profile'
     | '/settings/system'
+    | '/chat/$threadId'
     | '/system/organization'
     | '/system/posts'
     | '/system/roles'
     | '/system/users'
+    | '/chat'
     | '/system/organization/$id'
     | '/system/roles/$id'
     | '/system/users/$userId'
@@ -566,10 +576,9 @@ export interface FileRouteTypes {
     | '/errors/500'
     | '/errors/503'
     | '/_authenticated/_other/settings'
+    | '/_authenticated/_workbench/chat'
     | '/_authenticated/system/_identity'
     | '/_authenticated/_workbench/bim'
-    | '/_authenticated/_workbench/chat'
-    | '/_authenticated/_workbench/chat-v2'
     | '/_authenticated/_workbench/gis'
     | '/_authenticated/ai/agents'
     | '/_authenticated/ai/skills'
@@ -588,10 +597,12 @@ export interface FileRouteTypes {
     | '/_authenticated/_other/settings/notifications'
     | '/_authenticated/_other/settings/profile'
     | '/_authenticated/_other/settings/system'
+    | '/_authenticated/_workbench/chat/$threadId'
     | '/_authenticated/system/_identity/organization'
     | '/_authenticated/system/_identity/posts'
     | '/_authenticated/system/_identity/roles'
     | '/_authenticated/system/_identity/users'
+    | '/_authenticated/_workbench/chat/'
     | '/_authenticated/system/_identity/organization_/$id'
     | '/_authenticated/system/_identity/roles_/$id'
     | '/_authenticated/system/_identity/users_/$userId'
@@ -753,14 +764,7 @@ declare module '@tanstack/react-router' {
       id: '/_authenticated/_workbench/chat'
       path: '/chat'
       fullPath: '/chat'
-      preLoaderRoute: typeof AuthenticatedWorkbenchChatRouteImport
-      parentRoute: typeof AuthenticatedWorkbenchRouteRoute
-    }
-    '/_authenticated/_workbench/chat-v2': {
-      id: '/_authenticated/_workbench/chat-v2'
-      path: '/chat-v2'
-      fullPath: '/chat-v2'
-      preLoaderRoute: typeof AuthenticatedWorkbenchChatV2RouteImport
+      preLoaderRoute: typeof AuthenticatedWorkbenchChatRouteRouteImport
       parentRoute: typeof AuthenticatedWorkbenchRouteRoute
     }
     '/_authenticated/_workbench/gis': {
@@ -889,6 +893,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOtherSettingsSystemRouteImport
       parentRoute: typeof AuthenticatedOtherSettingsRouteRoute
     }
+    '/_authenticated/_workbench/chat/': {
+      id: '/_authenticated/_workbench/chat/'
+      path: '/'
+      fullPath: '/chat/'
+      preLoaderRoute: typeof AuthenticatedWorkbenchChatIndexRouteImport
+      parentRoute: typeof AuthenticatedWorkbenchChatRouteRoute
+    }
+    '/_authenticated/_workbench/chat/$threadId': {
+      id: '/_authenticated/_workbench/chat/$threadId'
+      path: '/$threadId'
+      fullPath: '/chat/$threadId'
+      preLoaderRoute: typeof AuthenticatedWorkbenchChatThreadIdRouteImport
+      parentRoute: typeof AuthenticatedWorkbenchChatRouteRoute
+    }
     '/_authenticated/system/_identity/organization': {
       id: '/_authenticated/system/_identity/organization'
       path: '/organization'
@@ -1001,19 +1019,35 @@ const AuthenticatedOtherRouteRouteWithChildren =
     AuthenticatedOtherRouteRouteChildren,
   )
 
+interface AuthenticatedWorkbenchChatRouteRouteChildren {
+  AuthenticatedWorkbenchChatThreadIdRoute: typeof AuthenticatedWorkbenchChatThreadIdRoute
+  AuthenticatedWorkbenchChatIndexRoute: typeof AuthenticatedWorkbenchChatIndexRoute
+}
+
+const AuthenticatedWorkbenchChatRouteRouteChildren: AuthenticatedWorkbenchChatRouteRouteChildren =
+  {
+    AuthenticatedWorkbenchChatThreadIdRoute:
+      AuthenticatedWorkbenchChatThreadIdRoute,
+    AuthenticatedWorkbenchChatIndexRoute: AuthenticatedWorkbenchChatIndexRoute,
+  }
+
+const AuthenticatedWorkbenchChatRouteRouteWithChildren =
+  AuthenticatedWorkbenchChatRouteRoute._addFileChildren(
+    AuthenticatedWorkbenchChatRouteRouteChildren,
+  )
+
 interface AuthenticatedWorkbenchRouteRouteChildren {
+  AuthenticatedWorkbenchChatRouteRoute: typeof AuthenticatedWorkbenchChatRouteRouteWithChildren
   AuthenticatedWorkbenchBimRoute: typeof AuthenticatedWorkbenchBimRoute
-  AuthenticatedWorkbenchChatRoute: typeof AuthenticatedWorkbenchChatRoute
-  AuthenticatedWorkbenchChatV2Route: typeof AuthenticatedWorkbenchChatV2Route
   AuthenticatedWorkbenchGisRoute: typeof AuthenticatedWorkbenchGisRoute
   AuthenticatedWorkbenchIndexRoute: typeof AuthenticatedWorkbenchIndexRoute
 }
 
 const AuthenticatedWorkbenchRouteRouteChildren: AuthenticatedWorkbenchRouteRouteChildren =
   {
+    AuthenticatedWorkbenchChatRouteRoute:
+      AuthenticatedWorkbenchChatRouteRouteWithChildren,
     AuthenticatedWorkbenchBimRoute: AuthenticatedWorkbenchBimRoute,
-    AuthenticatedWorkbenchChatRoute: AuthenticatedWorkbenchChatRoute,
-    AuthenticatedWorkbenchChatV2Route: AuthenticatedWorkbenchChatV2Route,
     AuthenticatedWorkbenchGisRoute: AuthenticatedWorkbenchGisRoute,
     AuthenticatedWorkbenchIndexRoute: AuthenticatedWorkbenchIndexRoute,
   }

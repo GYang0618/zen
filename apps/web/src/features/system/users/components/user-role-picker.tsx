@@ -103,7 +103,13 @@ export function UserRolePicker({
                 const checked = value.includes(role.id)
 
                 return (
-                  <Item key={role.id} asChild variant="outline" size="sm" className="cursor-pointer">
+                  <Item
+                    key={role.id}
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="cursor-pointer"
+                  >
                     <label htmlFor={`create-role-${role.id}`}>
                       <ItemMedia>
                         <Checkbox

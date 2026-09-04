@@ -28,17 +28,11 @@ export type CatalogPluginId = (typeof PLUGIN_CATALOG)[number]['id']
 export function renderApiLoaderSource(entries: PluginRegistryEntry[]): string {
   const withApi = entries.filter((entry) => entry.api)
   const imports = withApi
-    .map(
-      (entry) =>
-        `import { ${entry.api!.export} } from '${packageName(entry.id)}/api'`
-    )
+    .map((entry) => `import { ${entry.api!.export} } from '${packageName(entry.id)}/api'`)
     .join('\n')
 
   const items = withApi
-    .map(
-      (entry) =>
-        `  { id: '${entry.id}' as const, module: ${entry.api!.export} }`
-    )
+    .map((entry) => `  { id: '${entry.id}' as const, module: ${entry.api!.export} }`)
     .join(',\n')
 
   return `${headerComment()}${imports}
@@ -94,8 +88,7 @@ export function renderConfigLoaderSource(entries: PluginRegistryEntry[]): string
   const withConfig = entries.filter((entry) => entry.config)
   const imports = withConfig
     .map(
-      (entry) =>
-        `import { ${entry.config!.schemaExport} } from '${packageName(entry.id)}/config'`
+      (entry) => `import { ${entry.config!.schemaExport} } from '${packageName(entry.id)}/config'`
     )
     .join('\n')
 
@@ -139,6 +132,30 @@ export type PluginLifecycleId = keyof typeof PLUGIN_LIFECYCLE_HOOKS
 `
 }
 
+export function renderAgentLoaderSource(entries: PluginRegistryEntry[]): string {
+  const withAgentTools = entries.filter((entry) => entry.agentTools)
+  const imports = withAgentTools
+    .map((entry) => `import { ${entry.agentTools!.export} } from '${packageName(entry.id)}/agent'`)
+    .join('\n')
+  const items = withAgentTools
+    .map(
+      (entry) => `  {
+    pluginId: '${entry.id}' as const,
+    factory: ${entry.agentTools!.export},
+    requiredPermissions: ${JSON.stringify(entry.agentTools!.requiredPermissions)} as readonly string[],
+    agentPrompts: ${JSON.stringify(entry.agentTools!.agentPrompts)} as readonly string[]
+  }`
+    )
+    .join(',\n')
+
+  return `${headerComment()}${imports}
+
+export const PLUGIN_AGENT_TOOL_FACTORIES = [
+${items}
+] as const
+`
+}
+
 export interface GeneratedLoaderFiles {
   relativePath: string
   absolutePath: string
@@ -175,6 +192,11 @@ export function buildPluginRegistryPackageSources(
       relativePath: 'packages/plugin-registry/src/generated/lifecycle.gen.ts',
       absolutePath: join(base, 'lifecycle.gen.ts'),
       source: `${renderLifecycleLoaderSource(entries)}\n`
+    },
+    {
+      relativePath: 'packages/plugin-registry/src/generated/agent.gen.ts',
+      absolutePath: join(base, 'agent.gen.ts'),
+      source: `${renderAgentLoaderSource(entries)}\n`
     }
   ]
 }

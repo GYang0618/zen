@@ -1,5 +1,7 @@
 export * from './client'
+export * from './jwt-expiry'
 export * from './middleware'
+export * from './refresh-session'
 export * from './silent-refresh'
 export * from './types'
 export * from './utils'

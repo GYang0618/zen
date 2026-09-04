@@ -40,7 +40,8 @@ export function PasswordForm() {
     )
   }
 
-  const isValid = currentPassword.length > 0 && newPassword.length >= 8 && newPassword === confirmPassword
+  const isValid =
+    currentPassword.length > 0 && newPassword.length >= 8 && newPassword === confirmPassword
 
   return (
     <form onSubmit={handleSubmit}>

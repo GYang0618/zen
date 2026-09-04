@@ -5,6 +5,6 @@ export const Route = createFileRoute('/_authenticated/_workbench')({
   component: () => <Outlet />,
   staticData: {
     title: '工作台',
-    order: 1,
+    order: 1
   }
 })

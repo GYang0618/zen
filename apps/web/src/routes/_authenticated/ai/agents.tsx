@@ -1,6 +1,7 @@
-import { ComingSoon } from '@/components/coming-soon'
 import { createFileRoute } from '@tanstack/react-router'
 import { Bot } from 'lucide-react'
+
+import { ComingSoon } from '@/components/coming-soon'
 
 export const Route = createFileRoute('/_authenticated/ai/agents')({
   component: ComingSoon,
@@ -10,5 +11,3 @@ export const Route = createFileRoute('/_authenticated/ai/agents')({
     order: 1
   }
 })
-
-

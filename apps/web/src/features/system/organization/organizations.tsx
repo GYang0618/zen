@@ -20,14 +20,12 @@ export function Organizations() {
         <AppPageHeader actions={<OrganizationsPrimaryButtons />} />
 
         <Tabs defaultValue="graph" className="flex min-h-0 flex-1 flex-col">
-          <TabsList>
-            <TabsTrigger value="tree">
-              <ListTree data-icon="inline-start" />
-              列表
-            </TabsTrigger>
+          <TabsList className="mx-auto">
             <TabsTrigger value="graph">
               <Network data-icon="inline-start" />
-              图谱
+            </TabsTrigger>
+            <TabsTrigger value="tree">
+              <ListTree data-icon="inline-start" />
             </TabsTrigger>
           </TabsList>
 

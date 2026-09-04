@@ -25,7 +25,12 @@ import { Copy, Loader2, ShieldCheck, ShieldOff } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
-import { useDisableMfaMutation, useEnableMfaMutation, useMeQuery, useSetupMfaMutation } from '../queries'
+import {
+  useDisableMfaMutation,
+  useEnableMfaMutation,
+  useMeQuery,
+  useSetupMfaMutation
+} from '../queries'
 
 export function MfaSection() {
   const { data: me } = useMeQuery()
@@ -40,12 +45,12 @@ export function MfaSection() {
   const enableMfa = useEnableMfaMutation()
   const disableMfa = useDisableMfaMutation()
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 仅在打开启用弹窗时发起 setup，避免 mutate 引用变化重复请求
   useEffect(() => {
     if (enableOpen) {
       setEnableCode('')
       setupMfa.mutate()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enableOpen])
 
   useEffect(() => {

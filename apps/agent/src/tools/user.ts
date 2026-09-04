@@ -1,6 +1,7 @@
 import {
   adminResetPasswordSchema,
   assignUserRolesSchema,
+  completePageQuery,
   createUserSchema,
   deleteUsersSchema,
   replaceUserOrganizationsSchema,
@@ -29,6 +30,7 @@ import {
   userControllerUpdate,
   userControllerUpdateStatus
 } from '../api'
+import { compactPagedToolResult, compactUserListItem } from './compact-result'
 import { executeApiCallOrRecover } from './recoverable-error'
 
 import type { UserControllerAdminResetPasswordData, UserControllerFindAllData } from '../api'
@@ -46,10 +48,14 @@ const replaceUserOrganizationsToolSchema = userIdSchema.extend(replaceUserOrgani
 type FindAllQuery = NonNullable<UserControllerFindAllData['query']>
 
 function normalizeUsersQuery(input: z.input<typeof usersQuerySchema>): FindAllQuery {
+  const pagination = completePageQuery({
+    page: input.page !== undefined ? Number(input.page) : undefined,
+    pageSize: input.pageSize !== undefined ? Number(input.pageSize) : undefined
+  })
   const query: FindAllQuery = {}
 
-  if (input.page !== undefined) query.page = Number(input.page)
-  if (input.pageSize !== undefined) query.pageSize = Number(input.pageSize)
+  if (pagination.page !== undefined) query.page = pagination.page
+  if (pagination.pageSize !== undefined) query.pageSize = pagination.pageSize
   if (input.keyword !== undefined) query.keyword = input.keyword
   if (input.sortBy !== undefined) query.sortBy = input.sortBy
   if (input.sortOrder !== undefined) query.sortOrder = input.sortOrder
@@ -109,20 +115,29 @@ const USER_WRITE_HINTS: RecoverableHint[] = [
     match: '未找到可恢复的已删除用户',
     reason: 'USER_NOT_DELETED',
     hint: 'restore_deleted_users 只能恢复已软删除的用户。'
+  },
+  {
+    match: '需要二次确认',
+    reason: 'STEP_UP_REQUIRED',
+    hint: '不要再次调用同一工具。请向用户说明操作未执行，不要再让用户点审批卡片。'
   }
 ]
 
 export const getUsersTool = tool(
   async (input, config) =>
-    executeApiCall(config, () =>
-      userControllerFindAll({
-        query: normalizeUsersQuery(input)
-      })
+    compactPagedToolResult(
+      await executeApiCall(config, () =>
+        userControllerFindAll({
+          query: normalizeUsersQuery(input)
+        })
+      ),
+      compactUserListItem
     ),
   {
     name: 'query_users_list',
     description:
-      '查询用户列表，可通过关键字（邮箱/用户名/昵称/真实姓名/手机号）、状态、角色编码、在职组织、排序字段筛选并分页。',
+      '查询用户列表。keyword 为子串匹配（谷歌邮箱用 gmail.com / @gmail.com，不要用 google.com）。' +
+      'page 与 pageSize 可只传其一。返回精简字段；完整资料用 query_user_detail。',
     schema: usersQuerySchema
   }
 )

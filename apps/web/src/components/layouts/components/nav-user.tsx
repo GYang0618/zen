@@ -16,9 +16,10 @@ import {
   useDialogState,
   useSidebar
 } from '@zen/ui'
-import { BadgeCheck, Bell, ChevronsUpDown, CreditCard, LogOut, Sparkles } from 'lucide-react'
+import { BadgeCheck, Bell, Bot, ChevronsUpDown, LayoutDashboard, LogOut } from 'lucide-react'
 
 import { SignOutDialog } from '@/components/sign-out-dialog'
+import { useSwitchShellMode } from '@/hooks'
 
 import type { User } from '../types'
 
@@ -29,6 +30,8 @@ type NavUserProps = {
 export function NavUser({ user }: NavUserProps) {
   const { isMobile } = useSidebar()
   const [open, setOpen] = useDialogState()
+  const { mode, switchMode } = useSwitchShellMode()
+  const isAgentMode = mode === 'agent'
 
   return (
     <>
@@ -71,36 +74,30 @@ export function NavUser({ user }: NavUserProps) {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                <DropdownMenuItem>
-                  <Sparkles />
-                  Upgrade to Pro
+                <DropdownMenuItem onClick={() => switchMode(isAgentMode ? 'admin' : 'agent')}>
+                  {isAgentMode ? <LayoutDashboard /> : <Bot />}
+                  {isAgentMode ? '切换到管理后台' : '切换到智能体模式'}
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
                 <DropdownMenuItem asChild>
-                  <Link to="/settings/profile">
+                  <Link to="/settings/account">
                     <BadgeCheck />
-                    Account
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/">
-                    <CreditCard />
-                    Billing
+                    账户
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/settings/notifications">
                     <Bell />
-                    Notifications
+                    通知
                   </Link>
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onClick={() => setOpen(true)}>
                 <LogOut />
-                Sign out
+                退出登录
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

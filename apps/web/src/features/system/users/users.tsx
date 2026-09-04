@@ -1,6 +1,6 @@
 import { getRouteApi } from '@tanstack/react-router'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@zen/ui'
-import { CreditCard, TextAlignJustify } from 'lucide-react'
+import { LayoutGrid, TextAlignStart } from 'lucide-react'
 import { useState } from 'react'
 
 import { AppHeader, Main } from '@/components/layouts'
@@ -41,11 +41,11 @@ function UsersContent() {
         <AppPageHeader actions={<UsersPrimaryButtons />} />
         <Tabs value={view} onValueChange={setView}>
           <TabsList className="mx-auto">
-            <TabsTrigger value="card">
-              <CreditCard />
+            <TabsTrigger value="card" aria-label="网格视图">
+              <LayoutGrid />
             </TabsTrigger>
-            <TabsTrigger value="table">
-              <TextAlignJustify />
+            <TabsTrigger value="table" aria-label="列表视图">
+              <TextAlignStart />
             </TabsTrigger>
           </TabsList>
 

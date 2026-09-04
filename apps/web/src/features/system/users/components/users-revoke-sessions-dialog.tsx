@@ -39,7 +39,11 @@ export function UsersRevokeSessionsDialog({
       handleConfirm={() => {
         revokeUserSessions(currentRow.id, {
           onSuccess: () => {
-            notifyAccessChange(currentRow.id, '已强制下线该用户的全部会话', '会话已注销，请重新登录')
+            notifyAccessChange(
+              currentRow.id,
+              '已强制下线该用户的全部会话',
+              '会话已注销，请重新登录'
+            )
             onOpenChange(false)
           },
           onError: (error) => toast.error(error instanceof Error ? error.message : '强制下线失败')

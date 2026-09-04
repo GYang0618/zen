@@ -74,9 +74,7 @@ export function DeleteAccountSection() {
                   autoComplete="off"
                   placeholder={CONFIRM_TEXT}
                 />
-                <FieldDescription>
-                  请完整输入「{CONFIRM_TEXT}」以确认你了解后果。
-                </FieldDescription>
+                <FieldDescription>请完整输入「{CONFIRM_TEXT}」以确认你了解后果。</FieldDescription>
               </Field>
             </FieldGroup>
 

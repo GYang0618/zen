@@ -1,6 +1,7 @@
 // Components (shadcn)
 
 export * from './components/ai-elements/code-block'
+export * from './components/ai-elements/confirmation'
 export * from './components/ai-elements/conversation'
 export * from './components/ai-elements/message'
 export * from './components/ai-elements/reasoning'

@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { formatUnhandledToolError, isToolFailureResult, toToolFailureResult } from './tool-failure'
+import {
+  classifyToolError,
+  formatUnhandledToolError,
+  isToolFailureResult,
+  toToolFailureResult
+} from './tool-failure'
 
 import type { RecoverableHint } from './tool-failure'
 
@@ -28,9 +33,19 @@ describe('toToolFailureResult', () => {
     const parsed = JSON.parse(raw) as { success: boolean; reason: string; message: string }
 
     assert.equal(parsed.success, false)
-    assert.equal(parsed.reason, 'TOOL_CALL_FAILED')
+    assert.equal(parsed.reason, 'UNKNOWN_ERROR')
     assert.match(parsed.message, /网络超时/)
     assert.match(parsed.message, /向用户询问/)
+  })
+
+  it('权限类错误禁止引导模型再次调用同一工具', () => {
+    const raw = toToolFailureResult({ code: 403, message: '需要二次确认' })
+    const parsed = JSON.parse(raw) as { success: boolean; reason: string; message: string }
+
+    assert.equal(parsed.success, false)
+    assert.equal(parsed.reason, 'STEP_UP_REQUIRED')
+    assert.match(parsed.message, /不要再次调用/)
+    assert.doesNotMatch(parsed.message, /修正参数后重试/)
   })
 })
 
@@ -47,8 +62,23 @@ describe('formatUnhandledToolError', () => {
     const raw = formatUnhandledToolError(new Error('组织 ID 不能为空'), 'create_organization')
     const parsed = JSON.parse(raw) as { reason: string; message: string }
 
-    assert.equal(parsed.reason, 'TOOL_ERROR')
+    assert.equal(parsed.reason, 'UNKNOWN_ERROR')
     assert.match(parsed.message, /create_organization/)
     assert.match(parsed.message, /组织 ID 不能为空/)
+  })
+})
+
+describe('classifyToolError', () => {
+  it('按 HTTP 状态和网络错误分类', () => {
+    assert.equal(classifyToolError({ code: 404, message: '用户不存在' }), 'BUSINESS_ERROR')
+    assert.equal(classifyToolError({ response: { status: 401 } }), 'UNAUTHORIZED')
+    assert.equal(classifyToolError({ response: { status: 403 } }), 'FORBIDDEN')
+    assert.equal(classifyToolError({ code: 403, message: '需要二次确认' }), 'STEP_UP_REQUIRED')
+    assert.equal(classifyToolError({ response: { status: 429 } }), 'RATE_LIMITED')
+    assert.equal(
+      classifyToolError({ code: 'ECONNRESET', message: 'socket closed' }),
+      'NETWORK_ERROR'
+    )
+    assert.equal(classifyToolError({ code: 'ETIMEDOUT', message: 'timeout' }), 'TIMEOUT')
   })
 })

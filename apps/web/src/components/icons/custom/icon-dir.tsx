@@ -1,6 +1,7 @@
 import { cn } from '@zen/ui'
 
 import type { SVGProps } from 'react'
+
 type Direction = 'ltr' | 'rtl'
 
 type IconDirProps = SVGProps<SVGSVGElement> & {

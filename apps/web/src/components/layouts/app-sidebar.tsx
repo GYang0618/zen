@@ -4,21 +4,22 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } fr
 import { useMemo } from 'react'
 
 import { useLayout } from '@/context/layout-provider'
+import { AgentSidebar } from '@/features/agent'
 import { fetchActivePluginIds } from '@/features/system/plugins/api'
 import { SUPER_ADMIN_ROLE_CODE } from '@/lib/auth/permissions'
-import { useAuthStore } from '@/stores'
+import { useAuthStore, useShellModeStore } from '@/stores'
 
 import { buildNavGroupsFromRouteTree } from './build-nav-from-routes'
 import { AppNav } from './components/app-nav'
+import { ModeSwitcher } from './components/mode-switcher'
 import { NavUser } from './components/nav-user'
-import { TeamSwitcher } from './components/team-switcher'
-import { sidebarChrome } from './sidebar-chrome'
 
 import type { RouteTreeNode } from './build-nav-from-routes'
 
 export function AppSidebar() {
   const { collapsible, variant } = useLayout()
   const router = useRouter()
+  const mode = useShellModeStore((state) => state.mode)
   const authUser = useAuthStore((state) => state.user)
   const permissions = authUser?.permissions ?? []
   const unrestricted = authUser?.role === SUPER_ADMIN_ROLE_CODE
@@ -43,13 +44,15 @@ export function AppSidebar() {
     avatar: authUser?.avatar || ''
   }
 
+  const isAgentMode = mode === 'agent'
+
   return (
     <Sidebar collapsible={collapsible} variant={variant}>
       <SidebarHeader>
-        <TeamSwitcher teams={sidebarChrome.teams} />
+        <ModeSwitcher />
       </SidebarHeader>
       <SidebarContent>
-        <AppNav items={navGroups} />
+        {isAgentMode ? <AgentSidebar /> : <AppNav items={navGroups} />}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />
