@@ -8,6 +8,7 @@ import {
   AvatarImage,
   Badge,
   Card,
+  CardAction,
   CardContent,
   CardHeader,
   cn
@@ -49,42 +50,41 @@ export function RolesCard({
       }
     >
       <CardHeader>
-        <div className="flex gap-3">
-          <Link
-            to="/system/roles/$id"
-            params={{ id: role.id }}
-            className="flex flex-1 gap-3"
-            onClick={(event) => preventSelectionNavigation(event, isSelecting)}
+        <Link
+          to="/system/roles/$id"
+          params={{ id: role.id }}
+          className="flex min-w-0 gap-3"
+          onClick={(event) => preventSelectionNavigation(event, isSelecting)}
+        >
+          <div
+            className={cn(
+              'flex size-12 shrink-0 items-center justify-center rounded-full',
+              getRoleIconColorClassName(role.iconColor)
+            )}
           >
-            <div
-              className={cn(
-                'flex size-12 items-center justify-center rounded-full',
-                getRoleIconColorClassName(role.iconColor)
-              )}
-            >
-              <DynamicIcon name={(role.icon as RoleIcon | null) ?? 'shield'} />
+            <DynamicIcon name={(role.icon as RoleIcon | null) ?? 'shield'} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground">
+              <span className="truncate">{role.name}</span>
+              <Badge
+                className={cn(
+                  'shrink-0 border',
+                  roleEffectiveStatusConfig[role.effectiveStatus].className
+                )}
+              >
+                {roleEffectiveStatusConfig[role.effectiveStatus].label}
+              </Badge>
+            </h2>
+            <div className="mt-1 truncate text-xs text-muted-foreground">{role.code}</div>
+            <div className="mt-1 min-w-0">
+              <Badge variant="secondary" className="max-w-full min-w-0 shrink truncate">
+                {role.expiresAt ? `过期时间：${formatFromNow(role.expiresAt)}` : '长期有效'}
+              </Badge>
             </div>
-            <div className="flex-1">
-              <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                {role.name}
-                <Badge
-                  className={cn(
-                    'border',
-                    roleEffectiveStatusConfig[role.effectiveStatus].className
-                  )}
-                >
-                  {roleEffectiveStatusConfig[role.effectiveStatus].label}
-                </Badge>
-              </h2>
-              <div className="mt-1 text-xs text-muted-foreground">{role.code}</div>
-              <div className="mt-1">
-                <Badge variant="secondary">
-                  {role.expiresAt ? `过期时间：${formatFromNow(role.expiresAt)}` : '长期有效'}
-                </Badge>
-              </div>
-            </div>
-          </Link>
-
+          </div>
+        </Link>
+        <CardAction>
           <RolesRowActions
             role={role}
             isSelecting={isSelecting}
@@ -92,7 +92,7 @@ export function RolesCard({
             onEnterSelecting={onEnterSelecting}
             onSelectedChange={onSelectedChange}
           />
-        </div>
+        </CardAction>
       </CardHeader>
       <CardContent>
         <p className="min-h-10 line-clamp-2 text-sm leading-5 text-muted-foreground">

@@ -3,6 +3,7 @@ import {
   assignRoleMembersSchema,
   assignRolePermissionsSchema,
   cloneRoleSchema,
+  completePageQuery,
   createRoleSchema,
   deleteRolesSchema,
   pageQuerySchema,
@@ -29,6 +30,7 @@ import {
   roleControllerUpdate,
   toQueryArray
 } from '../api'
+import { compactPagedToolResult, compactRoleListItem } from './compact-result'
 import { executeApiCallOrRecover, isToolFailureResult } from './recoverable-error'
 import { parsePermissionCatalog, unknownPermissionCodesResult } from './role-permission-guard'
 
@@ -59,10 +61,14 @@ type RolesFindAllQuery = {
 }
 
 function normalizeRolesQuery(input: z.input<typeof rolesQuerySchema>): RolesFindAllQuery {
+  const pagination = completePageQuery({
+    page: input.page !== undefined ? Number(input.page) : undefined,
+    pageSize: input.pageSize !== undefined ? Number(input.pageSize) : undefined
+  })
   const query: RolesFindAllQuery = {}
 
-  if (input.page !== undefined) query.page = Number(input.page)
-  if (input.pageSize !== undefined) query.pageSize = Number(input.pageSize)
+  if (pagination.page !== undefined) query.page = pagination.page
+  if (pagination.pageSize !== undefined) query.pageSize = pagination.pageSize
   if (input.keyword !== undefined) query.keyword = input.keyword
 
   const status = toQueryArray(input.status)
@@ -159,12 +165,15 @@ async function ensurePermissionCodesExist(
 
 export const getRolesTool = tool(
   async (input, config) =>
-    executeApiCall(config, () =>
-      roleControllerFindAll(
-        asSdkOptions({
-          query: normalizeRolesQuery(input)
-        })
-      )
+    compactPagedToolResult(
+      await executeApiCall(config, () =>
+        roleControllerFindAll(
+          asSdkOptions({
+            query: normalizeRolesQuery(input)
+          })
+        )
+      ),
+      compactRoleListItem
     ),
   {
     name: 'query_roles_list',

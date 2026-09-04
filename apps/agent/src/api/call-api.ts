@@ -1,8 +1,9 @@
-import { getAccessTokenFromConfig, runWithAccessToken } from './request-context'
-import { AGENT_RUN_ID_CONFIGURABLE_KEY } from '@zen/shared'
-import { classifyToolError, toToolFailureResult } from './tool-failure'
-import { getToolExecutionPolicy } from '../tool-policy'
+import { AGENT_RUN_ID_CONFIGURABLE_KEY, AGENT_STEP_UP_TOKEN_CONFIGURABLE_KEY } from '@zen/shared'
+
 import { configs } from '../configs/env'
+import { getToolExecutionPolicy } from '../tool-policy'
+import { getAccessTokenFromConfig, runWithAccessToken } from './request-context'
+import { classifyToolError, toToolFailureResult } from './tool-failure'
 
 import type { RunnableConfig } from '@langchain/core/runnables'
 import type { RecoverableHint } from './tool-failure'
@@ -65,21 +66,21 @@ export async function executeApiCall<T>(
   const toolCallId =
     toolConfig?.toolCallId ?? toolConfig?.toolCall?.id ?? toolConfig?.config?.toolCall?.id
   const runId = readStringConfig(toolConfig, AGENT_RUN_ID_CONFIGURABLE_KEY)
-  const toolName = toolConfig?.toolCall?.name ?? toolConfig?.config?.toolCall?.name ?? 'unknown_tool'
+  const stepUpToken = readStringConfig(toolConfig, AGENT_STEP_UP_TOKEN_CONFIGURABLE_KEY)
+  const toolName =
+    toolConfig?.toolCall?.name ?? toolConfig?.config?.toolCall?.name ?? 'unknown_tool'
   const policy = getToolExecutionPolicy(toolName)
   const idempotencyKey =
-    policy?.idempotencyPolicy === 'run-tool-call' && toolCallId
-      ? `${runId ?? 'agent'}:${toolCallId}`
+    policy?.idempotencyPolicy === 'run-tool-call'
+      ? `${runId ?? 'agent'}:${toolCallId ?? 'unknown'}`
       : undefined
   const maxRetries = policy?.retryPolicy.maxRetries ?? 0
 
   for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
     const timeoutSignal = AbortSignal.timeout(policy?.timeoutMs ?? 30_000)
-    const signal = config?.signal
-      ? AbortSignal.any([config.signal, timeoutSignal])
-      : timeoutSignal
+    const signal = config?.signal ? AbortSignal.any([config.signal, timeoutSignal]) : timeoutSignal
     try {
-      const body = await runWithAccessToken(accessToken, call, idempotencyKey, signal)
+      const body = await runWithAccessToken(accessToken, call, idempotencyKey, signal, stepUpToken)
       const data = unwrapApiSuccessData<T>(body)
       const serialized = JSON.stringify(data ?? null)
       if (serialized.length > ARTIFACT_THRESHOLD_CHARS && runId && toolCallId) {
@@ -120,7 +121,9 @@ export async function executeApiCall<T>(
 }
 
 function readStringConfig(
-  config: (RunnableConfig & { context?: unknown; config?: RunnableConfig & { context?: unknown } }) | undefined,
+  config:
+    | (RunnableConfig & { context?: unknown; config?: RunnableConfig & { context?: unknown } })
+    | undefined,
   key: string
 ): string | undefined {
   for (const candidate of [

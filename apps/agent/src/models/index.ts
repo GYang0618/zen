@@ -4,7 +4,7 @@ type QwenModelOptions = ConstructorParameters<typeof ChatOpenAI>[0]
 
 export function createQwenModel(options: QwenModelOptions = {}) {
   return new ChatOpenAI({
-    model: 'glm-5.2',
+    model: 'qwen3.7-flash',
     temperature: 0,
     streaming: true,
     ...options

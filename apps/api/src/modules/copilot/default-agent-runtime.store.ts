@@ -1,5 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import {
+  AGENT_HITL_STEP_UP_WINDOW_MS,
   DEFAULT_AGENT_GRAPH_ID,
   DEFAULT_AGENT_RUN_BUDGET,
   DEFAULT_AGENT_VERSIONS
@@ -14,6 +15,7 @@ import {
   encodeThreadCursor,
   findTokenUsage,
   hashJson,
+  normalizeDisplayMessages,
   normalizeRuntimeMessages,
   omitRawEvent,
   parseJson,
@@ -42,7 +44,10 @@ const LEGACY_INTERRUPT_EVENT_NAME = 'on_interrupt'
 const INTERRUPT_ID_FIELD = '__zenInterruptId'
 const RUN_LEASE_MS = 30_000
 
-export { normalizeRuntimeMessages } from './default-agent-runtime.utils'
+export {
+  normalizeDisplayMessages,
+  normalizeRuntimeMessages
+} from './default-agent-runtime.utils'
 
 @Injectable()
 export class DefaultAgentRuntimeStore {
@@ -59,7 +64,7 @@ export class DefaultAgentRuntimeStore {
 
   async startRun(input: RuntimeRunInput, auth: AuthContext, traceId?: string): Promise<void> {
     const now = new Date()
-    const messages = normalizeRuntimeMessages(input.messages)
+    const messages = normalizeDisplayMessages(input.messages)
     const title = messages.find((message) => message.role === 'user')?.content.slice(0, 60)
     const turnId = turnIdFor(input.runId)
 
@@ -560,6 +565,19 @@ export class DefaultAgentRuntimeStore {
     })
   }
 
+  async hasRecentApprovedHitl(auth: AuthContext): Promise<boolean> {
+    const approval = await this.prisma.agentApproval.findFirst({
+      where: {
+        tenantId: auth.tenantId,
+        userId: auth.userId,
+        status: 'approved',
+        decidedAt: { gte: new Date(Date.now() - AGENT_HITL_STEP_UP_WINDOW_MS) }
+      },
+      select: { id: true }
+    })
+    return Boolean(approval)
+  }
+
   async decideApproval(
     id: string,
     decision: 'approve' | 'reject',
@@ -1022,14 +1040,15 @@ export class DefaultAgentRuntimeStore {
     sequence: number
   ): Promise<void> {
     if (event.type === 'MESSAGES_SNAPSHOT' && Array.isArray(event.messages)) {
-      const messages = normalizeRuntimeMessages(event.messages)
+      const displayMessages = normalizeDisplayMessages(event.messages)
+      const modelMessages = normalizeRuntimeMessages(event.messages)
       await this.prisma.$transaction(async (tx) => {
         await this.persistMessages(
           tx,
           input.threadId,
           turnIdFor(input.runId),
           auth.tenantId,
-          messages
+          displayMessages
         )
         await tx.agentCheckpoint.upsert({
           where: { threadId_version: { threadId: input.threadId, version: sequence } },
@@ -1038,11 +1057,15 @@ export class DefaultAgentRuntimeStore {
             runId: input.runId,
             tenantId: auth.tenantId,
             version: sequence,
-            state: toJson({ messages })
+            state: toJson({ messages: modelMessages })
           },
-          update: { state: toJson({ messages }) }
+          update: { state: toJson({ messages: modelMessages }) }
         })
       })
+    }
+
+    if (event.type === 'REASONING_MESSAGE_END' || event.type === 'REASONING_END') {
+      await this.persistReasoningFromEvents(input, event, auth)
     }
 
     if (event.type === 'STATE_SNAPSHOT') {
@@ -1293,6 +1316,37 @@ export class DefaultAgentRuntimeStore {
         data: { status, endReason, endedAt: now }
       })
     ])
+  }
+
+  private async persistReasoningFromEvents(
+    input: RuntimeRunInput,
+    event: RuntimeEvent,
+    auth: AuthContext
+  ) {
+    const messageId = typeof event.messageId === 'string' ? event.messageId : ''
+    if (!messageId) return
+
+    const contentEvents = await this.prisma.agentEvent.findMany({
+      where: {
+        runId: input.runId,
+        tenantId: auth.tenantId,
+        type: 'REASONING_MESSAGE_CONTENT'
+      },
+      orderBy: { sequence: 'asc' },
+      select: { payload: true }
+    })
+    const content = contentEvents
+      .map((item) => asRecord(item.payload))
+      .filter((payload) => payload?.messageId === messageId && typeof payload.delta === 'string')
+      .map((payload) => String(payload?.delta))
+      .join('')
+    if (!content.trim()) return
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.persistMessages(tx, input.threadId, turnIdFor(input.runId), auth.tenantId, [
+        { id: messageId, role: 'reasoning', content }
+      ])
+    })
   }
 
   private async persistMessages(

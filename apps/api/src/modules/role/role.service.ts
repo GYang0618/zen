@@ -7,6 +7,7 @@ import {
   NotFoundException
 } from '@nestjs/common'
 import { PermissionStatus, RoleKind } from '@prisma/client'
+import { completePageQuery } from '@zen/shared'
 
 import { toArray } from '@/common'
 import { AuditService } from '@/common/auth/audit.service'
@@ -15,6 +16,14 @@ import { SessionService } from '@/common/auth/session.service'
 import { buildPaginationMeta, paginate } from '@/common/pagination'
 
 import { findRolesQuerySchema } from './dto'
+import {
+  fromApiDataScope,
+  fromApiRoleStatus,
+  toApiDataScope,
+  toRoleListItemResponse,
+  toRoleResponse
+} from './role.mapper'
+import { RoleRepository } from './role.repository'
 import {
   buildRoleClonedDiff,
   buildRoleCreatedDiff,
@@ -25,14 +34,6 @@ import {
   buildRoleUpdatedDiff,
   toUserDisplayName
 } from './role-audit-diff'
-import {
-  fromApiDataScope,
-  fromApiRoleStatus,
-  toApiDataScope,
-  toRoleListItemResponse,
-  toRoleResponse
-} from './role.mapper'
-import { RoleRepository } from './role.repository'
 
 import type { Prisma } from '@prisma/client'
 import type {
@@ -117,13 +118,11 @@ export class RoleService {
   }
 
   async findAll(query?: FindRolesQueryDto): Promise<RoleListResponse> {
-    const hasPage = query?.page !== undefined
-    const hasPageSize = query?.pageSize !== undefined
-    if (hasPage !== hasPageSize) {
-      throw new BadRequestException('page 和 pageSize 必须同时传入')
-    }
+    const completedQuery = completePageQuery(query ?? {})
+    const hasPage = completedQuery.page !== undefined
+    const hasPageSize = completedQuery.pageSize !== undefined
 
-    const parsed = findRolesQuerySchema.parse(query ?? {})
+    const parsed = findRolesQuerySchema.parse(completedQuery)
     const { keyword, status, dataScope, page, pageSize } = parsed
     const effectiveStatus = toArray(parsed.effectiveStatus) as RoleEffectiveStatus[] | undefined
     const where = this.buildFindRolesWhere({
@@ -194,7 +193,9 @@ export class RoleService {
         data.status === undefined && data.dataScope === undefined && data.customOrgIds === undefined
       if (
         !allowedOnlyDisplay &&
-        data.name === undefined && data.description === undefined && data.icon === undefined &&
+        data.name === undefined &&
+        data.description === undefined &&
+        data.icon === undefined &&
         data.iconColor === undefined
       ) {
         throw new ForbiddenException('系统内置超级管理员角色不可编辑')
@@ -473,9 +474,7 @@ export class RoleService {
       ])
     )
     const toPermissionSnapshot = (codes: string[]) =>
-      codes.map(
-        (code) => permissionMap.get(code) ?? { code, module: '其他', name: code }
-      )
+      codes.map((code) => permissionMap.get(code) ?? { code, module: '其他', name: code })
 
     await this.auditService.write({
       action: 'system.role.permissions_assigned',

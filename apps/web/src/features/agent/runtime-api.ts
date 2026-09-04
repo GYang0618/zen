@@ -20,7 +20,7 @@ export const THREAD_HISTORY_PAGE_SIZE = 30
 
 export interface PersistedAgentMessage {
   id: string
-  role: 'system' | 'user' | 'assistant' | 'tool'
+  role: 'system' | 'user' | 'assistant' | 'tool' | 'reasoning'
   content: string
   toolCallId?: string | null
   metadata?: { externalId?: string; toolCalls?: unknown[] } | null

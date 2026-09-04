@@ -3,6 +3,8 @@ export const IDENTITY_TOOL_RULES = `
 ## 用户 / 角色 / 岗位
 
 用户
+- 列表查询 keyword 是子串：谷歌邮箱用 gmail.com / @gmail.com，不要用 google.com。
+- 删除 / 恢复 / 改状态多个用户时，一次传入全部 ids，不要按人拆成多次工具调用。
 - roleIds：先 query_roles_list，只用返回的 id（禁止把 code 当 ID），且角色须为启用状态。省略则系统分配默认 user 角色。
 - organizations.organizationId：先 query_organization_tree。
 - organizations.postId：是组织岗位编制 ID，来自 query_organization_positions 的 id，不是岗位目录 jobProfileId。没有编制可先 create_organization_position。

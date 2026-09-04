@@ -1,6 +1,10 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common'
 
-import { DefaultAgentRuntimeStore, normalizeRuntimeMessages } from './default-agent-runtime.store'
+import {
+  DefaultAgentRuntimeStore,
+  normalizeDisplayMessages,
+  normalizeRuntimeMessages
+} from './default-agent-runtime.store'
 
 import type { AuthContext } from '@zen/shared'
 import type { PrismaService } from '@/infra/prisma'
@@ -16,7 +20,7 @@ function runtimeInput() {
 }
 
 describe('DefaultAgentRuntimeStore message normalization', () => {
-  it('只持久化可回传模型的消息并过滤 reasoning/activity', () => {
+  it('Checkpoint 只保留可回传模型的消息并过滤 reasoning/activity', () => {
     expect(
       normalizeRuntimeMessages([
         { id: 'user-1', role: 'user', content: 'hello' },
@@ -26,6 +30,33 @@ describe('DefaultAgentRuntimeStore message normalization', () => {
       ])
     ).toEqual([
       { id: 'user-1', role: 'user', content: 'hello', toolCallId: undefined, metadata: undefined },
+      {
+        id: 'assistant-1',
+        role: 'assistant',
+        content: 'done',
+        toolCallId: undefined,
+        metadata: undefined
+      }
+    ])
+  })
+
+  it('展示历史保留 reasoning，仍过滤 activity', () => {
+    expect(
+      normalizeDisplayMessages([
+        { id: 'user-1', role: 'user', content: 'hello' },
+        { id: 'reasoning-1', role: 'reasoning', content: '先查角色' },
+        { id: 'activity-1', role: 'activity', content: { label: 'working' } },
+        { id: 'assistant-1', role: 'assistant', content: 'done' }
+      ])
+    ).toEqual([
+      { id: 'user-1', role: 'user', content: 'hello', toolCallId: undefined, metadata: undefined },
+      {
+        id: 'reasoning-1',
+        role: 'reasoning',
+        content: '先查角色',
+        toolCallId: undefined,
+        metadata: undefined
+      },
       {
         id: 'assistant-1',
         role: 'assistant',
@@ -390,6 +421,47 @@ describe('DefaultAgentRuntimeStore event persistence', () => {
         firstTokenAt: null
       },
       data: { firstTokenAt: expect.any(Date) }
+    })
+  })
+
+  it('在 reasoning 结束时把思考正文写入消息表', async () => {
+    const messageCreate = jest.fn().mockResolvedValue({})
+    const tx = {
+      agentRun: {
+        updateMany: jest.fn(),
+        update: jest.fn().mockResolvedValue({ eventSequence: 3, threadId: 'thread-1' })
+      },
+      agentEvent: { create: jest.fn().mockResolvedValue({}) },
+      agentMessage: {
+        findMany: jest.fn().mockResolvedValue([]),
+        create: messageCreate,
+        update: jest.fn()
+      }
+    }
+    const prisma = {
+      $transaction: jest.fn((callback: (client: typeof tx) => unknown) => callback(tx)),
+      agentEvent: {
+        findMany: jest.fn().mockResolvedValue([
+          { payload: { type: 'REASONING_MESSAGE_CONTENT', messageId: 'r1', delta: '先核对' } },
+          { payload: { type: 'REASONING_MESSAGE_CONTENT', messageId: 'r1', delta: '角色' } },
+          { payload: { type: 'REASONING_MESSAGE_CONTENT', messageId: 'r2', delta: '忽略' } }
+        ])
+      }
+    } as unknown as PrismaService
+
+    await new DefaultAgentRuntimeStore(prisma).recordEvent(
+      runtimeInput(),
+      { type: 'REASONING_MESSAGE_END', messageId: 'r1' },
+      auth
+    )
+
+    expect(messageCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        id: 'thread-1:r1',
+        role: 'reasoning',
+        content: '先核对角色',
+        metadata: { externalId: 'r1' }
+      })
     })
   })
 })

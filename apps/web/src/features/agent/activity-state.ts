@@ -3,6 +3,7 @@ export interface ActivityMessageLike {
   role: string
   content?: unknown
   toolCalls?: unknown
+  toolCallId?: string
 }
 
 function hasTextContent(content: unknown): boolean {
@@ -25,6 +26,12 @@ function isTextOnlyAssistant(message: ActivityMessageLike): boolean {
   )
 }
 
+function toolCallIdOf(toolCall: unknown): string | undefined {
+  if (!toolCall || typeof toolCall !== 'object') return undefined
+  const id = (toolCall as { id?: unknown }).id
+  return typeof id === 'string' && id.length > 0 ? id : undefined
+}
+
 /** 收尾阶段常出现的空 assistant / reasoning / activity，不代表下一轮真的开始了。 */
 export function isPlaceholderMessage(message: ActivityMessageLike): boolean {
   if (message.role === 'activity') return true
@@ -38,37 +45,89 @@ export function lastMeaningfulMessage<T extends ActivityMessageLike>(
 ): T | undefined {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index]
-    if (message && !isPlaceholderMessage(message)) return message
+    if (!message || isPlaceholderMessage(message)) continue
+    if (
+      message.role === 'reasoning' &&
+      message.id &&
+      isTrailingReasoningAfterReply(messages, message.id)
+    ) {
+      continue
+    }
+    return message
   }
   return undefined
 }
 
-function lastAssistantWithText<T extends ActivityMessageLike>(
-  messages: readonly T[]
-): T | undefined {
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    const message = messages[index]
-    if (message?.role === 'assistant' && hasTextContent(message.content)) return message
+export function hasUnresolvedToolCalls(messages: readonly ActivityMessageLike[]): boolean {
+  const resolvedIds = new Set(
+    messages
+      .filter((message) => message.role === 'tool')
+      .map((message) => message.toolCallId)
+      .filter((id): id is string => Boolean(id))
+  )
+
+  for (const message of messages) {
+    if (message.role !== 'assistant' || !hasToolCalls(message.toolCalls)) continue
+    for (const toolCall of message.toolCalls as unknown[]) {
+      const id = toolCallIdOf(toolCall)
+      if (id && !resolvedIds.has(id)) return true
+    }
   }
-  return undefined
+  return false
 }
 
 /**
- * 可见回复已经在流式输出，或本轮纯文本答案已经写完。
- * 末尾即使跟上 tool / 空占位 / 空工具调用，也不该再亮底部活动条。
+ * 文本段已经写完，但 run 还在：等工具、等下一跳模型、或下一条带 tool call 的 assistant。
+ * 这时不应再把界面当成「正在流式打字」。
+ */
+export function isAwaitingAgentWork(
+  messages: readonly ActivityMessageLike[],
+  isRunning: boolean
+): boolean {
+  if (!isRunning) return false
+  if (hasUnresolvedToolCalls(messages)) return true
+
+  const last = lastMeaningfulMessage(messages)
+  if (!last) return false
+  if (last.role === 'tool') return true
+  return last.role === 'assistant' && hasToolCalls(last.toolCalls)
+}
+
+/**
+ * 当前可见回复是否仍在往外吐 token。
+ * 纯文本段后的工具跳、已完成的 tool 结果、以及收尾 reasoning，都不算正在流式输出。
  */
 export function isStreamingAssistantText(
   messages: readonly ActivityMessageLike[],
   isRunning: boolean
 ): boolean {
   if (!isRunning) return false
-
-  const lastTextAssistant = lastAssistantWithText(messages)
-  if (lastTextAssistant && isTextOnlyAssistant(lastTextAssistant)) return true
+  if (isAwaitingAgentWork(messages, isRunning)) return false
 
   const last = lastMeaningfulMessage(messages)
   if (last?.role === 'reasoning') return true
   return last?.role === 'assistant' && hasTextContent(last.content)
+}
+
+/** 用消息尾部内容做签名：token 停更后可据此判定流式空窗。 */
+export function streamingActivitySignature(messages: readonly ActivityMessageLike[]): string {
+  const last = lastMeaningfulMessage(messages)
+  if (!last) return String(messages.length)
+
+  const content = typeof last.content === 'string' ? last.content : ''
+  const unresolved = hasUnresolvedToolCalls(messages) ? '1' : '0'
+  return `${messages.length}:${last.id ?? ''}:${last.role}:${unresolved}:${content}`
+}
+
+export function shouldShowActivityIndicator(input: {
+  isRunning: boolean
+  isStreamingText: boolean
+  streamIdle: boolean
+  activityLabel?: string
+}): boolean {
+  return Boolean(
+    input.isRunning && (input.activityLabel || !input.isStreamingText || input.streamIdle)
+  )
 }
 
 /** 纯文本答案之后又冒出来的 reasoning，是收尾噪声，不渲染。 */

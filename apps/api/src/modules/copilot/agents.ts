@@ -3,14 +3,15 @@ import {
   ACTIVE_AGENT_PLUGINS_CONFIGURABLE_KEY,
   AGENT_MEMORY_CONFIGURABLE_KEY,
   AGENT_RUN_ID_CONFIGURABLE_KEY,
+  AGENT_STEP_UP_TOKEN_CONFIGURABLE_KEY,
   DEFAULT_AGENT_GRAPH_ID,
   DEFAULT_AGENT_RUN_BUDGET
 } from '@zen/shared'
 
 import { LangGraphAgent } from './langgraph-runtime-agent'
 
-import type { DefaultAgentRuntimeHooks } from './default-agent-runtime.types'
 import type { DefaultAgentRunControl } from './default-agent-run-control'
+import type { DefaultAgentRuntimeHooks } from './default-agent-runtime.types'
 
 const agents = {
   default: { graphId: DEFAULT_AGENT_GRAPH_ID },
@@ -23,6 +24,7 @@ export const defaultAgent = ({
   activePluginIds,
   memory,
   runId,
+  stepUpToken,
   runControl,
   runtimeHooks
 }: {
@@ -31,6 +33,7 @@ export const defaultAgent = ({
   activePluginIds?: string[]
   memory?: string
   runId?: string
+  stepUpToken?: string
   runControl?: DefaultAgentRunControl
   runtimeHooks?: DefaultAgentRuntimeHooks
 }) =>
@@ -39,7 +42,7 @@ export const defaultAgent = ({
     graphId: agents.default.graphId,
     assistantConfig: {
       recursion_limit: DEFAULT_AGENT_RUN_BUDGET.recursionLimit,
-      ...(accessToken || memory || activePluginIds || runId
+      ...(accessToken || memory || activePluginIds || runId || stepUpToken
         ? {
             configurable: {
               ...(accessToken ? { [ACCESS_TOKEN_CONFIGURABLE_KEY]: accessToken } : {}),
@@ -47,7 +50,8 @@ export const defaultAgent = ({
                 ? { [ACTIVE_AGENT_PLUGINS_CONFIGURABLE_KEY]: activePluginIds }
                 : {}),
               ...(memory ? { [AGENT_MEMORY_CONFIGURABLE_KEY]: memory } : {}),
-              ...(runId ? { [AGENT_RUN_ID_CONFIGURABLE_KEY]: runId } : {})
+              ...(runId ? { [AGENT_RUN_ID_CONFIGURABLE_KEY]: runId } : {}),
+              ...(stepUpToken ? { [AGENT_STEP_UP_TOKEN_CONFIGURABLE_KEY]: stepUpToken } : {})
             }
           }
         : {})

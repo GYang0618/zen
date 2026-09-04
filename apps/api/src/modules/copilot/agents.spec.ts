@@ -29,6 +29,21 @@ describe('Copilot agent registration', () => {
     })
   })
 
+  it('HITL 通过后把 step-up 令牌注入 configurable', () => {
+    const agent = defaultAgent({
+      deploymentUrl: 'http://langgraph.test',
+      accessToken: 'token',
+      stepUpToken: 'step-up-1'
+    })
+
+    expect(agent.assistantConfig).toMatchObject({
+      configurable: {
+        accessToken: 'token',
+        stepUpToken: 'step-up-1'
+      }
+    })
+  })
+
   it('Popup 的 plan agent 不注入 Default Agent 运行预算或用户 token', () => {
     const agent = planAgent({ deploymentUrl: 'http://langgraph.test' })
 

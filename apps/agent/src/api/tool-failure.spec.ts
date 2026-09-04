@@ -37,6 +37,16 @@ describe('toToolFailureResult', () => {
     assert.match(parsed.message, /网络超时/)
     assert.match(parsed.message, /向用户询问/)
   })
+
+  it('权限类错误禁止引导模型再次调用同一工具', () => {
+    const raw = toToolFailureResult({ code: 403, message: '需要二次确认' })
+    const parsed = JSON.parse(raw) as { success: boolean; reason: string; message: string }
+
+    assert.equal(parsed.success, false)
+    assert.equal(parsed.reason, 'STEP_UP_REQUIRED')
+    assert.match(parsed.message, /不要再次调用/)
+    assert.doesNotMatch(parsed.message, /修正参数后重试/)
+  })
 })
 
 describe('isToolFailureResult', () => {
@@ -63,6 +73,7 @@ describe('classifyToolError', () => {
     assert.equal(classifyToolError({ code: 404, message: '用户不存在' }), 'BUSINESS_ERROR')
     assert.equal(classifyToolError({ response: { status: 401 } }), 'UNAUTHORIZED')
     assert.equal(classifyToolError({ response: { status: 403 } }), 'FORBIDDEN')
+    assert.equal(classifyToolError({ code: 403, message: '需要二次确认' }), 'STEP_UP_REQUIRED')
     assert.equal(classifyToolError({ response: { status: 429 } }), 'RATE_LIMITED')
     assert.equal(
       classifyToolError({ code: 'ECONNRESET', message: 'socket closed' }),

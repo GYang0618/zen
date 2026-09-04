@@ -25,11 +25,13 @@ import {
 import {
   isStreamingAssistantText,
   isTrailingReasoningAfterReply,
-  lastMeaningfulMessage
+  lastMeaningfulMessage,
+  streamingActivitySignature
 } from '../activity-state'
 import { DisplayMessageCache } from '../display-messages'
 import { useAgentRetry } from '../hooks/use-agent-retry'
 import { useLiveAgentMessages } from '../hooks/use-live-agent-messages'
+import { useStreamIdle } from '../hooks/use-stream-idle'
 import { getToolCallName, resolveAssistantToolCalls } from '../lib/group-tool-calls'
 import { ChatActivityIndicator } from './chat-activity'
 import { GroupedToolCallsView } from './grouped-tool-calls-view'
@@ -118,7 +120,7 @@ interface AssistantMessageProps {
   content: string
   messages: CopilotkitMessage[]
   toolGroupingMessages: AssistantToolMessageLike[]
-  isRunning: boolean
+  isActivelyStreaming: boolean
 }
 
 function AssistantMessage({
@@ -126,12 +128,14 @@ function AssistantMessage({
   content,
   messages,
   toolGroupingMessages,
-  isRunning
+  isActivelyStreaming
 }: AssistantMessageProps) {
   'use no memo'
   const hasContent = Boolean(content.trim())
   const last = lastMeaningfulMessage(messages)
-  const isStreaming = Boolean(isRunning && last?.id === message.id && last.role === 'assistant')
+  const isStreaming = Boolean(
+    isActivelyStreaming && last?.id === message.id && last.role === 'assistant'
+  )
   const { hidden, toolCalls } = resolveAssistantToolCalls(toolGroupingMessages, message.id)
   const resultToolCalls = toolCalls.filter((toolCall) =>
     hasDedicatedResultUi(getToolCallName(toolCall))
@@ -261,9 +265,17 @@ export function ChatMessages({ threadId }: { threadId: string }) {
     [displayMessages]
   )
   const canRetry = displayMessages.some((message) => message.role === 'user')
-  const activityLabel = formatActiveToolsLabel(
-    resolveActivityToolNames(collectUnresolvedToolNames(displayMessages))
+  const unresolvedToolNames = collectUnresolvedToolNames(displayMessages)
+  const activityToolNames = resolveActivityToolNames(unresolvedToolNames)
+  const activityLabel =
+    formatActiveToolsLabel(activityToolNames) ??
+    (unresolvedToolNames.length > 0 ? '正在检索…' : undefined)
+  const structurallyStreaming = isStreamingAssistantText(displayMessages, isRunning)
+  const streamIdle = useStreamIdle(
+    isRunning && structurallyStreaming,
+    streamingActivitySignature(displayMessages)
   )
+  const isActivelyStreamingText = structurallyStreaming && !streamIdle
 
   const handleRetry = () => {
     void retryLastRun(displayMessages)
@@ -299,7 +311,7 @@ export function ChatMessages({ threadId }: { threadId: string }) {
                 content={typeof message.content === 'string' ? message.content : ''}
                 messages={displayMessages}
                 toolGroupingMessages={toolGroupingMessages}
-                isRunning={isRunning}
+                isActivelyStreaming={isActivelyStreamingText}
               />
             )}
             {message.role === 'reasoning' && (
@@ -319,7 +331,8 @@ export function ChatMessages({ threadId }: { threadId: string }) {
       )}
       <ChatActivityIndicator
         isRunning={isRunning && !runError}
-        isStreamingText={isStreamingAssistantText(displayMessages, isRunning)}
+        isStreamingText={structurallyStreaming}
+        streamIdle={streamIdle}
         activityLabel={activityLabel}
       />
     </div>

@@ -110,10 +110,7 @@ export class LangGraphAgent extends CopilotkitLangGraphAgent {
         }
         const unregisterRun = () =>
           this.runControl?.unregister(runtimeInputForHooks.runId, abortCurrentRun)
-        const enqueuePersistence = (
-          task: () => Promise<void> | void,
-          reportFailure = true
-        ) => {
+        const enqueuePersistence = (task: () => Promise<void> | void, reportFailure = true) => {
           persistence = persistence.then(async () => {
             if (persistenceError) return
             try {
@@ -146,22 +143,33 @@ export class LangGraphAgent extends CopilotkitLangGraphAgent {
             onSuccess()
           })
         }
-        timeout = setTimeout(() => {
+        const failWithTimeout = () => {
           if (settled) return
-
           settled = true
           unregisterRun()
+          clearTimeout(timeout)
           this.abortRun()
           subscription?.unsubscribe()
           const error = new Error('Default Agent run timed out')
           enqueuePersistence(() => this.runtimeHooks?.onError(runtimeInputForHooks, error), false)
           afterPersistence(() => subscriber.error(error))
-        }, DEFAULT_AGENT_RUN_BUDGET.timeoutMs)
+        }
+        const armIdleTimeout = () => {
+          clearTimeout(timeout)
+          if (settled) return
+          timeout = setTimeout(failWithTimeout, DEFAULT_AGENT_RUN_BUDGET.timeoutMs)
+        }
+        armIdleTimeout()
         this.runControl?.register(runtimeInputForHooks.runId, abortCurrentRun)
 
         const subscribe = () => {
           subscription = source.subscribe({
             next: (event) => {
+              if (isHumanWaitEvent(event as RuntimeEvent)) {
+                clearTimeout(timeout)
+              } else {
+                armIdleTimeout()
+              }
               const budgetError = updateRunBudget(event as RuntimeEvent, {
                 modelCalls,
                 totalTokens,
@@ -193,7 +201,10 @@ export class LangGraphAgent extends CopilotkitLangGraphAgent {
               settled = true
               unregisterRun()
               clearTimeout(timeout)
-              enqueuePersistence(() => this.runtimeHooks?.onError(runtimeInputForHooks, error), false)
+              enqueuePersistence(
+                () => this.runtimeHooks?.onError(runtimeInputForHooks, error),
+                false
+              )
               afterPersistence(() => subscriber.error(error))
             },
             complete: () => {
@@ -289,14 +300,34 @@ function updateRunBudget(
     const result = parseRecord(event.content ?? event.result)
     if (result?.success === false) next.failures += 1
   }
-  const exceeded =
-    next.modelCalls > DEFAULT_AGENT_RUN_BUDGET.maxModelCalls ||
-    next.totalTokens > DEFAULT_AGENT_RUN_BUDGET.maxTotalTokens ||
-    next.failures > DEFAULT_AGENT_RUN_BUDGET.maxFailures
+  const exceeded = budgetExceededError(next)
   return {
     usage: next,
-    ...(exceeded ? { error: new Error('Default Agent run budget exceeded') } : {})
+    ...(exceeded ? { error: exceeded } : {})
   }
+}
+
+function isHumanWaitEvent(event: RuntimeEvent): boolean {
+  return (
+    event.type === 'INTERRUPT' ||
+    (event.type === 'CUSTOM' && event.name === LEGACY_INTERRUPT_EVENT_NAME)
+  )
+}
+
+function budgetExceededError(usage: RunBudgetUsage): Error | undefined {
+  const reasons: string[] = []
+  if (usage.modelCalls > DEFAULT_AGENT_RUN_BUDGET.maxModelCalls) {
+    reasons.push(`modelCalls ${usage.modelCalls}/${DEFAULT_AGENT_RUN_BUDGET.maxModelCalls}`)
+  }
+  if (usage.totalTokens > DEFAULT_AGENT_RUN_BUDGET.maxTotalTokens) {
+    reasons.push(`totalTokens ${usage.totalTokens}/${DEFAULT_AGENT_RUN_BUDGET.maxTotalTokens}`)
+  }
+  if (usage.failures > DEFAULT_AGENT_RUN_BUDGET.maxFailures) {
+    reasons.push(`failures ${usage.failures}/${DEFAULT_AGENT_RUN_BUDGET.maxFailures}`)
+  }
+  return reasons.length
+    ? new Error(`Default Agent run budget exceeded (${reasons.join(', ')})`)
+    : undefined
 }
 
 function findRawTokenUsage(value: unknown, depth = 0): number {

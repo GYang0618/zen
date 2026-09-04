@@ -238,7 +238,9 @@ export const usersQuerySchema = pageQuerySchema.extend({
     .string()
     .trim()
     .optional()
-    .describe('关键字搜索：支持邮箱、用户名、昵称、真实姓名、手机号'),
+    .describe(
+      '关键字子串搜索：邮箱/用户名/昵称/真实姓名/手机号。谷歌邮箱用 gmail.com 或 @gmail.com，不要用 google.com'
+    ),
   status: z
     .union([userStatusSchema, userStatusSchema.array()])
     .optional()

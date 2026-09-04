@@ -7,6 +7,7 @@ import type { RunnableConfig } from '@langchain/core/runnables'
 interface AgentRequestContext {
   accessToken: string
   idempotencyKey?: string
+  stepUpToken?: string
   signal?: AbortSignal
 }
 
@@ -66,12 +67,18 @@ export function getCurrentAbortSignal(): AbortSignal | undefined {
   return requestContextStorage.getStore()?.signal
 }
 
+export function getCurrentStepUpToken(): string | undefined {
+  const token = requestContextStorage.getStore()?.stepUpToken
+  return typeof token === 'string' && token.trim() !== '' ? token : undefined
+}
+
 /** 在指定 token 的异步上下文中执行（供 SDK client.auth 回调使用） */
 export function runWithAccessToken<T>(
   accessToken: string,
   fn: () => Promise<T>,
   idempotencyKey?: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  stepUpToken?: string
 ): Promise<T> {
-  return requestContextStorage.run({ accessToken, idempotencyKey, signal }, fn)
+  return requestContextStorage.run({ accessToken, idempotencyKey, signal, stepUpToken }, fn)
 }

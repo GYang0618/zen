@@ -98,6 +98,89 @@ describe('LangGraphAgent runtime policy', () => {
     expect(onError).toHaveBeenCalledWith(new Error('Default Agent run timed out'))
   })
 
+  it('Default Agent 有流式事件时按空闲窗口续期', async () => {
+    jest.useFakeTimers()
+    let remoteSubscriber: { next: (event: unknown) => void } | undefined
+    const source = new Observable((subscriber) => {
+      remoteSubscriber = subscriber
+    })
+    jest.spyOn(CopilotkitLangGraphAgent.prototype, 'run').mockReturnValue(source as never)
+    const agent = new LangGraphAgent({
+      deploymentUrl: 'http://langgraph.test',
+      graphId: 'default_agent'
+    })
+    const abortRun = jest.spyOn(agent, 'abortRun').mockImplementation()
+    const onError = jest.fn()
+    const observedError = new Promise<unknown>((resolve) => {
+      agent.run(RUN_INPUT as never).subscribe({
+        error: (error) => {
+          onError(error)
+          resolve(error)
+        }
+      })
+    })
+    await Promise.resolve()
+
+    jest.advanceTimersByTime(DEFAULT_AGENT_RUN_BUDGET.timeoutMs - 1)
+    remoteSubscriber?.next({ type: 'RUN_STARTED' })
+    jest.advanceTimersByTime(DEFAULT_AGENT_RUN_BUDGET.timeoutMs - 1)
+    expect(onError).not.toHaveBeenCalled()
+
+    jest.advanceTimersByTime(2)
+    await observedError
+    expect(abortRun).toHaveBeenCalledTimes(1)
+    expect(onError).toHaveBeenCalledWith(new Error('Default Agent run timed out'))
+  })
+
+  it('Default Agent 进入审批中断后不再按空闲超时取消', async () => {
+    jest.useFakeTimers()
+    let remoteSubscriber: { next: (event: unknown) => void } | undefined
+    const source = new Observable((subscriber) => {
+      remoteSubscriber = subscriber
+    })
+    jest.spyOn(CopilotkitLangGraphAgent.prototype, 'run').mockReturnValue(source as never)
+    const agent = new LangGraphAgent({
+      deploymentUrl: 'http://langgraph.test',
+      graphId: 'default_agent'
+    })
+    const abortRun = jest.spyOn(agent, 'abortRun').mockImplementation()
+
+    agent.run(RUN_INPUT as never).subscribe()
+    await Promise.resolve()
+    remoteSubscriber?.next({ type: 'CUSTOM', name: 'on_interrupt', value: '{}' })
+    jest.advanceTimersByTime(DEFAULT_AGENT_RUN_BUDGET.timeoutMs * 2)
+
+    expect(abortRun).not.toHaveBeenCalled()
+  })
+
+  it('Default Agent 工具连续失败时以带用量的预算错误结束', async () => {
+    const source = new Observable((subscriber) => {
+      for (let index = 0; index < DEFAULT_AGENT_RUN_BUDGET.maxFailures + 1; index += 1) {
+        subscriber.next({
+          type: 'TOOL_CALL_RESULT',
+          content: JSON.stringify({ success: false, reason: 'VALIDATION_ERROR' })
+        })
+      }
+    })
+    jest.spyOn(CopilotkitLangGraphAgent.prototype, 'run').mockReturnValue(source as never)
+    const agent = new LangGraphAgent({
+      deploymentUrl: 'http://langgraph.test',
+      graphId: 'default_agent'
+    })
+    const abortRun = jest.spyOn(agent, 'abortRun').mockImplementation()
+
+    await expect(
+      new Promise<void>((resolve, reject) => {
+        agent.run(RUN_INPUT as never).subscribe({ error: reject, complete: resolve })
+      })
+    ).rejects.toEqual(
+      new Error(
+        `Default Agent run budget exceeded (failures ${DEFAULT_AGENT_RUN_BUDGET.maxFailures + 1}/${DEFAULT_AGENT_RUN_BUDGET.maxFailures})`
+      )
+    )
+    expect(abortRun).toHaveBeenCalledTimes(1)
+  })
+
   it('Default Agent 客户端断开后继续排空并持久化远程事件', async () => {
     let remoteSubscriber: { next: (event: unknown) => void; complete: () => void } | undefined
     const source = new Observable((subscriber) => {

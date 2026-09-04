@@ -4,7 +4,8 @@ import { configs } from '../configs/env'
 import {
   getCurrentAbortSignal,
   getCurrentAccessToken,
-  getCurrentIdempotencyKey
+  getCurrentIdempotencyKey,
+  getCurrentStepUpToken
 } from './request-context'
 
 export * from '../api-client'
@@ -28,7 +29,9 @@ client.setConfig({
 
 client.interceptors.request.use((request) => {
   const idempotencyKey = getCurrentIdempotencyKey()
+  const stepUpToken = getCurrentStepUpToken()
   const headers = new Headers(request.headers)
   if (idempotencyKey) headers.set('x-agent-idempotency-key', idempotencyKey)
+  if (stepUpToken) headers.set('x-step-up-token', stepUpToken)
   return new Request(request, { headers, signal: getCurrentAbortSignal() ?? request.signal })
 })

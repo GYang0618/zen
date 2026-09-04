@@ -14,13 +14,27 @@ export interface NormalizedMessage {
 }
 
 const MODEL_MESSAGE_ROLES = new Set(['system', 'user', 'assistant', 'tool'])
+const DISPLAY_MESSAGE_ROLES = new Set([...MODEL_MESSAGE_ROLES, 'reasoning'])
 
+/** Checkpoint / 回传模型：不含 reasoning 等仅展示消息。 */
 export function normalizeRuntimeMessages(input: unknown[] | undefined): NormalizedMessage[] {
+  return normalizeMessages(input, MODEL_MESSAGE_ROLES)
+}
+
+/** 会话历史展示：保留 reasoning，仍排除 activity。 */
+export function normalizeDisplayMessages(input: unknown[] | undefined): NormalizedMessage[] {
+  return normalizeMessages(input, DISPLAY_MESSAGE_ROLES)
+}
+
+function normalizeMessages(
+  input: unknown[] | undefined,
+  allowedRoles: ReadonlySet<string>
+): NormalizedMessage[] {
   if (!input) return []
   return input.flatMap((value, index) => {
     const message = asRecord(value)
     const role = typeof message?.role === 'string' ? message.role : ''
-    if (!message || !MODEL_MESSAGE_ROLES.has(role)) return []
+    if (!message || !allowedRoles.has(role)) return []
     return [
       {
         id: typeof message.id === 'string' ? message.id : `message-${index}`,

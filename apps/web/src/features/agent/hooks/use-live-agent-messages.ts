@@ -14,6 +14,7 @@ interface AgentLike {
     onRunInitialized?: () => void
     onRunFinalized?: () => void
     onRunFailed?: () => void
+    onStateChanged?: () => void
   }) => { unsubscribe: () => void }
 }
 
@@ -47,10 +48,14 @@ export function useLiveAgentMessages<TMessage extends DisplayMessageLike>(
       onMessagesChanged: sync,
       onRunInitialized: sync,
       onRunFinalized: sync,
-      onRunFailed: sync
+      onRunFailed: sync,
+      onStateChanged: sync
     })
     return () => subscription.unsubscribe()
   }, [agent])
 
-  return live
+  return {
+    messages: live.messages,
+    isRunning: agent.isRunning
+  }
 }
