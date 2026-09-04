@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-/** 流式 token 停更超过该时间，视为中间空窗，应露出等待提示。 */
+/** 流式 token 停更超过该时间，视为中间空窗，停止打字动画。 */
 export const STREAM_IDLE_MS = 450
 
 /**

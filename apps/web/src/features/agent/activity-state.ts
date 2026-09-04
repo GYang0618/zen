@@ -122,12 +122,11 @@ export function streamingActivitySignature(messages: readonly ActivityMessageLik
 export function shouldShowActivityIndicator(input: {
   isRunning: boolean
   isStreamingText: boolean
-  streamIdle: boolean
   activityLabel?: string
 }): boolean {
-  return Boolean(
-    input.isRunning && (input.activityLabel || !input.isStreamingText || input.streamIdle)
-  )
+  // 正文已经在屏上时，token 空窗多半是 run 收尾（checkpoint / 关流），
+  // 不能当成「还在处理」。工具跳、首 token 前等真正的等待由 !isStreamingText 覆盖。
+  return Boolean(input.isRunning && (input.activityLabel || !input.isStreamingText))
 }
 
 /** 纯文本答案之后又冒出来的 reasoning，是收尾噪声，不渲染。 */

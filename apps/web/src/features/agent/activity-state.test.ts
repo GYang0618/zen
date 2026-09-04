@@ -152,20 +152,27 @@ describe('shouldShowActivityIndicator', () => {
     expect(
       shouldShowActivityIndicator({
         isRunning: true,
-        isStreamingText: true,
-        streamIdle: false
+        isStreamingText: true
       })
     ).toBe(false)
   })
 
-  it('token 停更后即使仍判定为流式，也要亮等待条', () => {
+  it('未开始出字或在等工具时亮条', () => {
     expect(
       shouldShowActivityIndicator({
         isRunning: true,
-        isStreamingText: true,
-        streamIdle: true
+        isStreamingText: false
       })
     ).toBe(true)
+  })
+
+  it('run 已结束时不亮条', () => {
+    expect(
+      shouldShowActivityIndicator({
+        isRunning: false,
+        isStreamingText: false
+      })
+    ).toBe(false)
   })
 
   it('有工具活动文案时即使正在打字也亮条', () => {
@@ -173,7 +180,6 @@ describe('shouldShowActivityIndicator', () => {
       shouldShowActivityIndicator({
         isRunning: true,
         isStreamingText: true,
-        streamIdle: false,
         activityLabel: '正在删除角色'
       })
     ).toBe(true)

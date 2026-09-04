@@ -332,7 +332,6 @@ export function ChatMessages({ threadId }: { threadId: string }) {
       <ChatActivityIndicator
         isRunning={isRunning && !runError}
         isStreamingText={structurallyStreaming}
-        streamIdle={streamIdle}
         activityLabel={activityLabel}
       />
     </div>

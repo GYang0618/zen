@@ -30,7 +30,6 @@ export function useUsersTable() {
       parameters: z.object({}),
       render: ({ status, result }) => {
         if (status !== 'complete') return emptyToolRender()
-
         const data = parseUsersPageResult(result ?? '')
         if (!data || data.items.length === 0) return emptyToolRender()
 

@@ -1,6 +1,54 @@
 {
   "version": 1,
   "skills": {
+    "a2ui-renderer": {
+      "source": "CopilotKit/CopilotKit",
+      "sourceType": "github",
+      "skillPath": "skills/a2ui-renderer/SKILL.md",
+      "computedHash": "943bdfde1fd1c642a2ef955ba05caae25772e23f97ca2859ed9d54e8b7bbdde9"
+    },
+    "copilotkit-agui": {
+      "source": "CopilotKit/CopilotKit",
+      "sourceType": "github",
+      "skillPath": "skills/copilotkit-agui/SKILL.md",
+      "computedHash": "57a8f89ba1212667813a69505f37249e8d7ed52472249a4d5dda250dbdbd987c"
+    },
+    "copilotkit-debug": {
+      "source": "CopilotKit/CopilotKit",
+      "sourceType": "github",
+      "skillPath": "skills/copilotkit-debug/SKILL.md",
+      "computedHash": "564d1bdc76a6085b8253a7631e73fa334fb9abe79d5e8cf8a3a79758503f4d2e"
+    },
+    "copilotkit-develop": {
+      "source": "CopilotKit/CopilotKit",
+      "sourceType": "github",
+      "skillPath": "skills/copilotkit-develop/SKILL.md",
+      "computedHash": "76563035174592e0e30ce35039ab234aced29537e3733b789043e3fcc36a8c67"
+    },
+    "copilotkit-integrations": {
+      "source": "CopilotKit/CopilotKit",
+      "sourceType": "github",
+      "skillPath": "skills/copilotkit-integrations/SKILL.md",
+      "computedHash": "64250c901d1b54acab8922657ed8ddd9170545de74d9463a7e747bd643e4371d"
+    },
+    "copilotkit-self-update": {
+      "source": "CopilotKit/CopilotKit",
+      "sourceType": "github",
+      "skillPath": "skills/copilotkit-self-update/SKILL.md",
+      "computedHash": "22d09f38a1b83fdb6ee30629f5921f749072bcd63e885b23c19fcd723e6ea452"
+    },
+    "copilotkit-setup": {
+      "source": "CopilotKit/CopilotKit",
+      "sourceType": "github",
+      "skillPath": "skills/copilotkit-setup/SKILL.md",
+      "computedHash": "18a6abf391a70f1880117aead8da374bb3c30c9021cd80227ed23058dac023e1"
+    },
+    "copilotkit-upgrade": {
+      "source": "CopilotKit/CopilotKit",
+      "sourceType": "github",
+      "skillPath": "skills/copilotkit-upgrade/SKILL.md",
+      "computedHash": "40e9c08f558e373f3632ae308112c625c344091134c2a30d361f8d88eddcf3f1"
+    },
     "migrate-radix-to-base": {
       "source": "shadcn/ui",
       "sourceType": "github",
