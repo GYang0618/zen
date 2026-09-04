@@ -1,6 +1,5 @@
 ---
-description: React Three Fiber / Three.js 3D 开发规范。涉及 WebGL、3D 场景、R3F、drei、rapier、postprocessing、xr、shader、glTF/GLB 模型加载、相机控制、光照阴影、性能优化（InstancedMesh、LOD、BVH）、自定义着色器或任何 three.js 相关任务时必须遵循。
-alwaysApply: false
+trigger: always_on
 ---
 
 # React Three Fiber 开发规范

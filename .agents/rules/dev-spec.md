@@ -1,6 +1,5 @@
 ---
-description: 当进行开发任务时，必须遵循以下 AI 开发指令规范，以确保代码质量、可维护性和一致性
-alwaysApply: true
+trigger: always_on
 ---
 
 # AI 开发指令规范 (Custom Instructions)
