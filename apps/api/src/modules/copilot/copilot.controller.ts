@@ -39,6 +39,10 @@ export class CopilotController {
       runId
     )
 
-    return handler(req, res, next)
+    return (handler as unknown as (req: unknown, res: unknown, next: unknown) => unknown)(
+      req,
+      res,
+      next
+    )
   }
 }

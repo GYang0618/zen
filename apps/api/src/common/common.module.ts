@@ -1,7 +1,12 @@
 import { Global, Module } from '@nestjs/common'
-import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, Reflector } from '@nestjs/core'
 import { JwtModule } from '@nestjs/jwt'
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler'
+import {
+  getOptionsToken,
+  getStorageToken,
+  ThrottlerGuard,
+  ThrottlerModule
+} from '@nestjs/throttler'
 
 import { authConfig, securityConfig } from '@/config'
 import { LoggerModule } from '@/infra/logger'
@@ -31,6 +36,7 @@ import type { AuthConfig, SecurityConfig } from '@/config'
     LoggerModule,
     PrismaModule,
     ThrottlerModule.forRootAsync({
+      imports: [],
       inject: [securityConfig.KEY],
       useFactory: (security: SecurityConfig) => [
         {
@@ -61,7 +67,12 @@ import type { AuthConfig, SecurityConfig } from '@/config'
     },
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard
+      inject: [getOptionsToken(), getStorageToken(), Reflector],
+      useFactory: (
+        options: ConstructorParameters<typeof ThrottlerGuard>[0],
+        storage: ConstructorParameters<typeof ThrottlerGuard>[1],
+        reflector: Reflector
+      ) => new ThrottlerGuard(options, storage, reflector)
     },
     {
       provide: APP_GUARD,

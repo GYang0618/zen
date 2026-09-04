@@ -10,6 +10,8 @@ import type { AppConfig, LoggerConfig } from '@/config'
 @Module({
   imports: [
     Logger.forRootAsync({
+      imports: [],
+      providers: [],
       inject: [CONFIG_NAMESPACES.APP, CONFIG_NAMESPACES.LOGGER],
       useFactory: (appCfg: AppConfig, loggerCfg: LoggerConfig) => {
         const isProduction = appCfg.nodeEnv === 'production'

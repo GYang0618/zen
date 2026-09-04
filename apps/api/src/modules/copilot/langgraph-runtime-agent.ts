@@ -1,26 +1,11 @@
 import { LangGraphAgent as CopilotkitLangGraphAgent } from '@copilotkit/runtime/langgraph'
 import { DEFAULT_AGENT_GRAPH_ID, DEFAULT_AGENT_RUN_BUDGET } from '@zen/shared'
 
-import {
-  chunkHasAssistantDelta,
-  emitPendingToolCalls,
-  extractToolCallFromToolStart,
-  extractToolCallsFromModelEnd,
-  LANGGRAPH_EVENT,
-  resolveReasoningContent,
-  runWithoutReasoningProcess
-} from './langgraph-tool-call-stream'
-
 import type {
   DefaultAgentRuntimeHooks,
   RuntimeEvent,
   RuntimeRunInput
 } from './default-agent-runtime.types'
-import type {
-  LangGraphStreamEvent,
-  ReasoningProcessHolder,
-  ToolCallStreamSink
-} from './langgraph-tool-call-stream'
 
 interface RunControl {
   register: (runId: string, abort: () => void) => void
@@ -34,10 +19,15 @@ interface AguiMessage {
 const LEGACY_INTERRUPT_EVENT_NAME = 'on_interrupt'
 const INTERRUPT_ID_FIELD = '__zenInterruptId'
 
+/** 仅用于 UI 展示，不应写入 LangGraph 会话状态或回传给模型 */
+const EXCLUDED_AGUI_MESSAGE_ROLES = new Set(['reasoning', 'activity'])
+
 /**
- * CopilotKit LangGraphAgent 扩展：
- * - 解析 Qwen reasoning_content
- * - 在模型结束 / 工具开始时补发工具调用事件，避免批量工具卡到全部完成才出卡片
+ * 现代化的 CopilotKit v2 LangGraphAgent 适配器：
+ * - 过滤非模型 role（如 reasoning / activity）
+ * - 注入运行预算监控（超时 DEFAULT_AGENT_RUN_BUDGET.timeoutMs、Token 上限、模型调用数）
+ * - 客户端连接断开不中断 Agent 执行（断线后继续持久化运行事件）
+ * - 响应式 HITL 审批中断打标
  */
 export class LangGraphAgent extends CopilotkitLangGraphAgent {
   private runtimeHooks?: DefaultAgentRuntimeHooks
@@ -82,8 +72,6 @@ export class LangGraphAgent extends CopilotkitLangGraphAgent {
     const runtimeInput = filterLangGraphInputMessages(input)
     const stream = super.run(runtimeInput)
 
-    // LangGraph Platform 的 runs.stream 请求不会替运行本身设置超时；Default
-    // Agent 需要在连接长期无响应时主动取消，避免一直占用前端 Run。
     if (this.graphId !== DEFAULT_AGENT_GRAPH_ID) {
       return stream
     }
@@ -99,6 +87,7 @@ export class LangGraphAgent extends CopilotkitLangGraphAgent {
         let failures = 0
         let timeout: ReturnType<typeof setTimeout> | undefined
         const runtimeInputForHooks = runtimeInput as RuntimeRunInput
+
         const abortCurrentRun = () => {
           if (settled) return
           settled = true
@@ -108,8 +97,10 @@ export class LangGraphAgent extends CopilotkitLangGraphAgent {
           subscription?.unsubscribe()
           subscriber.error(new Error('Default Agent run cancelled'))
         }
+
         const unregisterRun = () =>
           this.runControl?.unregister(runtimeInputForHooks.runId, abortCurrentRun)
+
         const enqueuePersistence = (task: () => Promise<void> | void, reportFailure = true) => {
           persistence = persistence.then(async () => {
             if (persistenceError) return
@@ -128,12 +119,13 @@ export class LangGraphAgent extends CopilotkitLangGraphAgent {
               try {
                 await this.runtimeHooks?.onError(runtimeInputForHooks, error)
               } catch {
-                // 保留首个持久化错误，后续恢复失败由运维对账 Lease。
+                // 忽略持久化次级错误
               }
               subscriber.error(error)
             }
           })
         }
+
         const afterPersistence = (onSuccess: () => void) => {
           void persistence.then(() => {
             if (persistenceError) {
@@ -143,6 +135,7 @@ export class LangGraphAgent extends CopilotkitLangGraphAgent {
             onSuccess()
           })
         }
+
         const failWithTimeout = () => {
           if (settled) return
           settled = true
@@ -154,11 +147,13 @@ export class LangGraphAgent extends CopilotkitLangGraphAgent {
           enqueuePersistence(() => this.runtimeHooks?.onError(runtimeInputForHooks, error), false)
           afterPersistence(() => subscriber.error(error))
         }
+
         const armIdleTimeout = () => {
           clearTimeout(timeout)
           if (settled) return
           timeout = setTimeout(failWithTimeout, DEFAULT_AGENT_RUN_BUDGET.timeoutMs)
         }
+
         armIdleTimeout()
         this.runControl?.register(runtimeInputForHooks.runId, abortCurrentRun)
 
@@ -235,51 +230,6 @@ export class LangGraphAgent extends CopilotkitLangGraphAgent {
       }
     }) as typeof stream
   }
-
-  handleSingleEvent(event: unknown): void {
-    const streamEvent = event as LangGraphStreamEvent
-
-    if (streamEvent.event === LANGGRAPH_EVENT.ON_CHAT_MODEL_STREAM) {
-      const reasoningData = resolveReasoningContent(streamEvent.data)
-      if (reasoningData) {
-        this.handleReasoningEvent(reasoningData)
-        if (!chunkHasAssistantDelta(streamEvent.data)) {
-          return
-        }
-
-        runWithoutReasoningProcess(this.asReasoningHolder(), () => {
-          super.handleSingleEvent(event)
-        })
-        return
-      }
-    }
-
-    super.handleSingleEvent(event)
-
-    if (streamEvent.event === LANGGRAPH_EVENT.ON_CHAT_MODEL_END) {
-      emitPendingToolCalls(
-        this.asToolCallStreamSink(),
-        extractToolCallsFromModelEnd(streamEvent.data),
-        event
-      )
-      return
-    }
-
-    if (streamEvent.event === LANGGRAPH_EVENT.ON_TOOL_START) {
-      const toolCall = extractToolCallFromToolStart(streamEvent)
-      if (toolCall) {
-        emitPendingToolCalls(this.asToolCallStreamSink(), [toolCall], event)
-      }
-    }
-  }
-
-  private asToolCallStreamSink(): ToolCallStreamSink {
-    return this as unknown as ToolCallStreamSink
-  }
-
-  private asReasoningHolder(): ReasoningProcessHolder {
-    return this as unknown as ReasoningProcessHolder
-  }
 }
 
 type RunBudgetUsage = { modelCalls: number; totalTokens: number; failures: number }
@@ -350,13 +300,6 @@ function findRawTokenUsage(value: unknown, depth = 0): number {
   return 0
 }
 
-/** 仅用于 UI 展示，不应写入 LangGraph 会话状态或回传给模型 */
-const EXCLUDED_AGUI_MESSAGE_ROLES = new Set(['reasoning', 'activity'])
-
-/**
- * CopilotKit 会把 `reasoning` / `activity` 留在消息历史里；回传到 LangGraph 时
- * `aguiMessagesToLangChain` 不支持这些 role，会导致第二轮起 `RUN_ERROR`。
- */
 function filterLangGraphInputMessages<T extends { messages: AguiMessage[] }>(input: T): T {
   return {
     ...input,

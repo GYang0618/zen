@@ -12,6 +12,21 @@ allowBuilds:
   prisma: true
   protobufjs: true
   unrs-resolver: true
+minimumReleaseAgeExclude:
+  - '@copilotkit/channels-core@0.9.2'
+  - '@copilotkit/channels-intelligence@0.9.2'
+  - '@copilotkit/channels-slack@0.9.2'
+  - '@copilotkit/channels-teams@0.9.2'
+  - '@copilotkit/channels-ui@0.9.2'
+  - '@copilotkit/react-core@1.70.1'
+  - '@copilotkit/react-ui@1.70.1'
+  - '@copilotkit/runtime@1.70.1'
+  - '@copilotkit/shared@1.70.1'
+  - '@copilotkit/a2ui-renderer@1.70.1'
+  - '@copilotkit/core@1.70.1'
+  - '@copilotkit/runtime-client-gql@1.70.1'
+  - '@copilotkit/web-components@1.70.1'
+  - '@copilotkit/web-inspector@1.70.1'
 overrides:
   fastify: 5.10.0
   hono: ^4.12.32

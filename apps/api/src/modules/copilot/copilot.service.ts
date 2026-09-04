@@ -35,11 +35,14 @@ export class CopilotService {
     runId?: string
   ) {
     const { deploymentUrl } = this.langgraphCfg
+    const isExecution = Boolean(threadId || runId)
+
     const [memory, activePluginIds, stepUpToken] = await Promise.all([
-      this.runtimeStore.getPromptMemory(context.auth, threadId),
+      isExecution ? this.runtimeStore.getPromptMemory(context.auth, threadId) : undefined,
       this.pluginState.listActiveIds(context.auth.tenantId),
-      this.issueHitlStepUpToken(context.auth)
+      isExecution ? this.issueHitlStepUpToken(context.auth) : undefined
     ])
+
     const runtime = new CopilotRuntime({
       agents: {
         default: defaultAgent({

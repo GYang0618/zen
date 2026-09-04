@@ -871,3 +871,97 @@ describe('DefaultAgentRuntimeStore thread listing', () => {
     )
   })
 })
+
+describe('DefaultAgentRuntimeStore DI delegation', () => {
+  it('正确将各方法委托给通过 DI 注入的独立领域服务', async () => {
+    const mockThreadService = {
+      listThreads: jest.fn().mockResolvedValue({ items: [], cursor: null, hasMore: false }),
+      listMessages: jest.fn().mockResolvedValue({ items: [], cursor: null, hasMore: false }),
+      deleteThread: jest.fn().mockResolvedValue(undefined)
+    }
+    const mockRunService = {
+      startRun: jest.fn().mockResolvedValue(undefined),
+      recordEvent: jest.fn().mockResolvedValue(undefined),
+      completeRunIfOpen: jest.fn().mockResolvedValue(undefined),
+      failRun: jest.fn().mockResolvedValue(undefined),
+      cancelRun: jest.fn().mockResolvedValue(undefined),
+      getRun: jest.fn().mockResolvedValue({ threadId: 'thread-1' })
+    }
+    const mockApprovalService = {
+      decideApproval: jest.fn().mockResolvedValue({ id: 'app-1', status: 'approved' })
+    }
+    const mockArtifactService = {
+      createArtifact: jest.fn().mockResolvedValue({ id: 'art-1' }),
+      listArtifacts: jest.fn().mockResolvedValue([])
+    }
+    const mockMemoryService = {
+      listMemories: jest.fn().mockResolvedValue([])
+    }
+    const mockMetricsService = {
+      reconcile: jest.fn().mockResolvedValue({ recoveredRuns: 0 })
+    }
+
+    const store = new DefaultAgentRuntimeStore(
+      mockThreadService as unknown as ConstructorParameters<typeof DefaultAgentRuntimeStore>[0],
+      mockRunService as unknown as NonNullable<
+        ConstructorParameters<typeof DefaultAgentRuntimeStore>[1]
+      >,
+      mockApprovalService as unknown as NonNullable<
+        ConstructorParameters<typeof DefaultAgentRuntimeStore>[2]
+      >,
+      mockArtifactService as unknown as NonNullable<
+        ConstructorParameters<typeof DefaultAgentRuntimeStore>[3]
+      >,
+      mockMemoryService as unknown as NonNullable<
+        ConstructorParameters<typeof DefaultAgentRuntimeStore>[4]
+      >,
+      mockMetricsService as unknown as NonNullable<
+        ConstructorParameters<typeof DefaultAgentRuntimeStore>[5]
+      >
+    )
+
+    await store.listThreads(auth, { limit: 10 })
+    expect(mockThreadService.listThreads).toHaveBeenCalledWith(auth, { limit: 10 })
+
+    await store.startRun(runtimeInput(), auth)
+    expect(mockRunService.startRun).toHaveBeenCalledWith(runtimeInput(), auth, undefined)
+
+    await store.recordEvent(
+      runtimeInput(),
+      { type: 'TEXT_MESSAGE_CONTENT', messageId: 'm1', delta: 'hi' },
+      auth
+    )
+    expect(mockRunService.recordEvent).toHaveBeenCalledWith(
+      runtimeInput(),
+      { type: 'TEXT_MESSAGE_CONTENT', messageId: 'm1', delta: 'hi' },
+      auth
+    )
+
+    await store.createArtifact(
+      'run-1',
+      { kind: 'tool-result', name: 'res.json', mimeType: 'application/json', content: {} },
+      auth
+    )
+    expect(mockRunService.getRun).toHaveBeenCalledWith('run-1', auth)
+    expect(mockArtifactService.createArtifact).toHaveBeenCalledWith(
+      'run-1',
+      'thread-1',
+      { kind: 'tool-result', name: 'res.json', mimeType: 'application/json', content: {} },
+      auth
+    )
+
+    await store.listMemories(auth)
+    expect(mockMemoryService.listMemories).toHaveBeenCalledWith(auth)
+
+    await store.reconcile(auth)
+    expect(mockMetricsService.reconcile).toHaveBeenCalledWith(auth)
+
+    await store.decideApproval('app-1', 'approve', undefined, auth)
+    expect(mockApprovalService.decideApproval).toHaveBeenCalledWith(
+      'app-1',
+      'approve',
+      undefined,
+      auth
+    )
+  })
+})

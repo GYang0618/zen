@@ -51,6 +51,7 @@ const agent = createAgent({
         ...(memory ? [`用户明确授权给 Qwen 的非敏感记忆：\n${memory}`] : [])
       ].join('\n\n')
     }),
+    // 默认中间件链条包含：toolErrorMiddleware, humanInTheLoopMiddleware, summarizationMiddleware, pluginToolVisibilityMiddleware
     ...createDefaultAgentMiddleware(model)
   ]
 })

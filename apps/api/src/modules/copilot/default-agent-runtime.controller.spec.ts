@@ -45,4 +45,14 @@ describe('DefaultAgentRuntimeController cancellation', () => {
     )
     expect(runControl.cancel).not.toHaveBeenCalled()
   })
+
+  it('控制器正常委托 listThreads 到 Store', async () => {
+    const listThreads = jest.fn().mockResolvedValue({ items: [], hasMore: false })
+    const store = { listThreads } as unknown as DefaultAgentRuntimeStore
+    const runControl = {} as DefaultAgentRunControl
+    const controller = new DefaultAgentRuntimeController(store, runControl)
+
+    await controller.listThreads(auth, { limit: 30 })
+    expect(listThreads).toHaveBeenCalledWith(auth, { limit: 30 })
+  })
 })
