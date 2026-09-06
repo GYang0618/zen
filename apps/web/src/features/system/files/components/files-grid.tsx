@@ -1,14 +1,16 @@
 import { PermissionCode } from '@zen/shared'
 import { Badge, Button, Skeleton } from '@zen/ui'
-import { FileArchive, FileText, Film, Image } from 'lucide-react'
+import { FileArchive, FileText, Film, Image, Play } from 'lucide-react'
+import { useState } from 'react'
 
 import { EmptyState } from '@/components/empty-state'
 import { canAccess } from '@/lib/auth/permissions'
 
 import { useFileUrlQuery } from '../queries'
-import { CATEGORY_LABEL, formatFileSize, STATUS_LABEL } from '../utils'
+import { CATEGORY_LABEL, firstFrameTime, formatFileSize, STATUS_LABEL } from '../utils'
 
 import type { FileAsset, FileCategory } from '@zen/shared'
+import type { ReactNode, SyntheticEvent } from 'react'
 
 const CATEGORY_ICON: Record<FileCategory, typeof Image> = {
   image: Image,
@@ -73,25 +75,85 @@ export function FilesGrid({ data, isLoading, onPreview }: FilesGridProps) {
   )
 }
 
+function ThumbFrame({ children }: { children: ReactNode }) {
+  return (
+    <div className="relative aspect-square w-full overflow-hidden rounded-md bg-muted">
+      {children}
+    </div>
+  )
+}
+
+function PlayOverlay() {
+  return (
+    <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-foreground/20">
+      <span className="flex size-10 items-center justify-center rounded-full bg-background/90 text-foreground ring-1 ring-foreground/10">
+        <Play className="size-5 fill-current" aria-hidden />
+      </span>
+    </span>
+  )
+}
+
+function seekToFirstFrame(event: SyntheticEvent<HTMLVideoElement>) {
+  const video = event.currentTarget
+  const next = firstFrameTime(video.duration)
+  if (Math.abs(video.currentTime - next) < 0.001) return
+  video.currentTime = next
+}
+
+function VideoPoster({ url, label }: { url: string; label: string }) {
+  const [failed, setFailed] = useState(false)
+
+  return (
+    <ThumbFrame>
+      {failed ? (
+        <span className="flex size-full items-center justify-center text-muted-foreground">
+          <Film className="size-8" aria-hidden />
+        </span>
+      ) : (
+        <video
+          src={url}
+          muted
+          playsInline
+          preload="metadata"
+          className="pointer-events-none size-full object-cover"
+          onLoadedMetadata={seekToFirstFrame}
+          onLoadedData={seekToFirstFrame}
+          onError={() => setFailed(true)}
+          aria-hidden
+          tabIndex={-1}
+        />
+      )}
+      <PlayOverlay />
+      <span className="sr-only">{label}</span>
+    </ThumbFrame>
+  )
+}
+
 function FileThumb({ file }: { file: FileAsset }) {
   const showImage = file.category === 'image' && file.status === 'ready'
-  const { data } = useFileUrlQuery(file.id, 'inline', showImage)
+  const showVideo = file.category === 'video' && file.status === 'ready'
+  const { data, isError } = useFileUrlQuery(file.id, 'inline', showImage || showVideo)
   const Icon = CATEGORY_ICON[file.category]
 
   if (showImage && data?.url) {
     return (
-      <img
-        src={data.url}
-        alt=""
-        className="aspect-square w-full rounded-md bg-muted object-cover"
-      />
+      <ThumbFrame>
+        <img src={data.url} alt="" className="size-full object-cover" />
+      </ThumbFrame>
     )
   }
 
+  if (showVideo && data?.url && !isError) {
+    return <VideoPoster url={data.url} label={CATEGORY_LABEL.video} />
+  }
+
   return (
-    <div className="flex aspect-square w-full items-center justify-center rounded-md bg-muted text-muted-foreground">
-      <Icon className="size-8" aria-hidden />
-      <span className="sr-only">{CATEGORY_LABEL[file.category]}</span>
-    </div>
+    <ThumbFrame>
+      <span className="flex size-full items-center justify-center text-muted-foreground">
+        <Icon className="size-8" aria-hidden />
+        <span className="sr-only">{CATEGORY_LABEL[file.category]}</span>
+      </span>
+      {file.category === 'video' ? <PlayOverlay /> : null}
+    </ThumbFrame>
   )
 }

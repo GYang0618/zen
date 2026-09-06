@@ -58,12 +58,10 @@ export function ToolDenied(props: { reason?: string }) {
  */
 export function ToolFallback({ part, className }: AssistantToolUIProps & { className?: string }) {
   return (
-    <Collapsible
-      className={cn('rounded-md data-[state=open]:bg-muted border bg-muted/40', className)}
-    >
+    <Collapsible className={cn('rounded-md has-data-open:bg-muted border bg-muted/40', className)}>
       <CollapsibleTrigger asChild>
         <Button variant="ghost" size="lg" className="border-none p-2 group w-full justify-start">
-          <ChevronRightIcon className="group-data-[state=open]:rotate-90" />
+          <ChevronRightIcon className="in-data-panel-open:rotate-90" />
           {part.toolName}
           <span className="text-muted-foreground ml-2 text-xs">[{part.state}]</span>
         </Button>

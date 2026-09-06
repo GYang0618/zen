@@ -1,5 +1,5 @@
+import { Label as LabelPrimitive } from '@zen/ui/lib/base-ui-primitives'
 import { cn } from '@zen/ui/lib/utils'
-import { Label as LabelPrimitive } from 'radix-ui'
 
 import type * as React from 'react'
 

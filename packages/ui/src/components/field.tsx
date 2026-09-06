@@ -209,6 +209,16 @@ function FieldError({
   )
 }
 
+function FormActions({ className, ...props }: React.ComponentProps<'div'>) {
+  return (
+    <div
+      data-slot="form-actions"
+      className={cn('flex flex-wrap items-center justify-end gap-2', className)}
+      {...props}
+    />
+  )
+}
+
 export {
   Field,
   FieldContent,
@@ -219,5 +229,6 @@ export {
   FieldLegend,
   FieldSeparator,
   FieldSet,
-  FieldTitle
+  FieldTitle,
+  FormActions
 }

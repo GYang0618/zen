@@ -1,4 +1,4 @@
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from '@tanstack/react-form'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { isAuthMfaChallenge } from '@zen/shared'
 import {
@@ -9,11 +9,11 @@ import {
   FieldGroup,
   FieldLabel,
   FieldSeparator,
+  FormActions,
   Input
 } from '@zen/ui'
 import { Loader2, LogIn } from 'lucide-react'
 import { useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
@@ -36,11 +36,14 @@ export function SignInForm() {
   const search = useSearch({ from: '/(auth)/sign-in' })
   const [mfaToken, setMfaToken] = useState<string | null>(null)
   const [mfaCode, setMfaCode] = useState('')
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  const form = useForm({
     defaultValues: {
       identifier: '',
       password: ''
+    } as FormValues,
+    validators: { onChange: formSchema },
+    onSubmit: async ({ value }) => {
+      await onSubmit(formSchema.parse(value))
     }
   })
 
@@ -120,7 +123,14 @@ export function SignInForm() {
   }
 
   return (
-    <form className="p-6 md:p-8" onSubmit={form.handleSubmit(onSubmit)}>
+    <form
+      className="p-6 md:p-8"
+      onSubmit={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        void form.handleSubmit()
+      }}
+    >
       <FieldGroup>
         <div className="flex flex-col items-center gap-2 text-center">
           <h1 className="text-2xl font-bold">欢迎回来👏</h1>
@@ -133,27 +143,28 @@ export function SignInForm() {
           </div>
         </div>
 
-        <Controller
-          name="identifier"
-          control={form.control}
-          render={({ field, fieldState }) => (
+        <form.Field name="identifier">
+          {(field) => (
             <Field>
               <FieldLabel htmlFor="identifier">账号</FieldLabel>
               <Input
-                {...field}
+                name={field.name}
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
                 id="identifier"
                 autoComplete="username"
                 placeholder="用户名/邮箱/手机号"
               />
-              {fieldState.error && <FieldError errors={[fieldState.error]}></FieldError>}
+              {field.state.meta.errors.length > 0 && (
+                <FieldError errors={field.state.meta.errors}></FieldError>
+              )}
             </Field>
           )}
-        />
+        </form.Field>
 
-        <Controller
-          name="password"
-          control={form.control}
-          render={({ field, fieldState }) => (
+        <form.Field name="password">
+          {(field) => (
             <Field>
               <div className="flex items-center justify-between gap-2">
                 <FieldLabel htmlFor="password">密码</FieldLabel>
@@ -162,21 +173,28 @@ export function SignInForm() {
                 </Link>
               </div>
               <PasswordInput
-                {...field}
+                name={field.name}
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
                 id="password"
                 autoComplete="current-password"
                 placeholder="••••••••"
               />
-              {fieldState.error && <FieldError errors={[fieldState.error]}></FieldError>}
+              {field.state.meta.errors.length > 0 && (
+                <FieldError errors={field.state.meta.errors}></FieldError>
+              )}
             </Field>
           )}
-        />
+        </form.Field>
 
         <Field>
-          <Button type="submit" disabled={isPending}>
-            {isPending ? <Loader2 className="animate-spin" /> : <LogIn />}
-            登录
-          </Button>
+          <FormActions className="w-full [&>button]:w-full">
+            <Button type="submit" disabled={isPending}>
+              {isPending ? <Loader2 className="animate-spin" /> : <LogIn />}
+              登录
+            </Button>
+          </FormActions>
         </Field>
         <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
           或使用以下方式继续

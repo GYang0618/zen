@@ -18,17 +18,16 @@ import {
   toFileRef
 } from '@zen/shared'
 
-import { applyFileDataScope } from '@/common/auth/apply-data-scope'
-import { AuditService } from '@/common/auth/audit.service'
-import { paginate } from '@/common/pagination'
-import { CONFIG_NAMESPACES } from '@/config'
-import { OBJECT_STORAGE } from '@/infra/storage'
-
-import { toFileAssetDto } from './storage.mapper'
-import { sniffMime, stripJpegExif } from './storage.mime'
-import { getStoragePolicy, isMimeAllowed, STORAGE_POLICIES } from './storage.policy'
-import { StorageRepository } from './storage.repository'
-import { buildStorageKey } from './storage-key'
+import { applyFileDataScope } from '../../common/auth/apply-data-scope.js'
+import { AuditService } from '../../common/auth/audit.service.js'
+import { paginate } from '../../common/pagination/index.js'
+import { CONFIG_NAMESPACES } from '../../config/index.js'
+import { OBJECT_STORAGE } from '../../infra/storage/index.js'
+import { toFileAssetDto } from './storage.mapper.js'
+import { sniffMime, stripJpegExif } from './storage.mime.js'
+import { getStoragePolicy, isMimeAllowed, STORAGE_POLICIES } from './storage.policy.js'
+import { StorageRepository } from './storage.repository.js'
+import { buildStorageKey } from './storage-key.js'
 
 import type {
   AuthContext,
@@ -40,8 +39,8 @@ import type {
   FilePurpose,
   UploadIntent
 } from '@zen/shared'
-import type { StorageConfig } from '@/config'
-import type { ObjectStoragePort } from '@/infra/storage'
+import type { StorageConfig } from '../../config/index.js'
+import type { ObjectStoragePort } from '../../infra/storage/index.js'
 
 const JPEG_TRANSFORM_MAX_BYTES = 8 * 1024 * 1024
 
@@ -53,6 +52,10 @@ export class StorageService {
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(CONFIG_NAMESPACES.STORAGE) private readonly storageConfig: StorageConfig
   ) {}
+
+  healthCheck() {
+    return this.objectStorage.healthCheck()
+  }
 
   async createIntent(
     input: CreateUploadIntent,

@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { applyDataScope, applyOrgScopedResourceDataScope } from './apply-data-scope'
-import { ContributionRegistry, filterActiveRegistryEntries } from './registry'
-import { topologicalSort } from './topo-sort'
-import { isPlatformCompatible, resolvePluginEntry, validateManifestObject } from './validate'
+import { applyDataScope, applyOrgScopedResourceDataScope } from './apply-data-scope.js'
+import { ContributionRegistry, filterActiveRegistryEntries } from './registry.js'
+import { topologicalSort } from './topo-sort.js'
+import { isPlatformCompatible, resolvePluginEntry, validateManifestObject } from './validate.js'
 
 import type { AuthContext } from '@zen/shared'
-import type { PluginRegistryEntry } from './types'
+import type { PluginRegistryEntry } from './types.js'
 
 function baseAuth(overrides: Partial<AuthContext> = {}): AuthContext {
   return {

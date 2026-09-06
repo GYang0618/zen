@@ -1,1 +1,1 @@
-export * from './generated/config.gen'
+export * from './generated/config.gen.js'

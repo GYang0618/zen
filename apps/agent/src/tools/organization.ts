@@ -39,6 +39,7 @@ import {
 import { executeApiCallOrRecover, isToolFailureResult } from './recoverable-error'
 
 import type { RunnableConfig } from '@langchain/core/runnables'
+import type { ToolExecutionContext } from '@zen/shared'
 import type { RecoverableHint } from './recoverable-error'
 
 const organizationIdSchema = z.object({
@@ -107,7 +108,9 @@ async function ensureOrganizationTypeEnabled(
   config: RunnableConfig | undefined
 ): Promise<string | undefined> {
   if (!type) return undefined
-  const raw = await executeApiCall(config, () => organizationControllerGetTypeCatalog())
+  const raw = await executeApiCall(config, async (_context) =>
+    organizationControllerGetTypeCatalog()
+  )
   if (isToolFailureResult(raw)) return raw
   const items = parseOrganizationTypeCatalogItems(raw)
   if (!items) return undefined
@@ -119,7 +122,7 @@ async function ensureOrganizationTypeEnabled(
 async function createOrUpdateOrganization(
   config: RunnableConfig | undefined,
   type: string | undefined,
-  call: () => Promise<unknown>
+  call: (context: ToolExecutionContext) => Promise<unknown>
 ): Promise<string> {
   const blocked = await ensureOrganizationTypeEnabled(type, config)
   if (blocked) return blocked
@@ -127,7 +130,8 @@ async function createOrUpdateOrganization(
 }
 
 export const getOrganizationTreeTool = tool(
-  async (_input, config) => executeApiCall(config, () => organizationControllerGetTree()),
+  async (_input, config) =>
+    executeApiCall(config, async (_context) => organizationControllerGetTree()),
   {
     name: 'query_organization_tree',
     description:
@@ -137,7 +141,8 @@ export const getOrganizationTreeTool = tool(
 )
 
 export const getOrganizationTypeCatalogTool = tool(
-  async (_input, config) => executeApiCall(config, () => organizationControllerGetTypeCatalog()),
+  async (_input, config) =>
+    executeApiCall(config, async (_context) => organizationControllerGetTypeCatalog()),
   {
     name: 'query_organization_type_catalog',
     description:
@@ -149,7 +154,7 @@ export const getOrganizationTypeCatalogTool = tool(
 
 export const updateOrganizationTypeCatalogTool = tool(
   async (input, config) =>
-    executeApiCall(config, () =>
+    executeApiCall(config, async (_context) =>
       organizationControllerUpdateTypeCatalog(
         asSdkOptions({
           body: input
@@ -187,7 +192,7 @@ export const createOrganizationTool = tool(
 
 export const getOrganizationTool = tool(
   async ({ id }, config) =>
-    executeApiCall(config, () => organizationControllerFindOne({ path: { id } })),
+    executeApiCall(config, async (_context) => organizationControllerFindOne({ path: { id } })),
   {
     name: 'query_organization_detail',
     description: '根据组织 ID 查询单个组织详情（含负责人、成员数、岗位编制数）',
@@ -216,7 +221,7 @@ export const updateOrganizationTool = tool(
 
 export const updateOrganizationLeaderTool = tool(
   async ({ id, leaderId }, config) =>
-    executeApiCall(config, () =>
+    executeApiCall(config, async (_context) =>
       organizationControllerUpdateLeader(
         asSdkOptions({
           path: { id },
@@ -233,7 +238,7 @@ export const updateOrganizationLeaderTool = tool(
 
 export const changeOrganizationParentTool = tool(
   async ({ id, parentId }, config) =>
-    executeApiCall(config, () =>
+    executeApiCall(config, async (_context) =>
       organizationControllerChangeParent(
         asSdkOptions({
           path: { id },
@@ -251,7 +256,7 @@ export const changeOrganizationParentTool = tool(
 
 export const listOrganizationMembersTool = tool(
   async ({ id }, config) =>
-    executeApiCall(config, () => organizationControllerListMembers({ path: { id } })),
+    executeApiCall(config, async (_context) => organizationControllerListMembers({ path: { id } })),
   {
     name: 'query_organization_members',
     description: '查询指定组织的成员列表',
@@ -261,7 +266,7 @@ export const listOrganizationMembersTool = tool(
 
 export const addOrganizationMemberTool = tool(
   async ({ id, userIds }, config) =>
-    executeApiCall(config, () =>
+    executeApiCall(config, async (_context) =>
       organizationControllerAddMember(
         asSdkOptions({
           path: { id },
@@ -278,7 +283,7 @@ export const addOrganizationMemberTool = tool(
 
 export const removeOrganizationMemberTool = tool(
   async ({ id, userId }, config) =>
-    executeApiCall(config, () =>
+    executeApiCall(config, async (_context) =>
       organizationControllerRemoveMember({
         path: { id, userId }
       })
@@ -292,7 +297,9 @@ export const removeOrganizationMemberTool = tool(
 
 export const listPositionsTool = tool(
   async ({ id }, config) =>
-    executeApiCall(config, () => organizationControllerListPositions({ path: { id } })),
+    executeApiCall(config, async (_context) =>
+      organizationControllerListPositions({ path: { id } })
+    ),
   {
     name: 'query_organization_positions',
     description:
@@ -362,7 +369,7 @@ export const removePositionTool = tool(
 
 export const listOrganizationActivitiesTool = tool(
   async ({ id, page, pageSize }, config) =>
-    executeApiCall(config, () =>
+    executeApiCall(config, async (_context) =>
       organizationControllerListActivities(
         asSdkOptions({
           path: { id },

@@ -1,6 +1,7 @@
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadBucketCommand,
   HeadObjectCommand,
   PutObjectCommand,
   S3Client
@@ -8,10 +9,11 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { Inject, Injectable } from '@nestjs/common'
 
-import { CONFIG_NAMESPACES } from '@/config'
+import { CONFIG_NAMESPACES } from '../../config/index.js'
 
 import type { Readable } from 'node:stream'
-import type { StorageConfig } from '@/config'
+import type { OnModuleDestroy } from '@nestjs/common'
+import type { StorageConfig } from '../../config/index.js'
 import type {
   ObjectGetResult,
   ObjectHeadResult,
@@ -19,10 +21,10 @@ import type {
   PresignGetInput,
   PresignPutInput,
   PresignPutResult
-} from './object-storage.port'
+} from './object-storage.port.js'
 
 @Injectable()
-export class S3CompatibleStorage implements ObjectStoragePort {
+export class S3CompatibleStorage implements ObjectStoragePort, OnModuleDestroy {
   private readonly client: S3Client
 
   constructor(@Inject(CONFIG_NAMESPACES.STORAGE) private readonly config: StorageConfig) {
@@ -116,6 +118,14 @@ export class S3CompatibleStorage implements ObjectStoragePort {
         Key: key
       })
     )
+  }
+
+  async healthCheck(): Promise<void> {
+    await this.client.send(new HeadBucketCommand({ Bucket: this.config.bucket }))
+  }
+
+  onModuleDestroy() {
+    this.client.destroy()
   }
 }
 

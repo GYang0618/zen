@@ -165,7 +165,7 @@ Popup 专属注册项不得被默认 Chat 的运行时改动；默认 Chat 只�
 - 对已经发出的 `toolCallId` 去重。
 - 过滤 `reasoning` 和 `activity` 消息，避免它们进入下一轮 LangGraph 输入。
 
-当前安装的 CopilotKit/LangGraph 组合仍以 `CUSTOM name="on_interrupt"` 传递 HITL，而不是标准 `RUN_FINISHED.outcome.interrupt`。Default Agent 适配器只为该 legacy 事件补充内部 `__zenInterruptId`，供审批落库和 Web 决策关联；继续执行仍使用 CopilotKit 当前的 `command.resume` 流程。Popup/`plan_agent` 的事件不经过此转换，保持原行为。升级依赖后应先用回归测试确认标准 interrupt 已可用，再移除兼容字段。
+HITL 使用标准 AG-UI interrupt 事件传递 `actionRequests`、决策和恢复上下文；运行时不再转换 legacy `on_interrupt` 事件，也不向事件或消息注入内部 interrupt 字段。Popup/`plan_agent` 的事件保持独立行为。
 
 Web 使用 `tool-display.ts` 将函数名转换为业务文案，将内部查询隐藏在活动提示中，将结果型 Tool 交给专用 UI 渲染。
 
@@ -229,8 +229,8 @@ Web 使用 `tool-display.ts` 将函数名转换为业务文案，将内部查询
 4. 后端 Tool 文件通过 `../api` / `executeApiCall` 访问业务 API。
 5. Agent Tool 目录没有 Repository 或 `@/modules/*` 直连。
 6. Copilot Runtime 过滤 `reasoning/activity`。
-7. 废弃 Chat 模块已标记，新增模块不得引用其内部实现。
+7. 旧 Chat 模块已从 API 源码删除，新增模块不得引用其内部实现。
 8. Tool 请求必须传递用户隔离的 API 幂等键。
 9. Default Runtime 必须持久化事件，Web 必须注册 interrupt 审批 UI。
 
-该检查允许现有的 AppModule、模块导出清单和 Swagger 覆盖清单继续保留 `ChatModule` 兼容引用。
+该检查要求 AppModule、模块导出清单和 Swagger 覆盖清单均不再保留旧 Chat 模块引用。

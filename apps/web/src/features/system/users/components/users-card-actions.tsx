@@ -84,7 +84,7 @@ export function UsersCardActions({
             'opacity-0 transition-opacity duration-200',
             'group-hover/card:opacity-100',
             'focus-visible:opacity-100',
-            'data-[state=open]:opacity-100',
+            'data-popup-open:opacity-100',
             '[@media(hover:none)]:opacity-100',
             className
           )}

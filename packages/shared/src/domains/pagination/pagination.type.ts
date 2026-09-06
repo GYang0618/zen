@@ -1,5 +1,5 @@
 import type { z } from 'zod'
-import type { pageMetaSchema, pageQuerySchema } from './pagination.schema'
+import type { pageMetaSchema, pageQuerySchema } from './pagination.schema.js'
 
 export type PageQueryInput = z.input<typeof pageQuerySchema>
 export type PageQuery = z.output<typeof pageQuerySchema>

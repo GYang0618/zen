@@ -65,6 +65,27 @@
     "entry": "./src/agent/tools.ts",
     "export": "createDemoNotesAgentTools",
     "requiredPermissions": ["demo:note:list"],
+    "manifests": [
+      {
+        "name": "list_demo_notes",
+        "version": "1.0.0",
+        "description": "List notes visible to the current user",
+        "inputSchema": { "type": "object", "properties": {}, "additionalProperties": false },
+        "capabilities": ["notes", "read"],
+        "permissionCode": "demo:note:list",
+        "pluginId": "demo-notes",
+        "riskLevel": "low",
+        "sideEffect": "none",
+        "requiresApproval": false,
+        "timeoutMs": 15000,
+        "retryPolicy": {
+          "maxRetries": 2,
+          "retryableReasons": ["NETWORK_ERROR", "RATE_LIMITED", "TIMEOUT"]
+        },
+        "idempotencyPolicy": "none",
+        "ui": { "label": "List notes", "icon": "sticky-note" }
+      }
+    ],
     "toolUi": [],
     "agentPrompts": ["Only use demo note tools when the demo-notes plugin is active."]
   }

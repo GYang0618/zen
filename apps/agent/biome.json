@@ -2,7 +2,7 @@
   "$schema": "../../node_modules/@biomejs/biome/configuration_schema.json",
   "extends": "//",
   "files": {
-    "includes": ["**", "!src/api-client"],
+    "includes": ["**", "!src/api-client", "!dist", "!node_modules", "!.langgraph_api", "!.turbo"],
     "ignoreUnknown": true
   }
 }

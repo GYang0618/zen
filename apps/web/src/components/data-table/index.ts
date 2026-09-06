@@ -1,5 +1,6 @@
 export { BulkActionsToolbar, DataTableBulkActions } from './bulk-actions'
 export { DataTableColumnHeader } from './column-header'
+export { DataTable } from './data-table'
 export { DataTableFacetedFilter } from './faceted-filter'
 export { ListPagination } from './list-pagination'
 export { DataTablePagination } from './pagination'

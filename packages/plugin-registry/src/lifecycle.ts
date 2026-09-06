@@ -1,1 +1,1 @@
-export * from './generated/lifecycle.gen'
+export * from './generated/lifecycle.gen.js'

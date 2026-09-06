@@ -14,7 +14,8 @@
     "check:unguarded-writes": "node scripts/check-unguarded-writes.mjs",
     "check:plugin-guards": "node scripts/check-plugin-guards.mjs",
     "check:default-agent": "node scripts/check-default-agent-boundaries.mjs",
-    "check:rbac": "pnpm run check:permissions && pnpm run check:unguarded-writes && pnpm run check:plugin-guards",
+    "check:agent-schema": "node scripts/validate-agent-runtime-schema.mjs",
+    "check:rbac": "pnpm run check:permissions && pnpm run check:unguarded-writes && pnpm run check:plugin-guards && pnpm run check:agent-schema",
     "plugin:validate": "pnpm -F @zen/plugin-sdk build && pnpm -F @zen/plugin-sdk validate",
     "plugin:generate": "pnpm -F @zen/plugin-sdk build && pnpm -F @zen/plugin-sdk generate && pnpm -F @zen/plugin-sdk build",
     "plugin:check": "pnpm -F @zen/plugin-sdk build && pnpm -F @zen/plugin-sdk generate -- --check",
@@ -36,11 +37,11 @@
     "typescript": "npm:@typescript/typescript6@6.0.2"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=24.14.1"
   },
-  "packageManager": "pnpm@11.17.0",
+  "packageManager": "pnpm@11.7.0",
   "volta": {
     "node": "24.14.1",
-    "pnpm": "11.17.0"
+    "pnpm": "11.7.0"
   }
 }

@@ -187,7 +187,7 @@ export function HistoryRow({
               </div>
             </div>
           </Link>
-          <div className="relative hidden shrink-0 items-center gap-1 group-hover/item:flex group-focus-within/item:flex has-data-[state=open]:flex">
+          <div className="relative hidden shrink-0 items-center gap-1 group-hover/item:flex group-focus-within/item:flex has-data-popup-open:flex">
             <div
               aria-hidden
               className="pointer-events-none absolute inset-y-0 -left-5 w-5 bg-linear-to-r from-transparent to-sidebar group-hover/item:to-muted/70 group-data-active/item:to-muted"

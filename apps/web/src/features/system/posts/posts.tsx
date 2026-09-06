@@ -26,7 +26,7 @@ function PostsContent() {
   const navigate = route.useNavigate()
   const [view, setView] = useState('card')
   const statusFilter = toFilterArray(search.status)
-  const { data, isLoading, isFetching } = useJobProfilesQuery(
+  const { data, isLoading, isFetching, isError, error } = useJobProfilesQuery(
     {
       page: 1,
       pageSize: 100,
@@ -61,6 +61,8 @@ function PostsContent() {
               data={profiles}
               isLoading={isLoading}
               isFetching={isFetching}
+              isError={isError}
+              error={error instanceof Error ? error.message : undefined}
               search={search}
               navigate={navigate}
             />

@@ -23,20 +23,19 @@ import {
 } from '@nestjs/swagger'
 import { PermissionCode } from '@zen/shared'
 
-import { CurrentAuth } from '@/common/decorators/current-auth.decorator'
-import { RequirePermission } from '@/common/decorators/require-permission.decorator'
-import { RequireStepUp } from '@/common/decorators/require-step-up.decorator'
-import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
-import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '@/common/swagger'
-
-import { adminResetPasswordSchema } from './dto/admin-reset-password.dto'
-import { assignUserRolesSchema } from './dto/assign-user-roles.dto'
-import { createUserSchema } from './dto/create-user.dto'
-import { deleteUsersSchema } from './dto/delete-users.dto'
-import { findUsersQuerySchema } from './dto/find-users-query.dto'
-import { replaceUserOrganizationsSchema } from './dto/replace-user-organizations.dto'
-import { updateUserSchema } from './dto/update-user.dto'
-import { updateUsersStatusSchema } from './dto/update-users-status.dto'
+import { CurrentAuth } from '../../common/decorators/current-auth.decorator.js'
+import { RequirePermission } from '../../common/decorators/require-permission.decorator.js'
+import { RequireStepUp } from '../../common/decorators/require-step-up.decorator.js'
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js'
+import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '../../common/swagger/index.js'
+import { adminResetPasswordSchema } from './dto/admin-reset-password.dto.js'
+import { assignUserRolesSchema } from './dto/assign-user-roles.dto.js'
+import { createUserSchema } from './dto/create-user.dto.js'
+import { deleteUsersSchema } from './dto/delete-users.dto.js'
+import { findUsersQuerySchema } from './dto/find-users-query.dto.js'
+import { replaceUserOrganizationsSchema } from './dto/replace-user-organizations.dto.js'
+import { updateUserSchema } from './dto/update-user.dto.js'
+import { updateUsersStatusSchema } from './dto/update-users-status.dto.js'
 import {
   ApiFindUsersQueryDocs,
   AssignUserRolesSuccessSwaggerDto,
@@ -50,20 +49,20 @@ import {
   UpdateUsersStatusSwaggerDto,
   UserListItemArraySuccessSwaggerDto,
   UserListSuccessSwaggerDto
-} from './swagger'
-import { UserService } from './user.service'
+} from './swagger/index.js'
+import { UserService } from './user.service.js'
 
 import type { AuthContext } from '@zen/shared'
 import type { Request } from 'express'
-import type { JwtPayload } from '@/common/interfaces/jwt-payload.interface'
-import type { AdminResetPasswordDto } from './dto/admin-reset-password.dto'
-import type { AssignUserRolesDto } from './dto/assign-user-roles.dto'
-import type { CreateUserDto } from './dto/create-user.dto'
-import type { DeleteUsersDto } from './dto/delete-users.dto'
-import type { FindUsersQueryDto } from './dto/find-users-query.dto'
-import type { ReplaceUserOrganizationsDto } from './dto/replace-user-organizations.dto'
-import type { UpdateUserDto } from './dto/update-user.dto'
-import type { UpdateUsersStatusDto } from './dto/update-users-status.dto'
+import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface.js'
+import type { AdminResetPasswordDto } from './dto/admin-reset-password.dto.js'
+import type { AssignUserRolesDto } from './dto/assign-user-roles.dto.js'
+import type { CreateUserDto } from './dto/create-user.dto.js'
+import type { DeleteUsersDto } from './dto/delete-users.dto.js'
+import type { FindUsersQueryDto } from './dto/find-users-query.dto.js'
+import type { ReplaceUserOrganizationsDto } from './dto/replace-user-organizations.dto.js'
+import type { UpdateUserDto } from './dto/update-user.dto.js'
+import type { UpdateUsersStatusDto } from './dto/update-users-status.dto.js'
 import type {
   AssignUserRolesResponse,
   CreateUserResponse,
@@ -72,7 +71,7 @@ import type {
   UserListItemResponse,
   UserListResponse,
   UserResponse
-} from './responses/user.response'
+} from './responses/user.response.js'
 
 @ApiTags('用户管理')
 @ApiBearerAuth(ACCESS_TOKEN_AUTH)

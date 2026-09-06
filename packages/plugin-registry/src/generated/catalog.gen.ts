@@ -73,7 +73,35 @@ export const PLUGIN_CATALOG = [
       export: 'createDemoNotesAgentTools',
       requiredPermissions: ['demo:note:list'],
       toolUi: [],
-      agentPrompts: ['Only use demo note tools when the demo-notes plugin is active.']
+      agentPrompts: ['Only use demo note tools when the demo-notes plugin is active.'],
+      manifests: [
+        {
+          permissionCode: 'demo:note:list',
+          riskLevel: 'low',
+          sideEffect: 'none',
+          requiresApproval: false,
+          timeoutMs: 15000,
+          retryPolicy: {
+            maxRetries: 2,
+            retryableReasons: ['NETWORK_ERROR', 'RATE_LIMITED', 'TIMEOUT']
+          },
+          idempotencyPolicy: 'none',
+          pluginId: 'demo-notes',
+          name: 'list_demo_notes',
+          version: '1.0.0',
+          description: 'List notes visible to the current user',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            additionalProperties: false
+          },
+          capabilities: ['notes', 'read'],
+          ui: {
+            label: 'List notes',
+            icon: 'sticky-note'
+          }
+        }
+      ]
     },
     packageDir: 'plugins/demo-notes'
   },

@@ -1,1 +1,1 @@
-export { DictModule } from './dict.module'
+export { DictModule } from './dict.module.js'

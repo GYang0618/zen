@@ -1,7 +1,7 @@
 import { Separator } from '@zen/ui/components/separator'
+import { Slot } from '@zen/ui/lib/base-ui-primitives'
 import { cn } from '@zen/ui/lib/utils'
 import { cva } from 'class-variance-authority'
-import { Slot } from 'radix-ui'
 
 import type { VariantProps } from 'class-variance-authority'
 import type * as React from 'react'

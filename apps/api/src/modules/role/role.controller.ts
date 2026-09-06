@@ -23,10 +23,9 @@ import {
 import { PermissionCode } from '@zen/shared'
 import { z } from 'zod'
 
-import { RequirePermission } from '@/common/decorators/require-permission.decorator'
-import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
-import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '@/common/swagger'
-
+import { RequirePermission } from '../../common/decorators/require-permission.decorator.js'
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js'
+import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '../../common/swagger/index.js'
 import {
   assignRoleDataScopeSchema,
   assignRoleMembersSchema,
@@ -36,8 +35,8 @@ import {
   deleteRolesSchema,
   findRolesQuerySchema,
   updateRoleSchema
-} from './dto'
-import { RoleService } from './role.service'
+} from './dto/index.js'
+import { RoleService } from './role.service.js'
 
 import type {
   AssignRoleDataScope,
@@ -48,14 +47,14 @@ import type {
   DeleteRolesDto,
   FindRolesQueryDto,
   UpdateRoleDto
-} from './dto'
+} from './dto/index.js'
 import type {
   PermissionGroupResponse,
   RoleListItemResponse,
   RoleListResponse,
   RoleMembersResponse,
   RoleResponse
-} from './responses/role.response'
+} from './responses/role.response.js'
 
 const roleMembersQuerySchema = z.object({
   page: z.coerce.number().int().positive().optional(),

@@ -1,1 +1,1 @@
-export * from './generated/api.gen'
+export * from './generated/api.gen.js'

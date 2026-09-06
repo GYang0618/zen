@@ -1,10 +1,10 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { DEFAULT_TENANT_ID } from '@zen/shared'
 
-import { NotificationRepository } from './notification.repository'
+import { NotificationRepository } from './notification.repository.js'
 
 import type { AuthContext } from '@zen/shared'
-import type { CreateNotificationInput, NotificationDto } from '../notification.schema'
+import type { CreateNotificationInput, NotificationDto } from '../notification.schema.js'
 
 @Injectable()
 export class NotificationService {

@@ -1,10 +1,10 @@
 import { createAuditDiff } from '@zen/shared'
 
-import { toApiDataScope, toApiRoleStatus } from './role.mapper'
+import { toApiDataScope, toApiRoleStatus } from './role.mapper.js'
 
 import type { AuditDiff, AuditDiffChange } from '@zen/shared'
-import type { RoleDataScope, RoleStatus, UpdateRoleDto } from './dto'
-import type { RoleWithRelations } from './role.repository'
+import type { RoleDataScope, RoleStatus, UpdateRoleDto } from './dto/index.js'
+import type { RoleWithRelations } from './role.repository.js'
 
 const DATA_SCOPE_LABELS: Record<RoleDataScope, string> = {
   all: '全部数据',
@@ -37,7 +37,8 @@ function displayValue(value: string | null | undefined): string | null {
 
 function formatExpiresAt(value: Date | string | null | undefined): string | null {
   if (value == null) return null
-  const date = value instanceof Date ? value : new Date(value.length === 10 ? `${value}T00:00:00` : value)
+  const date =
+    value instanceof Date ? value : new Date(value.length === 10 ? `${value}T00:00:00` : value)
   if (Number.isNaN(date.getTime())) return String(value)
   return new Intl.DateTimeFormat('zh-CN', {
     year: 'numeric',
@@ -64,9 +65,7 @@ export function buildRoleCreatedDiff(role: {
   dataScope: RoleDataScope
   permissionCount: number
 }): AuditDiff {
-  const summary = role.name.endsWith('角色')
-    ? `创建了${role.name}`
-    : `创建了${role.name}角色`
+  const summary = role.name.endsWith('角色') ? `创建了${role.name}` : `创建了${role.name}角色`
   return createAuditDiff({
     summary,
     target: { id: role.id, code: role.code, name: role.name },
@@ -80,7 +79,10 @@ export function buildRoleCreatedDiff(role: {
 export function buildRoleUpdatedDiff(
   existing: RoleWithRelations,
   data: UpdateRoleDto
-): { action: 'system.role.updated' | 'system.role.frozen' | 'system.role.unfrozen'; diff: AuditDiff } {
+): {
+  action: 'system.role.updated' | 'system.role.frozen' | 'system.role.unfrozen'
+  diff: AuditDiff
+} {
   const changes: AuditDiffChange[] = []
 
   if (data.name !== undefined) {
@@ -117,23 +119,11 @@ export function buildRoleUpdatedDiff(
     )
   }
   if (data.sort !== undefined) {
-    pushChange(
-      changes,
-      'sort',
-      '排序',
-      String(existing.sort ?? 0),
-      String(data.sort)
-    )
+    pushChange(changes, 'sort', '排序', String(existing.sort ?? 0), String(data.sort))
   }
   if (data.status !== undefined) {
     const fromStatus = toApiRoleStatus(existing.status)
-    pushChange(
-      changes,
-      'status',
-      '状态',
-      STATUS_LABELS[fromStatus],
-      STATUS_LABELS[data.status]
-    )
+    pushChange(changes, 'status', '状态', STATUS_LABELS[fromStatus], STATUS_LABELS[data.status])
   }
   if (data.dataScope !== undefined) {
     const fromScope = toApiDataScope(existing.dataScope)
@@ -252,12 +242,11 @@ export function buildRoleClonedDiff(input: {
   })
 }
 
-export function buildRoleDeletedDiff(roles: Array<{ id: string; code: string; name: string }>): AuditDiff {
+export function buildRoleDeletedDiff(
+  roles: Array<{ id: string; code: string; name: string }>
+): AuditDiff {
   return createAuditDiff({
-    summary:
-      roles.length === 1
-        ? `删除了${roles[0]!.name}角色`
-        : `删除了 ${roles.length} 个角色`,
+    summary: roles.length === 1 ? `删除了${roles[0]!.name}角色` : `删除了 ${roles.length} 个角色`,
     meta: {
       ids: roles.map((role) => role.id),
       codes: roles.map((role) => role.code),

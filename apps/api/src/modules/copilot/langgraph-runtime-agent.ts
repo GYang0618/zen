@@ -2,6 +2,12 @@ import { LangGraphAgent as CopilotkitLangGraphAgent } from '@copilotkit/runtime/
 import { DEFAULT_AGENT_GRAPH_ID, DEFAULT_AGENT_RUN_BUDGET } from '@zen/shared'
 
 import {
+  isGraphInterruptError,
+  isInterruptRunErrorEvent,
+  isOnInterruptCustomEvent,
+  toInterruptFinishEvents
+} from './langgraph-interrupt.js'
+import {
   chunkHasAssistantDelta,
   emitPendingToolCalls,
   extractToolCallFromToolStart,
@@ -9,18 +15,18 @@ import {
   LANGGRAPH_EVENT,
   resolveReasoningContent,
   runWithoutReasoningProcess
-} from './langgraph-tool-call-stream'
+} from './langgraph-tool-call-stream.js'
 
 import type {
   DefaultAgentRuntimeHooks,
   RuntimeEvent,
   RuntimeRunInput
-} from './default-agent-runtime.types'
+} from './default-agent-runtime.types.js'
 import type {
   LangGraphStreamEvent,
   ReasoningProcessHolder,
   ToolCallStreamSink
-} from './langgraph-tool-call-stream'
+} from './langgraph-tool-call-stream.js'
 
 interface RunControl {
   register: (runId: string, abort: () => void) => void
@@ -30,9 +36,6 @@ interface RunControl {
 interface AguiMessage {
   role: string
 }
-
-const LEGACY_INTERRUPT_EVENT_NAME = 'on_interrupt'
-const INTERRUPT_ID_FIELD = '__zenInterruptId'
 
 /**
  * CopilotKit LangGraphAgent 扩展：
@@ -58,24 +61,6 @@ export class LangGraphAgent extends CopilotkitLangGraphAgent {
     cloned.runtimeHooks = this.runtimeHooks
     cloned.runControl = this.runControl
     return cloned
-  }
-
-  dispatchEvent(event: Parameters<CopilotkitLangGraphAgent['dispatchEvent']>[0]): boolean {
-    if (this.graphId !== DEFAULT_AGENT_GRAPH_ID) return super.dispatchEvent(event)
-
-    const record = asRecord(event)
-    if (record?.type !== 'CUSTOM' || record.name !== LEGACY_INTERRUPT_EVENT_NAME) {
-      return super.dispatchEvent(event)
-    }
-    const rawEvent = asRecord(record.rawEvent)
-    const value = parseRecord(record.value)
-    const interruptId = typeof rawEvent?.id === 'string' ? rawEvent.id : undefined
-    if (!value || !interruptId) return super.dispatchEvent(event)
-
-    return super.dispatchEvent({
-      ...event,
-      value: JSON.stringify({ ...value, [INTERRUPT_ID_FIELD]: interruptId })
-    })
   }
 
   run(input: Parameters<CopilotkitLangGraphAgent['run']>[0]) {
@@ -162,15 +147,71 @@ export class LangGraphAgent extends CopilotkitLangGraphAgent {
         armIdleTimeout()
         this.runControl?.register(runtimeInputForHooks.runId, abortCurrentRun)
 
+        let lastOnInterrupt: unknown
+        let lastToolCallId: string | undefined
+        let interruptCustomEmitted = false
+        const interruptEventsFor = (source: unknown) =>
+          toInterruptFinishEvents(
+            {
+              threadId: String(runtimeInputForHooks.threadId ?? ''),
+              runId: String(runtimeInputForHooks.runId ?? '')
+            },
+            source,
+            { fallbackToolCallId: lastToolCallId }
+          )
+        const emitInterruptCustom = (source: unknown) => {
+          const events = interruptEventsFor(source)
+          if (interruptCustomEmitted) return events
+          interruptCustomEmitted = true
+          enqueuePersistence(() => this.runtimeHooks?.onEvent(runtimeInputForHooks, events.custom))
+          subscriber.next(events.custom as never)
+          return events
+        }
+        const finishAsInterrupt = (source: unknown) => {
+          if (settled) return
+          settled = true
+          unregisterRun()
+          clearTimeout(timeout)
+          const events = interruptCustomEmitted
+            ? interruptEventsFor(source)
+            : emitInterruptCustom(source)
+          enqueuePersistence(() =>
+            this.runtimeHooks?.onEvent(runtimeInputForHooks, events.finished)
+          )
+          enqueuePersistence(() => this.runtimeHooks?.onComplete(runtimeInputForHooks))
+          afterPersistence(() => {
+            subscriber.next(events.clientFinished as never)
+            subscriber.complete()
+          })
+        }
         const subscribe = () => {
           subscription = source.subscribe({
             next: (event) => {
-              if (isHumanWaitEvent(event as RuntimeEvent)) {
+              const runtimeEvent = event as RuntimeEvent
+              if (runtimeEvent.type === 'TOOL_CALL_START') {
+                const toolCallId = runtimeEvent.toolCallId
+                if (typeof toolCallId === 'string' && toolCallId.trim()) lastToolCallId = toolCallId
+              }
+              if (isOnInterruptCustomEvent(runtimeEvent)) {
+                lastOnInterrupt = runtimeEvent
+                emitInterruptCustom(runtimeEvent)
+                clearTimeout(timeout)
+                return
+              }
+              if (isInterruptRunErrorEvent(runtimeEvent)) {
+                finishAsInterrupt(lastOnInterrupt ?? runtimeEvent)
+                return
+              }
+              if (runtimeEvent.type === 'RUN_FINISHED' && lastOnInterrupt) {
+                finishAsInterrupt(lastOnInterrupt)
+                return
+              }
+              if (isHumanWaitEvent(runtimeEvent)) {
                 clearTimeout(timeout)
               } else {
                 armIdleTimeout()
               }
-              const budgetError = updateRunBudget(event as RuntimeEvent, {
+              const budgetError = updateRunBudget(runtimeEvent, {
                 modelCalls,
                 totalTokens,
                 failures
@@ -192,12 +233,16 @@ export class LangGraphAgent extends CopilotkitLangGraphAgent {
                 return
               }
               enqueuePersistence(() =>
-                this.runtimeHooks?.onEvent(runtimeInputForHooks, event as RuntimeEvent)
+                this.runtimeHooks?.onEvent(runtimeInputForHooks, runtimeEvent)
               )
               subscriber.next(event)
             },
             error: (error) => {
               if (settled) return
+              if (isGraphInterruptError(error)) {
+                finishAsInterrupt(lastOnInterrupt ?? error)
+                return
+              }
               settled = true
               unregisterRun()
               clearTimeout(timeout)
@@ -209,6 +254,10 @@ export class LangGraphAgent extends CopilotkitLangGraphAgent {
             },
             complete: () => {
               if (settled) return
+              if (lastOnInterrupt) {
+                finishAsInterrupt(lastOnInterrupt)
+                return
+              }
               settled = true
               unregisterRun()
               clearTimeout(timeout)
@@ -308,10 +357,7 @@ function updateRunBudget(
 }
 
 function isHumanWaitEvent(event: RuntimeEvent): boolean {
-  return (
-    event.type === 'INTERRUPT' ||
-    (event.type === 'CUSTOM' && event.name === LEGACY_INTERRUPT_EVENT_NAME)
-  )
+  return isOnInterruptCustomEvent(event) || event.type === 'INTERRUPT'
 }
 
 function budgetExceededError(usage: RunBudgetUsage): Error | undefined {

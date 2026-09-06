@@ -1,8 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger'
 
-import { ApiSuccessResponseBaseSwaggerDto } from '@/common/swagger'
-
-import { UserStatusSwagger } from './user-status.swagger'
+import { ApiSuccessResponseBaseSwaggerDto } from '../../../common/swagger/index.js'
+import { UserStatusSwagger } from './user-status.swagger.js'
 
 /** 用户列表行（与 userSchema / UserListItemResponse 对齐） */
 export class UserListItemSwaggerDto {

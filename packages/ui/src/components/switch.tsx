@@ -1,5 +1,5 @@
+import { Switch as SwitchPrimitive } from '@zen/ui/lib/base-ui-primitives'
 import { cn } from '@zen/ui/lib/utils'
-import { Switch as SwitchPrimitive } from 'radix-ui'
 
 import type * as React from 'react'
 

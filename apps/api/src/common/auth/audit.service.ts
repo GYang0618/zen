@@ -1,9 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { DEFAULT_TENANT_ID } from '@zen/shared'
 
-import { PrismaService } from '@/infra/prisma'
-
-import { getRequestAuditContext } from './request-audit-context'
+import { PrismaService } from '../../infra/prisma/index.js'
+import { getRequestAuditContext } from './request-audit-context.js'
 
 import type { Prisma } from '@prisma/client'
 

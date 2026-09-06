@@ -9,21 +9,20 @@ import {
 import { PermissionStatus, RoleKind } from '@prisma/client'
 import { completePageQuery } from '@zen/shared'
 
-import { toArray } from '@/common'
-import { AuditService } from '@/common/auth/audit.service'
-import { AuthContextService } from '@/common/auth/auth-context.service'
-import { SessionService } from '@/common/auth/session.service'
-import { buildPaginationMeta, paginate } from '@/common/pagination'
-
-import { findRolesQuerySchema } from './dto'
+import { AuditService } from '../../common/auth/audit.service.js'
+import { AuthContextService } from '../../common/auth/auth-context.service.js'
+import { SessionService } from '../../common/auth/session.service.js'
+import { toArray } from '../../common/index.js'
+import { buildPaginationMeta, paginate } from '../../common/pagination/index.js'
+import { findRolesQuerySchema } from './dto/index.js'
 import {
   fromApiDataScope,
   fromApiRoleStatus,
   toApiDataScope,
   toRoleListItemResponse,
   toRoleResponse
-} from './role.mapper'
-import { RoleRepository } from './role.repository'
+} from './role.mapper.js'
+import { RoleRepository } from './role.repository.js'
 import {
   buildRoleClonedDiff,
   buildRoleCreatedDiff,
@@ -33,7 +32,7 @@ import {
   buildRolePermissionsDiff,
   buildRoleUpdatedDiff,
   toUserDisplayName
-} from './role-audit-diff'
+} from './role-audit-diff.js'
 
 import type { Prisma } from '@prisma/client'
 import type {
@@ -47,7 +46,7 @@ import type {
   RoleEffectiveStatus,
   RoleStatus,
   UpdateRoleDto
-} from './dto'
+} from './dto/index.js'
 import type {
   PermissionGroupResponse,
   RoleListItemResponse,
@@ -55,7 +54,7 @@ import type {
   RoleMemberResponse,
   RoleMembersResponse,
   RoleResponse
-} from './responses/role.response'
+} from './responses/role.response.js'
 
 const SUPER_ADMIN_ROLE_CODE = 'super_admin'
 

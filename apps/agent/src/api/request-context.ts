@@ -8,6 +8,9 @@ interface AgentRequestContext {
   accessToken: string
   idempotencyKey?: string
   stepUpToken?: string
+  runId?: string
+  toolName?: string
+  approvalId?: string
   signal?: AbortSignal
 }
 
@@ -72,13 +75,31 @@ export function getCurrentStepUpToken(): string | undefined {
   return typeof token === 'string' && token.trim() !== '' ? token : undefined
 }
 
+export function getCurrentRunId(): string | undefined {
+  return requestContextStorage.getStore()?.runId
+}
+
+export function getCurrentToolName(): string | undefined {
+  return requestContextStorage.getStore()?.toolName
+}
+
+export function getCurrentApprovalId(): string | undefined {
+  return requestContextStorage.getStore()?.approvalId
+}
+
 /** 在指定 token 的异步上下文中执行（供 SDK client.auth 回调使用） */
 export function runWithAccessToken<T>(
   accessToken: string,
   fn: () => Promise<T>,
   idempotencyKey?: string,
   signal?: AbortSignal,
-  stepUpToken?: string
+  stepUpToken?: string,
+  runId?: string,
+  toolName?: string,
+  approvalId?: string
 ): Promise<T> {
-  return requestContextStorage.run({ accessToken, idempotencyKey, signal, stepUpToken }, fn)
+  return requestContextStorage.run(
+    { accessToken, idempotencyKey, signal, stepUpToken, runId, toolName, approvalId },
+    fn
+  )
 }

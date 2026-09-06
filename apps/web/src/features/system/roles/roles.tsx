@@ -19,7 +19,7 @@ function RolesContent() {
   const search = route.useSearch()
   const navigate = route.useNavigate()
   const [view, setView] = useState('card')
-  const { data, isLoading, isFetching } = useRolesQuery(
+  const { data, isLoading, isFetching, isError, error } = useRolesQuery(
     {
       keyword: search.keyword,
       effectiveStatus: search.effectiveStatus,
@@ -55,6 +55,8 @@ function RolesContent() {
               data={roles}
               isLoading={isLoading}
               isFetching={isFetching}
+              isError={isError}
+              error={error instanceof Error ? error.message : undefined}
               search={search}
               navigate={navigate}
             />

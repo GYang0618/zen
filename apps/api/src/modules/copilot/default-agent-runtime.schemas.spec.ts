@@ -4,7 +4,7 @@ import {
   memoryUpsertSchema,
   threadListQuerySchema,
   threadUpdateSchema
-} from './default-agent-runtime.schemas'
+} from './default-agent-runtime.schemas.js'
 
 describe('Default Agent runtime HTTP schemas', () => {
   it('将事件查询参数转换为有界数字', () => {

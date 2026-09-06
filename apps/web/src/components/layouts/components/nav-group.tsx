@@ -117,7 +117,7 @@ function SidebarMenuCollapsible({ item, href }: { item: NavCollapsible; href: st
             {item.icon && <item.icon />}
             <span>{item.title}</span>
             {item.badge && <NavBadge>{item.badge}</NavBadge>}
-            <ChevronRight className="ms-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 rtl:rotate-180" />
+            <ChevronRight className="ms-auto transition-transform duration-200 in-data-panel-open:rotate-90 rtl:rotate-180" />
           </SidebarMenuButton>
         </CollapsibleTrigger>
         <CollapsibleContent className="CollapsibleContent">
@@ -159,7 +159,7 @@ function SidebarMenuCollapsedDropdown({ item, href }: { item: NavCollapsible; hr
             {item.icon && <item.icon />}
             <span>{item.title}</span>
             {item.badge && <NavBadge>{item.badge}</NavBadge>}
-            <ChevronRight className="ms-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+            <ChevronRight className="ms-auto transition-transform duration-200 in-data-panel-open:rotate-90" />
           </SidebarMenuButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent side="right" align="start" sideOffset={4}>

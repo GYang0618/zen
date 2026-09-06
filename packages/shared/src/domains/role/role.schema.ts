@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
-import { paged, pageQuerySchema } from '../pagination'
+import { dataScopeSchema } from '../../primitives/index.js'
+import { paged, pageQuerySchema } from '../pagination/index.js'
 
 /** 角色卡片 / 详情侧栏成员头像预览上限（按最近添加） */
 export const ROLE_MEMBER_PREVIEW_LIMIT = 5
@@ -64,11 +65,9 @@ export const roleKindSchema = z
   .enum(['system', 'custom'])
   .describe('角色种类：system=系统内置；custom=自定义')
 
-export const roleDataScopeSchema = z
-  .enum(['all', 'org_and_child', 'org', 'self', 'custom'])
-  .describe(
-    '数据权限范围：all=全部数据；org_and_child=本组织及下级；org=仅本组织；self=仅本人数据；custom=自定义组织白名单（须同时提供 customOrgIds）'
-  )
+export const roleDataScopeSchema = dataScopeSchema.describe(
+  '数据权限范围：all=全部数据；org_and_child=本组织及下级；org=仅本组织；self=仅本人数据；custom=自定义组织白名单（须同时提供 customOrgIds）'
+)
 
 export const roleIconSchema = z.enum(ROLE_ICON_VALUES).describe('角色图标（lucide 风格标识）')
 export const roleIconColorSchema = z.enum(ROLE_ICON_COLOR_VALUES).describe('图标颜色 token')
@@ -123,10 +122,12 @@ export const createRoleSchema = createRoleObjectSchema.superRefine((value, ctx) 
 })
 
 export const updateRoleSchema = createRoleObjectSchema
-  .omit({ code: true, permissionCodes: true })
+  .omit({ code: true, permissionCodes: true, dataScope: true })
   .partial()
   .extend({
-    status: roleStatusSchema.optional()
+    status: roleStatusSchema.optional(),
+    // 必须去掉 create schema 的 default('self')，否则 PATCH 未传 dataScope 也会被填成 self
+    dataScope: roleDataScopeSchema.optional()
   })
   .superRefine((value, ctx) => {
     if (

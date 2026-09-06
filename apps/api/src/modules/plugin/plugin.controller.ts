@@ -2,12 +2,11 @@ import { Body, Controller, Get, Inject, Param, Patch, Post } from '@nestjs/commo
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger'
 import { PermissionCode } from '@zen/shared'
 
-import { RequirePermission } from '@/common/decorators/require-permission.decorator'
-import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '@/common/swagger'
+import { RequirePermission } from '../../common/decorators/require-permission.decorator.js'
+import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '../../common/swagger/index.js'
+import { PluginService } from './plugin.service.js'
 
-import { PluginService } from './plugin.service'
-
-import type { PluginListItemResponse, PluginListResponse } from './responses/plugin.response'
+import type { PluginListItemResponse, PluginListResponse } from './responses/plugin.response.js'
 
 @ApiTags('插件管理')
 @ApiBearerAuth(ACCESS_TOKEN_AUTH)

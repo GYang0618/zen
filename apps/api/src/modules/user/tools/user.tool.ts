@@ -2,12 +2,12 @@ import { Inject, Injectable } from '@nestjs/common'
 import { tool } from 'langchain'
 import { z } from 'zod'
 
-import { createUserSchema } from '../dto/create-user.dto'
-import { deleteUsersSchema } from '../dto/delete-users.dto'
-import { findUsersQuerySchema } from '../dto/find-users-query.dto'
-import { updateUserSchema } from '../dto/update-user.dto'
-import { updateUsersStatusSchema } from '../dto/update-users-status.dto'
-import { UserService } from '../user.service'
+import { createUserSchema } from '../dto/create-user.dto.js'
+import { deleteUsersSchema } from '../dto/delete-users.dto.js'
+import { findUsersQuerySchema } from '../dto/find-users-query.dto.js'
+import { updateUserSchema } from '../dto/update-user.dto.js'
+import { updateUsersStatusSchema } from '../dto/update-users-status.dto.js'
+import { UserService } from '../user.service.js'
 
 const userIdSchema = z.object({
   id: z.string().min(1, 'User id is required')

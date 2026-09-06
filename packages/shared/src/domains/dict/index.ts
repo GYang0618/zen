@@ -1,3 +1,3 @@
-export * from './dict.schema'
-export * from './permissions'
-export * from './permissions'
+export * from './dict.schema.js'
+export * from './permissions.js'
+export * from './permissions.js'

@@ -9,6 +9,41 @@
       "types": "./dist/index.d.ts",
       "browser": "./src/index.ts",
       "default": "./dist/index.js"
+    },
+    "./contracts": {
+      "types": "./dist/contracts/index.d.ts",
+      "browser": "./src/contracts/index.ts",
+      "default": "./dist/contracts/index.js"
+    },
+    "./domains": {
+      "types": "./dist/domains/index.d.ts",
+      "browser": "./src/domains/index.ts",
+      "default": "./dist/domains/index.js"
+    },
+    "./agent": {
+      "types": "./dist/agent/index.d.ts",
+      "browser": "./src/agent/index.ts",
+      "default": "./dist/agent/index.js"
+    },
+    "./security": {
+      "types": "./dist/security/index.d.ts",
+      "browser": "./src/security/index.ts",
+      "default": "./dist/security/index.js"
+    },
+    "./errors": {
+      "types": "./dist/errors/index.d.ts",
+      "browser": "./src/errors/index.ts",
+      "default": "./dist/errors/index.js"
+    },
+    "./pagination": {
+      "types": "./dist/pagination/index.d.ts",
+      "browser": "./src/pagination/index.ts",
+      "default": "./dist/pagination/index.js"
+    },
+    "./primitives": {
+      "types": "./dist/primitives/index.d.ts",
+      "browser": "./src/primitives/index.ts",
+      "default": "./dist/primitives/index.js"
     }
   },
   "files": [
@@ -17,16 +52,16 @@
   "scripts": {
     "dev": "tsc --watch",
     "build": "tsc",
-    "lint": "biome check --write .",
-    "check-types": "tsc --noEmit"
+    "lint": "biome check .",
+    "check-types": "tsc --noEmit",
+    "test": "pnpm build && node --test 'test/**/*.test.mjs'"
   },
   "dependencies": {
-    "ai": "^7.0.37",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@typescript/native": "npm:typescript@7.0.2",
     "typescript": "npm:@typescript/typescript6@6.0.2"
   },
-  "packageManager": "pnpm@11.17.0"
+  "type": "module"
 }

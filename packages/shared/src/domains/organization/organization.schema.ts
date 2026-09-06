@@ -1,14 +1,17 @@
 import { z } from 'zod'
 
-import { auditDiffSchema } from '../audit/audit-diff.schema'
-import { paged, pageQuerySchema } from '../pagination'
-import { ORGANIZATION_TYPE_TEMPLATE_IDS, REQUIRED_ORGANIZATION_TYPES } from './organization.catalog'
+import { auditDiffSchema } from '../audit/audit-diff.schema.js'
+import { paged, pageQuerySchema } from '../pagination/index.js'
+import {
+  ORGANIZATION_TYPE_TEMPLATE_IDS,
+  REQUIRED_ORGANIZATION_TYPES
+} from './organization.catalog.js'
 import {
   canBeRootOrganization,
   ORGANIZATION_TYPE_LABELS,
   ORGANIZATION_TYPE_VALUES,
   ROOT_ORGANIZATION_TYPES
-} from './organization.hierarchy'
+} from './organization.hierarchy.js'
 
 const idSchema = z.string().trim().min(1)
 const dateSchema = z.iso.date()
@@ -116,14 +119,14 @@ export {
   linkOrganizationPositionSchema,
   positionSchema,
   updateOrganizationPositionSchema
-} from '../post/post.schema'
+} from '../post/post.schema.js'
 
 export type {
   CreatePosition,
   LinkOrganizationPosition,
   Position,
   UpdateOrganizationPosition
-} from '../post/post.schema'
+} from '../post/post.schema.js'
 
 export const organizationMemberSchema = z.object({
   id: z.string(),

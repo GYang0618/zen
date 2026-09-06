@@ -9,5 +9,6 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute('/(auth)/sign-in')({
   component: SignIn,
-  validateSearch: searchSchema
+  validateSearch: searchSchema,
+  loaderDeps: ({ search }) => search
 })

@@ -4,7 +4,6 @@ import type {
   copilotApprovalSchema,
   copilotApprovalStatusSchema,
   copilotArtifactSchema,
-  copilotCallSchema,
   copilotCheckpointSchema,
   copilotEvaluationSchema,
   copilotEventPageSchema,
@@ -22,12 +21,7 @@ import type {
   copilotToolCallStatusSchema,
   copilotToolResultSchema,
   copilotTurnSchema
-} from './copilot.schema'
-
-export type CopilotCall = z.infer<typeof copilotCallSchema>
-
-/** 与 {@link CopilotCall} 相同，供 Chat 命名空间使用 */
-export type ChatCall = CopilotCall
+} from './copilot.schema.js'
 
 export type CopilotRunStatus = z.infer<typeof copilotRunStatusSchema>
 export type CopilotRunEndReason = z.infer<typeof copilotRunEndReasonSchema>

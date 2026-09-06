@@ -4,7 +4,7 @@ import { useAgent, useCopilotKit } from '@copilotkit/react-core/v2'
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 
 import { buildRetryMessages } from '../lib/messages'
-import { isRunCancellation } from '../run-state'
+import { isRunCancellation, isRunInterrupt } from '../run-state'
 
 const RUN_ERROR_MESSAGE = '请求失败'
 
@@ -45,7 +45,7 @@ export function useAgentRetry() {
       },
       onRunInitialized: () => setRunError(null),
       onRunFailed: ({ error }) => {
-        if (isRunCancellation(error)) {
+        if (isRunCancellation(error) || isRunInterrupt(error)) {
           setFailedUserMessage(null)
           setRunError(null)
           return
@@ -55,7 +55,7 @@ export function useAgentRetry() {
         setRunError(formatRunError(error))
       },
       onRunErrorEvent: ({ event }) => {
-        if (isRunCancellation(event.message)) {
+        if (isRunCancellation(event.message) || isRunInterrupt(event.message)) {
           setFailedUserMessage(null)
           setRunError(null)
           return

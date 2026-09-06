@@ -17,6 +17,24 @@ services:
       timeout: 5s
       retries: 10
 
+  zen-langgraph-postgres:
+    image: pgvector/pgvector:pg16
+    container_name: zen-langgraph-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: langgraph
+    ports:
+      - '5433:5432'
+    volumes:
+      - zen_langgraph_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U admin -d langgraph']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   zen-minio:
     image: docker.io/bitnamilegacy/minio:latest
     container_name: zen-minio
@@ -48,15 +66,15 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
-      DATABASE_URL: postgresql://admin:admin123@zen-postgres:5432/admin_dev
-      JWT_SECRET: change-me-in-production
-      CORS_ORIGIN: '*'
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL must be set for production compose}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set for production compose}
+      CORS_ORIGIN: ${CORS_ORIGIN:?CORS_ORIGIN must be set for production compose}
       THROTTLE_TTL: 60000
       THROTTLE_LIMIT: 120
       STORAGE_ENDPOINT: http://zen-minio:9000
       STORAGE_PUBLIC_ENDPOINT: http://localhost:9000
       STORAGE_ACCESS_KEY: zen
-      STORAGE_SECRET_KEY: zenminio_secret
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:?STORAGE_SECRET_KEY must be set for production compose}
       STORAGE_BUCKET: zen-files
       STORAGE_FORCE_PATH_STYLE: 'true'
     ports:
@@ -79,3 +97,5 @@ services:
 volumes:
   zen_pg:
     name: zen_postgres_data
+  zen_langgraph_pg:
+    name: zen_langgraph_postgres_data

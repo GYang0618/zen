@@ -10,20 +10,19 @@ import {
 } from '@nestjs/common'
 import { UserStatusCode } from '@prisma/client'
 
-import { AuthContextService } from '@/common/auth/auth-context.service'
-import { MembershipService } from '@/common/auth/membership.service'
-import { SessionService } from '@/common/auth/session.service'
-import argon2 from '@/common/utils/argon2'
-import { PrismaService } from '@/infra/prisma'
-
-import { UserService } from '../user/user.service'
-import { AuthTokenService } from './auth.token.service'
+import { AuthContextService } from '../../common/auth/auth-context.service.js'
+import { MembershipService } from '../../common/auth/membership.service.js'
+import { SessionService } from '../../common/auth/session.service.js'
+import argon2 from '../../common/utils/argon2.js'
+import { PrismaService } from '../../infra/prisma/index.js'
+import { UserService } from '../user/user.service.js'
+import { AuthTokenService } from './auth.token.service.js'
 
 import type { User } from '@prisma/client'
-import type { UserListItemResponse } from '../user/responses/user.response'
-import type { LoginDto } from './dto/login.dto'
-import type { RegisterDto } from './dto/register.dto'
-import type { AuthSessionResponse } from './responses/auth.response'
+import type { UserListItemResponse } from '../user/responses/user.response.js'
+import type { LoginDto } from './dto/login.dto.js'
+import type { RegisterDto } from './dto/register.dto.js'
+import type { AuthSessionResponse } from './responses/auth.response.js'
 
 const REFRESH_TOKEN_HASH_PREFIX = 'refresh:'
 const RESET_TOKEN_TTL_MS = 1000 * 60 * 30

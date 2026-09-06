@@ -1,13 +1,18 @@
 import { Body, Controller, Get, Inject, Param, Patch, Post } from '@nestjs/common'
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger'
-import { CurrentAuth, RequirePermission, RequirePlugin, ZodValidationPipe } from '@zen/plugin-sdk/nest'
+import {
+  CurrentAuth,
+  RequirePermission,
+  RequirePlugin,
+  ZodValidationPipe
+} from '@zen/plugin-sdk/nest'
 
-import { NOTIF_PERMISSIONS, NOTIFICATIONS_PLUGIN_ID } from '../constants'
-import { createNotificationSchema } from '../notification.schema'
-import { NotificationService } from './notification.service'
+import { NOTIF_PERMISSIONS, NOTIFICATIONS_PLUGIN_ID } from '../constants.js'
+import { createNotificationSchema } from '../notification.schema.js'
+import { NotificationService } from './notification.service.js'
 
 import type { AuthContext } from '@zen/shared'
-import type { CreateNotificationInput, NotificationDto } from '../notification.schema'
+import type { CreateNotificationInput, NotificationDto } from '../notification.schema.js'
 
 @ApiTags('通知中心')
 @ApiBearerAuth('access-token')

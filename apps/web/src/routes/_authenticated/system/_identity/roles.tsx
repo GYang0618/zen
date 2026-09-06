@@ -19,6 +19,7 @@ const rolesSearchSchema = z.object({
 export const Route = createFileRoute('/_authenticated/system/_identity/roles')({
   component: Roles,
   validateSearch: rolesSearchSchema,
+  loaderDeps: ({ search }) => search,
   staticData: {
     title: '角色管理',
     description: '以卡片与详情页配置角色权限、数据范围与关联用户',

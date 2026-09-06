@@ -1,4 +1,4 @@
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from '@tanstack/react-form'
 import {
   Button,
   Dialog,
@@ -19,7 +19,6 @@ import {
   Textarea
 } from '@zen/ui'
 import { useMemo } from 'react'
-import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 import { useJobProfilesQuery } from '@/features/system/posts/queries'
@@ -78,9 +77,12 @@ export function OrganizationCreatePositionDialog({
     [linkedProfileIds, profilesData?.items]
   )
 
-  const form = useForm<LinkPositionFormValues>({
-    resolver: zodResolver(linkPositionFormSchema),
-    defaultValues: createDefaultValues()
+  const form = useForm({
+    defaultValues: createDefaultValues() as LinkPositionFormValues,
+    validators: { onChange: linkPositionFormSchema },
+    onSubmit: async ({ value }) => {
+      await handleSubmit(linkPositionFormSchema.parse(value))
+    }
   })
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -88,7 +90,7 @@ export function OrganizationCreatePositionDialog({
     onOpenChange(nextOpen)
   }
 
-  const handleSubmit = form.handleSubmit(async (values) => {
+  const handleSubmit = async (values: LinkPositionFormValues) => {
     try {
       await linkPosition.mutateAsync({
         jobProfileId: values.jobProfileId,
@@ -100,7 +102,7 @@ export function OrganizationCreatePositionDialog({
     } catch {
       // mutation toast
     }
-  })
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -109,16 +111,22 @@ export function OrganizationCreatePositionDialog({
           <DialogTitle>关联岗位</DialogTitle>
         </DialogHeader>
 
-        <form id="link-position-form" className="flex flex-col gap-4" onSubmit={handleSubmit}>
+        <form
+          id="link-position-form"
+          className="flex flex-col gap-4"
+          onSubmit={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            void form.handleSubmit()
+          }}
+        >
           <FieldGroup>
-            <Controller
-              name="jobProfileId"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid || undefined}>
+            <form.Field name="jobProfileId">
+              {(field) => (
+                <Field data-invalid={!field.state.meta.isValid || undefined}>
                   <FieldLabel>岗位目录</FieldLabel>
-                  <Select value={field.value || undefined} onValueChange={field.onChange}>
-                    <SelectTrigger aria-invalid={fieldState.invalid || undefined}>
+                  <Select value={field.state.value || undefined} onValueChange={field.handleChange}>
+                    <SelectTrigger aria-invalid={!field.state.meta.isValid || undefined}>
                       <SelectValue
                         placeholder={
                           availableProfiles.length === 0
@@ -135,45 +143,53 @@ export function OrganizationCreatePositionDialog({
                       ))}
                     </SelectContent>
                   </Select>
-                  {fieldState.error ? <FieldError>{fieldState.error.message}</FieldError> : null}
+                  {field.state.meta.errors.length > 0 ? (
+                    <FieldError>
+                      {field.state.meta.errors.map((error) => error?.message).join(', ')}
+                    </FieldError>
+                  ) : null}
                 </Field>
               )}
-            />
+            </form.Field>
 
             <div className="grid grid-cols-2 gap-4">
-              <Controller
-                name="headcount"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid || undefined}>
+              <form.Field name="headcount">
+                {(field) => (
+                  <Field data-invalid={!field.state.meta.isValid || undefined}>
                     <FieldLabel htmlFor="link-position-headcount">编制人数</FieldLabel>
                     <Input
                       id="link-position-headcount"
                       type="number"
                       min={1}
                       max={999}
-                      value={field.value}
-                      onChange={(event) => field.onChange(event.target.valueAsNumber)}
-                      aria-invalid={fieldState.invalid || undefined}
+                      value={field.state.value}
+                      onChange={(event) => field.handleChange(event.target.valueAsNumber)}
+                      aria-invalid={!field.state.meta.isValid || undefined}
                     />
-                    {fieldState.error ? <FieldError>{fieldState.error.message}</FieldError> : null}
+                    {field.state.meta.errors.length > 0 ? (
+                      <FieldError>
+                        {field.state.meta.errors.map((error) => error?.message).join(', ')}
+                      </FieldError>
+                    ) : null}
                   </Field>
                 )}
-              />
+              </form.Field>
 
-              <Controller
-                name="level"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid || undefined}>
+              <form.Field name="level">
+                {(field) => (
+                  <Field data-invalid={!field.state.meta.isValid || undefined}>
                     <FieldLabel>职级覆盖（可选）</FieldLabel>
                     <Select
-                      value={field.value || undefined}
+                      value={field.state.value || undefined}
                       onValueChange={(value) =>
-                        field.onChange(value === '__default__' ? '' : value)
+                        field.handleChange(
+                          linkPositionFormSchema.shape.level.parse(
+                            value === '__default__' ? '' : value
+                          )
+                        )
                       }
                     >
-                      <SelectTrigger aria-invalid={fieldState.invalid || undefined}>
+                      <SelectTrigger aria-invalid={!field.state.meta.isValid || undefined}>
                         <SelectValue placeholder="使用岗位标准职级" />
                       </SelectTrigger>
                       <SelectContent>
@@ -185,29 +201,38 @@ export function OrganizationCreatePositionDialog({
                         ))}
                       </SelectContent>
                     </Select>
-                    {fieldState.error ? <FieldError>{fieldState.error.message}</FieldError> : null}
+                    {field.state.meta.errors.length > 0 ? (
+                      <FieldError>
+                        {field.state.meta.errors.map((error) => error?.message).join(', ')}
+                      </FieldError>
+                    ) : null}
                   </Field>
                 )}
-              />
+              </form.Field>
             </div>
 
-            <Controller
-              name="description"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid || undefined}>
+            <form.Field name="description">
+              {(field) => (
+                <Field data-invalid={!field.state.meta.isValid || undefined}>
                   <FieldLabel htmlFor="link-position-description">编制说明</FieldLabel>
                   <Textarea
-                    {...field}
+                    name={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.target.value)}
                     id="link-position-description"
                     placeholder="可选，补充本组织对该岗位的说明"
                     rows={3}
-                    aria-invalid={fieldState.invalid || undefined}
+                    aria-invalid={!field.state.meta.isValid || undefined}
                   />
-                  {fieldState.error ? <FieldError>{fieldState.error.message}</FieldError> : null}
+                  {field.state.meta.errors.length > 0 ? (
+                    <FieldError>
+                      {field.state.meta.errors.map((error) => error?.message).join(', ')}
+                    </FieldError>
+                  ) : null}
                 </Field>
               )}
-            />
+            </form.Field>
           </FieldGroup>
         </form>
 

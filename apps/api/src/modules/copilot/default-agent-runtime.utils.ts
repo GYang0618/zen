@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 
 import type { Prisma } from '@prisma/client'
-import type { RuntimeEvent } from './default-agent-runtime.types'
+import type { RuntimeEvent } from './default-agent-runtime.types.js'
 
 export type JsonRecord = Record<string, unknown>
 

@@ -1,4 +1,13 @@
-import { cn, Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, Skeleton } from '@zen/ui'
+import {
+  cn,
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  Skeleton,
+  VirtualList
+} from '@zen/ui'
 import { Users } from 'lucide-react'
 import { useEffect } from 'react'
 
@@ -85,18 +94,27 @@ export function UsersCardList({ keyword, status, role, sortBy, sortOrder }: User
   return (
     <div className={cn('max-sm:has-[div[role="toolbar"]]:mb-16', 'flex flex-1 flex-col gap-4')}>
       <div className={cn('@container transition-opacity', isFilterFetching && 'opacity-70')}>
-        <div className="grid grid-cols-1 gap-4 @lg:grid-cols-2 @4xl:grid-cols-3">
-          {users.map((user) => (
+        <VirtualList
+          items={users}
+          estimateSize={220}
+          minLaneSize={320}
+          gap={16}
+          getItemKey={(user) => user.id}
+          className="max-h-[70vh]"
+          onEndReached={() => {
+            if (hasNextPage && !isFetchingNextPage) void fetchNextPage()
+          }}
+        >
+          {(user) => (
             <UsersCard
-              key={user.id}
               user={user}
               isSelecting={selection.isSelecting}
               selected={selection.isSelected(user.id)}
               onEnterSelecting={selection.enterSelecting}
               onSelectedChange={(nextSelected) => selection.setSelected(user.id, nextSelected)}
             />
-          ))}
-        </div>
+          )}
+        </VirtualList>
       </div>
       <InfiniteScrollSentinel
         hasNextPage={Boolean(hasNextPage)}

@@ -44,3 +44,10 @@ export function formatFileSize(bytes: number) {
   }
   return `${value.toFixed(index === 0 ? 0 : 1)} ${units[index]}`
 }
+
+/** 取接近片头的可解码位置：0 秒在部分编码下是空帧，超短视频则仍用 0。 */
+export function firstFrameTime(duration: number) {
+  if (!Number.isFinite(duration) || duration <= 0) return 0
+  if (duration <= 0.2) return 0
+  return 0.1
+}

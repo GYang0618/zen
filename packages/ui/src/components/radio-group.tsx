@@ -1,5 +1,5 @@
+import { RadioGroup as RadioGroupPrimitive } from '@zen/ui/lib/base-ui-primitives'
 import { cn } from '@zen/ui/lib/utils'
-import { RadioGroup as RadioGroupPrimitive } from 'radix-ui'
 
 import type * as React from 'react'
 

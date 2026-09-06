@@ -1,6 +1,5 @@
 'use no memo'
 
-import { MixerHorizontalIcon } from '@radix-ui/react-icons'
 import {
   Button,
   DropdownMenu,
@@ -10,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@zen/ui'
+import { SlidersHorizontal as MixerHorizontalIcon } from 'lucide-react'
 
 import type { Table } from '@tanstack/react-table'
 

@@ -18,10 +18,10 @@ import {
   TooltipTrigger
 } from '@zen/ui/components/tooltip'
 import { useIsMobile } from '@zen/ui/hooks/use-mobile'
+import { Slot } from '@zen/ui/lib/base-ui-primitives'
 import { cn } from '@zen/ui/lib/utils'
 import { cva } from 'class-variance-authority'
 import { PanelLeftIcon } from 'lucide-react'
-import { Slot } from 'radix-ui'
 import * as React from 'react'
 
 import type { VariantProps } from 'class-variance-authority'

@@ -1,7 +1,7 @@
 import { Button } from '@zen/ui/components/button'
+import { Dialog as SheetPrimitive } from '@zen/ui/lib/base-ui-primitives'
 import { cn } from '@zen/ui/lib/utils'
 import { XIcon } from 'lucide-react'
-import { Dialog as SheetPrimitive } from 'radix-ui'
 
 import type * as React from 'react'
 

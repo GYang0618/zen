@@ -9,12 +9,22 @@ export const AGENT_RUN_ID_CONFIGURABLE_KEY = 'agentRunId'
 
 /** HITL 通过后注入给 Default Agent 的短期二次确认令牌。 */
 export const AGENT_STEP_UP_TOKEN_CONFIGURABLE_KEY = 'stepUpToken'
+export const AGENT_APPROVAL_ID_CONFIGURABLE_KEY = 'approvalId'
+export const AGENT_TOOL_NAME_CONFIGURABLE_KEY = 'toolName'
 
 /** 对话审批通过后，与页面 step-up 令牌同等有效的时间窗。 */
 export const AGENT_HITL_STEP_UP_WINDOW_MS = 3 * 60 * 1_000
 
 /** 当前租户允许 Default Agent 暴露 Tool 的 ACTIVE 插件 ID。 */
 export const ACTIVE_AGENT_PLUGINS_CONFIGURABLE_KEY = 'activeAgentPlugins'
+
+export const AGENT_TENANT_ID_CONFIGURABLE_KEY = 'tenantId'
+export const AGENT_USER_ID_CONFIGURABLE_KEY = 'userId'
+export const AGENT_THREAD_ID_CONFIGURABLE_KEY = 'threadId'
+export const AGENT_TRACE_ID_CONFIGURABLE_KEY = 'traceId'
+export const AGENT_LOCALE_CONFIGURABLE_KEY = 'locale'
+export const AGENT_PERMISSIONS_CONFIGURABLE_KEY = 'permissions'
+export const AGENT_MODEL_METADATA_CONFIGURABLE_KEY = 'modelMetadata'
 
 /**
  * Default Agent 的运行预算。远程 LangGraph 使用 snake_case 的 recursion_limit。
@@ -31,7 +41,10 @@ export const DEFAULT_AGENT_RUN_BUDGET = {
   maxTotalTokens: 256_000,
   maxFailures: 4,
   maxOutputTokensPerModelCall: 4096,
-  timeoutMs: 180_000
+  timeoutMs: 180_000,
+  maxConcurrentRuns: 3,
+  maxMemoriesPerUser: 200,
+  maxMemoryContentChars: 8_000
 } as const
 
 export const DEFAULT_AGENT_VERSIONS = {

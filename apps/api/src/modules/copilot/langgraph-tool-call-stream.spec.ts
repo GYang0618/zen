@@ -6,9 +6,9 @@ import {
   resolveReasoningContent,
   runWithoutReasoningProcess,
   stringifyToolArgs
-} from './langgraph-tool-call-stream'
+} from './langgraph-tool-call-stream.js'
 
-import type { ExtractedToolCall, ToolCallStreamSink } from './langgraph-tool-call-stream'
+import type { ExtractedToolCall, ToolCallStreamSink } from './langgraph-tool-call-stream.js'
 
 function createSink(existingIds: string[] = []): ToolCallStreamSink & { events: unknown[] } {
   const events: unknown[] = []

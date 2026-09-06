@@ -1,13 +1,13 @@
-import { AUDIT_PERMISSIONS } from '../audit/permissions'
-import { DICT_PERMISSIONS } from '../dict/permissions'
-import { FILE_PERMISSIONS, STORAGE_PERMISSIONS } from '../file/permissions'
-import { ORG_PERMISSIONS } from '../organization/permissions'
-import { PLUGIN_PERMISSIONS } from '../plugin/permissions'
-import { POST_PERMISSIONS } from '../post/permissions'
-import { ROLE_PERMISSIONS } from '../role/permissions'
-import { USER_PERMISSIONS } from '../user/permissions'
+import { AUDIT_PERMISSIONS } from '../audit/permissions.js'
+import { DICT_PERMISSIONS } from '../dict/permissions.js'
+import { FILE_PERMISSIONS, STORAGE_PERMISSIONS } from '../file/permissions.js'
+import { ORG_PERMISSIONS } from '../organization/permissions.js'
+import { PLUGIN_PERMISSIONS } from '../plugin/permissions.js'
+import { POST_PERMISSIONS } from '../post/permissions.js'
+import { ROLE_PERMISSIONS } from '../role/permissions.js'
+import { USER_PERMISSIONS } from '../user/permissions.js'
 
-import type { KERNEL_PERMISSION_CATALOG } from './catalog'
+import type { KERNEL_PERMISSION_CATALOG } from './catalog.js'
 
 /** 系统权限码（菜单 / 按钮 / API / Agent Tool 同源），由各模块 permissions 聚合 */
 export const PermissionCode = {
@@ -24,7 +24,7 @@ export const PermissionCode = {
 
 export type PermissionCodeValue = (typeof PermissionCode)[keyof typeof PermissionCode]
 
-export { PERMISSION_CODE_PATTERN } from './define-permissions'
+export { PERMISSION_CODE_PATTERN } from './define-permissions.js'
 
 const PERMISSION_CODE_SET = new Set<string>(Object.values(PermissionCode))
 

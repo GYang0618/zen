@@ -1,12 +1,6 @@
 'use no memo'
 
 import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  DoubleArrowLeftIcon,
-  DoubleArrowRightIcon
-} from '@radix-ui/react-icons'
-import {
   Button,
   cn,
   getPageNumbers,
@@ -16,6 +10,12 @@ import {
   SelectTrigger,
   SelectValue
 } from '@zen/ui'
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChevronsLeft as DoubleArrowLeftIcon,
+  ChevronsRight as DoubleArrowRightIcon
+} from 'lucide-react'
 
 export const LIST_PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50] as const
 

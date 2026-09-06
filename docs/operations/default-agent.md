@@ -14,7 +14,7 @@
 | Run 长期 running | Run.leaseExpiresAt、lastHeartbeatAt、LangGraph 可用性、最后事件 | 执行 reconcile；用户从运行记录恢复为新 Run |
 | 浏览器断开后无新事件 | API 实例日志、Run.leaseExpiresAt、LangGraph 远程 Run | 确认 API 进程未重启；当前断线继执依赖发起该 Run 的 API 实例持续存活，进程失效后执行 reconcile 并从 Checkpoint 恢复为新 Run |
 | Tool 重复提交 | `x-agent-idempotency-key`、AgentIdempotencyRecord | 相同请求重放成功结果；不同请求复用键返回 409 |
-| 审批无法继续 | Approval 过期时间、legacy `on_interrupt` 中的 `__zenInterruptId`、Web 是否在线 | 过期后重新发起；不得直接执行高风险 Tool；同批 actionRequests 只能整批批准或拒绝 |
+| 审批无法继续 | Approval 过期时间、标准 AG-UI interrupt 的 actionRequests/decision、Web 是否在线 | 过期后重新发起；不得直接执行高风险 Tool；同批 actionRequests 只能整批批准或拒绝 |
 | 历史缺少正文 | Message snapshot 与 TEXT_MESSAGE 事件 | 从 sequence=0 重放最新 Run，检查事件落库错误 |
 | Token 指标为空 | RAW 模型事件是否携带 usage/usage_metadata | 不估算为真实用量；确认 Qwen 网关 usage 配置；RAW 只计量、不落 Event 表 |
 | 插件 Tool 不可见 | PluginInstallation.status、租户 ID、`activeAgentPlugins` | 在插件管理中启用；不得绕过 API Guard 直连数据库 |

@@ -8,8 +8,8 @@ import type {
   RoleIconColor,
   RoleStatus
 } from '@zen/shared'
-import type { RoleListItemResponse, RoleResponse } from './responses/role.response'
-import type { RoleWithRelations } from './role.repository'
+import type { RoleListItemResponse, RoleResponse } from './responses/role.response.js'
+import type { RoleWithRelations } from './role.repository.js'
 
 const ROLE_STATUS_TO_API: Record<RecordStatus, RoleStatus> = {
   ACTIVE: 'active',

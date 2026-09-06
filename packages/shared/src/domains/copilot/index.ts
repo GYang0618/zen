@@ -1,3 +1,3 @@
-export * from './copilot.constants'
-export * from './copilot.schema'
-export * from './copilot.type'
+export * from './copilot.constants.js'
+export * from './copilot.schema.js'
+export * from './copilot.type.js'

@@ -1,6 +1,6 @@
-import { buildRoleUpdatedDiff, toUserDisplayName } from './role-audit-diff'
+import { buildRoleUpdatedDiff, toUserDisplayName } from './role-audit-diff.js'
 
-import type { RoleWithRelations } from './role.repository'
+import type { RoleWithRelations } from './role.repository.js'
 
 function createRole(overrides: Partial<RoleWithRelations> = {}): RoleWithRelations {
   return {

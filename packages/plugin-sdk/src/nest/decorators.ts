@@ -1,5 +1,6 @@
 import { SetMetadata } from '@nestjs/common'
-import { REQUIRE_PERMISSIONS_KEY, REQUIRE_PLUGIN_ID_KEY } from '../constants'
+
+import { REQUIRE_PERMISSIONS_KEY, REQUIRE_PLUGIN_ID_KEY } from '../constants.js'
 
 export type RequirePermissionsMode = 'all' | 'any'
 

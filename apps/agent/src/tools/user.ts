@@ -126,7 +126,7 @@ const USER_WRITE_HINTS: RecoverableHint[] = [
 export const getUsersTool = tool(
   async (input, config) =>
     compactPagedToolResult(
-      await executeApiCall(config, () =>
+      await executeApiCall(config, async (_context) =>
         userControllerFindAll({
           query: normalizeUsersQuery(input)
         })
@@ -144,7 +144,11 @@ export const getUsersTool = tool(
 
 export const createUserTool = tool(
   async (input, config) =>
-    executeApiCallOrRecover(config, () => userControllerCreate({ body: input }), USER_WRITE_HINTS),
+    executeApiCallOrRecover(
+      config,
+      async (_context) => userControllerCreate({ body: input }),
+      USER_WRITE_HINTS
+    ),
   {
     name: 'create_user',
     description:
@@ -157,7 +161,7 @@ export const createUserTool = tool(
 
 export const getUserTool = tool(
   async ({ id }, config) =>
-    executeApiCall(config, () =>
+    executeApiCall(config, async (_context) =>
       userControllerFindOne({
         path: { id }
       })
@@ -215,7 +219,11 @@ export const updateUsersStatusTool = tool(
 
 export const unlockUserTool = tool(
   async ({ id }, config) =>
-    executeApiCallOrRecover(config, () => userControllerUnlock({ path: { id } }), USER_WRITE_HINTS),
+    executeApiCallOrRecover(
+      config,
+      async (_context) => userControllerUnlock({ path: { id } }),
+      USER_WRITE_HINTS
+    ),
   {
     name: 'unlock_user',
     description: '解锁因登录失败次数过多而被锁定的用户账号',

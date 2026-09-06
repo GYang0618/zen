@@ -1,6 +1,6 @@
-import { DEMO_NOTE_PERMISSIONS } from '../constants'
+import { DEMO_NOTE_PERMISSIONS } from '../constants.js'
 
-import type { DemoNoteDto } from '../note.schema'
+import type { DemoNoteDto } from '../note.schema.js'
 
 export type NotesRequest = {
   get: <T>(url: string) => Promise<T>

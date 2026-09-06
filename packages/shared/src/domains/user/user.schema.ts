@@ -1,8 +1,8 @@
 import { z } from 'zod'
 
-import { organizationTypeSchema } from '../organization/organization.schema'
-import { paged, pageQuerySchema } from '../pagination'
-import { roleKindSchema, roleStatusSchema } from '../role/role.schema'
+import { organizationTypeSchema } from '../organization/organization.schema.js'
+import { paged, pageQuerySchema } from '../pagination/index.js'
+import { roleKindSchema, roleStatusSchema } from '../role/role.schema.js'
 
 export const userStatusSchema = z
   .enum(['active', 'inactive', 'pending', 'suspended'])

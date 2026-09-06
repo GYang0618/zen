@@ -31,7 +31,7 @@ export function FilesDialogs({ accept }: { accept?: string }) {
   return (
     <>
       <Dialog open={open === 'upload'} onOpenChange={(next) => !next && close()}>
-        <DialogContent>
+        <DialogContent className="min-w-0 sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>上传文件</DialogTitle>
             <DialogDescription>预签名直传到对象存储，完成后写入文件元数据。</DialogDescription>

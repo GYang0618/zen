@@ -1,4 +1,4 @@
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from '@tanstack/react-form'
 import {
   Alert,
   AlertDescription,
@@ -26,7 +26,6 @@ import {
 } from '@zen/ui'
 import { CalendarIcon, Copy, Info, Loader2, ShieldCheck, UserX } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
@@ -94,9 +93,12 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
   const [expiredAtOpen, setExpiredAtOpen] = useState(false)
   const { mutate: cloneRole, isPending } = useCloneRoleMutation()
 
-  const form = useForm<CloneFormValues>({
-    resolver: zodResolver(cloneFormSchema),
-    defaultValues: buildDefaultValues(currentRow)
+  const form = useForm({
+    defaultValues: buildDefaultValues(currentRow) as CloneFormValues,
+    validators: { onChange: cloneFormSchema },
+    onSubmit: async ({ value }) => {
+      await handleSubmit(cloneFormSchema.parse(value))
+    }
   })
 
   useEffect(() => {
@@ -107,7 +109,13 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
 
   const handleSubmit = (values: CloneFormValues) => {
     if (values.expiresAt && values.expiresAt < TODAY) {
-      form.setError('expiresAt', { message: '过期时间不能早于今天' })
+      form.setFieldMeta('expiresAt', (meta) => ({
+        ...meta,
+        errorMap: {
+          ...meta.errorMap,
+          onSubmit: [{ code: 'custom', path: [], message: '过期时间不能早于今天' }]
+        }
+      }))
       return
     }
 
@@ -129,7 +137,13 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
         onError: (error) => {
           const message = error instanceof Error ? error.message : '克隆失败'
           if (message.includes('编码') || message.includes('已存在')) {
-            form.setError('code', { message: '角色编码已存在' })
+            form.setFieldMeta('code', (meta) => ({
+              ...meta,
+              errorMap: {
+                ...meta.errorMap,
+                onSubmit: [{ code: 'custom', path: [], message: '角色编码已存在' }]
+              }
+            }))
             return
           }
           toast.error(message)
@@ -172,54 +186,66 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
           </AlertDescription>
         </Alert>
 
-        <form id="role-clone-form" className="space-y-4" onSubmit={form.handleSubmit(handleSubmit)}>
+        <form
+          id="role-clone-form"
+          className="space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            void form.handleSubmit()
+          }}
+        >
           <FieldGroup>
-            <Controller
-              name="name"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+            <form.Field name="name">
+              {(field) => (
+                <Field data-invalid={!field.state.meta.isValid}>
                   <FieldLabel htmlFor="clone-role-name">新角色名称</FieldLabel>
                   <FieldContent>
                     <Input
-                      {...field}
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value)}
                       id="clone-role-name"
                       placeholder="例如：运维专家 副本"
-                      aria-invalid={fieldState.invalid}
+                      aria-invalid={!field.state.meta.isValid}
                       autoComplete="off"
                       autoFocus
                     />
-                    {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                    {!field.state.meta.isValid ? (
+                      <FieldError errors={field.state.meta.errors} />
+                    ) : null}
                   </FieldContent>
                 </Field>
               )}
-            />
-            <Controller
-              name="code"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+            </form.Field>
+            <form.Field name="code">
+              {(field) => (
+                <Field data-invalid={!field.state.meta.isValid}>
                   <FieldLabel htmlFor="clone-role-code">唯一标识 Code</FieldLabel>
                   <FieldContent>
                     <Input
-                      {...field}
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value)}
                       id="clone-role-code"
                       className="font-mono"
                       placeholder="例如：ops_expert_copy"
-                      aria-invalid={fieldState.invalid}
+                      aria-invalid={!field.state.meta.isValid}
                       autoComplete="off"
                     />
                     <FieldDescription>已根据来源角色自动生成，可自行修改。</FieldDescription>
-                    {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                    {!field.state.meta.isValid ? (
+                      <FieldError errors={field.state.meta.errors} />
+                    ) : null}
                   </FieldContent>
                 </Field>
               )}
-            />
-            <Controller
-              name="expiresAt"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+            </form.Field>
+            <form.Field name="expiresAt">
+              {(field) => (
+                <Field data-invalid={!field.state.meta.isValid}>
                   <FieldLabel htmlFor="clone-role-expired-at">过期时间</FieldLabel>
                   <FieldContent>
                     <Popover open={expiredAtOpen} onOpenChange={setExpiredAtOpen}>
@@ -228,12 +254,12 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
                           id="clone-role-expired-at"
                           type="button"
                           variant="outline"
-                          data-empty={!field.value}
-                          aria-invalid={fieldState.invalid}
+                          data-empty={!field.state.value}
+                          aria-invalid={!field.state.meta.isValid}
                           className="w-full justify-between font-normal data-[empty=true]:text-muted-foreground"
                         >
-                          {field.value
-                            ? EXPIRED_AT_FORMATTER.format(field.value)
+                          {field.state.value
+                            ? EXPIRED_AT_FORMATTER.format(field.state.value)
                             : '留空表示长期有效'}
                           <CalendarIcon data-icon="inline-end" />
                         </Button>
@@ -241,18 +267,18 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
                           mode="single"
-                          selected={field.value ?? undefined}
+                          selected={field.state.value ?? undefined}
                           onSelect={(date) => {
-                            field.onChange(date ?? null)
+                            field.handleChange(date ?? null)
                             setExpiredAtOpen(false)
                           }}
                           captionLayout="dropdown"
                           startMonth={TODAY}
                           disabled={{ before: TODAY }}
-                          defaultMonth={field.value ?? TODAY}
+                          defaultMonth={field.state.value ?? TODAY}
                           autoFocus
                         />
-                        {field.value ? (
+                        {field.state.value ? (
                           <div className="border-t p-2">
                             <Button
                               type="button"
@@ -260,7 +286,7 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
                               size="sm"
                               className="w-full"
                               onClick={() => {
-                                field.onChange(null)
+                                field.handleChange(null)
                                 setExpiredAtOpen(false)
                               }}
                             >
@@ -270,30 +296,35 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
                         ) : null}
                       </PopoverContent>
                     </Popover>
-                    {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                    {!field.state.meta.isValid ? (
+                      <FieldError errors={field.state.meta.errors} />
+                    ) : null}
                   </FieldContent>
                 </Field>
               )}
-            />
-            <Controller
-              name="description"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+            </form.Field>
+            <form.Field name="description">
+              {(field) => (
+                <Field data-invalid={!field.state.meta.isValid}>
                   <FieldLabel htmlFor="clone-role-description">角色描述说明</FieldLabel>
                   <FieldContent>
                     <Textarea
-                      {...field}
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value)}
                       id="clone-role-description"
                       rows={3}
                       placeholder="明确该角色的职责"
-                      aria-invalid={fieldState.invalid}
+                      aria-invalid={!field.state.meta.isValid}
                     />
-                    {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                    {!field.state.meta.isValid ? (
+                      <FieldError errors={field.state.meta.errors} />
+                    ) : null}
                   </FieldContent>
                 </Field>
               )}
-            />
+            </form.Field>
           </FieldGroup>
         </form>
 

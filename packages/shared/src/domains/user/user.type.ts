@@ -21,7 +21,7 @@ import type {
   usersQuerySchema,
   usersSortBySchema,
   usersSortOrderSchema
-} from './user.schema'
+} from './user.schema.js'
 
 export type UserStatus = z.infer<typeof userStatusSchema>
 export type UserGender = z.infer<typeof userGenderSchema>

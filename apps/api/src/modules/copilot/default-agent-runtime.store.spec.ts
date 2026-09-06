@@ -1,13 +1,15 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common'
 
 import {
   DefaultAgentRuntimeStore,
   normalizeDisplayMessages,
   normalizeRuntimeMessages
-} from './default-agent-runtime.store'
+} from './default-agent-runtime.store.js'
 
 import type { AuthContext } from '@zen/shared'
-import type { PrismaService } from '@/infra/prisma'
+import type { PrismaService } from '../../infra/prisma/index.js'
+
+const { jest } = import.meta
 
 const auth = { tenantId: 'tenant-1', userId: 'user-1' } as AuthContext
 
@@ -255,7 +257,8 @@ describe('DefaultAgentRuntimeStore ownership checks', () => {
       agentRun: {
         findUnique: jest.fn().mockResolvedValue(null),
         create: jest.fn().mockResolvedValue({}),
-        update: jest.fn()
+        update: jest.fn(),
+        count: jest.fn().mockResolvedValue(0)
       },
       agentTurn: {
         findUnique: jest.fn().mockResolvedValue(null),
@@ -298,6 +301,36 @@ describe('DefaultAgentRuntimeStore ownership checks', () => {
         turnId: 'run-2:turn:0'
       })
     })
+  })
+
+  it('新建 Run 时超过并发配额则拒绝', async () => {
+    const tx = {
+      agentThread: {
+        findUnique: jest.fn().mockResolvedValue({
+          tenantId: auth.tenantId,
+          userId: auth.userId,
+          agentId: 'default_agent'
+        }),
+        create: jest.fn(),
+        update: jest.fn().mockResolvedValue({})
+      },
+      agentRun: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn(),
+        update: jest.fn(),
+        count: jest.fn().mockResolvedValue(3)
+      },
+      agentTurn: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
+      agentMessage: { upsert: jest.fn() }
+    }
+    const prisma = {
+      $transaction: jest.fn((callback: (client: typeof tx) => unknown) => callback(tx))
+    } as unknown as PrismaService
+
+    await expect(
+      new DefaultAgentRuntimeStore(prisma).startRun(runtimeInput(), auth)
+    ).rejects.toBeInstanceOf(ConflictException)
+    expect(tx.agentRun.create).not.toHaveBeenCalled()
   })
 })
 
@@ -344,54 +377,6 @@ describe('DefaultAgentRuntimeStore event persistence', () => {
       })
     )
     expect(updateMany).toHaveBeenCalledTimes(1)
-  })
-
-  it('持久化 legacy interrupt 并移除 rawEvent', async () => {
-    const eventCreate = jest.fn().mockResolvedValue({})
-    const approvalUpsert = jest.fn().mockResolvedValue({})
-    const tx = {
-      agentRun: {
-        update: jest.fn().mockResolvedValue({ eventSequence: 1, threadId: 'thread-1' })
-      },
-      agentEvent: { create: eventCreate }
-    }
-    const prisma = {
-      $transaction: jest.fn((callback: (client: typeof tx) => unknown) => callback(tx)),
-      agentApproval: { upsert: approvalUpsert }
-    } as unknown as PrismaService
-
-    await new DefaultAgentRuntimeStore(prisma).recordEvent(
-      runtimeInput(),
-      {
-        type: 'CUSTOM',
-        name: 'on_interrupt',
-        value: JSON.stringify({
-          __zenInterruptId: 'interrupt-1',
-          actionRequests: [{ name: 'delete_users', args: { ids: ['1'] } }]
-        }),
-        rawEvent: { secret: 'must-not-persist' }
-      },
-      auth
-    )
-
-    expect(eventCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          payload: expect.not.objectContaining({ rawEvent: expect.anything() })
-        })
-      })
-    )
-    expect(approvalUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        create: expect.objectContaining({
-          interruptId: 'interrupt-1',
-          toolName: 'delete_users',
-          operation: '删除用户',
-          riskLevel: 'critical',
-          targetSummary: '1 个对象：1'
-        })
-      })
-    )
   })
 
   it('只在首个非空助手文本增量记录首 Token 时间', async () => {
@@ -753,6 +738,37 @@ describe('DefaultAgentRuntimeStore approval decisions', () => {
           status: 'cancelled',
           errorReason: 'APPROVAL_REJECTED'
         })
+      })
+    )
+  })
+
+  it('过期审批标记为 expired 且不可再决策', async () => {
+    const update = jest.fn().mockResolvedValue({ status: 'expired' })
+    const prisma = {
+      agentApproval: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'approval-1',
+          runId: 'run-1',
+          toolName: 'delete_users',
+          status: 'pending',
+          decision: null,
+          expiresAt: new Date(Date.now() - 1_000)
+        }),
+        update
+      },
+      agentRun: { updateMany: jest.fn() },
+      agentTurn: { updateMany: jest.fn() },
+      agentToolExecution: { updateMany: jest.fn() },
+      $transaction: jest.fn()
+    } as unknown as PrismaService
+
+    await expect(
+      new DefaultAgentRuntimeStore(prisma).decideApproval('approval-1', 'approve', undefined, auth)
+    ).rejects.toBeInstanceOf(BadRequestException)
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'approval-1' },
+        data: { status: 'expired' }
       })
     )
   })

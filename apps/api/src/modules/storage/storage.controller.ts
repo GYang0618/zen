@@ -27,14 +27,13 @@ import {
   PermissionCode
 } from '@zen/shared'
 
-import { AllowAuthenticated } from '@/common/decorators/allow-authenticated.decorator'
-import { CurrentAuth } from '@/common/decorators/current-auth.decorator'
-import { RequirePermission } from '@/common/decorators/require-permission.decorator'
-import { RequireStepUp } from '@/common/decorators/require-step-up.decorator'
-import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
-import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '@/common/swagger'
-
-import { StorageService } from './storage.service'
+import { AllowAuthenticated } from '../../common/decorators/allow-authenticated.decorator.js'
+import { CurrentAuth } from '../../common/decorators/current-auth.decorator.js'
+import { RequirePermission } from '../../common/decorators/require-permission.decorator.js'
+import { RequireStepUp } from '../../common/decorators/require-step-up.decorator.js'
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js'
+import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '../../common/swagger/index.js'
+import { StorageService } from './storage.service.js'
 
 import type {
   AuthContext,
@@ -47,7 +46,7 @@ import type {
   FileListResponse,
   UploadIntent
 } from '@zen/shared'
-import type { StoragePolicy } from './storage.policy'
+import type { StoragePolicy } from './storage.policy.js'
 
 @ApiTags('对象存储')
 @ApiBearerAuth(ACCESS_TOKEN_AUTH)

@@ -10,8 +10,8 @@ import {
   securityConfig,
   storageConfig,
   swaggerConfig
-} from './modules'
-import { validate } from './validate'
+} from './modules/index.js'
+import { validate } from './validate.js'
 
 @Module({
   imports: [

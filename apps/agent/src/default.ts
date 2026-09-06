@@ -1,4 +1,3 @@
-import { copilotkitMiddleware } from '@copilotkit/sdk-js/langgraph'
 import {
   ACTIVE_AGENT_PLUGINS_CONFIGURABLE_KEY,
   AGENT_MEMORY_CONFIGURABLE_KEY,
@@ -19,6 +18,8 @@ import {
 import { ContextSchema } from '@/schema/context'
 import { defaultAgentTools, getActivePluginAgentPrompts } from '@/tools'
 
+import { createFrontendToolsMiddleware } from './frontend-tools.js'
+
 import type { z } from 'zod'
 
 const BASE_SYSTEM_PROMPT = [
@@ -31,28 +32,32 @@ const BASE_SYSTEM_PROMPT = [
   REASONING_STYLE_RULES
 ].join('\n')
 
-const model = createQwenModel({
-  maxTokens: DEFAULT_AGENT_RUN_BUDGET.maxOutputTokensPerModelCall
-})
+/** 图工厂：每次创建新实例，禁止把请求级可变状态挂在模块单例上。 */
+export function createDefaultAgent() {
+  const model = createQwenModel({
+    maxTokens: DEFAULT_AGENT_RUN_BUDGET.maxOutputTokensPerModelCall
+  })
 
-const agent = createAgent({
-  model,
-  tools: defaultAgentTools,
-  contextSchema: ContextSchema,
-  middleware: [
-    copilotkitMiddleware,
-    dynamicSystemPromptMiddleware<z.infer<typeof ContextSchema>>((_state, runtime) => {
-      const memory = runtime.context?.[AGENT_MEMORY_CONFIGURABLE_KEY]
-      const activePluginIds = runtime.context?.[ACTIVE_AGENT_PLUGINS_CONFIGURABLE_KEY] ?? []
-      const pluginPrompts = getActivePluginAgentPrompts(activePluginIds)
-      return [
-        BASE_SYSTEM_PROMPT,
-        ...(pluginPrompts.length ? [`当前启用的插件指令：\n${pluginPrompts.join('\n')}`] : []),
-        ...(memory ? [`用户明确授权给 Qwen 的非敏感记忆：\n${memory}`] : [])
-      ].join('\n\n')
-    }),
-    ...createDefaultAgentMiddleware(model)
-  ]
-})
+  return createAgent({
+    model,
+    tools: defaultAgentTools,
+    contextSchema: ContextSchema,
+    middleware: [
+      createFrontendToolsMiddleware(defaultAgentTools.map((tool) => tool.name)),
+      dynamicSystemPromptMiddleware<z.infer<typeof ContextSchema>>((_state, runtime) => {
+        const memory = runtime.context?.[AGENT_MEMORY_CONFIGURABLE_KEY]
+        const activePluginIds = runtime.context?.[ACTIVE_AGENT_PLUGINS_CONFIGURABLE_KEY] ?? []
+        const pluginPrompts = getActivePluginAgentPrompts(activePluginIds)
+        return [
+          BASE_SYSTEM_PROMPT,
+          ...(pluginPrompts.length ? [`当前启用的插件指令：\n${pluginPrompts.join('\n')}`] : []),
+          ...(memory ? [`用户明确授权给 Qwen 的非敏感记忆：\n${memory}`] : [])
+        ].join('\n\n')
+      }),
+      ...createDefaultAgentMiddleware(model)
+    ]
+  })
+}
 
-export { agent }
+/** LangGraph CLI 入口仍导出编译图；请求状态走 configurable/context。 */
+export const agent = createDefaultAgent()

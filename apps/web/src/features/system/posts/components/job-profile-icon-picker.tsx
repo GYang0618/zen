@@ -54,7 +54,7 @@ export function JobProfileIconPicker({
           <ChevronsUpDown data-icon="inline-end" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-(--radix-popover-trigger-width) p-2" align="start">
+      <PopoverContent className="w-(--anchor-width) p-2" align="start">
         <ScrollArea type="hover">
           <div className="flex max-h-56 flex-wrap gap-1">
             {JOB_PROFILE_ICONS.map((icon) => (

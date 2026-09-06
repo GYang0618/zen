@@ -7,13 +7,13 @@ import {
   KERNEL_PERMISSION_PREFIX,
   PLATFORM_VERSION,
   PLUGIN_ENTRY_EXTENSIONS
-} from './constants'
-import { discoverPlugins, findMonorepoRoot } from './discover'
-import { zenPluginManifestSchema } from './manifest.schema'
-import { topologicalSort } from './topo-sort'
+} from './constants.js'
+import { discoverPlugins, findMonorepoRoot } from './discover.js'
+import { zenPluginManifestSchema } from './manifest.schema.js'
+import { topologicalSort } from './topo-sort.js'
 
-import type { ZenPluginManifest } from './manifest.schema'
-import type { DiscoveredPlugin, ValidationIssue, ValidationResult } from './types'
+import type { ZenPluginManifest } from './manifest.schema.js'
+import type { DiscoveredPlugin, ValidationIssue, ValidationResult } from './types.js'
 
 /**
  * 简易 semver range：支持 `*`、精确版本、`^x.y.z`（major 相同且 >=）。
@@ -107,6 +107,9 @@ function collectEntryPaths(manifest: ZenPluginManifest): Array<{ label: string; 
   }
   if (manifest.agentTools) {
     entries.push({ label: 'agentTools.entry', entry: manifest.agentTools.entry })
+    for (const ui of manifest.agentTools.toolUi) {
+      entries.push({ label: `agentTools.toolUi[${ui.toolName}]`, entry: ui.entry })
+    }
   }
   return entries
 }
@@ -142,6 +145,31 @@ export function validateManifestObject(raw: unknown): ValidationIssue[] {
   }
 
   const declaredPermissionCodes = new Set(manifest.permissions.map((p) => p.code))
+  const toolNames = new Set<string>()
+  for (const tool of manifest.agentTools?.manifests ?? []) {
+    if (toolNames.has(tool.name))
+      issues.push({ level: 'error', message: `Duplicate tool name: ${tool.name}` })
+    toolNames.add(tool.name)
+    if (tool.pluginId !== manifest.id)
+      issues.push({
+        level: 'error',
+        message: `Tool ${tool.name} must declare pluginId ${manifest.id}`
+      })
+    if (tool.permissionCode && !declaredPermissionCodes.has(tool.permissionCode)) {
+      issues.push({
+        level: 'error',
+        message: `Tool ${tool.name} permission is not declared: ${tool.permissionCode}`
+      })
+    }
+  }
+  for (const permission of manifest.agentTools?.requiredPermissions ?? []) {
+    if (!declaredPermissionCodes.has(permission))
+      issues.push({ level: 'error', message: `Agent permission is not declared: ${permission}` })
+  }
+  for (const ui of manifest.agentTools?.toolUi ?? []) {
+    if (!toolNames.has(ui.toolName))
+      issues.push({ level: 'error', message: `Tool UI references unknown tool: ${ui.toolName}` })
+  }
 
   for (const route of manifest.routes) {
     if (!ALLOWED_PLUGIN_ICON_SET.has(route.icon)) {
@@ -273,7 +301,18 @@ export function validatePlugins(rootDir?: string): ValidationResult {
   }
 
   const permissionOwners = new Map<string, string>()
+  const toolOwners = new Map<string, string>()
   for (const plugin of plugins) {
+    for (const tool of plugin.manifest.agentTools?.manifests ?? []) {
+      const owner = toolOwners.get(tool.name)
+      if (owner)
+        issues.push({
+          level: 'error',
+          pluginId: plugin.manifest.id,
+          message: `Tool name conflict: ${tool.name} is declared by ${owner}`
+        })
+      toolOwners.set(tool.name, plugin.manifest.id)
+    }
     for (const permission of plugin.manifest.permissions) {
       const owner = permissionOwners.get(permission.code)
       if (owner && owner !== plugin.manifest.id) {

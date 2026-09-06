@@ -1,7 +1,7 @@
 'use client'
 
+import { Avatar as AvatarPrimitive } from '@zen/ui/lib/base-ui-primitives'
 import { cn } from '@zen/ui/lib/utils'
-import { Avatar as AvatarPrimitive } from 'radix-ui'
 
 import type * as React from 'react'
 

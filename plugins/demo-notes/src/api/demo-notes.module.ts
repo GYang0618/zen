@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common'
 
-import { DemoNotesEventBus } from './event-bus'
-import { NoteController } from './note.controller'
-import { NoteRepository } from './note.repository'
-import { NoteService } from './note.service'
-import { DemoNoteCreatedListener } from './note-created.listener'
-import { DEMO_NOTES_PRISMA } from './tokens'
+import { DemoNotesEventBus } from './event-bus.js'
+import { NoteController } from './note.controller.js'
+import { NoteRepository } from './note.repository.js'
+import { NoteService } from './note.service.js'
+import { DemoNoteCreatedListener } from './note-created.listener.js'
+import { DEMO_NOTES_PRISMA } from './tokens.js'
 
 import type { DynamicModule, FactoryProvider } from '@nestjs/common'
 import type { PrismaClient } from '@prisma/client'

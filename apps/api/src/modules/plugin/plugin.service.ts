@@ -6,28 +6,28 @@ import {
   NotFoundException
 } from '@nestjs/common'
 import { PluginInstallStatus } from '@prisma/client'
-import { filterActiveRegistryEntries, PLUGIN_REGISTRY } from '@zen/plugin-sdk'
+import { filterActiveRegistryEntries, PLUGIN_REGISTRY, validatePlugins } from '@zen/plugin-sdk'
 import { DEFAULT_TENANT_ID } from '@zen/shared'
 
-import { AuditService } from '@/common/auth/audit.service'
-import { AuthContextService } from '@/common/auth/auth-context.service'
-import { PermissionCatalogSyncService } from '@/common/auth/permission-catalog-sync.service'
-import { PLUGIN_CONFIG_SCHEMAS } from '@/generated/plugin-config.gen'
-import { PLUGIN_LIFECYCLE_HOOKS } from '@/generated/plugin-lifecycle.gen'
-import { PrismaService } from '@/infra/prisma'
+import { AuditService } from '../../common/auth/audit.service.js'
+import { AuthContextService } from '../../common/auth/auth-context.service.js'
+import { PermissionCatalogSyncService } from '../../common/auth/permission-catalog-sync.service.js'
+import { PLUGIN_CONFIG_SCHEMAS } from '../../generated/plugin-config.gen.js'
+import { PLUGIN_LIFECYCLE_HOOKS } from '../../generated/plugin-lifecycle.gen.js'
+import { PrismaService } from '../../infra/prisma/index.js'
+import { TenantPluginStateService } from './tenant-plugin-state.service.js'
 
-import { TenantPluginStateService } from './tenant-plugin-state.service'
-
+import type { OnModuleInit } from '@nestjs/common'
 import type { Prisma } from '@prisma/client'
 import type {
   PluginContext,
   PluginRegistryEntry,
   PluginInstallStatus as SdkStatus
 } from '@zen/plugin-sdk'
-import type { PluginListItemResponse, PluginListResponse } from './responses/plugin.response'
+import type { PluginListItemResponse, PluginListResponse } from './responses/plugin.response.js'
 
 @Injectable()
-export class PluginService {
+export class PluginService implements OnModuleInit {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(AuditService) private readonly auditService: AuditService,
@@ -36,6 +36,16 @@ export class PluginService {
     @Inject(AuthContextService) private readonly authContextService: AuthContextService,
     @Inject(TenantPluginStateService) private readonly pluginState: TenantPluginStateService
   ) {}
+
+  onModuleInit() {
+    const result = validatePlugins()
+    const errors = result.issues.filter((issue) => issue.level === 'error')
+    if (errors.length > 0) {
+      throw new Error(
+        `Plugin catalog invalid: ${errors.map((issue) => `${issue.pluginId ?? 'root'}: ${issue.message}`).join('; ')}`
+      )
+    }
+  }
 
   async list(tenantId = DEFAULT_TENANT_ID): Promise<PluginListResponse> {
     const installations = await this.prisma.pluginInstallation.findMany({

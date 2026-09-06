@@ -1,8 +1,8 @@
 import { Test } from '@nestjs/testing'
 import request from 'supertest'
 
-import { OrganizationController } from '../src/modules/organization/organization.controller'
-import { OrganizationService } from '../src/modules/organization/organization.service'
+import { OrganizationController } from '../src/modules/organization/organization.controller.js'
+import { OrganizationService } from '../src/modules/organization/organization.service.js'
 
 import type { INestApplication } from '@nestjs/common'
 

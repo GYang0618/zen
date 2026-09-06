@@ -1,13 +1,16 @@
+import { ScrollArea as ScrollAreaPrimitive } from '@zen/ui/lib/base-ui-primitives'
 import { cn } from '@zen/ui/lib/utils'
-import { ScrollArea as ScrollAreaPrimitive } from 'radix-ui'
 
 import type * as React from 'react'
 
 function ScrollArea({
   className,
   children,
+  type: _type,
   ...props
-}: React.ComponentProps<typeof ScrollAreaPrimitive.Root>) {
+}: React.ComponentProps<typeof ScrollAreaPrimitive.Root> & {
+  type?: 'auto' | 'always' | 'scroll' | 'hover'
+}) {
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"

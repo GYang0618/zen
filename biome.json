@@ -77,7 +77,20 @@
     }
   },
   "files": {
-    "includes": ["**", "!**/dist", "!**/node_modules", "!**/build", "!**/routeTree.gen.ts"],
+    "includes": [
+      "**",
+      "!**/dist",
+      "!**/node_modules",
+      "!**/build",
+      "!**/.turbo",
+      "!**/coverage",
+      "!**/.langgraph_api",
+      "!**/routeTree.gen.ts",
+      "!**/.agents",
+      "!data",
+      "!apps/api/swagger.json",
+      "!apps/agent/src/api-client"
+    ],
     "ignoreUnknown": true
   }
 }

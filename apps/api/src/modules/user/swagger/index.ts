@@ -1,8 +1,8 @@
-export { CreateUserSwaggerDto } from './create-user.swagger.dto'
-export { DeleteUsersSwaggerDto } from './delete-users.swagger.dto'
-export { ApiFindUsersQueryDocs } from './find-users-query.decorator'
-export { UpdateUserSwaggerDto } from './update-user.swagger.dto'
-export { UpdateUsersStatusSwaggerDto } from './update-users-status.swagger.dto'
+export { CreateUserSwaggerDto } from './create-user.swagger.dto.js'
+export { DeleteUsersSwaggerDto } from './delete-users.swagger.dto.js'
+export { ApiFindUsersQueryDocs } from './find-users-query.decorator.js'
+export { UpdateUserSwaggerDto } from './update-user.swagger.dto.js'
+export { UpdateUsersStatusSwaggerDto } from './update-users-status.swagger.dto.js'
 export {
   AssignUserRolesSuccessSwaggerDto,
   CreateUserSuccessSwaggerDto,
@@ -13,4 +13,4 @@ export {
   UserListItemArraySuccessSwaggerDto,
   UserListItemSwaggerDto,
   UserListSuccessSwaggerDto
-} from './user.swagger.response'
+} from './user.swagger.response.js'

@@ -1,4 +1,4 @@
-import { defineKernelPermissions } from '../permission/define-permissions'
+import { defineKernelPermissions } from '../permission/define-permissions.js'
 
 export const ORG_PERMISSIONS = defineKernelPermissions({
   namespace: 'system',
@@ -13,4 +13,4 @@ export const ORG_PERMISSIONS = defineKernelPermissions({
 } as const)
 
 /** @deprecated 请从 `@zen/shared` 的 post domain 导入；此处再导出以保持兼容 */
-export { POST_PERMISSIONS } from '../post/permissions'
+export { POST_PERMISSIONS } from '../post/permissions.js'

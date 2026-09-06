@@ -50,7 +50,7 @@ const POST_WRITE_HINTS: RecoverableHint[] = [
 
 export const getJobProfilesTool = tool(
   async (input, config) =>
-    executeApiCall(config, () =>
+    executeApiCall(config, async (_context) =>
       postControllerFindAll(
         asSdkOptions({
           query: {
@@ -96,7 +96,7 @@ export const createJobProfileTool = tool(
 
 export const getJobProfileTool = tool(
   async ({ id }, config) =>
-    executeApiCall(config, () =>
+    executeApiCall(config, async (_context) =>
       postControllerFindOne({
         path: { id }
       })

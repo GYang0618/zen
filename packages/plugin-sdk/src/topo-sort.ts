@@ -1,4 +1,4 @@
-import type { PluginRegistryEntry } from './types'
+import type { PluginRegistryEntry } from './types.js'
 
 /**
  * 对插件依赖做拓扑排序；若有环则抛错。

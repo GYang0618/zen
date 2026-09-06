@@ -1,11 +1,11 @@
 #!/usr/bin/env node
+import { spawnSync } from 'node:child_process'
 /**
  * 插件脚手架：生成 plugins/<id> 完整最小切片。
  * 用法:
  *   node scripts/create-plugin.mjs <id> [显示名] [--with-api] [--with-web]
  */
-import { mkdirSync, writeFileSync, existsSync } from 'node:fs'
-import { spawnSync } from 'node:child_process'
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 const args = process.argv.slice(2)
@@ -17,7 +17,9 @@ const withApi = flags.has('--with-api') || flags.has('--with-web') || flags.size
 const withWeb = flags.has('--with-web') || flags.size === 0
 
 if (!id || !/^[a-z][a-z0-9-]*$/.test(id)) {
-  console.error('用法: node scripts/create-plugin.mjs <plugin-id> [显示名] [--with-api] [--with-web]')
+  console.error(
+    '用法: node scripts/create-plugin.mjs <plugin-id> [显示名] [--with-api] [--with-web]'
+  )
   console.error('plugin-id 须为 kebab-case，例如 demo-notes')
   process.exit(1)
 }
@@ -193,10 +195,7 @@ writeFileSync(
   )}\n`
 )
 
-writeFileSync(
-  path.join(root, 'src/constants.ts'),
-  `export const ${pluginConst} = '${id}'\n`
-)
+writeFileSync(path.join(root, 'src/constants.ts'), `export const ${pluginConst} = '${id}'\n`)
 
 writeFileSync(
   path.join(root, 'src/activate.ts'),

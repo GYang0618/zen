@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common'
 
-import { PLUGIN_API_LOADERS } from '@/generated/plugin-api.gen'
-import { PrismaModule, PrismaService } from '@/infra/prisma'
+import { PLUGIN_API_LOADERS } from './generated/plugin-api.gen.js'
+import { PrismaModule, PrismaService } from './infra/prisma/index.js'
 
 import type { DynamicModule } from '@nestjs/common'
 

@@ -1,1 +1,1 @@
-export * from './format-from-now'
+export * from './format-from-now.js'

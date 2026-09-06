@@ -1,5 +1,5 @@
-export { JobService } from './job.service'
-export { JobsModule } from './jobs.module'
-export { JOBS_PRISMA } from './tokens'
+export { JobService } from './job.service.js'
+export { JobsModule } from './jobs.module.js'
+export { JOBS_PRISMA } from './tokens.js'
 
-export type { JobsModuleOptions } from './jobs.module'
+export type { JobsModuleOptions } from './jobs.module.js'

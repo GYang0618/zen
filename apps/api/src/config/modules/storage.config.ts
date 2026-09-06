@@ -1,4 +1,4 @@
-import { registerConfig } from '../helper'
+import { registerConfig } from '../helper.js'
 
 /**
  * 对象存储配置（MinIO / S3 兼容）。按租户覆盖预留，当前只读默认租户环境变量。

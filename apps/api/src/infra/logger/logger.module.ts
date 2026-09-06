@@ -1,15 +1,17 @@
 import { Module } from '@nestjs/common'
 import { LoggerModule as Logger } from 'nestjs-pino'
 
-import { resolveTraceId, TRACE_ID_HEADER } from '@/common/utils/trace-id'
-import { CONFIG_NAMESPACES } from '@/config'
+import { resolveTraceId, TRACE_ID_HEADER } from '../../common/utils/trace-id.js'
+import { CONFIG_NAMESPACES } from '../../config/index.js'
 
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import type { AppConfig, LoggerConfig } from '@/config'
+import type { AppConfig, LoggerConfig } from '../../config/index.js'
 
 @Module({
   imports: [
     Logger.forRootAsync({
+      imports: [],
+      providers: [],
       inject: [CONFIG_NAMESPACES.APP, CONFIG_NAMESPACES.LOGGER],
       useFactory: (appCfg: AppConfig, loggerCfg: LoggerConfig) => {
         const isProduction = appCfg.nodeEnv === 'production'

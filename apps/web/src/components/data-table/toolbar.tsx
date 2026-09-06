@@ -1,7 +1,7 @@
 'use no memo'
 
-import { Cross2Icon } from '@radix-ui/react-icons'
 import { Button, Input } from '@zen/ui'
+import { X as Cross2Icon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { DataTableFacetedFilter } from './faceted-filter'

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { paged, pageQuerySchema } from '../pagination'
+import { paged, pageQuerySchema } from '../pagination/index.js'
 
 const idSchema = z.string().trim().min(1)
 const dateTimeSchema = z.iso.datetime()

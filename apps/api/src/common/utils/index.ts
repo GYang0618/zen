@@ -1,2 +1,2 @@
-export * from './trace-id'
-export * from './util'
+export * from './trace-id.js'
+export * from './util.js'

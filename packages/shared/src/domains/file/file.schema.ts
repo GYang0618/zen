@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
-import { paged, pageQuerySchema } from '../pagination'
-import { FILE_CATEGORY_VALUES } from './file-category'
+import { paged, pageQuerySchema } from '../pagination/index.js'
+import { FILE_CATEGORY_VALUES } from './file-category.js'
 
 export const FILE_PURPOSE_VALUES = ['avatar', 'attachment', 'export', 'temp', 'legacy'] as const
 export const filePurposeSchema = z.enum(FILE_PURPOSE_VALUES)

@@ -1,44 +1,34 @@
 import { Module } from '@nestjs/common'
 
-import { CommonModule } from '@/common'
-import { ConfigModule } from '@/config'
-import { LoggerModule } from '@/infra/logger'
-import { PrismaModule } from '@/infra/prisma'
+import { ConfigModule } from './config/index.js'
+import { LoggerModule } from './infra/logger/index.js'
+import { PrismaModule } from './infra/prisma/index.js'
 import {
-  AuditModule,
-  AuthModule,
-  ChatModule,
-  CopilotModule,
-  DictModule,
+  AgentModule,
+  ContentModule,
   HealthModule,
+  IdentityModule,
   OrganizationModule,
   PluginModule,
-  PostModule,
-  RoleModule,
-  StorageModule,
-  UserModule
-} from '@/modules'
-import { PluginsModule } from '@/plugins.module'
+  SecurityModule,
+  StorageModule
+} from './modules/index.js'
+import { PluginsModule } from './plugins.module.js'
 
 @Module({
   imports: [
     ConfigModule,
     LoggerModule,
     PrismaModule,
-    CommonModule,
-    AuthModule,
+    SecurityModule,
     HealthModule,
-    UserModule,
+    IdentityModule,
     StorageModule,
-    RoleModule,
     OrganizationModule,
-    PostModule,
-    DictModule,
-    AuditModule,
+    ContentModule,
     PluginModule,
     PluginsModule,
-    ChatModule,
-    CopilotModule
+    AgentModule
   ]
 })
 export class AppModule {}

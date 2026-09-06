@@ -1,13 +1,13 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { DEFAULT_TENANT_ID } from '@zen/shared'
 
-import { DEFAULT_DEMO_NOTES_CONFIG, demoNotesConfigSchema } from '../config.schema'
-import { DEMO_NOTES_PLUGIN_ID } from '../constants'
-import { DemoNotesEventBus } from './event-bus'
-import { NoteRepository } from './note.repository'
+import { DEFAULT_DEMO_NOTES_CONFIG, demoNotesConfigSchema } from '../config.schema.js'
+import { DEMO_NOTES_PLUGIN_ID } from '../constants.js'
+import { DemoNotesEventBus } from './event-bus.js'
+import { NoteRepository } from './note.repository.js'
 
 import type { AuthContext } from '@zen/shared'
-import type { CreateDemoNoteInput, DemoNoteDto, UpdateDemoNoteInput } from '../note.schema'
+import type { CreateDemoNoteInput, DemoNoteDto, UpdateDemoNoteInput } from '../note.schema.js'
 
 @Injectable()
 export class NoteService {

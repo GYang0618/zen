@@ -151,7 +151,7 @@ async function ensurePermissionCodesExist(
   config: RunnableConfig | undefined
 ): Promise<string | undefined> {
   if (!codes || codes.length === 0) return undefined
-  const raw = await executeApiCall(config, () => roleControllerListPermissions())
+  const raw = await executeApiCall(config, async (_context) => roleControllerListPermissions())
   if (isToolFailureResult(raw)) return raw
   const catalog = parsePermissionCatalog(raw)
   if (!catalog) return undefined
@@ -166,7 +166,7 @@ async function ensurePermissionCodesExist(
 export const getRolesTool = tool(
   async (input, config) =>
     compactPagedToolResult(
-      await executeApiCall(config, () =>
+      await executeApiCall(config, async (_context) =>
         roleControllerFindAll(
           asSdkOptions({
             query: normalizeRolesQuery(input)
@@ -210,7 +210,7 @@ export const createRoleTool = tool(
 
 export const getRoleTool = tool(
   async ({ id }, config) =>
-    executeApiCall(config, () =>
+    executeApiCall(config, async (_context) =>
       roleControllerFindOne({
         path: { id }
       })
@@ -268,7 +268,8 @@ export const cloneRoleTool = tool(
 )
 
 export const listPermissionsTool = tool(
-  async (_input, config) => executeApiCall(config, () => roleControllerListPermissions()),
+  async (_input, config) =>
+    executeApiCall(config, async (_context) => roleControllerListPermissions()),
   {
     name: 'query_permissions_list',
     description:
@@ -280,7 +281,7 @@ export const listPermissionsTool = tool(
 
 export const listRoleMembersTool = tool(
   async ({ id, page, pageSize }, config) =>
-    executeApiCall(config, () =>
+    executeApiCall(config, async (_context) =>
       roleControllerListMembers(
         asSdkOptions({
           path: { id },

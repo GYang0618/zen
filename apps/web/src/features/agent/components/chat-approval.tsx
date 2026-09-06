@@ -4,23 +4,18 @@ import { useInterrupt } from '@copilotkit/react-core/v2'
 import { Confirmation, ConfirmationAction, ConfirmationActions, ConfirmationTitle } from '@zen/ui'
 import { useEffect, useState } from 'react'
 
+import { isApiClientError } from '@/lib/request/utils'
+
 import { buildApprovalDecisions } from '../approval-decision'
+import { approvalToInterruptView, resolveApprovalInterrupt } from '../approval-interrupt'
 import { extractReadableTargets, resolveApprovalOperation } from '../approval-title'
 import { defaultAgentRuntimeApi } from '../runtime-api'
 
-type InterruptMetadata = {
-  toolName?: string
-  args?: unknown
-  value?: {
-    actionRequests?: ApprovalAction[]
-  }
-}
+import type { ApprovalInterruptView } from '../approval-interrupt'
+import type { AgentApproval } from '../runtime-api'
 
-type ApprovalAction = { name?: string; args?: unknown; description?: string }
-type LegacyInterruptValue = {
-  __zenInterruptId?: string
-  actionRequests?: ApprovalAction[]
-}
+type CopilotInterrupt = { id?: string; metadata?: Record<string, unknown> } | null
+type CopilotInterruptEvent = { value?: unknown } | null
 
 const MAX_INLINE_TARGETS = 3
 
@@ -29,94 +24,94 @@ const MAX_INLINE_TARGETS = 3
  * 而非模态弹框：既保留“阻塞输入、必须处理”的强制力，又不遮挡对话上下文。
  */
 export function ChatApprovalRegistration({
-  onPendingChange
+  onPendingChange,
+  persistedApproval,
+  onPersistedDecision,
+  onLiveInterrupt
 }: {
   onPendingChange?: (pending: boolean) => void
+  persistedApproval?: AgentApproval | null
+  onPersistedDecision?: (decision: 'approve' | 'reject') => Promise<void>
+  onLiveInterrupt?: () => void
 }) {
   const interruptElement = useInterrupt({
     renderInChat: false,
-    render: ({ event, interrupt, resolve }) => (
-      <ApprovalCard
-        interrupt={interrupt}
-        legacyValue={parseLegacyInterruptValue(event.value)}
-        onApprove={resolve}
-        onReject={resolve}
-      />
+    render: ({ interrupt, event, resolve }) => (
+      <ApprovalCard interrupt={interrupt} event={event} onDecide={resolve} />
     )
   })
 
-  useEffect(() => {
-    onPendingChange?.(Boolean(interruptElement))
-  }, [interruptElement, onPendingChange])
+  const pending = Boolean(interruptElement) || Boolean(persistedApproval)
 
-  return interruptElement ?? null
+  useEffect(() => {
+    onPendingChange?.(pending)
+  }, [pending, onPendingChange])
+
+  useEffect(() => {
+    if (interruptElement) onLiveInterrupt?.()
+  }, [interruptElement, onLiveInterrupt])
+
+  if (interruptElement) return interruptElement
+  if (!persistedApproval || !onPersistedDecision) return null
+
+  return (
+    <ApprovalCard
+      view={approvalToInterruptView(persistedApproval)}
+      onDecide={async (payload) => {
+        const decision = readDecision(payload)
+        await onPersistedDecision(decision)
+      }}
+    />
+  )
 }
 
 function ApprovalCard({
   interrupt,
-  legacyValue,
-  onApprove,
-  onReject
+  event,
+  view,
+  onDecide
 }: {
-  interrupt: { id: string; message?: string; metadata?: Record<string, unknown> } | null
-  legacyValue?: LegacyInterruptValue
-  onApprove: (payload?: unknown, interruptId?: string) => Promise<unknown>
-  onReject: (payload?: unknown, interruptId?: string) => Promise<unknown>
+  interrupt?: CopilotInterrupt
+  event?: CopilotInterruptEvent
+  view?: ApprovalInterruptView
+  onDecide: (payload?: unknown, interruptId?: string) => Promise<unknown>
 }) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string>()
-  const metadata = (interrupt?.metadata ?? {}) as InterruptMetadata
-  const actions = legacyValue?.actionRequests ?? metadata.value?.actionRequests ?? []
-  const actionToolNames = actions
-    .map((action) => action.name)
-    .filter((name): name is string => Boolean(name))
-  const uniqueToolNames = [
-    ...new Set(
-      actionToolNames.length ? actionToolNames : metadata.toolName ? [metadata.toolName] : []
-    )
-  ]
-  const operation = resolveApprovalOperation(uniqueToolNames)
+  const resolved = view ?? resolveApprovalInterrupt(interrupt, event)
+  const toolNames = uniqueToolNames(resolved)
+  const operation = resolveApprovalOperation(toolNames)
   const args =
-    actions.length === 1
-      ? actions[0]?.args
-      : actions.length
-        ? actions.map((action) => action.args)
-        : metadata.args
+    resolved.actions.length === 1
+      ? resolved.actions[0]?.args
+      : resolved.actions.length
+        ? resolved.actions.map((action) => action.args)
+        : resolved.args
   const targets = extractReadableTargets(args)
-  const interruptId = interrupt?.id ?? legacyValue?.__zenInterruptId
+  const interruptId = resolved.id
   const approvalId = interruptId ?? 'pending'
 
-  const recordDecision = async (decision: 'approve' | 'reject') => {
-    if (interruptId) {
-      await defaultAgentRuntimeApi.decideApprovalByInterrupt(interruptId, { decision })
-    }
-  }
-
-  const approve = async () => {
-    if (!interruptId) return
+  const submit = async (decision: 'approve' | 'reject') => {
     setSubmitting(true)
     setError(undefined)
     try {
-      await recordDecision('approve')
-      const decisions = buildApprovalDecisions(actions.length, 'approve')
-      await onApprove({ decisions }, interrupt?.id)
+      if (interruptId) {
+        try {
+          await defaultAgentRuntimeApi.decideApprovalByInterrupt(interruptId, { decision })
+        } catch (approvalError) {
+          if (!isApiClientError(approvalError) || approvalError.code !== 404) throw approvalError
+        }
+      }
+      const decisions = buildApprovalDecisions(resolved.actions.length, decision)
+      await onDecide({ decisions }, interruptId)
     } catch (approvalError) {
-      setError(approvalError instanceof Error ? approvalError.message : '审批提交失败')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const reject = async () => {
-    if (!interruptId) return
-    setSubmitting(true)
-    setError(undefined)
-    try {
-      await recordDecision('reject')
-      const decisions = buildApprovalDecisions(actions.length, 'reject')
-      await onReject({ decisions }, interrupt?.id)
-    } catch (approvalError) {
-      setError(approvalError instanceof Error ? approvalError.message : '拒绝提交失败')
+      setError(
+        approvalError instanceof Error
+          ? approvalError.message
+          : decision === 'approve'
+            ? '审批提交失败'
+            : '拒绝提交失败'
+      )
     } finally {
       setSubmitting(false)
     }
@@ -139,12 +134,12 @@ function ApprovalCard({
       <ConfirmationActions>
         <ConfirmationAction
           variant="outline"
-          disabled={submitting || !interruptId}
-          onClick={() => void reject()}
+          disabled={submitting}
+          onClick={() => void submit('reject')}
         >
           拒绝
         </ConfirmationAction>
-        <ConfirmationAction disabled={submitting || !interruptId} onClick={() => void approve()}>
+        <ConfirmationAction disabled={submitting} onClick={() => void submit('approve')}>
           确认执行
         </ConfirmationAction>
       </ConfirmationActions>
@@ -174,16 +169,25 @@ function ConfirmationSentence({ operation, targets }: { operation: string; targe
   )
 }
 
-function parseLegacyInterruptValue(value: unknown): LegacyInterruptValue | undefined {
-  if (typeof value !== 'string') {
-    return value !== null && typeof value === 'object' ? (value as LegacyInterruptValue) : undefined
-  }
-  try {
-    const parsed = JSON.parse(value)
-    return parsed !== null && typeof parsed === 'object'
-      ? (parsed as LegacyInterruptValue)
+function uniqueToolNames(view: ApprovalInterruptView): string[] {
+  return [
+    ...new Set(
+      [...view.actions.map((action) => action.name), view.toolName].filter((name): name is string =>
+        Boolean(name)
+      )
+    )
+  ]
+}
+
+function readDecision(payload: unknown): 'approve' | 'reject' {
+  const record =
+    payload !== null && typeof payload === 'object'
+      ? (payload as Record<string, unknown>)
       : undefined
-  } catch {
-    return undefined
+  const decisions = Array.isArray(record?.decisions) ? record.decisions : []
+  const first = decisions[0]
+  if (first && typeof first === 'object' && 'type' in first && first.type === 'reject') {
+    return 'reject'
   }
+  return 'approve'
 }

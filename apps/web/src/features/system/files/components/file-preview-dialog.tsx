@@ -8,6 +8,7 @@ import {
   Skeleton
 } from '@zen/ui'
 import { Download } from 'lucide-react'
+import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 
 import { storageApi } from '../api'
@@ -75,17 +76,7 @@ function PreviewBody({ file, url }: { file: FileAsset; url: string }) {
     )
   }
   if (file.category === 'video') {
-    return (
-      <video
-        src={url}
-        controls
-        className="mx-auto max-h-[65vh] w-full rounded-md bg-black"
-        aria-label={file.originalName}
-      >
-        <track kind="captions" label="未提供字幕" />
-        浏览器不支持视频预览
-      </video>
-    )
+    return <AutoPlayMutedVideo key={url} url={url} label={file.originalName} />
   }
   if (file.mimeType === 'application/pdf') {
     return (
@@ -98,5 +89,45 @@ function PreviewBody({ file, url }: { file: FileAsset; url: string }) {
   }
   return (
     <p className="text-sm text-muted-foreground">该类型暂不支持站内预览，请使用下载查看原文。</p>
+  )
+}
+
+function AutoPlayMutedVideo({ url, label }: { url: string; label: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+    video.muted = true
+    video.defaultMuted = true
+    const play = () => {
+      video.muted = true
+      void video.play().catch(() => undefined)
+    }
+    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      play()
+    } else {
+      video.addEventListener('canplay', play, { once: true })
+    }
+    return () => {
+      video.removeEventListener('canplay', play)
+      video.pause()
+    }
+  }, [])
+
+  return (
+    <video
+      ref={videoRef}
+      src={url}
+      controls
+      autoPlay
+      muted
+      playsInline
+      className="mx-auto max-h-[65vh] w-full rounded-md bg-black"
+      aria-label={label}
+    >
+      <track kind="captions" label="未提供字幕" />
+      浏览器不支持视频预览
+    </video>
   )
 }

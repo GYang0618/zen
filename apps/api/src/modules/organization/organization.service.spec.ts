@@ -1,13 +1,18 @@
-import { OrganizationService } from './organization.service'
+import { OrganizationService } from './organization.service.js'
 
 import type { BadRequestException } from '@nestjs/common'
 import type { OrganizationType } from '@prisma/client'
 import type { AuthContext } from '@zen/shared'
-import type { AuditService } from '@/common/auth/audit.service'
-import type { AuthContextService } from '@/common/auth/auth-context.service'
-import type { SessionService } from '@/common/auth/session.service'
-import type { PostService } from '@/modules/post'
-import type { OrganizationRepository, OrganizationWithRelations } from './organization.repository'
+import type { AuditService } from '../../common/auth/audit.service.js'
+import type { AuthContextService } from '../../common/auth/auth-context.service.js'
+import type { SessionService } from '../../common/auth/session.service.js'
+import type { PostService } from '../post/index.js'
+import type {
+  OrganizationRepository,
+  OrganizationWithRelations
+} from './organization.repository.js'
+
+const { jest } = import.meta
 
 const auth: AuthContext = {
   tenantId: 'tenant',

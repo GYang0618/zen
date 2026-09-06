@@ -1,6 +1,5 @@
 'use no memo'
 
-import { CheckIcon, PlusCircledIcon } from '@radix-ui/react-icons'
 import {
   Badge,
   Button,
@@ -17,6 +16,7 @@ import {
   PopoverTrigger,
   Separator
 } from '@zen/ui'
+import { CheckIcon, CirclePlus as PlusCircledIcon } from 'lucide-react'
 
 import type { Column } from '@tanstack/react-table'
 import type * as React from 'react'

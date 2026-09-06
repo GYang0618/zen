@@ -1,5 +1,5 @@
+import { Progress as ProgressPrimitive } from '@zen/ui/lib/base-ui-primitives'
 import { cn } from '@zen/ui/lib/utils'
-import { Progress as ProgressPrimitive } from 'radix-ui'
 
 import type * as React from 'react'
 

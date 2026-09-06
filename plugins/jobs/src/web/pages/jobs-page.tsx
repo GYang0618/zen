@@ -4,9 +4,9 @@ import { Button, Input, Skeleton } from '@zen/ui'
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 
-import { createJobsApi, JOB_PERMISSIONS } from '../api'
+import { createJobsApi, JOB_PERMISSIONS } from '../api.js'
 
-import type { JobsRequest } from '../api'
+import type { JobsRequest } from '../api.js'
 
 export interface JobsPageProps {
   request: JobsRequest

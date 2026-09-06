@@ -1,6 +1,6 @@
 import { Button } from '@zen/ui/components/button'
+import { AlertDialog as AlertDialogPrimitive } from '@zen/ui/lib/base-ui-primitives'
 import { cn } from '@zen/ui/lib/utils'
-import { AlertDialog as AlertDialogPrimitive } from 'radix-ui'
 
 import type * as React from 'react'
 

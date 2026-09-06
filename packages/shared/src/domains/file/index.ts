@@ -1,3 +1,3 @@
-export * from './file.schema'
-export * from './file-category'
-export * from './permissions'
+export * from './file.schema.js'
+export * from './file-category.js'
+export * from './permissions.js'

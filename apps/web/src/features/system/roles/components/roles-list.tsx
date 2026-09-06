@@ -8,7 +8,8 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-  Skeleton
+  Skeleton,
+  VirtualList
 } from '@zen/ui'
 import { Search, Shield } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -160,18 +161,27 @@ export function RolesList({ search, navigate }: RolesListProps) {
           <section
             className={cn('@container transition-opacity', isFilterFetching && 'opacity-70')}
           >
-            <div className="grid grid-cols-1 gap-4 @xl:grid-cols-2 @4xl:grid-cols-3 @6xl:grid-cols-4">
-              {roles.map((role) => (
+            <VirtualList
+              items={roles}
+              estimateSize={160}
+              minLaneSize={280}
+              gap={16}
+              getItemKey={(role) => role.id}
+              className="max-h-[70vh]"
+              onEndReached={() => {
+                if (hasNextPage && !isFetchingNextPage) void fetchNextPage()
+              }}
+            >
+              {(role) => (
                 <RolesCard
-                  key={role.id}
                   role={role}
                   isSelecting={selection.isSelecting}
                   selected={selection.isSelected(role.id)}
                   onEnterSelecting={selection.enterSelecting}
                   onSelectedChange={(nextSelected) => selection.setSelected(role.id, nextSelected)}
                 />
-              ))}
-            </div>
+              )}
+            </VirtualList>
           </section>
           <InfiniteScrollSentinel
             hasNextPage={Boolean(hasNextPage)}

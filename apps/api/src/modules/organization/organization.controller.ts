@@ -15,11 +15,10 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger'
 import { PermissionCode } from '@zen/shared'
 
-import { CurrentAuth } from '@/common/decorators/current-auth.decorator'
-import { RequirePermission } from '@/common/decorators/require-permission.decorator'
-import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
-import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '@/common/swagger'
-
+import { CurrentAuth } from '../../common/decorators/current-auth.decorator.js'
+import { RequirePermission } from '../../common/decorators/require-permission.decorator.js'
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js'
+import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '../../common/swagger/index.js'
 import {
   addOrganizationMemberSchema,
   changeOrganizationParentSchema,
@@ -30,8 +29,8 @@ import {
   updateOrganizationPositionSchema,
   updateOrganizationSchema,
   updateOrganizationTypeCatalogSchema
-} from './dto'
-import { OrganizationService } from './organization.service'
+} from './dto/index.js'
+import { OrganizationService } from './organization.service.js'
 
 import type { AuthContext } from '@zen/shared'
 import type {
@@ -44,7 +43,7 @@ import type {
   UpdateOrganizationLeaderDto,
   UpdateOrganizationPositionDto,
   UpdateOrganizationTypeCatalogDto
-} from './dto'
+} from './dto/index.js'
 
 @ApiTags('组织管理')
 @ApiBearerAuth(ACCESS_TOKEN_AUTH)

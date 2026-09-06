@@ -222,7 +222,7 @@ export function OrganizationParentSelect({
           <ChevronsUpDown data-icon="inline-end" className="text-muted-foreground" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
+      <PopoverContent className="w-(--anchor-width) p-0" align="start">
         <Command shouldFilter={false}>
           <CommandInput placeholder="搜索组织名称" value={query} onValueChange={setQuery} />
           <CommandList>

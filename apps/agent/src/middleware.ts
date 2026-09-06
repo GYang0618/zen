@@ -14,8 +14,8 @@ import { formatUnhandledToolError } from '@/api/tool-failure'
 import { ContextSchema } from '@/schema/context'
 import {
   collectConversationHints,
-  resolveToolDomains,
-  selectToolNamesForDomains
+  resolveToolCapabilities,
+  selectToolNamesForCapabilities
 } from '@/tool-domains'
 import { createApprovalPolicy } from '@/tool-policy'
 import { getAgentToolPluginId } from '@/tools'
@@ -64,9 +64,9 @@ export const domainToolFilterMiddleware = createMiddleware({
       typeof registeredTool.name === 'string' ? [registeredTool.name] : []
     )
     const hints = collectConversationHints(request.messages)
-    const selected = selectToolNamesForDomains(
+    const selected = selectToolNamesForCapabilities(
       availableNames,
-      resolveToolDomains(hints.text, hints.recentToolNames)
+      resolveToolCapabilities(hints.text, hints.recentToolNames)
     )
     if (!selected) return handler(request)
     const allowed = new Set(selected)

@@ -3,11 +3,11 @@ import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swa
 import { DEFAULT_TENANT_ID, PermissionCode } from '@zen/shared'
 import { z } from 'zod'
 
-import { RequirePermission } from '@/common/decorators/require-permission.decorator'
-import { buildPaginationMeta, paginate } from '@/common/pagination'
-import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
-import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '@/common/swagger'
-import { PrismaService } from '@/infra/prisma'
+import { RequirePermission } from '../../common/decorators/require-permission.decorator.js'
+import { buildPaginationMeta, paginate } from '../../common/pagination/index.js'
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js'
+import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '../../common/swagger/index.js'
+import { PrismaService } from '../../infra/prisma/index.js'
 
 const auditQuerySchema = z.object({
   keyword: z.string().trim().min(1).optional(),
@@ -75,9 +75,7 @@ export class AuditController {
         })
     })
 
-    const actorIds = [
-      ...new Set(items.flatMap((item) => (item.actorId ? [item.actorId] : [])))
-    ]
+    const actorIds = [...new Set(items.flatMap((item) => (item.actorId ? [item.actorId] : [])))]
     const actors =
       actorIds.length > 0
         ? await this.prisma.user.findMany({
@@ -91,10 +89,7 @@ export class AuditController {
           })
         : []
     const actorNames = new Map(
-      actors.map((actor) => [
-        actor.id,
-        actor.profile?.realName ?? actor.nickname ?? actor.username
-      ])
+      actors.map((actor) => [actor.id, actor.profile?.realName ?? actor.nickname ?? actor.username])
     )
 
     return {

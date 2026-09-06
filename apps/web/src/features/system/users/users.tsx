@@ -20,7 +20,7 @@ function UsersContent() {
   const search = route.useSearch()
   const navigate = route.useNavigate()
   const [view, setView] = useState('card')
-  const { data, isLoading, isFetching } = useUsersQuery(
+  const { data, isLoading, isFetching, isError, error } = useUsersQuery(
     {
       keyword: search.keyword,
       status: search.status,
@@ -63,6 +63,8 @@ function UsersContent() {
               data={users}
               isLoading={isLoading}
               isFetching={isFetching}
+              isError={isError}
+              error={error instanceof Error ? error.message : undefined}
               search={search}
               navigate={navigate}
             />

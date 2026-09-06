@@ -81,7 +81,7 @@ export function UserRolePicker({
           <ChevronsUpDown data-icon="inline-end" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-(--radix-popover-trigger-width) p-2" align="start">
+      <PopoverContent className="w-(--anchor-width) p-2" align="start">
         <InputGroup>
           <InputGroupInput
             value={keyword}

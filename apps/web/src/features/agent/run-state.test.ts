@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { deriveChatRunState, isRunCancellation } from './run-state'
+import { deriveChatRunState, isRunCancellation, isRunInterrupt } from './run-state'
 
 describe('deriveChatRunState', () => {
   it('区分断线恢复、审批、失败和取消', () => {
@@ -39,5 +39,15 @@ describe('isRunCancellation', () => {
     expect(isRunCancellation(new Error('Default Agent run cancelled'))).toBe(true)
     expect(isRunCancellation({ name: 'AbortError', message: 'aborted' })).toBe(true)
     expect(isRunCancellation(new Error('model unavailable'))).toBe(false)
+  })
+})
+
+describe('isRunInterrupt', () => {
+  it('识别 GraphInterrupt 与 RUN_ERROR message=interrupt', () => {
+    expect(isRunInterrupt(new Error('interrupt'))).toBe(true)
+    expect(isRunInterrupt({ name: 'GraphInterrupt', message: 'interrupt' })).toBe(true)
+    expect(isRunInterrupt({ type: 'INTERRUPT' })).toBe(true)
+    expect(isRunInterrupt(new Error('model unavailable'))).toBe(false)
+    expect(isRunInterrupt(new Error('interrupted connection'))).toBe(false)
   })
 })

@@ -37,7 +37,7 @@ function shouldSkipFile(filePath) {
   // 测试 / 声明
   if (name.endsWith('.test') || name.endsWith('.spec')) return true
   if (name.endsWith('.d')) return true
-  if (filePath.includes(`${path.sep}__tests__${path.sep}`)) return true
+  if (name === 'base-ui-primitives') return true
   // 草稿 / 备份（如 Finder「xxx copy.tsx」），避免污染 barrel
   if (base.startsWith('.')) return true
   if (/\s/.test(base)) return true

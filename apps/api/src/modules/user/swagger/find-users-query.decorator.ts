@@ -1,7 +1,11 @@
 import { applyDecorators } from '@nestjs/common'
 import { ApiQuery } from '@nestjs/swagger'
 
-import { UserStatusSwagger, UsersSortBySwagger, UsersSortOrderSwagger } from './user-status.swagger'
+import {
+  UserStatusSwagger,
+  UsersSortBySwagger,
+  UsersSortOrderSwagger
+} from './user-status.swagger.js'
 
 /** 为 GET /user 列表接口生成查询参数 OpenAPI 描述 */
 export function ApiFindUsersQueryDocs() {

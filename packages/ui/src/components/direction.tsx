@@ -1,4 +1,4 @@
-import { Direction } from 'radix-ui'
+import { Direction } from '@zen/ui/lib/base-ui-primitives'
 
 const { DirectionProvider, Provider, useDirection } = Direction
 

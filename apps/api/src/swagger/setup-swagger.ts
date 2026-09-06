@@ -3,11 +3,11 @@ import { dirname, isAbsolute, resolve } from 'node:path'
 
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 
-import { ACCESS_TOKEN_AUTH } from '@/common/swagger'
+import { ACCESS_TOKEN_AUTH } from '../common/swagger/index.js'
 
 import type { INestApplication } from '@nestjs/common'
 import type { OpenAPIObject } from '@nestjs/swagger'
-import type { SwaggerConfig } from '@/config'
+import type { SwaggerConfig } from '../config/index.js'
 
 /**
  * 将 OpenAPI 文档写入本地 JSON 文件（供 @hey-api/openapi-ts 等工具消费）

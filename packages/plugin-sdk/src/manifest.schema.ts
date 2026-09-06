@@ -1,6 +1,7 @@
+import { toolManifestSchema } from '@zen/shared'
 import { z } from 'zod'
 
-import { PLUGIN_PERMISSION_CODE_PATTERN, PLUGIN_ROUTE_PATH_PATTERN } from './constants'
+import { PLUGIN_PERMISSION_CODE_PATTERN, PLUGIN_ROUTE_PATH_PATTERN } from './constants.js'
 
 export const permissionContributionSchema = z.object({
   code: z.string().regex(PLUGIN_PERMISSION_CODE_PATTERN, '权限码须为 module:resource:action'),
@@ -56,7 +57,8 @@ export const pluginAgentToolsContributionSchema = z.object({
       })
     )
     .default([]),
-  agentPrompts: z.array(z.string().min(1)).default([])
+  agentPrompts: z.array(z.string().min(1)).default([]),
+  manifests: z.array(toolManifestSchema).default([])
 })
 
 export const zenPluginManifestSchema = z.object({

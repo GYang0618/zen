@@ -1,10 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 
-import { CONFIG_NAMESPACES } from '@/config'
+import { CONFIG_NAMESPACES } from '../../config/index.js'
 
 import type { JwtSignOptions } from '@nestjs/jwt'
-import type { AuthConfig } from '@/config'
+import type { AuthConfig } from '../../config/index.js'
 
 export type JwtTokenType = 'access' | 'refresh' | 'mfa' | 'step-up'
 

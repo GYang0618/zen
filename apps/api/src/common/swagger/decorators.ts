@@ -5,7 +5,7 @@ import {
   ApiUnauthorizedResponse
 } from '@nestjs/swagger'
 
-import { ApiErrorResponseSwaggerDto } from './api-error-response.swagger.dto'
+import { ApiErrorResponseSwaggerDto } from './api-error-response.swagger.dto.js'
 
 /** 用户模块等受保护接口的通用错误响应文档 */
 export function ApiStandardErrorResponses() {

@@ -1,6 +1,5 @@
 'use no memo'
 
-import { ArrowDownIcon, ArrowUpIcon, CaretSortIcon, EyeNoneIcon } from '@radix-ui/react-icons'
 import {
   Button,
   cn,
@@ -10,6 +9,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@zen/ui'
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  ChevronsUpDown as CaretSortIcon,
+  EyeOff as EyeNoneIcon
+} from 'lucide-react'
 
 import type { Column } from '@tanstack/react-table'
 
@@ -31,7 +36,7 @@ export function DataTableColumnHeader<TData, TValue>({
     <div className={cn('flex items-center space-x-2', className)}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="h-8 data-[state=open]:bg-accent">
+          <Button variant="ghost" size="sm" className="h-8 data-popup-open:bg-accent">
             <span>{title}</span>
             {column.getIsSorted() === 'desc' ? (
               <ArrowDownIcon className="ms-2 h-4 w-4" />

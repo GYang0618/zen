@@ -38,12 +38,23 @@ describe('executeApiCall Artifact handling', () => {
 
     const result = await executeApiCall(
       {
-        configurable: { accessToken: 'token' },
-        context: { agentRunId: 'run-1' },
+        configurable: {
+          accessToken: 'token',
+          tenantId: 'tenant-1',
+          userId: 'user-1',
+          threadId: 'thread-1',
+          agentRunId: 'run-1'
+        },
         toolCallId: 'tool-call-1',
         toolCall: { name: 'query_users_list' }
       } as never,
-      async () => ({ rows: ['x'.repeat(33_000)] })
+      async (context) => {
+        assert.equal(context.tenantId, 'tenant-1')
+        assert.equal(context.userId, 'user-1')
+        assert.equal(context.runId, 'run-1')
+        assert.equal(context.toolCallId, 'tool-call-1')
+        return { rows: ['x'.repeat(33_000)] }
+      }
     )
 
     assert.match(String(artifactRequest), /\/api\/copilot\/runtime\/runs\/run-1\/artifacts$/)
@@ -56,6 +67,27 @@ describe('executeApiCall Artifact handling', () => {
         summary: '完整结果',
         message: '结果较大，已保存为 Artifact。'
       }
+    })
+  })
+})
+
+describe('executeApiCall fail-closed writes', () => {
+  it('写操作缺少 run/tenant/user 标识时拒绝执行', async () => {
+    const result = await executeApiCall(
+      {
+        configurable: { accessToken: 'token' },
+        toolCallId: 'tool-call-1',
+        toolCall: { name: 'delete_users' }
+      } as never,
+      async () => {
+        throw new Error('should not run')
+      }
+    )
+    assert.deepEqual(JSON.parse(result), {
+      success: false,
+      reason: 'MISSING_EXECUTION_CONTEXT',
+      message: '写操作缺少 run/tool/tenant/user 标识，已拒绝执行。',
+      retryable: false
     })
   })
 })

@@ -1,4 +1,4 @@
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm, useStore } from '@tanstack/react-form'
 import { ROLE_ICON_COLOR_VALUES, ROLE_ICON_VALUES } from '@zen/shared'
 import {
   Button,
@@ -23,7 +23,6 @@ import {
 } from '@zen/ui'
 import { CalendarIcon, Loader2, UserShield } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Controller, useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
@@ -72,13 +71,36 @@ const editRoleFormSchema = roleFormSchema.extend({
 
 type RoleFormValues = z.infer<typeof roleFormSchema>
 
-const defaultValues: RoleFormValues = {
-  name: '',
-  code: '',
-  icon: null,
-  iconColor: null,
-  description: '',
-  expiresAt: null
+function parseExpiredAt(value: string | null | undefined): Date | null {
+  if (!value) return null
+  const date = new Date(value.length === 10 ? `${value}T00:00:00` : value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+function createRoleFormValues(role?: Role | null): RoleFormValues {
+  if (!role) {
+    return {
+      name: '',
+      code: '',
+      icon: null,
+      iconColor: null,
+      description: '',
+      expiresAt: null
+    }
+  }
+
+  return {
+    name: role.name,
+    code: role.code,
+    icon: role.icon,
+    iconColor: role.iconColor,
+    description: role.description ?? '',
+    expiresAt: parseExpiredAt(role.expiresAt)
+  }
+}
+
+function isTouchedInvalid(meta: { isTouched: boolean; isValid: boolean }) {
+  return meta.isTouched && !meta.isValid
 }
 
 function formatExpiredAt(date: Date | null): string | null {
@@ -89,12 +111,6 @@ function formatExpiredAt(date: Date | null): string | null {
   return `${year}-${month}-${day}`
 }
 
-function parseExpiredAt(value: string | null): Date | null {
-  if (!value) return null
-  const date = new Date(value.length === 10 ? `${value}T00:00:00` : value)
-  return Number.isNaN(date.getTime()) ? null : date
-}
-
 export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionDialogProps) {
   const isEdit = !!currentRow
   const [expiredAtOpen, setExpiredAtOpen] = useState(false)
@@ -102,32 +118,32 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
   const { mutate: updateRole, isPending: isUpdating } = useUpdateRoleMutation()
   const isSubmitting = isCreating || isUpdating
 
-  const form = useForm<RoleFormValues>({
-    resolver: zodResolver(isEdit ? editRoleFormSchema : roleFormSchema),
-    defaultValues
+  const form = useForm({
+    defaultValues: createRoleFormValues(currentRow),
+    validators: { onChange: isEdit ? editRoleFormSchema : roleFormSchema },
+    onSubmit: async ({ value }) => {
+      await (isEdit ? handleUpdateSubmit : handleCreateSubmit)(
+        (isEdit ? editRoleFormSchema : roleFormSchema).parse(value)
+      )
+    }
   })
-  const iconColor = useWatch({ control: form.control, name: 'iconColor' })
+  const iconColor = useStore(form.store, (state) => state.values.iconColor)
 
   useEffect(() => {
     if (!open) return
-    if (currentRow) {
-      form.reset({
-        name: currentRow.name,
-        code: currentRow.code,
-        icon: currentRow.icon,
-        iconColor: currentRow.iconColor,
-        description: currentRow.description ?? '',
-        expiresAt: parseExpiredAt(currentRow.expiresAt)
-      })
-    } else {
-      form.reset(defaultValues)
-    }
+    form.reset(createRoleFormValues(currentRow))
     setExpiredAtOpen(false)
   }, [open, currentRow, form])
 
   const handleCreateSubmit = (values: RoleFormValues) => {
     if (values.expiresAt && values.expiresAt < TODAY) {
-      form.setError('expiresAt', { message: '过期时间不能早于今天' })
+      form.setFieldMeta('expiresAt', (meta) => ({
+        ...meta,
+        errorMap: {
+          ...meta.errorMap,
+          onSubmit: [{ code: 'custom', path: [], message: '过期时间不能早于今天' }]
+        }
+      }))
       return
     }
 
@@ -145,7 +161,7 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
         onSuccess: (created) => {
           toast.success(`成功新建角色「${created.name}」`)
           onOpenChange(false)
-          form.reset(defaultValues)
+          form.reset(createRoleFormValues())
         }
       }
     )
@@ -157,7 +173,13 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
       const original = parseExpiredAt(currentRow.expiresAt)
       const isSameDay = original !== null && values.expiresAt.getTime() === original.getTime()
       if (!isSameDay) {
-        form.setError('expiresAt', { message: '过期时间不能早于今天' })
+        form.setFieldMeta('expiresAt', (meta) => ({
+          ...meta,
+          errorMap: {
+            ...meta.errorMap,
+            onSubmit: [{ code: 'custom', path: [], message: '过期时间不能早于今天' }]
+          }
+        }))
         return
       }
     }
@@ -194,104 +216,114 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
         <DialogHeader>
           <DialogTitle>
             <span className="flex items-center gap-2">
-              <UserShield className="size-5" /> 角色
+              <UserShield className="size-5" /> {isEdit ? '编辑角色' : '新建角色'}
             </span>
           </DialogTitle>
           <DialogDescription>
-            {isEdit ? '在此更新角色、有效期等信息。' : '在此创建新角色；权限请进入详情页配置。'}
+            {currentRow
+              ? `更新「${currentRow.name}」的名称、图标、有效期等信息。`
+              : '在此创建新角色；权限请进入详情页配置。'}
           </DialogDescription>
         </DialogHeader>
 
         <form
           id="role-action-form"
           className="space-y-4"
-          onSubmit={form.handleSubmit(isEdit ? handleUpdateSubmit : handleCreateSubmit)}
+          onSubmit={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            void form.handleSubmit()
+          }}
         >
           <FieldGroup>
-            <Controller
-              name="name"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+            <form.Field name="name">
+              {(field) => (
+                <Field data-invalid={isTouchedInvalid(field.state.meta) || undefined}>
                   <FieldLabel htmlFor="role-name">角色名称</FieldLabel>
                   <FieldContent>
                     <Input
-                      {...field}
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value)}
                       id="role-name"
                       placeholder="例如：运维专家"
-                      aria-invalid={fieldState.invalid}
+                      aria-invalid={isTouchedInvalid(field.state.meta) || undefined}
                       autoComplete="off"
                     />
-                    {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                    {isTouchedInvalid(field.state.meta) ? (
+                      <FieldError errors={field.state.meta.errors} />
+                    ) : null}
                   </FieldContent>
                 </Field>
               )}
-            />
-            <Controller
-              name="code"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+            </form.Field>
+            <form.Field name="code">
+              {(field) => (
+                <Field data-invalid={isTouchedInvalid(field.state.meta) || undefined}>
                   <FieldLabel htmlFor="role-code">唯一标识 Code</FieldLabel>
                   <FieldContent>
                     <Input
-                      {...field}
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value)}
                       id="role-code"
                       className="font-mono"
                       placeholder="例如：ops_expert"
-                      aria-invalid={fieldState.invalid}
+                      aria-invalid={isTouchedInvalid(field.state.meta) || undefined}
                       autoComplete="off"
                       disabled={isEdit}
                       readOnly={isEdit}
                     />
                     {isEdit ? <FieldDescription>创建后不可修改。</FieldDescription> : null}
-                    {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                    {isTouchedInvalid(field.state.meta) ? (
+                      <FieldError errors={field.state.meta.errors} />
+                    ) : null}
                   </FieldContent>
                 </Field>
               )}
-            />
-            <Controller
-              name="icon"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+            </form.Field>
+            <form.Field name="icon">
+              {(field) => (
+                <Field data-invalid={isTouchedInvalid(field.state.meta) || undefined}>
                   <FieldLabel htmlFor="role-icon">角色图标</FieldLabel>
                   <FieldContent>
                     <RoleIconPicker
                       id="role-icon"
-                      value={field.value}
+                      value={field.state.value}
                       color={iconColor}
-                      onValueChange={field.onChange}
-                      aria-invalid={fieldState.invalid}
+                      onValueChange={field.handleChange}
+                      aria-invalid={isTouchedInvalid(field.state.meta) || undefined}
                     />
-                    {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                    {isTouchedInvalid(field.state.meta) ? (
+                      <FieldError errors={field.state.meta.errors} />
+                    ) : null}
                   </FieldContent>
                 </Field>
               )}
-            />
-            <Controller
-              name="iconColor"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+            </form.Field>
+            <form.Field name="iconColor">
+              {(field) => (
+                <Field data-invalid={isTouchedInvalid(field.state.meta) || undefined}>
                   <FieldLabel htmlFor="role-icon-color">图标颜色</FieldLabel>
                   <FieldContent>
                     <RoleIconColorPicker
                       id="role-icon-color"
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      aria-invalid={fieldState.invalid}
+                      value={field.state.value}
+                      onValueChange={field.handleChange}
+                      aria-invalid={isTouchedInvalid(field.state.meta) || undefined}
                     />
-                    {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                    {isTouchedInvalid(field.state.meta) ? (
+                      <FieldError errors={field.state.meta.errors} />
+                    ) : null}
                   </FieldContent>
                 </Field>
               )}
-            />
-            <Controller
-              name="expiresAt"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+            </form.Field>
+            <form.Field name="expiresAt">
+              {(field) => (
+                <Field data-invalid={isTouchedInvalid(field.state.meta) || undefined}>
                   <FieldLabel htmlFor="role-expired-at">过期时间</FieldLabel>
                   <FieldContent>
                     <Popover open={expiredAtOpen} onOpenChange={setExpiredAtOpen}>
@@ -300,12 +332,12 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
                           id="role-expired-at"
                           type="button"
                           variant="outline"
-                          data-empty={!field.value}
-                          aria-invalid={fieldState.invalid}
+                          data-empty={!field.state.value}
+                          aria-invalid={isTouchedInvalid(field.state.meta) || undefined}
                           className="w-full justify-between font-normal data-[empty=true]:text-muted-foreground"
                         >
-                          {field.value
-                            ? EXPIRED_AT_FORMATTER.format(field.value)
+                          {field.state.value
+                            ? EXPIRED_AT_FORMATTER.format(field.state.value)
                             : '留空表示长期有效'}
                           <CalendarIcon data-icon="inline-end" />
                         </Button>
@@ -313,18 +345,18 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
                           mode="single"
-                          selected={field.value ?? undefined}
+                          selected={field.state.value ?? undefined}
                           onSelect={(date) => {
-                            field.onChange(date ?? null)
+                            field.handleChange(date ?? null)
                             setExpiredAtOpen(false)
                           }}
                           captionLayout="dropdown"
                           startMonth={TODAY}
                           disabled={{ before: TODAY }}
-                          defaultMonth={field.value ?? TODAY}
+                          defaultMonth={field.state.value ?? TODAY}
                           autoFocus
                         />
-                        {field.value ? (
+                        {field.state.value ? (
                           <div className="border-t p-2">
                             <Button
                               type="button"
@@ -332,7 +364,7 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
                               size="sm"
                               className="w-full"
                               onClick={() => {
-                                field.onChange(null)
+                                field.handleChange(null)
                                 setExpiredAtOpen(false)
                               }}
                             >
@@ -342,30 +374,35 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
                         ) : null}
                       </PopoverContent>
                     </Popover>
-                    {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                    {isTouchedInvalid(field.state.meta) ? (
+                      <FieldError errors={field.state.meta.errors} />
+                    ) : null}
                   </FieldContent>
                 </Field>
               )}
-            />
-            <Controller
-              name="description"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+            </form.Field>
+            <form.Field name="description">
+              {(field) => (
+                <Field data-invalid={isTouchedInvalid(field.state.meta) || undefined}>
                   <FieldLabel htmlFor="role-description">角色描述说明</FieldLabel>
                   <FieldContent>
                     <Textarea
-                      {...field}
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value)}
                       id="role-description"
                       rows={3}
                       placeholder="明确该角色的职责"
-                      aria-invalid={fieldState.invalid}
+                      aria-invalid={isTouchedInvalid(field.state.meta) || undefined}
                     />
-                    {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                    {isTouchedInvalid(field.state.meta) ? (
+                      <FieldError errors={field.state.meta.errors} />
+                    ) : null}
                   </FieldContent>
                 </Field>
               )}
-            />
+            </form.Field>
           </FieldGroup>
         </form>
 

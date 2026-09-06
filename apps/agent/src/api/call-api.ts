@@ -1,11 +1,17 @@
-import { AGENT_RUN_ID_CONFIGURABLE_KEY, AGENT_STEP_UP_TOKEN_CONFIGURABLE_KEY } from '@zen/shared'
+import {
+  AGENT_APPROVAL_ID_CONFIGURABLE_KEY,
+  AGENT_STEP_UP_TOKEN_CONFIGURABLE_KEY
+} from '@zen/shared'
 
 import { configs } from '../configs/env'
 import { getToolExecutionPolicy } from '../tool-policy'
+import { createAgentApiClient, runWithAgentApiClient } from './create-client'
 import { getAccessTokenFromConfig, runWithAccessToken } from './request-context'
+import { resolveToolCallIdentity, resolveToolExecutionContext } from './tool-execution-context'
 import { classifyToolError, toToolFailureResult } from './tool-failure'
 
 import type { RunnableConfig } from '@langchain/core/runnables'
+import type { ToolExecutionContext } from '@zen/shared'
 import type { RecoverableHint } from './tool-failure'
 
 interface ApiSuccessEnvelope<T> {
@@ -17,6 +23,12 @@ interface ApiSuccessEnvelope<T> {
 }
 
 const ARTIFACT_THRESHOLD_CHARS = 32_000
+const MISSING_CONTEXT_RESULT = JSON.stringify({
+  success: false,
+  reason: 'MISSING_EXECUTION_CONTEXT',
+  message: '写操作缺少 run/tool/tenant/user 标识，已拒绝执行。',
+  retryable: false
+})
 
 function isApiSuccessEnvelope<T>(value: unknown): value is ApiSuccessEnvelope<T> {
   if (typeof value !== 'object' || value === null) {
@@ -46,49 +58,96 @@ export function toQueryArray<T>(value: T | T[] | undefined): T[] | undefined {
 
 /**
  * 执行 SDK 请求并将业务 data 序列化为工具返回值。
- * token 从 RunnableConfig 读取并注入当前异步上下文，无需在各工具 / SDK 调用中重复传入 auth。
- * 业务/网络错误转为 `{ success: false }` JSON，不抛出，以便模型继续纠偏或追问。
+ * 每次调用创建无状态 API client，写操作在缺少执行标识时 fail closed。
  */
 export async function executeApiCall<T>(
   config: RunnableConfig | undefined,
-  call: () => Promise<unknown>,
+  call: (context: ToolExecutionContext) => Promise<unknown>,
   hints: RecoverableHint[] = []
 ): Promise<string> {
+  const { toolName } = resolveToolCallIdentity(config)
+  const policy = getToolExecutionPolicy(toolName ?? 'unknown_tool')
+  const mutating = policy !== undefined && policy.sideEffect !== 'none'
+  const resolved = resolveToolExecutionContext(config)
+
+  if (mutating && 'error' in resolved) {
+    return MISSING_CONTEXT_RESULT
+  }
+
   const accessToken = getAccessTokenFromConfig(config)
-  const toolConfig = config as
-    | (RunnableConfig & {
-        toolCallId?: string
-        toolCall?: { id?: string; name?: string }
-        context?: unknown
-        config?: RunnableConfig & { context?: unknown; toolCall?: { id?: string; name?: string } }
-      })
-    | undefined
-  const toolCallId =
-    toolConfig?.toolCallId ?? toolConfig?.toolCall?.id ?? toolConfig?.config?.toolCall?.id
-  const runId = readStringConfig(toolConfig, AGENT_RUN_ID_CONFIGURABLE_KEY)
-  const stepUpToken = readStringConfig(toolConfig, AGENT_STEP_UP_TOKEN_CONFIGURABLE_KEY)
-  const toolName =
-    toolConfig?.toolCall?.name ?? toolConfig?.config?.toolCall?.name ?? 'unknown_tool'
-  const policy = getToolExecutionPolicy(toolName)
+  const toolContext: ToolExecutionContext =
+    'context' in resolved
+      ? resolved.context
+      : {
+          tenantId: 'unknown',
+          userId: 'unknown',
+          threadId: 'unknown',
+          runId: 'unknown',
+          accessToken,
+          locale: 'zh-CN',
+          permissions: [],
+          activePluginIds: [],
+          memory: { includeLongTerm: false, maxChars: 6_000 },
+          toolName: toolName ?? 'unknown_tool',
+          toolCallId: 'unknown',
+          abortSignal: config?.signal
+        }
+
+  if (mutating) {
+    if (
+      !toolContext.runId ||
+      toolContext.runId === 'unknown' ||
+      !toolContext.toolCallId ||
+      toolContext.toolCallId === 'unknown' ||
+      !toolContext.tenantId ||
+      toolContext.tenantId === 'unknown' ||
+      !toolContext.userId ||
+      toolContext.userId === 'unknown' ||
+      !toolContext.toolName ||
+      toolContext.toolName === 'unknown_tool'
+    ) {
+      return MISSING_CONTEXT_RESULT
+    }
+  }
+
+  const stepUpToken = readStringFromContext(config, AGENT_STEP_UP_TOKEN_CONFIGURABLE_KEY)
+  const approvalId =
+    toolContext.approvalId ?? readStringFromContext(config, AGENT_APPROVAL_ID_CONFIGURABLE_KEY)
   const idempotencyKey =
-    policy?.idempotencyPolicy === 'run-tool-call'
-      ? `${runId ?? 'agent'}:${toolCallId ?? 'unknown'}`
+    policy?.idempotencyPolicy === 'run-tool-call' && mutating
+      ? `${toolContext.runId}:${toolContext.toolCallId}`
       : undefined
-  const maxRetries = policy?.retryPolicy.maxRetries ?? 0
+  const maxRetries = mutating ? 0 : (policy?.retryPolicy.maxRetries ?? 0)
+  const apiClient = createAgentApiClient()
 
   for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
     const timeoutSignal = AbortSignal.timeout(policy?.timeoutMs ?? 30_000)
     const signal = config?.signal ? AbortSignal.any([config.signal, timeoutSignal]) : timeoutSignal
     try {
-      const body = await runWithAccessToken(accessToken, call, idempotencyKey, signal, stepUpToken)
+      const body = await runWithAgentApiClient(apiClient, () =>
+        runWithAccessToken(
+          accessToken,
+          () => call(toolContext),
+          idempotencyKey,
+          signal,
+          stepUpToken,
+          toolContext.runId,
+          toolContext.toolName,
+          approvalId
+        )
+      )
       const data = unwrapApiSuccessData<T>(body)
       const serialized = JSON.stringify(data ?? null)
-      if (serialized.length > ARTIFACT_THRESHOLD_CHARS && runId && toolCallId) {
+      if (
+        serialized.length > ARTIFACT_THRESHOLD_CHARS &&
+        toolContext.runId &&
+        toolContext.toolCallId
+      ) {
         const artifact = await persistArtifact({
           accessToken,
-          runId,
-          toolCallId,
-          toolName,
+          runId: toolContext.runId,
+          toolCallId: toolContext.toolCallId,
+          toolName: toolContext.toolName,
           data,
           signal
         })
@@ -120,23 +179,16 @@ export async function executeApiCall<T>(
   return toToolFailureResult(new Error('Tool retry budget exhausted'), hints)
 }
 
-function readStringConfig(
-  config:
-    | (RunnableConfig & { context?: unknown; config?: RunnableConfig & { context?: unknown } })
-    | undefined,
+function readStringFromContext(
+  config: RunnableConfig | undefined,
   key: string
 ): string | undefined {
-  for (const candidate of [
-    config?.configurable,
-    config?.context,
-    config?.config?.configurable,
-    config?.config?.context
-  ]) {
-    if (!candidate || typeof candidate !== 'object') continue
-    const value = (candidate as Record<string, unknown>)[key]
-    if (typeof value === 'string' && value) return value
+  const record = config as {
+    configurable?: Record<string, unknown>
+    context?: Record<string, unknown>
   }
-  return undefined
+  const value = record?.configurable?.[key] ?? record?.context?.[key]
+  return typeof value === 'string' && value ? value : undefined
 }
 
 async function persistArtifact(input: {

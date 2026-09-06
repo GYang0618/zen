@@ -1,4 +1,4 @@
-import { CONFIG_NAMESPACES } from './constants'
+import { CONFIG_NAMESPACES } from './constants.js'
 
 import type { ConfigType } from '@nestjs/config'
 import type {
@@ -10,7 +10,7 @@ import type {
   securityConfig,
   storageConfig,
   swaggerConfig
-} from './modules'
+} from './modules/index.js'
 
 export type AppConfig = ConfigType<typeof appConfig>
 export type AuthConfig = ConfigType<typeof authConfig>

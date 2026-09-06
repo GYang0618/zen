@@ -1,4 +1,4 @@
-import { registerConfig } from '../helper'
+import { registerConfig } from '../helper.js'
 
 /**
  * Swagger 文档配置

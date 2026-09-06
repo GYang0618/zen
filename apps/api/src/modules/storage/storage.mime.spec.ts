@@ -1,6 +1,6 @@
 import { isReadonlyPermissionCode, PermissionCode, resolveFileCategory } from '@zen/shared'
 
-import { sniffMime } from './storage.mime'
+import { sniffMime } from './storage.mime.js'
 
 describe('sniffMime', () => {
   it('将 PK 头的 docx 识别为 Word，而不是 zip', () => {

@@ -1,4 +1,4 @@
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm, useStore } from '@tanstack/react-form'
 import {
   Button,
   Field,
@@ -24,7 +24,6 @@ import {
 } from '@zen/ui'
 import { Check, Loader2, UserRoundPlus } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { Controller, useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
@@ -87,12 +86,15 @@ export function UserActionSheet({ currentRow, open, onOpenChange }: UserActionSh
   const { data: rolesPage } = useRoleOptionsQuery(open)
   const roles = rolesPage?.items ?? []
 
-  const form = useForm<UserFormValues>({
-    resolver: zodResolver(userFormSchema),
-    defaultValues
+  const form = useForm({
+    defaultValues: defaultValues as UserFormValues,
+    validators: { onChange: userFormSchema },
+    onSubmit: async ({ value }) => {
+      await (isEdit ? handleUpdateSubmit : handleCreateSubmit)(userFormSchema.parse(value))
+    }
   })
-  const organizationId = useWatch({ control: form.control, name: 'organizationId' })
-  const postId = useWatch({ control: form.control, name: 'postId' })
+  const organizationId = useStore(form.store, (state) => state.values.organizationId)
+  const postId = useStore(form.store, (state) => state.values.postId)
 
   const defaultUserRoleId = useMemo(
     () => roles.find((role) => role.code === 'user')?.id ?? '',
@@ -214,117 +216,139 @@ export function UserActionSheet({ currentRow, open, onOpenChange }: UserActionSh
           <form
             id="user-action-form"
             className="flex-1 overflow-y-auto px-4"
-            onSubmit={form.handleSubmit(isEdit ? handleUpdateSubmit : handleCreateSubmit)}
+            onSubmit={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              void form.handleSubmit()
+            }}
           >
             <FieldGroup>
-              <Controller
-                name="username"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
+              <form.Field name="username">
+                {(field) => (
+                  <Field data-invalid={!field.state.meta.isValid}>
                     <FieldLabel htmlFor="user-username">用户名</FieldLabel>
                     <FieldContent>
                       <Input
-                        {...field}
+                        name={field.name}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => field.handleChange(event.target.value)}
                         id="user-username"
                         placeholder="登录账号"
                         autoComplete="off"
                         disabled={isEdit}
                         readOnly={isEdit}
-                        aria-invalid={fieldState.invalid}
+                        aria-invalid={!field.state.meta.isValid}
                       />
                       {isEdit ? <FieldDescription>创建后不可修改。</FieldDescription> : null}
-                      {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                      {!field.state.meta.isValid ? (
+                        <FieldError errors={field.state.meta.errors} />
+                      ) : null}
                     </FieldContent>
                   </Field>
                 )}
-              />
+              </form.Field>
 
-              <Controller
-                name="email"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
+              <form.Field name="email">
+                {(field) => (
+                  <Field data-invalid={!field.state.meta.isValid}>
                     <FieldLabel htmlFor="user-email">邮箱</FieldLabel>
                     <FieldContent>
                       <Input
-                        {...field}
+                        name={field.name}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => field.handleChange(event.target.value)}
                         id="user-email"
                         placeholder="name@example.com"
                         autoComplete="off"
-                        aria-invalid={fieldState.invalid}
+                        aria-invalid={!field.state.meta.isValid}
                       />
-                      {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                      {!field.state.meta.isValid ? (
+                        <FieldError errors={field.state.meta.errors} />
+                      ) : null}
                     </FieldContent>
                   </Field>
                 )}
-              />
+              </form.Field>
 
-              <Controller
-                name="realName"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
+              <form.Field name="realName">
+                {(field) => (
+                  <Field data-invalid={!field.state.meta.isValid}>
                     <FieldLabel htmlFor="user-real-name">真实姓名</FieldLabel>
                     <FieldContent>
                       <Input
-                        {...field}
+                        name={field.name}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => field.handleChange(event.target.value)}
                         id="user-real-name"
                         placeholder="例如：张三"
-                        aria-invalid={fieldState.invalid}
+                        aria-invalid={!field.state.meta.isValid}
                       />
-                      {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                      {!field.state.meta.isValid ? (
+                        <FieldError errors={field.state.meta.errors} />
+                      ) : null}
                     </FieldContent>
                   </Field>
                 )}
-              />
+              </form.Field>
 
-              <Controller
-                name="nickname"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
+              <form.Field name="nickname">
+                {(field) => (
+                  <Field data-invalid={!field.state.meta.isValid}>
                     <FieldLabel htmlFor="user-nickname">昵称</FieldLabel>
                     <FieldContent>
                       <Input
-                        {...field}
+                        name={field.name}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => field.handleChange(event.target.value)}
                         id="user-nickname"
                         placeholder="显示名称（可选）"
-                        aria-invalid={fieldState.invalid}
+                        aria-invalid={!field.state.meta.isValid}
                       />
-                      {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                      {!field.state.meta.isValid ? (
+                        <FieldError errors={field.state.meta.errors} />
+                      ) : null}
                     </FieldContent>
                   </Field>
                 )}
-              />
+              </form.Field>
 
-              <Controller
-                name="phoneNumber"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
+              <form.Field name="phoneNumber">
+                {(field) => (
+                  <Field data-invalid={!field.state.meta.isValid}>
                     <FieldLabel htmlFor="user-phone">手机号</FieldLabel>
                     <FieldContent>
                       <Input
-                        {...field}
+                        name={field.name}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => field.handleChange(event.target.value)}
                         id="user-phone"
                         placeholder="可选"
-                        aria-invalid={fieldState.invalid}
+                        aria-invalid={!field.state.meta.isValid}
                       />
-                      {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                      {!field.state.meta.isValid ? (
+                        <FieldError errors={field.state.meta.errors} />
+                      ) : null}
                     </FieldContent>
                   </Field>
                 )}
-              />
+              </form.Field>
 
-              <Controller
-                name="gender"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
+              <form.Field name="gender">
+                {(field) => (
+                  <Field data-invalid={!field.state.meta.isValid}>
                     <FieldLabel htmlFor="user-gender">性别</FieldLabel>
                     <FieldContent>
-                      <Select value={field.value} onValueChange={field.onChange}>
+                      <Select
+                        value={field.state.value}
+                        onValueChange={(value) =>
+                          field.handleChange(userFormSchema.shape.gender.parse(value))
+                        }
+                      >
                         <SelectTrigger id="user-gender" className="w-full">
                           <SelectValue placeholder="选择性别" />
                         </SelectTrigger>
@@ -338,11 +362,13 @@ export function UserActionSheet({ currentRow, open, onOpenChange }: UserActionSh
                           </SelectGroup>
                         </SelectContent>
                       </Select>
-                      {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                      {!field.state.meta.isValid ? (
+                        <FieldError errors={field.state.meta.errors} />
+                      ) : null}
                     </FieldContent>
                   </Field>
                 )}
-              />
+              </form.Field>
 
               {!isEdit ? (
                 <>
@@ -352,18 +378,18 @@ export function UserActionSheet({ currentRow, open, onOpenChange }: UserActionSh
                       <UserMembershipFields
                         organizationId={organizationId}
                         postId={postId}
-                        onOrganizationChange={(value) => form.setValue('organizationId', value)}
-                        onPostChange={(value) => form.setValue('postId', value)}
+                        onOrganizationChange={(value) =>
+                          form.setFieldValue('organizationId', value)
+                        }
+                        onPostChange={(value) => form.setFieldValue('postId', value)}
                         disabled={isSubmitting}
                       />
                       <FieldDescription>可稍后在用户详情中调整兼职组织。</FieldDescription>
                     </FieldContent>
                   </Field>
 
-                  <Controller
-                    name="roleIds"
-                    control={form.control}
-                    render={({ field }) => (
+                  <form.Field name="roleIds">
+                    {(field) => (
                       <Field>
                         <FieldLabel htmlFor="user-roles">初始角色</FieldLabel>
                         <FieldContent>
@@ -373,8 +399,8 @@ export function UserActionSheet({ currentRow, open, onOpenChange }: UserActionSh
                             <UserRolePicker
                               id="user-roles"
                               roles={roles}
-                              value={field.value}
-                              onValueChange={field.onChange}
+                              value={field.state.value}
+                              onValueChange={field.handleChange}
                               disabled={isSubmitting}
                             />
                           )}
@@ -382,29 +408,32 @@ export function UserActionSheet({ currentRow, open, onOpenChange }: UserActionSh
                         </FieldContent>
                       </Field>
                     )}
-                  />
+                  </form.Field>
                 </>
               ) : null}
 
-              <Controller
-                name="remark"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
+              <form.Field name="remark">
+                {(field) => (
+                  <Field data-invalid={!field.state.meta.isValid}>
                     <FieldLabel htmlFor="user-remark">备注</FieldLabel>
                     <FieldContent>
                       <Textarea
-                        {...field}
+                        name={field.name}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => field.handleChange(event.target.value)}
                         id="user-remark"
                         rows={3}
                         placeholder="可选说明"
-                        aria-invalid={fieldState.invalid}
+                        aria-invalid={!field.state.meta.isValid}
                       />
-                      {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                      {!field.state.meta.isValid ? (
+                        <FieldError errors={field.state.meta.errors} />
+                      ) : null}
                     </FieldContent>
                   </Field>
                 )}
-              />
+              </form.Field>
             </FieldGroup>
           </form>
         )}

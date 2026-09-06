@@ -1,4 +1,3 @@
-import { DotsHorizontalIcon } from '@radix-ui/react-icons'
 import { useNavigate } from '@tanstack/react-router'
 import { PermissionCode } from '@zen/shared'
 import {
@@ -10,7 +9,17 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger
 } from '@zen/ui'
-import { Eye, KeyRound, LockOpen, LogOut, Power, Trash2, UserCheck, UserPen } from 'lucide-react'
+import {
+  Ellipsis as DotsHorizontalIcon,
+  Eye,
+  KeyRound,
+  LockOpen,
+  LogOut,
+  Power,
+  Trash2,
+  UserCheck,
+  UserPen
+} from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Can } from '@/components/auth/can'
@@ -49,7 +58,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="flex h-8 w-8 p-0 data-[state=open]:bg-muted">
+        <Button variant="ghost" className="flex h-8 w-8 p-0 data-popup-open:bg-muted">
           <DotsHorizontalIcon className="h-4 w-4" />
           <span className="sr-only">Open menu</span>
         </Button>

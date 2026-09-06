@@ -1,6 +1,6 @@
 import { userPasswordSchema } from '@zen/shared'
 
-import { generateTemporaryPassword } from './generate-temporary-password'
+import { generateTemporaryPassword } from './generate-temporary-password.js'
 
 describe('generateTemporaryPassword', () => {
   it('meets the password policy', () => {

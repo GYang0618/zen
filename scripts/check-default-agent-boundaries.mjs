@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Default Agent 基线门禁：验证默认 Chat、Popup、Agent Tool 和废弃 Chat 模块边界。
+ * Default Agent 基线门禁：验证默认 Chat、Popup、Agent Tool 和已删除旧 Chat 边界。
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -41,14 +41,14 @@ expectIncludes(
   'default_agent 必须通过正式 Registry 注册 Tool'
 )
 expectIncludes(
-  'apps/agent/src/default.ts',
+  'apps/agent/src/middleware.ts',
   'toolErrorMiddleware',
   'default_agent 必须注册 Tool 错误 Middleware'
 )
-expectIncludes(
+expectExcludes(
   'apps/agent/src/default.ts',
-  'copilotkitMiddleware',
-  'default_agent 必须注册 CopilotKit Middleware'
+  '@copilotkit/sdk-js',
+  'default_agent 不得依赖已删除的 CopilotKit v1 SDK'
 )
 expectIncludes(
   'apps/agent/src/default.ts',
@@ -80,17 +80,29 @@ expectIncludes(
   "new Set(['reasoning', 'activity'])",
   'Copilot Runtime 必须过滤 reasoning/activity'
 )
+if (fs.existsSync(path.join(root, 'apps/api/src/modules/chat'))) {
+  failures.push('apps/api/src/modules/chat 必须删除，不得继续保留旧 Chat 执行链')
+}
 expectIncludes(
-  'apps/api/src/modules/chat/chat.module.ts',
-  '@deprecated',
-  '废弃 ChatModule 必须有 deprecated 标记'
-)
-expectIncludes(
-  'apps/agent/src/default.ts',
+  'apps/agent/src/middleware.ts',
   'humanInTheLoopMiddleware',
   '高风险 Tool 必须经过 LangGraph 审批中断'
 )
-expectIncludes('apps/agent/src/default.ts', 'summarizationMiddleware', '长对话必须启用上下文压缩')
+expectIncludes(
+  'apps/agent/src/middleware.ts',
+  'summarizationMiddleware',
+  '长对话必须启用上下文压缩'
+)
+expectIncludes(
+  'apps/agent/src/default.ts',
+  'createDefaultAgentMiddleware(model)',
+  '默认图必须装载运行控制 Middleware'
+)
+expectIncludes(
+  'apps/agent/src/default.ts',
+  'createFrontendToolsMiddleware',
+  '默认图必须装载 AG-UI 前端工具桥接'
+)
 expectIncludes(
   'apps/agent/src/api/call-api.ts',
   'policy?.retryPolicy',
@@ -107,7 +119,7 @@ expectIncludes(
   '插件 Tool 必须从生成注册表装载'
 )
 expectIncludes(
-  'apps/agent/src/default.ts',
+  'apps/agent/src/middleware.ts',
   'pluginToolVisibilityMiddleware',
   '非 ACTIVE 插件 Tool 必须从模型请求中移除'
 )
@@ -127,9 +139,9 @@ expectIncludes(
   'API 幂等缓存必须按租户和用户隔离'
 )
 expectIncludes(
-  'apps/api/src/modules/copilot/default-agent-runtime.store.ts',
+  'apps/api/src/modules/copilot/default-agent-event.service.ts',
   'agentEvent.create',
-  'Default Agent 必须持久化可重放事件'
+  'Default Agent 必须通过 Event service 持久化可重放事件'
 )
 expectIncludes(
   'apps/api/src/modules/copilot/default-agent-runtime.utils.ts',

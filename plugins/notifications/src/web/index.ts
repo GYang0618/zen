@@ -1,8 +1,8 @@
-import { NotificationsPage } from './pages/notifications-page'
-import { NOTIFICATIONS_ROUTE_META, NOTIFICATIONS_ROUTE_PATH } from './routes'
+import { NotificationsPage } from './pages/notifications-page.js'
+import { NOTIFICATIONS_ROUTE_META, NOTIFICATIONS_ROUTE_PATH } from './routes.js'
 
-export { NOTIF_PERMISSIONS, NOTIFICATIONS_PLUGIN_ID } from '../constants'
-export { createNotificationSchema } from '../notification.schema'
+export { NOTIF_PERMISSIONS, NOTIFICATIONS_PLUGIN_ID } from '../constants.js'
+export { createNotificationSchema } from '../notification.schema.js'
 
-export type { NotificationDto } from '../notification.schema'
+export type { NotificationDto } from '../notification.schema.js'
 export { NOTIFICATIONS_ROUTE_META, NOTIFICATIONS_ROUTE_PATH, NotificationsPage }

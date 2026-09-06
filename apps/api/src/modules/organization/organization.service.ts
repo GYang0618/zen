@@ -15,21 +15,20 @@ import {
   serializeOrganizationTypeCatalog
 } from '@zen/shared'
 
-import { applyOrganizationTreeDataScope } from '@/common/auth/apply-data-scope'
-import { AuditService } from '@/common/auth/audit.service'
-import { AuthContextService } from '@/common/auth/auth-context.service'
-import { SessionService } from '@/common/auth/session.service'
-import { paginate } from '@/common/pagination/paginate.util'
-import { PostService } from '@/modules/post'
-
+import { applyOrganizationTreeDataScope } from '../../common/auth/apply-data-scope.js'
+import { AuditService } from '../../common/auth/audit.service.js'
+import { AuthContextService } from '../../common/auth/auth-context.service.js'
+import { SessionService } from '../../common/auth/session.service.js'
+import { paginate } from '../../common/pagination/paginate.util.js'
+import { PostService } from '../post/index.js'
 import {
   fromApiOrganizationType,
   toApiOrganizationType,
   toOrganizationMemberResponse,
   toOrganizationResponse
-} from './organization.mapper'
-import { OrganizationRepository } from './organization.repository'
-import { assertValidParentType, canBeChildOf, throwMoveRejection } from './organization.rules'
+} from './organization.mapper.js'
+import { OrganizationRepository } from './organization.repository.js'
+import { assertValidParentType, canBeChildOf, throwMoveRejection } from './organization.rules.js'
 import {
   buildOrganizationCreatedDiff,
   buildOrganizationLeaderDiff,
@@ -38,7 +37,7 @@ import {
   buildOrganizationPositionCreatedDiff,
   buildOrganizationUpdatedDiff,
   toUserDisplayName
-} from './organization-audit-diff'
+} from './organization-audit-diff.js'
 
 import type { Prisma } from '@prisma/client'
 import type {
@@ -60,15 +59,15 @@ import type {
   UpdateOrganizationDto,
   UpdateOrganizationLeaderDto,
   UpdateOrganizationPositionDto
-} from './dto'
-import type { OrganizationWithRelations } from './organization.repository'
+} from './dto/index.js'
+import type { OrganizationWithRelations } from './organization.repository.js'
 import type {
   OrganizationActivitiesResponse,
   OrganizationMemberResponse,
   OrganizationResponse,
   OrganizationTreeResponse,
   PositionResponse
-} from './responses/organization.response'
+} from './responses/organization.response.js'
 
 const NAME_COLLATOR = new Intl.Collator('zh-CN', {
   numeric: true,

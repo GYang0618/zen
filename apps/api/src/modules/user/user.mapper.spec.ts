@@ -1,4 +1,4 @@
-import { toBirthdayDate, toBirthdayString } from './user.mapper'
+import { toBirthdayDate, toBirthdayString } from './user.mapper.js'
 
 describe('birthday date helpers', () => {
   it('round-trips a date-only birthday through UTC midnight', () => {

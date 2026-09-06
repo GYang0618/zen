@@ -3,18 +3,15 @@
  * 新增业务 Module 时同时更新本列表与 AppModule。
  */
 export const OPENAPI_REQUIRED_MODULE_NAMES = [
-  'AuthModule',
+  'SecurityModule',
   'HealthModule',
-  'UserModule',
+  'IdentityModule',
   'StorageModule',
-  'RoleModule',
   'OrganizationModule',
-  'DictModule',
-  'AuditModule',
+  'ContentModule',
   'PluginModule',
   'PluginsModule',
-  'ChatModule',
-  'CopilotModule'
+  'AgentModule'
 ] as const
 
 export type OpenApiRequiredModuleName = (typeof OPENAPI_REQUIRED_MODULE_NAMES)[number]

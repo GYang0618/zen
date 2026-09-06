@@ -54,7 +54,7 @@ export function RoleIconPicker({
           <ChevronsUpDown data-icon="inline-end" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-(--radix-popover-trigger-width) p-2" align="start">
+      <PopoverContent className="w-(--anchor-width) p-2" align="start">
         <ScrollArea type="hover">
           <div className="max-h-50 flex gap-1 flex-wrap">
             {ROLE_ICONS.map((iconName) => (

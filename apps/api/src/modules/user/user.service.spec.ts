@@ -1,6 +1,8 @@
 import { NotFoundException } from '@nestjs/common'
 
-import { UserService } from './user.service'
+import { UserService } from './user.service.js'
+
+const { jest } = import.meta
 
 describe('UserService domain reads', () => {
   function createService() {

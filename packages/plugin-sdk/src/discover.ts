@@ -1,10 +1,10 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { PLUGIN_MANIFEST_FILENAME, PLUGINS_GLOB_DIR } from './constants'
-import { zenPluginManifestSchema } from './manifest.schema'
+import { PLUGIN_MANIFEST_FILENAME, PLUGINS_GLOB_DIR } from './constants.js'
+import { zenPluginManifestSchema } from './manifest.schema.js'
 
-import type { DiscoveredPlugin } from './types'
+import type { DiscoveredPlugin } from './types.js'
 
 export function findMonorepoRoot(startDir = process.cwd()): string {
   let current = startDir

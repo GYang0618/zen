@@ -3,14 +3,13 @@ import cookieParser from 'cookie-parser'
 import { json, urlencoded } from 'express'
 import { Logger } from 'nestjs-pino'
 
-import { CONFIG_NAMESPACES } from '@/config'
+import { AppModule } from './app.module.js'
+import { runWithRequestAuditContext } from './common/auth/request-audit-context.js'
+import { CONFIG_NAMESPACES } from './config/index.js'
+import { setupSwagger } from './swagger/setup-swagger.js'
 
-import { runWithRequestAuditContext } from './common/auth/request-audit-context'
-import { AppModule } from './app.module'
-import { setupSwagger } from './swagger/setup-swagger'
-
-import type { AppConfig, SecurityConfig, SwaggerConfig } from '@/config'
 import type { NextFunction, Request, Response } from 'express'
+import type { AppConfig, SecurityConfig, SwaggerConfig } from './config/index.js'
 
 /** Copilot 会回传完整对话历史，默认 100kb 不够 */
 const COPILOT_JSON_BODY_LIMIT = '10mb'
@@ -30,9 +29,7 @@ async function bootstrap() {
   const securityCfg = app.get<SecurityConfig>(CONFIG_NAMESPACES.SECURITY)
   const swaggerCfg = app.get<SwaggerConfig>(CONFIG_NAMESPACES.SWAGGER)
 
-  app.use((_req: Request, _res: Response, next: NextFunction) =>
-    runWithRequestAuditContext(next)
-  )
+  app.use((_req: Request, _res: Response, next: NextFunction) => runWithRequestAuditContext(next))
   app.use(cookieParser())
 
   const normalizedPrefix = appCfg.apiPrefix.startsWith('/')
@@ -71,6 +68,7 @@ async function bootstrap() {
   }
 
   logger.log(`Environment: ${nodeEnv} Starting server on ${baseUrl}/${normalizedPrefix}`)
+  app.enableShutdownHooks()
   await app.listen(port, '0.0.0.0')
 }
 bootstrap()

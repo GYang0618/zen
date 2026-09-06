@@ -13,4 +13,3 @@ export const PLUGIN_API_LOADERS = [
 ] as const
 
 export type PluginApiLoader = (typeof PLUGIN_API_LOADERS)[number]
-

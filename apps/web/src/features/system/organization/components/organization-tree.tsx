@@ -183,7 +183,7 @@ function TreeNode({
                   onClick={(event) => event.stopPropagation()}
                   aria-label={open ? `收起${name}` : `展开${name}`}
                 >
-                  <ChevronRightIcon className="transition-transform group-data-[state=open]:rotate-90" />
+                  <ChevronRightIcon className="transition-transform in-data-panel-open:rotate-90" />
                 </Button>
               </CollapsibleTrigger>
             ) : null}

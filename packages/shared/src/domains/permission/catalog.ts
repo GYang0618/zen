@@ -1,14 +1,14 @@
-import { AUDIT_PERMISSIONS } from '../audit/permissions'
-import { DICT_PERMISSIONS } from '../dict/permissions'
-import { FILE_PERMISSIONS, STORAGE_PERMISSIONS } from '../file/permissions'
-import { ORG_PERMISSIONS } from '../organization/permissions'
-import { PLUGIN_PERMISSIONS } from '../plugin/permissions'
-import { POST_PERMISSIONS } from '../post/permissions'
-import { ROLE_PERMISSIONS } from '../role/permissions'
-import { USER_PERMISSIONS } from '../user/permissions'
-import { definePermissionCatalog } from './define-permissions'
+import { AUDIT_PERMISSIONS } from '../audit/permissions.js'
+import { DICT_PERMISSIONS } from '../dict/permissions.js'
+import { FILE_PERMISSIONS, STORAGE_PERMISSIONS } from '../file/permissions.js'
+import { ORG_PERMISSIONS } from '../organization/permissions.js'
+import { PLUGIN_PERMISSIONS } from '../plugin/permissions.js'
+import { POST_PERMISSIONS } from '../post/permissions.js'
+import { ROLE_PERMISSIONS } from '../role/permissions.js'
+import { USER_PERMISSIONS } from '../user/permissions.js'
+import { definePermissionCatalog } from './define-permissions.js'
 
-import type { PermissionCatalogEntry } from './permission.type'
+import type { PermissionCatalogEntry } from './permission.type.js'
 
 const KERNEL_PERMISSION_GROUPS = [
   USER_PERMISSIONS,

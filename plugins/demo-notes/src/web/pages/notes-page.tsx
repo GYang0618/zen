@@ -4,9 +4,9 @@ import { Button, Input, Skeleton, Textarea } from '@zen/ui'
 import { Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
-import { createNotesApi, DEMO_NOTE_PERMISSIONS } from '../api'
+import { createNotesApi, DEMO_NOTE_PERMISSIONS } from '../api.js'
 
-import type { NotesRequest } from '../api'
+import type { NotesRequest } from '../api.js'
 
 export interface NotesPageProps {
   request: NotesRequest

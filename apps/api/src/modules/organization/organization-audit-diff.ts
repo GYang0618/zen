@@ -1,10 +1,10 @@
 import { createAuditDiff, getOrganizationTypeLabel } from '@zen/shared'
 
-import { toApiOrganizationType } from './organization.mapper'
+import { toApiOrganizationType } from './organization.mapper.js'
 
 import type { OrganizationType as PrismaOrganizationType } from '@prisma/client'
 import type { AuditDiff, AuditDiffChange, OrganizationType } from '@zen/shared'
-import type { UpdateOrganizationDto } from './dto'
+import type { UpdateOrganizationDto } from './dto/index.js'
 
 function displayValue(value: string | null | undefined): string | null {
   if (value == null || value === '') return null

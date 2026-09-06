@@ -1,7 +1,7 @@
 import type { OrganizationType, UserStatusCode } from '@prisma/client'
 import type { OrganizationType as ApiType, OrganizationMember } from '@zen/shared'
-import type { OrganizationWithRelations } from './organization.repository'
-import type { OrganizationResponse } from './responses/organization.response'
+import type { OrganizationWithRelations } from './organization.repository.js'
+import type { OrganizationResponse } from './responses/organization.response.js'
 
 const TYPE_TO_API: Record<OrganizationType, ApiType> = {
   GROUP: 'group',

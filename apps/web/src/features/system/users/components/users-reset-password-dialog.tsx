@@ -1,4 +1,4 @@
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from '@tanstack/react-form'
 import {
   Button,
   Checkbox,
@@ -14,7 +14,6 @@ import {
   FieldLabel
 } from '@zen/ui'
 import { Loader2 } from 'lucide-react'
-import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 import { PasswordInput } from '@/components'
@@ -57,16 +56,19 @@ export function UsersResetPasswordDialog({
   const { mutateAsync, isPending } = useAdminResetPasswordMutation()
   const notifyAccessChange = useAccessChangeFeedback()
   const isSelf = isCurrentUserId(currentRow.id)
-  const form = useForm<ResetPasswordFormValues>({
-    resolver: zodResolver(resetPasswordFormSchema),
+  const form = useForm({
     defaultValues: {
       password: '',
       confirmPassword: '',
       mustChangePassword: true
+    } as ResetPasswordFormValues,
+    validators: { onChange: resetPasswordFormSchema },
+    onSubmit: async ({ value }) => {
+      await onSubmit(resetPasswordFormSchema.parse(value))
     }
   })
 
-  const onSubmit = form.handleSubmit(async (values) => {
+  const onSubmit = async (values: ResetPasswordFormValues) => {
     await mutateAsync({
       id: currentRow.id,
       password: values.password,
@@ -75,7 +77,7 @@ export function UsersResetPasswordDialog({
     notifyAccessChange(currentRow.id, '密码已重置', '密码已重置，请重新登录')
     onOpenChange(false)
     form.reset({ password: '', confirmPassword: '', mustChangePassword: true })
-  })
+  }
 
   return (
     <Dialog
@@ -96,56 +98,67 @@ export function UsersResetPasswordDialog({
               : `为用户 ${currentRow.username} 设置新密码`}
           </DialogDescription>
         </DialogHeader>
-        <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            void form.handleSubmit()
+          }}
+        >
           <FieldGroup>
-            <Controller
-              name="password"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid || undefined}>
+            <form.Field name="password">
+              {(field) => (
+                <Field data-invalid={!field.state.meta.isValid || undefined}>
                   <FieldLabel htmlFor="reset-password">新密码</FieldLabel>
                   <PasswordInput
-                    {...field}
+                    name={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.target.value)}
                     id="reset-password"
                     autoComplete="new-password"
-                    aria-invalid={fieldState.invalid || undefined}
+                    aria-invalid={!field.state.meta.isValid || undefined}
                   />
-                  {fieldState.error ? <FieldError errors={[fieldState.error]} /> : null}
+                  {field.state.meta.errors.length > 0 ? (
+                    <FieldError errors={field.state.meta.errors} />
+                  ) : null}
                 </Field>
               )}
-            />
-            <Controller
-              name="confirmPassword"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid || undefined}>
+            </form.Field>
+            <form.Field name="confirmPassword">
+              {(field) => (
+                <Field data-invalid={!field.state.meta.isValid || undefined}>
                   <FieldLabel htmlFor="reset-confirm">确认密码</FieldLabel>
                   <PasswordInput
-                    {...field}
+                    name={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.target.value)}
                     id="reset-confirm"
                     autoComplete="new-password"
-                    aria-invalid={fieldState.invalid || undefined}
+                    aria-invalid={!field.state.meta.isValid || undefined}
                   />
-                  {fieldState.error ? <FieldError errors={[fieldState.error]} /> : null}
+                  {field.state.meta.errors.length > 0 ? (
+                    <FieldError errors={field.state.meta.errors} />
+                  ) : null}
                 </Field>
               )}
-            />
-            <Controller
-              name="mustChangePassword"
-              control={form.control}
-              render={({ field }) => (
+            </form.Field>
+            <form.Field name="mustChangePassword">
+              {(field) => (
                 <Field orientation="horizontal">
                   <Checkbox
                     id="must-change-password"
-                    checked={field.value}
-                    onCheckedChange={(checked) => field.onChange(checked === true)}
+                    checked={field.state.value}
+                    onCheckedChange={(checked) => field.handleChange(checked === true)}
                   />
                   <FieldLabel htmlFor="must-change-password" className="font-normal">
                     下次登录必须修改密码
                   </FieldLabel>
                 </Field>
               )}
-            />
+            </form.Field>
           </FieldGroup>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

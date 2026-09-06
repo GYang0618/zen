@@ -8,7 +8,8 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-  Skeleton
+  Skeleton,
+  VirtualList
 } from '@zen/ui'
 import { BriefcaseBusiness, Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -161,18 +162,27 @@ export function PostsList({ search, navigate }: PostsListProps) {
           <section
             className={cn('@container transition-opacity', isFilterFetching && 'opacity-70')}
           >
-            <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2 @2xl:grid-cols-3 @4xl:grid-cols-4">
-              {profiles.map((item) => (
+            <VirtualList
+              items={profiles}
+              estimateSize={240}
+              minLaneSize={260}
+              gap={16}
+              getItemKey={(item) => item.id}
+              className="max-h-[70vh]"
+              onEndReached={() => {
+                if (hasNextPage && !isFetchingNextPage) void fetchNextPage()
+              }}
+            >
+              {(item) => (
                 <PostsCard
-                  key={item.id}
                   item={item}
                   isSelecting={selection.isSelecting}
                   selected={selection.isSelected(item.id)}
                   onEnterSelecting={selection.enterSelecting}
                   onSelectedChange={(nextSelected) => selection.setSelected(item.id, nextSelected)}
                 />
-              ))}
-            </div>
+              )}
+            </VirtualList>
           </section>
           <InfiniteScrollSentinel
             hasNextPage={Boolean(hasNextPage)}

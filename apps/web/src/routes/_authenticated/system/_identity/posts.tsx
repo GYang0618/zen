@@ -18,6 +18,7 @@ const postsSearchSchema = z.object({
 export const Route = createFileRoute('/_authenticated/system/_identity/posts')({
   component: Posts,
   validateSearch: postsSearchSchema,
+  loaderDeps: ({ search }) => search,
   staticData: {
     title: '岗位管理',
     description: '维护可跨组织复用的岗位目录标准',

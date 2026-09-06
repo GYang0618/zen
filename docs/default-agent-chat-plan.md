@@ -27,7 +27,7 @@ apps/web Copilot Chat
 - 不修改 `apps/web/src/features/ai/copilot/popup.tsx`。
 - 不改变 Popup 的 Agent ID、注册逻辑和交互行为。
 - 不规划 `plan_agent`。
-- `apps/api/src/modules/chat` 仍视为废弃模块，不新增功能。
+- 旧 Chat 执行链已删除，不新增兼容实现。
 - Web 交互设计只针对默认 Chat 页面及其专属注册项。
 
 ---
@@ -706,7 +706,7 @@ Copilot/LangGraph Event
 - `apps/agent/src/default.ts` 是本规划唯一 Agent Graph。
 - `apps/web` 的默认 Chat 和 Popup 是两套不同产品模式。
 - Popup 和 `plan_agent` 维持现状，不做迁移。
-- `apps/api/src/modules/chat` 仅按废弃模块处理。
+- 旧 Chat 执行链仅作为历史设计背景，不再保留源码模块。
 - 延续 CopilotKit、LangGraph、LangChain、OpenAPI SDK 和 Qwen 兼容模型。
 - 首期使用 PostgreSQL 持久化，Redis、队列和独立 Worker 按规模触发。
 - 本规划不绑定日历周期，以阶段依赖、交付物和验收标准推进。

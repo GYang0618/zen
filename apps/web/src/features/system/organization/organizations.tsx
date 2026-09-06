@@ -1,3 +1,4 @@
+import { getRouteApi } from '@tanstack/react-router'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@zen/ui'
 import { ListTree, Network } from 'lucide-react'
 
@@ -11,7 +12,13 @@ import { OrganizationsDialogs } from './components/organizations-dialogs'
 import { OrganizationsPrimaryButtons } from './components/organizations-primary-buttons'
 import { OrganizationsProvider } from './organizations-provider'
 
+const organizationRoute = getRouteApi('/_authenticated/system/_identity/organization')
+
 export function Organizations() {
+  const search = organizationRoute.useSearch()
+  const navigate = organizationRoute.useNavigate()
+  const view = search.view ?? 'graph'
+
   return (
     <OrganizationsProvider>
       <AppHeader />
@@ -19,7 +26,16 @@ export function Organizations() {
       <Main fixed className="flex min-h-0 flex-1 flex-col gap-4 sm:gap-6">
         <AppPageHeader actions={<OrganizationsPrimaryButtons />} />
 
-        <Tabs defaultValue="graph" className="flex min-h-0 flex-1 flex-col">
+        <Tabs
+          value={view}
+          onValueChange={(next) => {
+            const nextView = next === 'tree' ? 'tree' : 'graph'
+            void navigate({
+              search: (prev) => ({ ...prev, view: nextView === 'graph' ? undefined : nextView })
+            })
+          }}
+          className="flex min-h-0 flex-1 flex-col"
+        >
           <TabsList className="mx-auto">
             <TabsTrigger value="graph">
               <Network data-icon="inline-start" />

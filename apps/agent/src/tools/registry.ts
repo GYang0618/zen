@@ -1,5 +1,7 @@
 import { PLUGIN_AGENT_TOOL_FACTORIES } from '@zen/plugin-registry/agent'
+import { toolManifestSchema } from '@zen/shared'
 import { tool } from 'langchain'
+import { z } from 'zod'
 
 import { asSdkOptions, executeApiCall, noteControllerList } from '../api'
 import { getToolExecutionPolicy } from '../tool-policy'
@@ -9,11 +11,17 @@ import { roleTools } from './role'
 import { userTools } from './user'
 
 import type { RunnableConfig } from '@langchain/core/runnables'
+import type { ToolManifest } from '@zen/shared'
 
 const rawPluginProviders = PLUGIN_AGENT_TOOL_FACTORIES.map((entry) => ({
   id: `plugin:${entry.pluginId}`,
   tools: entry.factory({
-    createTool: (handler, definition) => tool(handler, definition),
+    createTool: (handler, definition) => {
+      const manifest = entry.manifests.find((item) => item.name === definition.name)
+      if (!manifest) throw new Error(`Plugin tool lacks manifest: ${definition.name}`)
+      toolManifestSchema.parse(manifest)
+      return tool(handler, { ...definition, description: manifest.description })
+    },
     callApi: callPluginApi
   })
 }))
@@ -30,18 +38,7 @@ export interface AgentToolProvider {
   tools: readonly RegisteredTool[]
 }
 
-export interface AgentToolDescriptor {
-  name: string
-  inputSchema: unknown
-  permissionCode?: string
-  riskLevel: 'low' | 'medium' | 'high' | 'critical'
-  sideEffect: 'none' | 'write' | 'destructive'
-  requiresApproval: boolean
-  timeoutMs: number
-  retryPolicy: { maxRetries: number; retryableReasons: readonly string[] }
-  idempotencyPolicy: 'none' | 'run-tool-call'
-  pluginId?: string
-}
+export type AgentToolDescriptor = ToolManifest
 
 const coreProviders: readonly AgentToolProvider[] = [
   { id: 'core:user', tools: userTools },
@@ -76,7 +73,23 @@ export const defaultAgentToolDescriptors: readonly AgentToolDescriptor[] = defau
   (registeredTool) => {
     const policy = getToolExecutionPolicy(registeredTool.name)
     if (!policy) throw new Error(`Missing execution policy for agent tool: ${registeredTool.name}`)
-    return { name: registeredTool.name, inputSchema: registeredTool.schema, ...policy }
+    const pluginManifest = PLUGIN_AGENT_TOOL_FACTORIES.flatMap((entry) => entry.manifests).find(
+      (manifest) => manifest.name === registeredTool.name
+    )
+    if (pluginManifest) return toolManifestSchema.parse(pluginManifest)
+    const domain =
+      coreProviders
+        .find((provider) => provider.tools.some((tool) => tool.name === registeredTool.name))
+        ?.id.split(':')[1] ?? 'general'
+    return toolManifestSchema.parse({
+      name: registeredTool.name,
+      version: '1.0.0',
+      description: registeredTool.description,
+      inputSchema: z.toJSONSchema(registeredTool.schema),
+      capabilities: [domain, policy.sideEffect === 'none' ? 'read' : 'write'],
+      ui: { label: registeredTool.name },
+      ...policy
+    })
   }
 )
 
@@ -107,7 +120,7 @@ async function callPluginApi(
       options === undefined
         ? undefined
         : asSdkOptions<NonNullable<Parameters<typeof noteControllerList>[0]>>(options as object)
-    return executeApiCall(config, () => noteControllerList(sdkOptions))
+    return executeApiCall(config, async (_context) => noteControllerList(sdkOptions))
   }
   throw new Error(`Unsupported plugin OpenAPI operation: ${operationId}`)
 }

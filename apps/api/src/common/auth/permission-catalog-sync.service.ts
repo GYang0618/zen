@@ -8,8 +8,8 @@ import {
   KERNEL_PERMISSION_CATALOG
 } from '@zen/shared'
 
-import { AuthContextService } from '@/common/auth/auth-context.service'
-import { PrismaService } from '@/infra/prisma'
+import { PrismaService } from '../../infra/prisma/index.js'
+import { AuthContextService } from './auth-context.service.js'
 
 import type { OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import type { PermissionCatalogEntry } from '@zen/shared'

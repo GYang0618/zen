@@ -1,17 +1,18 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 
-import { findMonorepoRoot } from './discover'
+import { findMonorepoRoot } from './discover.js'
+import { formatGeneratedSource } from './format-generated.js'
 import {
   buildHostGeneratedSources,
   pruneStalePluginRoutes,
   writeOrCheckHostFiles
-} from './generate-host'
-import { buildPluginRegistryPackageSources, writeOrCheckLoaderFiles } from './generate-loaders'
-import { sortRegistryEntries } from './topo-sort'
-import { validatePlugins } from './validate'
+} from './generate-host.js'
+import { buildPluginRegistryPackageSources, writeOrCheckLoaderFiles } from './generate-loaders.js'
+import { sortRegistryEntries } from './topo-sort.js'
+import { validatePlugins } from './validate.js'
 
-import type { PluginRegistryEntry } from './types'
+import type { PluginRegistryEntry } from './types.js'
 
 export function buildRegistryEntries(rootDir?: string): PluginRegistryEntry[] {
   const root = rootDir ?? findMonorepoRoot()
@@ -62,7 +63,7 @@ export function renderRegistrySource(entries: PluginRegistryEntry[]): string {
 /**
  * 本文件由 \`zen-plugin generate\` 自动生成，请勿手工编辑。
  */
-import type { PluginRegistryEntry } from '../types'
+import type { PluginRegistryEntry } from '../types.js'
 
 export const PLUGIN_REGISTRY = ${payload} as const satisfies readonly PluginRegistryEntry[]
 
@@ -86,7 +87,7 @@ export function generatePluginRegistry(options?: {
   const outFile =
     options?.outFile ?? join(root, 'packages/plugin-sdk/src/generated/plugin-registry.gen.ts')
   const entries = buildRegistryEntries(root)
-  const source = `${renderRegistrySource(entries)}\n`
+  const source = formatGeneratedSource(renderRegistrySource(entries), outFile)
   const loaderSources = buildPluginRegistryPackageSources(entries, root)
   const hostSources = buildHostGeneratedSources(entries, root)
 

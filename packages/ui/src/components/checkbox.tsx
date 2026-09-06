@@ -1,6 +1,6 @@
+import { Checkbox as CheckboxPrimitive } from '@zen/ui/lib/base-ui-primitives'
 import { cn } from '@zen/ui/lib/utils'
 import { CheckIcon } from 'lucide-react'
-import { Checkbox as CheckboxPrimitive } from 'radix-ui'
 
 import type * as React from 'react'
 

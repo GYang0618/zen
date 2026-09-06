@@ -8,18 +8,10 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Skeleton,
-  Textarea
+  Skeleton
 } from '@zen/ui'
 import { Puzzle, Settings2 } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import { ConfirmDialog, ProfileDropdown, Search, ThemeSwitch } from '@/components'
 import { Can } from '@/components/auth/can'
@@ -27,12 +19,8 @@ import { EmptyState } from '@/components/empty-state'
 import { Header, Main } from '@/components/layouts'
 import { AppPageHeader } from '@/components/layouts/app-page-header'
 
-import {
-  useActivatePlugin,
-  useDeactivatePlugin,
-  usePluginsQuery,
-  useUpdatePluginConfig
-} from './queries'
+import { PluginConfigDialog } from './plugin-config-dialog'
+import { useActivatePlugin, useDeactivatePlugin, usePluginsQuery } from './queries'
 
 import type { PluginListItem } from './api'
 
@@ -40,9 +28,7 @@ export function PluginsPage() {
   const { data, isLoading } = usePluginsQuery()
   const activate = useActivatePlugin()
   const deactivate = useDeactivatePlugin()
-  const updateConfig = useUpdatePluginConfig()
   const [editing, setEditing] = useState<PluginListItem | null>(null)
-  const [configText, setConfigText] = useState('{}')
   const [deactivateTarget, setDeactivateTarget] = useState<PluginListItem | null>(null)
 
   return (
@@ -108,14 +94,7 @@ export function PluginsPage() {
                   </CardContent>
                   <Can permission={PermissionCode.PLUGIN_MANAGE}>
                     <CardFooter className="justify-end gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setEditing(plugin)
-                          setConfigText(JSON.stringify(plugin.config ?? {}, null, 2))
-                        }}
-                      >
+                      <Button size="sm" variant="outline" onClick={() => setEditing(plugin)}>
                         <Settings2 data-icon="inline-start" />
                         配置
                       </Button>
@@ -146,40 +125,15 @@ export function PluginsPage() {
         )}
       </Main>
 
-      <Dialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>插件配置 · {editing?.name}</DialogTitle>
-            <DialogDescription>以 JSON 维护插件 Feature Flag，保存后立即生效</DialogDescription>
-          </DialogHeader>
-          <Textarea
-            className="min-h-40 font-mono text-sm"
-            value={configText}
-            onChange={(e) => setConfigText(e.target.value)}
-            aria-label="插件 JSON 配置"
-          />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditing(null)}>
-              取消
-            </Button>
-            <Button
-              disabled={updateConfig.isPending || !editing}
-              onClick={async () => {
-                if (!editing) return
-                try {
-                  const parsed = JSON.parse(configText) as Record<string, unknown>
-                  await updateConfig.mutateAsync({ id: editing.id, config: parsed })
-                  setEditing(null)
-                } catch {
-                  toast.error('JSON 格式无效')
-                }
-              }}
-            >
-              保存
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {editing ? (
+        <PluginConfigDialog
+          key={editing.id}
+          plugin={editing}
+          onOpenChange={(open) => {
+            if (!open) setEditing(null)
+          }}
+        />
+      ) : null}
 
       <ConfirmDialog
         open={Boolean(deactivateTarget)}

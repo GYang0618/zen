@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { DEFAULT_TENANT_ID } from '@zen/shared'
 
-import { PrismaService } from '@/infra/prisma'
+import { PrismaService } from '../../infra/prisma/index.js'
 
 @Injectable()
 export class MembershipService {

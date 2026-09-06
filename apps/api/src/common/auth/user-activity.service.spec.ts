@@ -1,6 +1,8 @@
-import { UserActivityService } from './user-activity.service'
+import { UserActivityService } from './user-activity.service.js'
 
-import type { PrismaService } from '@/infra/prisma'
+import type { PrismaService } from '../../infra/prisma/index.js'
+
+const { jest } = import.meta
 
 const MINUTE = 60 * 1000
 

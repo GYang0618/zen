@@ -1,4 +1,4 @@
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm, useStore } from '@tanstack/react-form'
 import {
   Button,
   Calendar,
@@ -28,7 +28,6 @@ import {
 } from '@zen/ui'
 import { Building2, CalendarIcon, Loader2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { Controller, useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 
 import { ORG_TYPES } from '../data/data'
@@ -121,8 +120,7 @@ export function OrganizationActionSheet({
     return new Set([currentRow.id])
   }, [currentRow, isEdit])
 
-  const form = useForm<OrganizationFormValues>({
-    resolver: zodResolver(organizationFormSchema),
+  const form = useForm({
     defaultValues: {
       name: '',
       code: '',
@@ -131,10 +129,14 @@ export function OrganizationActionSheet({
       description: '',
       effectiveDate: TODAY,
       leaderId: undefined
+    } as OrganizationFormValues,
+    validators: { onChange: organizationFormSchema },
+    onSubmit: async ({ value }) => {
+      await (isEdit ? handleUpdateSubmit : handleCreateSubmit)(organizationFormSchema.parse(value))
     }
   })
 
-  const parentId = useWatch({ control: form.control, name: 'parentId' })
+  const parentId = useStore(form.store, (state) => state.values.parentId)
   const selectedParent = parentOptions.find((option) => option.id === parentId)
   const isRootEdit = isEdit && !currentRow?.parentId
 
@@ -192,16 +194,22 @@ export function OrganizationActionSheet({
   useEffect(() => {
     if (!open || isEdit) return
     if (!childTypes.length) return
-    const currentType = form.getValues('type')
+    const currentType = form.getFieldValue('type')
     if (!childTypes.includes(currentType as (typeof childTypes)[number])) {
-      form.setValue('type', childTypes[0])
+      form.setFieldValue('type', childTypes[0])
     }
   }, [open, isEdit, childTypes, form])
 
   const handleCreateSubmit = async (values: OrganizationFormValues) => {
     const code = values.code.trim()
     if (hasOrganizationCode(code)) {
-      form.setError('code', { message: '组织编码已存在' })
+      form.setFieldMeta('code', (meta) => ({
+        ...meta,
+        errorMap: {
+          ...meta.errorMap,
+          onSubmit: [{ code: 'custom', path: [], message: '组织编码已存在' }]
+        }
+      }))
       return
     }
 
@@ -270,58 +278,66 @@ export function OrganizationActionSheet({
         <form
           id="organization-action-form"
           className="flex-1 overflow-y-auto px-4"
-          onSubmit={form.handleSubmit(isEdit ? handleUpdateSubmit : handleCreateSubmit)}
+          onSubmit={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            void form.handleSubmit()
+          }}
         >
           <FieldGroup>
-            <Controller
-              name="name"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+            <form.Field name="name">
+              {(field) => (
+                <Field data-invalid={!field.state.meta.isValid}>
                   <FieldLabel htmlFor="organization-name">组织名称</FieldLabel>
                   <FieldContent>
                     <Input
-                      {...field}
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value)}
                       id="organization-name"
                       placeholder="例如：平台研发部"
-                      aria-invalid={fieldState.invalid}
+                      aria-invalid={!field.state.meta.isValid}
                       autoComplete="off"
                     />
-                    {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                    {!field.state.meta.isValid ? (
+                      <FieldError errors={field.state.meta.errors} />
+                    ) : null}
                   </FieldContent>
                 </Field>
               )}
-            />
+            </form.Field>
 
-            <Controller
-              name="code"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+            <form.Field name="code">
+              {(field) => (
+                <Field data-invalid={!field.state.meta.isValid}>
                   <FieldLabel htmlFor="organization-code">组织编码</FieldLabel>
                   <FieldContent>
                     <Input
-                      {...field}
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value)}
                       id="organization-code"
                       className="font-mono"
                       placeholder="例如：dept_platform"
-                      aria-invalid={fieldState.invalid}
+                      aria-invalid={!field.state.meta.isValid}
                       autoComplete="off"
                       disabled={isEdit}
                       readOnly={isEdit}
                     />
                     {isEdit ? <FieldDescription>创建后不可修改。</FieldDescription> : null}
-                    {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                    {!field.state.meta.isValid ? (
+                      <FieldError errors={field.state.meta.errors} />
+                    ) : null}
                   </FieldContent>
                 </Field>
               )}
-            />
+            </form.Field>
 
-            <Controller
-              name="parentId"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+            <form.Field name="parentId">
+              {(field) => (
+                <Field data-invalid={!field.state.meta.isValid}>
                   <FieldLabel htmlFor="organization-parent">上级组织</FieldLabel>
                   <FieldContent>
                     {isRootEdit ? (
@@ -333,12 +349,12 @@ export function OrganizationActionSheet({
                       <>
                         <OrganizationParentSelect
                           id="organization-parent"
-                          value={field.value}
-                          onValueChange={field.onChange}
+                          value={field.state.value}
+                          onValueChange={field.handleChange}
                           tree={organizations}
                           excludeIds={parentExcludeIds}
                           selectableIds={selectableParentIds}
-                          aria-invalid={fieldState.invalid}
+                          aria-invalid={!field.state.meta.isValid}
                         />
                         <FieldDescription>
                           {currentNode && !isEdit
@@ -347,20 +363,20 @@ export function OrganizationActionSheet({
                         </FieldDescription>
                       </>
                     )}
-                    {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                    {!field.state.meta.isValid ? (
+                      <FieldError errors={field.state.meta.errors} />
+                    ) : null}
                   </FieldContent>
                 </Field>
               )}
-            />
+            </form.Field>
 
-            <Controller
-              name="type"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+            <form.Field name="type">
+              {(field) => (
+                <Field data-invalid={!field.state.meta.isValid}>
                   <FieldLabel htmlFor="organization-type">组织类型</FieldLabel>
                   <FieldContent>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select value={field.state.value} onValueChange={field.handleChange}>
                       <SelectTrigger id="organization-type" className="w-full">
                         <SelectValue placeholder="选择组织类型" />
                       </SelectTrigger>
@@ -379,17 +395,17 @@ export function OrganizationActionSheet({
                         ? `可选类型：${childTypes.map((option) => getLabel(option)).join('、')}。`
                         : `根组织可选${rootTypes.map((type) => getLabel(type)).join('或')}。`}
                     </FieldDescription>
-                    {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                    {!field.state.meta.isValid ? (
+                      <FieldError errors={field.state.meta.errors} />
+                    ) : null}
                   </FieldContent>
                 </Field>
               )}
-            />
+            </form.Field>
 
-            <Controller
-              name="effectiveDate"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+            <form.Field name="effectiveDate">
+              {(field) => (
+                <Field data-invalid={!field.state.meta.isValid}>
                   <FieldLabel htmlFor="organization-effective-date">生效日期</FieldLabel>
                   <FieldContent>
                     <Popover open={effectiveDateOpen} onOpenChange={setEffectiveDateOpen}>
@@ -398,75 +414,82 @@ export function OrganizationActionSheet({
                           id="organization-effective-date"
                           type="button"
                           variant="outline"
-                          aria-invalid={fieldState.invalid}
+                          aria-invalid={!field.state.meta.isValid}
                           className="w-full justify-between font-normal"
                         >
-                          {field.value ? DATE_FORMATTER.format(field.value) : '选择生效日期'}
+                          {field.state.value
+                            ? DATE_FORMATTER.format(field.state.value)
+                            : '选择生效日期'}
                           <CalendarIcon data-icon="inline-end" />
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
                           mode="single"
-                          selected={field.value}
+                          selected={field.state.value}
                           onSelect={(date) => {
                             if (!date) return
-                            field.onChange(date)
+                            field.handleChange(date)
                             setEffectiveDateOpen(false)
                           }}
                           captionLayout="dropdown"
-                          defaultMonth={field.value}
+                          defaultMonth={field.state.value}
                           autoFocus
                         />
                       </PopoverContent>
                     </Popover>
-                    {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                    {!field.state.meta.isValid ? (
+                      <FieldError errors={field.state.meta.errors} />
+                    ) : null}
                   </FieldContent>
                 </Field>
               )}
-            />
+            </form.Field>
 
             {!isEdit ? (
-              <Controller
-                name="leaderId"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
+              <form.Field name="leaderId">
+                {(field) => (
+                  <Field data-invalid={!field.state.meta.isValid}>
                     <FieldLabel htmlFor="organization-leader">负责人</FieldLabel>
                     <FieldContent>
                       <OrganizationLeaderSelect
                         id="organization-leader"
-                        value={field.value}
-                        onValueChange={(user) => field.onChange(user.id)}
-                        aria-invalid={fieldState.invalid}
+                        value={field.state.value}
+                        onValueChange={(user) => field.handleChange(user.id)}
+                        aria-invalid={!field.state.meta.isValid}
                       />
                       <FieldDescription>电话与邮箱将同步自用户资料。</FieldDescription>
-                      {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                      {!field.state.meta.isValid ? (
+                        <FieldError errors={field.state.meta.errors} />
+                      ) : null}
                     </FieldContent>
                   </Field>
                 )}
-              />
+              </form.Field>
             ) : null}
 
-            <Controller
-              name="description"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
+            <form.Field name="description">
+              {(field) => (
+                <Field data-invalid={!field.state.meta.isValid}>
                   <FieldLabel htmlFor="organization-description">描述说明</FieldLabel>
                   <FieldContent>
                     <Textarea
-                      {...field}
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value)}
                       id="organization-description"
                       rows={4}
                       placeholder="说明该组织的职责与范围"
-                      aria-invalid={fieldState.invalid}
+                      aria-invalid={!field.state.meta.isValid}
                     />
-                    {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                    {!field.state.meta.isValid ? (
+                      <FieldError errors={field.state.meta.errors} />
+                    ) : null}
                   </FieldContent>
                 </Field>
               )}
-            />
+            </form.Field>
           </FieldGroup>
         </form>
 
