@@ -124,10 +124,7 @@ export function AITable<TData extends RowData>({
         </TableHeader>
       </Table>
 
-      <ScrollArea
-        type="hover"
-        className="max-h-80 overscroll-contain *:data-[slot=scroll-area-viewport]:h-auto *:data-[slot=scroll-area-viewport]:max-h-80"
-      >
+      <ScrollArea className="max-h-80 overscroll-contain *:data-[slot=scroll-area-viewport]:h-auto *:data-[slot=scroll-area-viewport]:max-h-80">
         <Table className="table-fixed">
           <TableColGroup table={table} />
           <TableBody>

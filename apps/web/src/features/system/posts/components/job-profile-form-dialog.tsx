@@ -242,10 +242,15 @@ export function JobProfileFormDialog({
                   <Field data-invalid={!field.state.meta.isValid || undefined}>
                     <FieldLabel>标准职级</FieldLabel>
                     <Select
+                      items={JOB_PROFILE_LEVEL_OPTIONS.map((option) => ({
+                        label: option.label,
+                        value: option.value
+                      }))}
                       value={field.state.value}
-                      onValueChange={(value) =>
+                      onValueChange={(value) => {
+                        if (!value) return
                         field.handleChange(jobProfileFormSchema.shape.level.parse(value))
-                      }
+                      }}
                     >
                       <SelectTrigger aria-invalid={!field.state.meta.isValid || undefined}>
                         <SelectValue placeholder="选择职级" />

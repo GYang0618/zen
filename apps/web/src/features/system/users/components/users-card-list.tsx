@@ -100,7 +100,7 @@ export function UsersCardList({ keyword, status, role, sortBy, sortOrder }: User
           minLaneSize={320}
           gap={16}
           getItemKey={(user) => user.id}
-          className="max-h-[70vh]"
+          scroll="window"
           onEndReached={() => {
             if (hasNextPage && !isFetchingNextPage) void fetchNextPage()
           }}

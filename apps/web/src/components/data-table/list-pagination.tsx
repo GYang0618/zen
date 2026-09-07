@@ -59,8 +59,13 @@ export function ListPagination({
         </div>
         <div className="flex items-center gap-2 @max-2xl/content:flex-row-reverse">
           <Select
+            items={pageSizeOptions.map((option) => ({
+              label: `${option}`,
+              value: `${option}`
+            }))}
             value={`${pageSize}`}
             onValueChange={(value) => {
+              if (!value) return
               onPageSizeChange(Number(value))
             }}
           >

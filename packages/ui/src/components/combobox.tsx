@@ -1,5 +1,3 @@
-'use client'
-
 import { Combobox as ComboboxPrimitive } from '@base-ui/react'
 import { Button } from '@zen/ui/components/button'
 import {
@@ -8,7 +6,7 @@ import {
   InputGroupButton,
   InputGroupInput
 } from '@zen/ui/components/input-group'
-import { cn } from '@zen/ui/lib/utils'
+import { cn } from 'cn'
 import { CheckIcon, ChevronDownIcon, XIcon } from 'lucide-react'
 import * as React from 'react'
 
@@ -63,13 +61,11 @@ function ComboboxInput({
           <InputGroupButton
             size="icon-xs"
             variant="ghost"
-            asChild
+            render={<ComboboxTrigger />}
             data-slot="input-group-button"
             className="group-has-data-[slot=combobox-clear]/input-group:hidden data-pressed:bg-transparent"
             disabled={disabled}
-          >
-            <ComboboxTrigger />
-          </InputGroupButton>
+          />
         )}
         {showClear && <ComboboxClear disabled={disabled} />}
       </InputGroupAddon>

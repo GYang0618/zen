@@ -53,8 +53,12 @@ export function UserDetail({ userId }: { userId: string }) {
             description={error instanceof Error ? error.message : '用户不存在或无权访问'}
             action={
               <div className="flex gap-2">
-                <Button variant="outline" asChild>
-                  <Link to="/system/users">返回用户列表</Link>
+                <Button
+                  variant="outline"
+                  render={<Link to="/system/users" />}
+                  nativeButton={false}
+                >
+                  返回用户列表
                 </Button>
                 <Button variant="outline" onClick={() => refetch()}>
                   重试

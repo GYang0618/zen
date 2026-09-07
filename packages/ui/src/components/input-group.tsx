@@ -3,8 +3,8 @@
 import { Button } from '@zen/ui/components/button'
 import { Input } from '@zen/ui/components/input'
 import { Textarea } from '@zen/ui/components/textarea'
-import { cn } from '@zen/ui/lib/utils'
 import { cva } from 'class-variance-authority'
+import { cn } from 'cn'
 
 import type { VariantProps } from 'class-variance-authority'
 import type * as React from 'react'
@@ -48,7 +48,7 @@ function InputGroupAddon({
   ...props
 }: React.ComponentProps<'div'> & VariantProps<typeof inputGroupAddonVariants>) {
   return (
-    // biome-ignore lint/a11y/useKeyWithClickEvents: ignore
+    // biome-ignore lint/a11y/useKeyWithClickEvents: allow click events
     <div
       role="group"
       data-slot="input-group-addon"
@@ -85,8 +85,10 @@ function InputGroupButton({
   variant = 'ghost',
   size = 'xs',
   ...props
-}: Omit<React.ComponentProps<typeof Button>, 'size'> &
-  VariantProps<typeof inputGroupButtonVariants>) {
+}: Omit<React.ComponentProps<typeof Button>, 'size' | 'type'> &
+  VariantProps<typeof inputGroupButtonVariants> & {
+    type?: 'button' | 'submit' | 'reset'
+  }) {
   return (
     <Button
       type={type}

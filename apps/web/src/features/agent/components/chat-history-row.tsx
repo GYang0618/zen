@@ -196,16 +196,18 @@ export function HistoryRow({
               {formatRelativeTime(thread.updatedAt)}
             </span>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="对话操作"
-                  className="relative rounded-full"
-                >
-                  <MoreHorizontal />
-                </Button>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="对话操作"
+                    className="relative rounded-full"
+                  />
+                }
+              >
+                <MoreHorizontal />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-36">
                 <DropdownMenuItem onClick={onRename}>

@@ -27,35 +27,37 @@ export function JobProfileIconPicker({
 
   return (
     <Popover modal open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          id={id}
-          type="button"
-          variant="outline"
-          data-empty={!value}
-          aria-invalid={ariaInvalid}
-          className="w-full justify-between font-normal data-[empty=true]:text-muted-foreground"
-        >
-          <span className="flex min-w-0 items-center gap-2">
-            {value ? (
-              <span
-                className={cn(
-                  'flex size-6 shrink-0 items-center justify-center rounded-full',
-                  getJobProfileIconColorClassName(color)
-                )}
-              >
-                <DynamicIcon name={value} className="size-3.5" aria-hidden />
-              </span>
-            ) : (
-              <Shapes className="size-4 shrink-0" aria-hidden />
-            )}
-            <span className="truncate">{selectedIcon?.label ?? '选择岗位图标'}</span>
-          </span>
-          <ChevronsUpDown data-icon="inline-end" />
-        </Button>
+      <PopoverTrigger
+        render={
+          <Button
+            id={id}
+            type="button"
+            variant="outline"
+            data-empty={!value}
+            aria-invalid={ariaInvalid}
+            className="w-full justify-between font-normal data-[empty=true]:text-muted-foreground"
+          />
+        }
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          {value ? (
+            <span
+              className={cn(
+                'flex size-6 shrink-0 items-center justify-center rounded-full',
+                getJobProfileIconColorClassName(color)
+              )}
+            >
+              <DynamicIcon name={value} className="size-3.5" aria-hidden />
+            </span>
+          ) : (
+            <Shapes className="size-4 shrink-0" aria-hidden />
+          )}
+          <span className="truncate">{selectedIcon?.label ?? '选择岗位图标'}</span>
+        </span>
+        <ChevronsUpDown data-icon="inline-end" />
       </PopoverTrigger>
       <PopoverContent className="w-(--anchor-width) p-2" align="start">
-        <ScrollArea type="hover">
+        <ScrollArea>
           <div className="flex max-h-56 flex-wrap gap-1">
             {JOB_PROFILE_ICONS.map((icon) => (
               <Button

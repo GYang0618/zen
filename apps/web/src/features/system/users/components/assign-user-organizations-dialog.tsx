@@ -174,8 +174,9 @@ export function AssignUserOrganizationsDialog({
             <SheetDescription>{copy.description}</SheetDescription>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto overscroll-contain px-4">
-            {step === 'confirm' ? (
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <div className="px-4">
+              {step === 'confirm' ? (
               <div className="flex flex-col gap-4 py-2">
                 <AssignmentChangeSummary
                   added={changes.addedIds.map((id) => ({ id, label: resolveOrgName(id) }))}
@@ -212,6 +213,7 @@ export function AssignUserOrganizationsDialog({
                 onRemove={handleRemove}
               />
             ) : null}
+            </div>
           </div>
 
           <SheetFooter className="border-t sm:flex-row sm:justify-end">

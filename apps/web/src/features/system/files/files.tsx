@@ -4,6 +4,7 @@ import {
   Input,
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -82,8 +83,16 @@ function FilesContent() {
             aria-label="搜索文件名"
           />
           <Select
+            items={[
+              { label: '全部状态', value: 'all' },
+              ...FILE_STATUS_VALUES.map((item) => ({
+                label: STATUS_LABEL[item],
+                value: item
+              }))
+            ]}
             value={status}
             onValueChange={(value) => {
+              if (!value) return
               setStatus(value as FileStatus | 'all')
               setPage(1)
             }}
@@ -92,12 +101,14 @@ function FilesContent() {
               <SelectValue placeholder="状态" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">全部状态</SelectItem>
-              {FILE_STATUS_VALUES.map((item) => (
-                <SelectItem key={item} value={item}>
-                  {STATUS_LABEL[item]}
-                </SelectItem>
-              ))}
+              <SelectGroup>
+                <SelectItem value="all">全部状态</SelectItem>
+                {FILE_STATUS_VALUES.map((item) => (
+                  <SelectItem key={item} value={item}>
+                    {STATUS_LABEL[item]}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
           <Button

@@ -138,21 +138,23 @@ export function OrganizationMembers({ organizationId }: { organizationId: string
               <Card key={item.id} className="relative rounded-2xl bg-background/80">
                 <div className="absolute top-2 right-2">
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`打开${name}的成员操作`}
-                      >
-                        <Ellipsis />
-                      </Button>
+                    <DropdownMenuTrigger
+                      render={
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`打开${name}的成员操作`}
+                        />
+                      }
+                    >
+                      <Ellipsis />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-36">
                       <DropdownMenuGroup>
                         <DropdownMenuItem
                           variant="destructive"
-                          onSelect={() => setDialog({ type: 'remove', member: item })}
+                          onClick={() => setDialog({ type: 'remove', member: item })}
                         >
                           <UserRoundMinus />
                           移除成员

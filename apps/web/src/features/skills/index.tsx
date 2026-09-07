@@ -92,7 +92,17 @@ export function SkillsFeaturePage() {
               已安装 <span className="ml-1 text-muted-foreground">{installedSkills.size}</span>
             </TabsTrigger>
           </TabsList>
-          <Select value={sort} onValueChange={(value) => setSort(value as SkillSort)}>
+          <Select
+            items={[
+              { label: '热门优先', value: 'popular' },
+              { label: '最近更新', value: 'updated' },
+              { label: '名称排序', value: 'name' }
+            ]}
+            value={sort}
+            onValueChange={(value) => {
+              if (value) setSort(value as SkillSort)
+            }}
+          >
             <SelectTrigger size="sm" aria-label="排序方式" className="w-28">
               <SelectValue />
             </SelectTrigger>

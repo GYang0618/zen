@@ -1,20 +1,11 @@
-import { ScrollArea as ScrollAreaPrimitive } from '@zen/ui/lib/base-ui-primitives'
-import { cn } from '@zen/ui/lib/utils'
+import { ScrollArea as ScrollAreaPrimitive } from '@base-ui/react/scroll-area'
+import { cn } from 'cn'
 
-import type * as React from 'react'
-
-function ScrollArea({
-  className,
-  children,
-  type: _type,
-  ...props
-}: React.ComponentProps<typeof ScrollAreaPrimitive.Root> & {
-  type?: 'auto' | 'always' | 'scroll' | 'hover'
-}) {
+function ScrollArea({ className, children, ...props }: ScrollAreaPrimitive.Root.Props) {
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
-      className={cn('relative overflow-hidden', className)}
+      className={cn('relative', className)}
       {...props}
     >
       <ScrollAreaPrimitive.Viewport
@@ -33,9 +24,9 @@ function ScrollBar({
   className,
   orientation = 'vertical',
   ...props
-}: React.ComponentProps<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>) {
+}: ScrollAreaPrimitive.Scrollbar.Props) {
   return (
-    <ScrollAreaPrimitive.ScrollAreaScrollbar
+    <ScrollAreaPrimitive.Scrollbar
       data-slot="scroll-area-scrollbar"
       data-orientation={orientation}
       orientation={orientation}
@@ -45,11 +36,11 @@ function ScrollBar({
       )}
       {...props}
     >
-      <ScrollAreaPrimitive.ScrollAreaThumb
+      <ScrollAreaPrimitive.Thumb
         data-slot="scroll-area-thumb"
         className="relative flex-1 rounded-full bg-border"
       />
-    </ScrollAreaPrimitive.ScrollAreaScrollbar>
+    </ScrollAreaPrimitive.Scrollbar>
   )
 }
 

@@ -1,11 +1,11 @@
-import { Label as LabelPrimitive } from '@zen/ui/lib/base-ui-primitives'
-import { cn } from '@zen/ui/lib/utils'
+import { cn } from 'cn'
 
 import type * as React from 'react'
 
-function Label({ className, ...props }: React.ComponentProps<typeof LabelPrimitive.Root>) {
+function Label({ className, ...props }: React.ComponentProps<'label'>) {
   return (
-    <LabelPrimitive.Root
+    // biome-ignore lint/a11y/noLabelWithoutControl: ignore
+    <label
       data-slot="label"
       className={cn(
         'flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50',

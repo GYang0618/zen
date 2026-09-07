@@ -176,15 +176,17 @@ function TreeNode({
             </Button>
 
             {hasChildren ? (
-              <CollapsibleTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="group size-7"
-                  onClick={(event) => event.stopPropagation()}
-                  aria-label={open ? `收起${name}` : `展开${name}`}
-                >
-                  <ChevronRightIcon className="transition-transform in-data-panel-open:rotate-90" />
-                </Button>
+              <CollapsibleTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    className="group size-7"
+                    onClick={(event) => event.stopPropagation()}
+                    aria-label={open ? `收起${name}` : `展开${name}`}
+                  />
+                }
+              >
+                <ChevronRightIcon className="transition-transform in-data-panel-open:rotate-90" />
               </CollapsibleTrigger>
             ) : null}
             <div className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
@@ -203,22 +205,25 @@ function TreeNode({
               orientation="vertical"
             />
             <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="配置"
-                  className="pointer-events-none opacity-0 transition-opacity duration-200 group-hover/item:pointer-events-auto group-hover/item:opacity-100"
-                  asChild
-                >
-                  <Link
-                    to="/system/organization/$id"
-                    params={{ id }}
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    <Settings />
-                  </Link>
-                </Button>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="配置"
+                    className="pointer-events-none opacity-0 transition-opacity duration-200 group-hover/item:pointer-events-auto group-hover/item:opacity-100"
+                    nativeButton={false}
+                    render={
+                      <Link
+                        to="/system/organization/$id"
+                        params={{ id }}
+                        onClick={(event) => event.stopPropagation()}
+                      />
+                    }
+                  />
+                }
+              >
+                <Settings />
               </TooltipTrigger>
               <TooltipContent>配置</TooltipContent>
             </Tooltip>
@@ -420,30 +425,34 @@ export function OrganizationTree() {
         <CardTitle>组织架构树</CardTitle>
         <CardAction>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label="全部展开"
-                onClick={() => setExpandedIds(new Set(expandableIds))}
-              >
-                <ChevronsUpDown />
-              </Button>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="全部展开"
+                  onClick={() => setExpandedIds(new Set(expandableIds))}
+                />
+              }
+            >
+              <ChevronsUpDown />
             </TooltipTrigger>
             <TooltipContent>全部展开</TooltipContent>
           </Tooltip>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label="全部收起"
-                onClick={() => setExpandedIds(new Set())}
-              >
-                <ChevronsDownUp />
-              </Button>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="全部收起"
+                  onClick={() => setExpandedIds(new Set())}
+                />
+              }
+            >
+              <ChevronsDownUp />
             </TooltipTrigger>
             <TooltipContent>全部收起</TooltipContent>
           </Tooltip>

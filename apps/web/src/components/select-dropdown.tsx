@@ -22,11 +22,16 @@ export function SelectDropdown({
   className = '',
   isControlled = false
 }: SelectDropdownProps) {
+  const handleValueChange = (value: string | null | undefined) => {
+    if (value == null) return
+    onValueChange?.(value)
+  }
+
   const defaultState = isControlled
-    ? { value: defaultValue, onValueChange }
-    : { defaultValue, onValueChange }
+    ? { value: defaultValue, onValueChange: handleValueChange }
+    : { defaultValue, onValueChange: handleValueChange }
   return (
-    <Select {...defaultState}>
+    <Select {...defaultState} items={isPending ? [{ label: 'Loading...', value: 'loading' }] : items}>
       <SelectTrigger disabled={disabled} className={cn(className)}>
         <SelectValue placeholder={placeholder ?? 'Select'} />
       </SelectTrigger>

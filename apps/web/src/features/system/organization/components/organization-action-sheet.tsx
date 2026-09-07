@@ -260,7 +260,7 @@ export function OrganizationActionSheet({
         onOpenChange(nextOpen)
       }}
     >
-      <SheetContent className="flex flex-col sm:max-w-md">
+      <SheetContent className="flex min-h-0 flex-col overflow-hidden sm:max-w-md">
         <SheetHeader className="border-b">
           <SheetTitle>
             <span className="flex items-center gap-2">
@@ -277,14 +277,14 @@ export function OrganizationActionSheet({
 
         <form
           id="organization-action-form"
-          className="flex-1 overflow-y-auto px-4"
+          className="min-h-0 flex-1 overflow-y-auto"
           onSubmit={(event) => {
             event.preventDefault()
             event.stopPropagation()
             void form.handleSubmit()
           }}
         >
-          <FieldGroup>
+          <FieldGroup className="px-4">
             <form.Field name="name">
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid}>
@@ -376,7 +376,16 @@ export function OrganizationActionSheet({
                 <Field data-invalid={!field.state.meta.isValid}>
                   <FieldLabel htmlFor="organization-type">组织类型</FieldLabel>
                   <FieldContent>
-                    <Select value={field.state.value} onValueChange={field.handleChange}>
+                    <Select
+                      items={childTypes.map((option) => ({
+                        label: getLabel(option),
+                        value: option
+                      }))}
+                      value={field.state.value}
+                      onValueChange={(value) => {
+                        if (value) field.handleChange(value)
+                      }}
+                    >
                       <SelectTrigger id="organization-type" className="w-full">
                         <SelectValue placeholder="选择组织类型" />
                       </SelectTrigger>
@@ -409,19 +418,21 @@ export function OrganizationActionSheet({
                   <FieldLabel htmlFor="organization-effective-date">生效日期</FieldLabel>
                   <FieldContent>
                     <Popover open={effectiveDateOpen} onOpenChange={setEffectiveDateOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          id="organization-effective-date"
-                          type="button"
-                          variant="outline"
-                          aria-invalid={!field.state.meta.isValid}
-                          className="w-full justify-between font-normal"
-                        >
-                          {field.state.value
-                            ? DATE_FORMATTER.format(field.state.value)
-                            : '选择生效日期'}
-                          <CalendarIcon data-icon="inline-end" />
-                        </Button>
+                      <PopoverTrigger
+                        render={
+                          <Button
+                            id="organization-effective-date"
+                            type="button"
+                            variant="outline"
+                            aria-invalid={!field.state.meta.isValid}
+                            className="w-full justify-between font-normal"
+                          />
+                        }
+                      >
+                        {field.state.value
+                          ? DATE_FORMATTER.format(field.state.value)
+                          : '选择生效日期'}
+                        <CalendarIcon data-icon="inline-end" />
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar

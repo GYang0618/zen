@@ -1,5 +1,6 @@
-import { Direction } from '@zen/ui/lib/base-ui-primitives'
+"use client"
 
-const { DirectionProvider, Provider, useDirection } = Direction
-
-export { DirectionProvider, Provider, useDirection }
+export {
+  DirectionProvider,
+  useDirection,
+} from "@base-ui/react/direction-provider"

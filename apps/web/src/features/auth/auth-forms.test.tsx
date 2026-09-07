@@ -33,7 +33,6 @@ vi.mock('@zen/ui', () => ({
   FieldLabel: ({ htmlFor, children }: ComponentProps<'label'>) => (
     <label htmlFor={htmlFor ?? 'test-input'}>{children}</label>
   ),
-  FormActions: (props: ComponentProps<'div'>) => <div {...props} />,
   FieldError: ({ errors }: { errors: { message?: string }[] }) => (
     <div role="alert">{errors.map((error) => error.message).join(', ')}</div>
   ),

@@ -176,19 +176,21 @@ function PositionCard({ position, onUnlink }: PositionCardProps) {
             <Badge variant="outline">{vacancy > 0 ? '有空缺' : '已满编'}</Badge>
             <Can permission={PermissionCode.POST_MANAGE}>
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={`打开${position.name}的操作`}
-                  >
-                    <MoreHorizontal />
-                  </Button>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`打开${position.name}的操作`}
+                    />
+                  }
+                >
+                  <MoreHorizontal />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-36">
                   <DropdownMenuGroup>
-                    <DropdownMenuItem variant="destructive" onSelect={onUnlink}>
+                    <DropdownMenuItem variant="destructive" onClick={onUnlink}>
                       <Unlink />
                       取消关联
                     </DropdownMenuItem>

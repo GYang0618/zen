@@ -5,6 +5,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger
@@ -24,27 +25,29 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
 
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="ms-auto hidden h-8 lg:flex">
-          <MixerHorizontalIcon className="size-4" />
-          视图
-        </Button>
+      <DropdownMenuTrigger
+        render={<Button variant="outline" size="sm" className="ms-auto hidden h-8 lg:flex" />}
+      >
+        <MixerHorizontalIcon className="size-4" />
+        视图
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[150px]">
-        <DropdownMenuLabel>切换列</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {columns.map((column) => {
-          return (
-            <DropdownMenuCheckboxItem
-              key={column.id}
-              className="capitalize"
-              checked={column.getIsVisible()}
-              onCheckedChange={(value) => column.toggleVisibility(!!value)}
-            >
-              {column.columnDef.meta?.title || column.id}
-            </DropdownMenuCheckboxItem>
-          )
-        })}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>切换列</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {columns.map((column) => {
+            return (
+              <DropdownMenuCheckboxItem
+                key={column.id}
+                className="capitalize"
+                checked={column.getIsVisible()}
+                onCheckedChange={(value) => column.toggleVisibility(!!value)}
+              >
+                {column.columnDef.meta?.title || column.id}
+              </DropdownMenuCheckboxItem>
+            )
+          })}
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   )

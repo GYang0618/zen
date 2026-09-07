@@ -81,8 +81,13 @@ export function AssignUserMembershipRow({
       ) : (
         <div className="flex items-center gap-1">
           <Select
+            items={positions.map((position) => ({
+              label: `${position.name} · ${position.level}`,
+              value: position.id
+            }))}
             value={postId || undefined}
             onValueChange={(value) => {
+              if (!value) return
               const selected = positions.find((position) => position.id === value)
               onPostChange(value, selected?.name)
             }}

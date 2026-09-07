@@ -49,15 +49,17 @@ function IconGridCell({ entry }: { entry: LucideIconEntry }) {
   return (
     <div className="flex size-full items-center justify-center">
       <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            className="size-11"
-            aria-label={`复制图标名称 ${entry.kebabName}`}
-            onClick={() => void copyIconName(entry)}
-          >
-            <entry.Icon aria-hidden className="size-5 shrink-0" />
-          </Button>
+        <TooltipTrigger
+          render={
+            <Button
+              variant="ghost"
+              className="size-11"
+              aria-label={`复制图标名称 ${entry.kebabName}`}
+              onClick={() => void copyIconName(entry)}
+            />
+          }
+        >
+          <entry.Icon aria-hidden className="size-5 shrink-0" />
         </TooltipTrigger>
         <TooltipContent>{entry.kebabName}</TooltipContent>
       </Tooltip>
@@ -105,7 +107,7 @@ export function LucideIconsBrowser() {
         </p>
       </section>
 
-      <TooltipProvider delayDuration={200}>
+      <TooltipProvider delay={200}>
         <VirtualList
           key={deferredKeyword}
           items={filteredIcons}

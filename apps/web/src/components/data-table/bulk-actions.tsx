@@ -132,18 +132,20 @@ export function BulkActionsToolbar({
           )}
         >
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={onClearSelection}
-                className="size-6 rounded-full"
-                aria-label={selectedCount > 0 ? '清空选择' : '退出选择'}
-                title={selectedCount > 0 ? '清空选择 (Escape)' : '退出选择 (Escape)'}
-              >
-                <X />
-                <span className="sr-only">{selectedCount > 0 ? '清空选择' : '退出选择'}</span>
-              </Button>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={onClearSelection}
+                  className="size-6 rounded-full"
+                  aria-label={selectedCount > 0 ? '清空选择' : '退出选择'}
+                  title={selectedCount > 0 ? '清空选择 (Escape)' : '退出选择 (Escape)'}
+                />
+              }
+            >
+              <X />
+              <span className="sr-only">{selectedCount > 0 ? '清空选择' : '退出选择'}</span>
             </TooltipTrigger>
             <TooltipContent>
               <p>{selectedCount > 0 ? '清空选择 ( Escape 键)' : '退出选择 ( Escape 键)'}</p>

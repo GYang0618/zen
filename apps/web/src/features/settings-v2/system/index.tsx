@@ -128,7 +128,7 @@ export function SettingsSystem() {
           <FieldGroup>
             <Field>
               <FieldLabel>默认语言</FieldLabel>
-              <Select defaultValue="zh-CN">
+              <Select items={LANGUAGE_OPTIONS} defaultValue="zh-CN">
                 <SelectTrigger id="system-language">
                   <SelectValue />
                 </SelectTrigger>
@@ -145,7 +145,7 @@ export function SettingsSystem() {
             </Field>
             <Field>
               <FieldLabel>默认时区</FieldLabel>
-              <Select defaultValue="Asia/Shanghai">
+              <Select items={TIMEZONE_OPTIONS} defaultValue="Asia/Shanghai">
                 <SelectTrigger id="system-timezone">
                   <SelectValue />
                 </SelectTrigger>
@@ -162,7 +162,7 @@ export function SettingsSystem() {
             </Field>
             <Field>
               <FieldLabel>日期格式</FieldLabel>
-              <Select defaultValue="yyyy-MM-dd">
+              <Select items={DATE_FORMAT_OPTIONS} defaultValue="yyyy-MM-dd">
                 <SelectTrigger id="system-date-format">
                   <SelectValue />
                 </SelectTrigger>

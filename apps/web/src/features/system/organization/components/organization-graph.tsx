@@ -226,30 +226,34 @@ export function OrganizationGraph() {
             </Button>
           </ButtonGroup>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label="全部展开"
-                onClick={() => setExpandedIds(new Set(expandableIds))}
-              >
-                <ChevronsUpDown />
-              </Button>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="全部展开"
+                  onClick={() => setExpandedIds(new Set(expandableIds))}
+                />
+              }
+            >
+              <ChevronsUpDown />
             </TooltipTrigger>
             <TooltipContent>全部展开</TooltipContent>
           </Tooltip>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label="全部收起"
-                onClick={() => setExpandedIds(new Set())}
-              >
-                <ChevronsDownUp />
-              </Button>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="全部收起"
+                  onClick={() => setExpandedIds(new Set())}
+                />
+              }
+            >
+              <ChevronsDownUp />
             </TooltipTrigger>
             <TooltipContent>全部收起</TooltipContent>
           </Tooltip>

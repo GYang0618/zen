@@ -1,3 +1,5 @@
+'use client'
+
 import {
   Dialog,
   DialogContent,
@@ -6,8 +8,8 @@ import {
   DialogTitle
 } from '@zen/ui/components/dialog'
 import { InputGroup, InputGroupAddon } from '@zen/ui/components/input-group'
-import { cn } from '@zen/ui/lib/utils'
 import { Command as CommandPrimitive } from 'cmdk'
+import { cn } from 'cn'
 import { CheckIcon, SearchIcon } from 'lucide-react'
 
 import type * as React from 'react'
@@ -32,11 +34,12 @@ function CommandDialog({
   className,
   showCloseButton = false,
   ...props
-}: React.ComponentProps<typeof Dialog> & {
+}: Omit<React.ComponentProps<typeof Dialog>, 'children'> & {
   title?: string
   description?: string
   className?: string
   showCloseButton?: boolean
+  children: React.ReactNode
 }) {
   return (
     <Dialog {...props}>

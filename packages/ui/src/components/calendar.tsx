@@ -1,5 +1,7 @@
+'use client'
+
 import { Button, buttonVariants } from '@zen/ui/components/button'
-import { cn } from '@zen/ui/lib/utils'
+import { cn } from 'cn'
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 import * as React from 'react'
 import { DayPicker, getDefaultClassNames } from 'react-day-picker'
@@ -159,7 +161,6 @@ function CalendarDayButton({
 
   return (
     <Button
-      ref={ref}
       variant="ghost"
       size="icon"
       data-day={day.date.toLocaleDateString(locale?.code)}

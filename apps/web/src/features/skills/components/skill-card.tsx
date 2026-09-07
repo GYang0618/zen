@@ -40,10 +40,12 @@ export function SkillCard({ skill, installed, onToggle, onSelect }: SkillCardPro
         <SkillIcon skill={skill} />
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button aria-label={`${skill.name} 更多操作`} variant="ghost" size="icon-sm">
-                <MoreHorizontal />
-              </Button>
+            <TooltipTrigger
+              render={
+                <Button aria-label={`${skill.name} 更多操作`} variant="ghost" size="icon-sm" />
+              }
+            >
+              <MoreHorizontal />
             </TooltipTrigger>
             <TooltipContent>更多操作</TooltipContent>
           </Tooltip>

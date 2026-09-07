@@ -66,25 +66,23 @@ export function UserRolesCard({ user, onAssign }: UserRolesCardProps) {
                 key={role.id}
                 variant="outline"
                 className="rounded-2xl border px-4 py-4"
-                asChild
+                render={<Link to="/system/roles/$id" params={{ id: role.id }} />}
               >
-                <Link to="/system/roles/$id" params={{ id: role.id }}>
-                  <ItemMedia>
-                    <UserRoleIcon icon={role.icon} iconColor={role.iconColor} />
-                  </ItemMedia>
-                  <ItemContent className="min-w-0">
-                    <ItemTitle className="min-w-0">
-                      <span className="truncate">{role.name}</span>
-                      <Badge variant="secondary" className="font-mono text-xs">
-                        <ShieldCheck /> {role.permissionCount} 项权限
-                      </Badge>
-                    </ItemTitle>
-                    <ItemDescription>{role.description || '该角色暂无描述'}</ItemDescription>
-                  </ItemContent>
-                  <ItemActions>
-                    <ChevronRight className="text-muted-foreground" aria-hidden="true" />
-                  </ItemActions>
-                </Link>
+                <ItemMedia>
+                  <UserRoleIcon icon={role.icon} iconColor={role.iconColor} />
+                </ItemMedia>
+                <ItemContent className="min-w-0">
+                  <ItemTitle className="min-w-0">
+                    <span className="truncate">{role.name}</span>
+                    <Badge variant="secondary" className="font-mono text-xs">
+                      <ShieldCheck /> {role.permissionCount} 项权限
+                    </Badge>
+                  </ItemTitle>
+                  <ItemDescription>{role.description || '该角色暂无描述'}</ItemDescription>
+                </ItemContent>
+                <ItemActions>
+                  <ChevronRight className="text-muted-foreground" aria-hidden="true" />
+                </ItemActions>
               </Item>
             ))}
           </ItemGroup>

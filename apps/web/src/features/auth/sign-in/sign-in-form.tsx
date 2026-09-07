@@ -9,7 +9,6 @@ import {
   FieldGroup,
   FieldLabel,
   FieldSeparator,
-  FormActions,
   Input
 } from '@zen/ui'
 import { Loader2, LogIn } from 'lucide-react'
@@ -189,12 +188,12 @@ export function SignInForm() {
         </form.Field>
 
         <Field>
-          <FormActions className="w-full [&>button]:w-full">
+          <div className="flex w-full flex-col gap-2 [&>button]:w-full">
             <Button type="submit" disabled={isPending}>
               {isPending ? <Loader2 className="animate-spin" /> : <LogIn />}
               登录
             </Button>
-          </FormActions>
+          </div>
         </Field>
         <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
           或使用以下方式继续

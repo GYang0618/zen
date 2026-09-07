@@ -88,19 +88,21 @@ export function FilesTable({
               </TableCell>
               <TableCell>
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button type="button" size="icon" variant="ghost" aria-label="文件操作">
-                      <MoreHorizontal />
-                    </Button>
+                  <DropdownMenuTrigger
+                    render={
+                      <Button type="button" size="icon" variant="ghost" aria-label="文件操作" />
+                    }
+                  >
+                    <MoreHorizontal />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <Can permission={PermissionCode.FILE_READ}>
-                      <DropdownMenuItem onSelect={() => onPreview(file)}>预览</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onPreview(file)}>预览</DropdownMenuItem>
                     </Can>
                     {file.status !== 'deleted' ? (
                       <Can permission={PermissionCode.FILE_DELETE}>
                         <DropdownMenuItem
-                          onSelect={() => {
+                          onClick={() => {
                             setCurrentRow(file)
                             setOpen('delete')
                           }}
@@ -111,7 +113,7 @@ export function FilesTable({
                     ) : (
                       <Can permission={PermissionCode.FILE_RESTORE}>
                         <DropdownMenuItem
-                          onSelect={() => {
+                          onClick={() => {
                             setCurrentRow(file)
                             setOpen('restore')
                           }}
@@ -123,7 +125,7 @@ export function FilesTable({
                     <Can permission={PermissionCode.FILE_PURGE}>
                       <DropdownMenuItem
                         variant="destructive"
-                        onSelect={() => {
+                        onClick={() => {
                           setCurrentRow(file)
                           setOpen('purge')
                         }}

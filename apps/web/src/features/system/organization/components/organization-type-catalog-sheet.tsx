@@ -95,7 +95,7 @@ export function OrganizationTypeCatalogSheet({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="flex flex-col sm:max-w-lg">
+        <SheetContent className="flex min-h-0 flex-col overflow-hidden sm:max-w-lg">
           <SheetHeader className="border-b">
             <SheetTitle>
               <span className="flex items-center gap-2">
@@ -108,7 +108,8 @@ export function OrganizationTypeCatalogSheet({
             </SheetDescription>
           </SheetHeader>
 
-          <div className="flex-1 space-y-6 overflow-y-auto px-4 py-4">
+          <div className="min-h-0 flex-1 overflow-y-auto py-4">
+            <div className="space-y-6 px-4">
             <FieldGroup>
               <Field>
                 <FieldLabel>开通模板</FieldLabel>
@@ -185,6 +186,7 @@ export function OrganizationTypeCatalogSheet({
                 )
               })}
             </FieldGroup>
+            </div>
           </div>
 
           <SheetFooter className="border-t">

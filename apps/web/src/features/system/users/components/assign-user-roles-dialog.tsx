@@ -137,11 +137,11 @@ export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRo
             className={
               step === 'edit'
                 ? 'flex min-h-0 flex-1 flex-col overflow-hidden px-4'
-                : 'flex-1 overflow-y-auto overscroll-contain px-4'
+                : 'min-h-0 flex-1 overflow-y-auto overscroll-contain'
             }
           >
             {step === 'confirm' ? (
-              <div className="flex flex-col gap-4 py-2">
+              <div className="flex flex-col gap-4 px-4 py-2">
                 <AssignmentChangeSummary
                   added={addedIds.map((id) => ({ id, label: resolveRoleLabel(id) }))}
                   removed={removedIds.map((id) => ({ id, label: resolveRoleLabel(id) }))}

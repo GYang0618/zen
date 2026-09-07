@@ -168,7 +168,7 @@ export function PostsList({ search, navigate }: PostsListProps) {
               minLaneSize={260}
               gap={16}
               getItemKey={(item) => item.id}
-              className="max-h-[70vh]"
+              scroll="window"
               onEndReached={() => {
                 if (hasNextPage && !isFetchingNextPage) void fetchNextPage()
               }}

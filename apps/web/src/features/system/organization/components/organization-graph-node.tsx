@@ -60,26 +60,29 @@ export function OrganizationGraphNode({ data, selected }: NodeProps<Organization
           <p className="truncate text-xs text-muted-foreground">{typeLabel}</p>
         </div>
         <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              aria-label={`配置${name}`}
-              className={cn(
-                'nodrag nopan absolute top-2 right-2 pointer-events-none opacity-0 transition-opacity duration-200',
-                'group-hover/org-node:pointer-events-auto group-hover/org-node:opacity-100',
-                'focus-visible:pointer-events-auto focus-visible:opacity-100'
-              )}
-              asChild
-            >
-              <Link
-                to="/system/organization/$id"
-                params={{ id }}
-                onClick={(event) => event.stopPropagation()}
-              >
-                <Settings />
-              </Link>
-            </Button>
+          <TooltipTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                aria-label={`配置${name}`}
+                className={cn(
+                  'nodrag nopan absolute top-2 right-2 pointer-events-none opacity-0 transition-opacity duration-200',
+                  'group-hover/org-node:pointer-events-auto group-hover/org-node:opacity-100',
+                  'focus-visible:pointer-events-auto focus-visible:opacity-100'
+                )}
+                nativeButton={false}
+                render={
+                  <Link
+                    to="/system/organization/$id"
+                    params={{ id }}
+                    onClick={(event) => event.stopPropagation()}
+                  />
+                }
+              />
+            }
+          >
+            <Settings />
           </TooltipTrigger>
           <TooltipContent>配置</TooltipContent>
         </Tooltip>

@@ -42,11 +42,9 @@ export function DeleteAccountSection() {
         </FieldContent>
 
         <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button type="button" variant="destructive">
-              <Trash2 data-icon="inline-start" />
-              删除账户
-            </Button>
+          <AlertDialogTrigger render={<Button type="button" variant="destructive" />}>
+            <Trash2 data-icon="inline-start" />
+            删除账户
           </AlertDialogTrigger>
 
           <AlertDialogContent className="sm:max-w-md">

@@ -10,7 +10,6 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
-  FormActions,
   Textarea
 } from '@zen/ui'
 import { z } from 'zod'
@@ -84,14 +83,14 @@ export function PluginConfigDialog({ plugin, onOpenChange }: PluginConfigDialogP
                 </Field>
               )}
             </form.Field>
-            <FormActions>
+            <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 取消
               </Button>
               <Button type="submit" disabled={updateConfig.isPending || !plugin}>
                 保存
               </Button>
-            </FormActions>
+            </div>
           </FieldGroup>
         </form>
       </DialogContent>

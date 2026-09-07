@@ -25,36 +25,40 @@ export function OrganizationGraphMiniMap() {
             maskColor="color-mix(in oklab, var(--foreground) 16%, transparent)"
           />
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon-xs"
-                aria-label="收起缩略图"
-                aria-expanded
-                className="absolute top-1.5 right-1.5 bg-background"
-                onClick={() => setOpen(false)}
-              >
-                <Minimize2 />
-              </Button>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-xs"
+                  aria-label="收起缩略图"
+                  aria-expanded
+                  className="absolute top-1.5 right-1.5 bg-background"
+                  onClick={() => setOpen(false)}
+                />
+              }
+            >
+              <Minimize2 />
             </TooltipTrigger>
             <TooltipContent>收起缩略图</TooltipContent>
           </Tooltip>
         </div>
       ) : (
         <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon-sm"
-              aria-label="展开缩略图"
-              aria-expanded={false}
-              className="bg-background"
-              onClick={() => setOpen(true)}
-            >
-              <MapIcon />
-            </Button>
+          <TooltipTrigger
+            render={
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-sm"
+                aria-label="展开缩略图"
+                aria-expanded={false}
+                className="bg-background"
+                onClick={() => setOpen(true)}
+              />
+            }
+          >
+            <MapIcon />
           </TooltipTrigger>
           <TooltipContent>展开缩略图</TooltipContent>
         </Tooltip>

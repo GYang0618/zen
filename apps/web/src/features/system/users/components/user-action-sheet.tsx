@@ -191,7 +191,7 @@ export function UserActionSheet({ currentRow, open, onOpenChange }: UserActionSh
         onOpenChange(nextOpen)
       }}
     >
-      <SheetContent className="flex flex-col sm:max-w-md">
+      <SheetContent className="flex min-h-0 flex-col overflow-hidden sm:max-w-md">
         <SheetHeader className="border-b">
           <SheetTitle>
             <span className="flex items-center gap-2">
@@ -209,20 +209,20 @@ export function UserActionSheet({ currentRow, open, onOpenChange }: UserActionSh
         </SheetHeader>
 
         {createdResult ? (
-          <div className="flex-1 overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             <UserCreateInvitePanel result={createdResult} />
           </div>
         ) : (
           <form
             id="user-action-form"
-            className="flex-1 overflow-y-auto px-4"
+            className="min-h-0 flex-1 overflow-y-auto"
             onSubmit={(event) => {
               event.preventDefault()
               event.stopPropagation()
               void form.handleSubmit()
             }}
           >
-            <FieldGroup>
+            <FieldGroup className="px-4">
               <form.Field name="username">
                 {(field) => (
                   <Field data-invalid={!field.state.meta.isValid}>
@@ -344,10 +344,12 @@ export function UserActionSheet({ currentRow, open, onOpenChange }: UserActionSh
                     <FieldLabel htmlFor="user-gender">性别</FieldLabel>
                     <FieldContent>
                       <Select
+                        items={genderOptions}
                         value={field.state.value}
-                        onValueChange={(value) =>
+                        onValueChange={(value) => {
+                          if (!value) return
                           field.handleChange(userFormSchema.shape.gender.parse(value))
-                        }
+                        }}
                       >
                         <SelectTrigger id="user-gender" className="w-full">
                           <SelectValue placeholder="选择性别" />

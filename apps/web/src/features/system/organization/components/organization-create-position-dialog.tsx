@@ -125,7 +125,16 @@ export function OrganizationCreatePositionDialog({
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid || undefined}>
                   <FieldLabel>岗位目录</FieldLabel>
-                  <Select value={field.state.value || undefined} onValueChange={field.handleChange}>
+                  <Select
+                    items={availableProfiles.map((profile) => ({
+                      label: `${profile.name} · ${formatJobProfileLevel(profile.level)}`,
+                      value: profile.id
+                    }))}
+                    value={field.state.value || undefined}
+                    onValueChange={(value) => {
+                      if (value) field.handleChange(value)
+                    }}
+                  >
                     <SelectTrigger aria-invalid={!field.state.meta.isValid || undefined}>
                       <SelectValue
                         placeholder={
@@ -180,14 +189,22 @@ export function OrganizationCreatePositionDialog({
                   <Field data-invalid={!field.state.meta.isValid || undefined}>
                     <FieldLabel>职级覆盖（可选）</FieldLabel>
                     <Select
-                      value={field.state.value || undefined}
-                      onValueChange={(value) =>
+                      items={[
+                        { label: '使用岗位标准职级', value: '__default__' as const },
+                        ...POSITION_LEVEL_OPTIONS.map((option) => ({
+                          label: option.label,
+                          value: option.value
+                        }))
+                      ]}
+                      value={field.state.value || '__default__'}
+                      onValueChange={(value) => {
+                        if (!value) return
                         field.handleChange(
                           linkPositionFormSchema.shape.level.parse(
                             value === '__default__' ? '' : value
                           )
                         )
-                      }
+                      }}
                     >
                       <SelectTrigger aria-invalid={!field.state.meta.isValid || undefined}>
                         <SelectValue placeholder="使用岗位标准职级" />

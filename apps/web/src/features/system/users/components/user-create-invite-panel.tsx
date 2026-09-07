@@ -168,10 +168,13 @@ export function UserCreateInvitePanel({ result }: UserCreateInvitePanelProps) {
               </FieldDescription>
             </FieldContent>
           </Field>
-          <Button type="button" variant="secondary" asChild>
-            <a href={inviteUrl} target="_blank" rel="noreferrer">
-              打开设密页
-            </a>
+          <Button
+            type="button"
+            variant="secondary"
+            nativeButton={false}
+            render={<a href={inviteUrl} target="_blank" rel="noreferrer" />}
+          >
+            打开设密页
           </Button>
         </div>
       ) : null}

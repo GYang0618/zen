@@ -65,21 +65,23 @@ export function UserRolePicker({
         if (!nextOpen) setKeyword('')
       }}
     >
-      <PopoverTrigger asChild>
-        <Button
-          id={id}
-          type="button"
-          variant="outline"
-          disabled={disabled}
-          data-empty={selectedRoles.length === 0}
-          className="w-full justify-between font-normal data-[empty=true]:text-muted-foreground"
-        >
-          <span className="flex min-w-0 items-center gap-2">
-            {selectedRoles.length === 0 ? <Shield aria-hidden /> : null}
-            <span className="truncate">{selectedLabel || '选择角色'}</span>
-          </span>
-          <ChevronsUpDown data-icon="inline-end" />
-        </Button>
+      <PopoverTrigger
+        render={
+          <Button
+            id={id}
+            type="button"
+            variant="outline"
+            disabled={disabled}
+            data-empty={selectedRoles.length === 0}
+            className="w-full justify-between font-normal data-[empty=true]:text-muted-foreground"
+          />
+        }
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          {selectedRoles.length === 0 ? <Shield aria-hidden /> : null}
+          <span className="truncate">{selectedLabel || '选择角色'}</span>
+        </span>
+        <ChevronsUpDown data-icon="inline-end" />
       </PopoverTrigger>
       <PopoverContent className="w-(--anchor-width) p-2" align="start">
         <InputGroup>
@@ -94,7 +96,7 @@ export function UserRolePicker({
             <Search />
           </InputGroupAddon>
         </InputGroup>
-        <ScrollArea type="hover">
+        <ScrollArea>
           {visibleRoles.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">没有找到匹配角色</p>
           ) : (
@@ -105,12 +107,11 @@ export function UserRolePicker({
                 return (
                   <Item
                     key={role.id}
-                    asChild
                     variant="outline"
                     size="sm"
                     className="cursor-pointer"
+                    render={<label htmlFor={`create-role-${role.id}`} />}
                   >
-                    <label htmlFor={`create-role-${role.id}`}>
                       <ItemMedia>
                         <Checkbox
                           id={`create-role-${role.id}`}
@@ -135,7 +136,6 @@ export function UserRolePicker({
                         </ItemTitle>
                         <ItemDescription>{role.description || '该角色暂无描述'}</ItemDescription>
                       </ItemContent>
-                    </label>
                   </Item>
                 )
               })}

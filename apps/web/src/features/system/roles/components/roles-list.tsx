@@ -167,7 +167,7 @@ export function RolesList({ search, navigate }: RolesListProps) {
               minLaneSize={280}
               gap={16}
               getItemKey={(role) => role.id}
-              className="max-h-[70vh]"
+              scroll="window"
               onEndReached={() => {
                 if (hasNextPage && !isFetchingNextPage) void fetchNextPage()
               }}

@@ -166,8 +166,12 @@ export function AssignUserRolesPicker({
               const checked = roleIds.includes(role.id)
 
               return (
-                <Item key={role.id} asChild variant="outline" className="cursor-pointer">
-                  <label htmlFor={`assign-role-${role.id}`}>
+                <Item
+                  key={role.id}
+                  variant="outline"
+                  className="cursor-pointer"
+                  render={<label htmlFor={`assign-role-${role.id}`} />}
+                >
                     <ItemMedia>
                       <Checkbox
                         id={`assign-role-${role.id}`}
@@ -192,7 +196,6 @@ export function AssignUserRolesPicker({
                       </ItemTitle>
                       <ItemDescription>{role.description || '该角色暂无描述'}</ItemDescription>
                     </ItemContent>
-                  </label>
                 </Item>
               )
             })}

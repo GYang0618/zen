@@ -68,18 +68,20 @@ export function RolesBulkActions({
       >
         <Can permission={PermissionCode.ROLE_UPDATE}>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleBulkStatusChange('active')}
-                className="size-8"
-                aria-label="激活已选择的角色"
-                disabled={!hasSelection || activateTargets.length === 0 || isUpdatingStatus}
-              >
-                <ShieldCheck />
-                <span className="sr-only">激活已选择的角色</span>
-              </Button>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleBulkStatusChange('active')}
+                  className="size-8"
+                  aria-label="激活已选择的角色"
+                  disabled={!hasSelection || activateTargets.length === 0 || isUpdatingStatus}
+                />
+              }
+            >
+              <ShieldCheck />
+              <span className="sr-only">激活已选择的角色</span>
             </TooltipTrigger>
             <TooltipContent>
               <p>激活已选择的角色</p>
@@ -87,18 +89,20 @@ export function RolesBulkActions({
           </Tooltip>
 
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleBulkStatusChange('disabled')}
-                className="size-8"
-                aria-label="冻结已选择的角色"
-                disabled={!hasSelection || freezeTargets.length === 0 || isUpdatingStatus}
-              >
-                <Ban />
-                <span className="sr-only">冻结已选择的角色</span>
-              </Button>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleBulkStatusChange('disabled')}
+                  className="size-8"
+                  aria-label="冻结已选择的角色"
+                  disabled={!hasSelection || freezeTargets.length === 0 || isUpdatingStatus}
+                />
+              }
+            >
+              <Ban />
+              <span className="sr-only">冻结已选择的角色</span>
             </TooltipTrigger>
             <TooltipContent>
               <p>冻结已选择的角色</p>
@@ -108,18 +112,20 @@ export function RolesBulkActions({
 
         <Can permission={PermissionCode.ROLE_DELETE}>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="destructive"
-                size="icon"
-                onClick={() => setShowDeleteConfirm(true)}
-                className="size-8"
-                aria-label="删除已选择的角色"
-                disabled={!hasSelection || deletableItems.length === 0}
-              >
-                <Trash2 />
-                <span className="sr-only">删除已选择的角色</span>
-              </Button>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="size-8"
+                  aria-label="删除已选择的角色"
+                  disabled={!hasSelection || deletableItems.length === 0}
+                />
+              }
+            >
+              <Trash2 />
+              <span className="sr-only">删除已选择的角色</span>
             </TooltipTrigger>
             <TooltipContent>
               <p>

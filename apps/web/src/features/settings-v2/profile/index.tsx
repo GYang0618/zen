@@ -198,17 +198,19 @@ export function SettingsProfile() {
 
             <div className="flex items-center gap-2">
               <Popover open={birthdayOpen} onOpenChange={setBirthdayOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="birthday"
-                    type="button"
-                    variant="outline"
-                    data-empty={!birthday}
-                    className="flex-1 justify-between font-normal data-[empty=true]:text-muted-foreground"
-                  >
-                    {birthday ? BIRTHDAY_FORMATTER.format(birthday) : '选择您的出生日期'}
-                    <CalendarIcon data-icon="inline-start" />
-                  </Button>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      id="birthday"
+                      type="button"
+                      variant="outline"
+                      data-empty={!birthday}
+                      className="flex-1 justify-between font-normal data-[empty=true]:text-muted-foreground"
+                    />
+                  }
+                >
+                  {birthday ? BIRTHDAY_FORMATTER.format(birthday) : '选择您的出生日期'}
+                  <CalendarIcon data-icon="inline-start" />
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar

@@ -327,20 +327,22 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
                   <FieldLabel htmlFor="role-expired-at">过期时间</FieldLabel>
                   <FieldContent>
                     <Popover open={expiredAtOpen} onOpenChange={setExpiredAtOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          id="role-expired-at"
-                          type="button"
-                          variant="outline"
-                          data-empty={!field.state.value}
-                          aria-invalid={isTouchedInvalid(field.state.meta) || undefined}
-                          className="w-full justify-between font-normal data-[empty=true]:text-muted-foreground"
-                        >
-                          {field.state.value
-                            ? EXPIRED_AT_FORMATTER.format(field.state.value)
-                            : '留空表示长期有效'}
-                          <CalendarIcon data-icon="inline-end" />
-                        </Button>
+                      <PopoverTrigger
+                        render={
+                          <Button
+                            id="role-expired-at"
+                            type="button"
+                            variant="outline"
+                            data-empty={!field.state.value}
+                            aria-invalid={isTouchedInvalid(field.state.meta) || undefined}
+                            className="w-full justify-between font-normal data-[empty=true]:text-muted-foreground"
+                          />
+                        }
+                      >
+                        {field.state.value
+                          ? EXPIRED_AT_FORMATTER.format(field.state.value)
+                          : '留空表示长期有效'}
+                        <CalendarIcon data-icon="inline-end" />
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
