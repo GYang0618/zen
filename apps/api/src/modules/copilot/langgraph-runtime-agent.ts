@@ -232,7 +232,11 @@ export class LangGraphAgent extends CopilotkitLangGraphAgent {
                 afterPersistence(() => subscriber.error(budgetError.error))
                 return
               }
-              if (runtimeEvent.type === 'TEXT_MESSAGE_CONTENT') {
+              const isChunkOrMetricEvent =
+                runtimeEvent.type === 'TEXT_MESSAGE_CONTENT' ||
+                runtimeEvent.type === 'REASONING_MESSAGE_CONTENT' ||
+                runtimeEvent.type === 'RAW'
+              if (isChunkOrMetricEvent) {
                 void this.runtimeHooks?.onEvent(runtimeInputForHooks, runtimeEvent)
               } else {
                 enqueuePersistence(() =>

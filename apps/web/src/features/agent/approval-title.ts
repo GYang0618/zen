@@ -1,10 +1,10 @@
-import { getToolTitle } from '@/components/ai/tool-display'
+import { formatToolTitle } from './lib/tool-title'
 
 const TARGET_KEYS = new Set(['name', 'displayName', 'title', 'code', 'username', 'label'])
 
 export function resolveApprovalOperation(toolNames: string[]): string {
   if (toolNames.length === 0) return '执行该操作'
-  return toolNames.map(getToolTitle).join('、')
+  return toolNames.map(formatToolTitle).join('、')
 }
 
 /** 从 Tool 参数里取出可展示的目标（名称、编码），忽略 cuid / uuid 等内部 ID。 */

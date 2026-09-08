@@ -16,12 +16,12 @@ import {
 import { AlertCircle, RefreshCw } from 'lucide-react'
 import { Fragment, useMemo, useRef } from 'react'
 
-import { hasDedicatedResultUi, sanitizeReasoningContent } from '@/components/ai/tool-display'
-
 import { DisplayMessageCache } from '../display-messages'
 import { useAgentRetry } from '../hooks/use-agent-retry'
 import { useLiveAgentMessages } from '../hooks/use-live-agent-messages'
-import { getToolCallName, resolveAssistantToolCalls } from '../lib/group-tool-calls'
+import { useSmoothStreamText } from '../hooks/use-smooth-stream-text'
+import { resolveAssistantToolCalls } from '../lib/group-tool-calls'
+import { ChatPendingMessage } from './chat-pending-message'
 import { GroupedToolCallsView } from './grouped-tool-calls-view'
 
 import type { AssistantToolMessageLike } from '../lib/group-tool-calls'
@@ -119,28 +119,26 @@ function AssistantMessage({
   isRunning
 }: AssistantMessageProps) {
   'use no memo'
-  const hasContent = Boolean(content.trim())
   const isLatestAssistant = messages.at(-1)?.id === message.id
   const isStreaming = Boolean(isRunning && isLatestAssistant)
+  const { displayText, isAnimating } = useSmoothStreamText(content, isStreaming)
+  const hasContent = Boolean(displayText.trim())
   const { hidden, toolCalls } = resolveAssistantToolCalls(toolGroupingMessages, message.id)
-  const resultToolCalls = toolCalls.filter((toolCall) =>
-    hasDedicatedResultUi(getToolCallName(toolCall))
-  )
 
   if (hidden && !hasContent) return null
-  if (!hasContent && resultToolCalls.length === 0) return null
+  if (!hasContent && toolCalls.length === 0) return null
 
   return (
     <>
       {hasContent && (
         <Message from="assistant">
           <MessageContent className="transition-all duration-300">
-            <MessageResponse isAnimating={isStreaming}>{content}</MessageResponse>
+            <MessageResponse isAnimating={isAnimating}>{displayText}</MessageResponse>
           </MessageContent>
         </Message>
       )}
-      {!hidden && resultToolCalls.length > 0 && (
-        <GroupedToolCallsView toolCalls={resultToolCalls} messages={messages} />
+      {!hidden && toolCalls.length > 0 && (
+        <GroupedToolCallsView toolCalls={toolCalls} messages={messages} />
       )}
     </>
   )
@@ -165,7 +163,7 @@ function ReasoningMessage({ message, content, messages, isRunning }: ReasoningMe
   return (
     <Reasoning className="w-full" isStreaming={isStreaming}>
       <ReasoningTrigger />
-      {hasContent && <ReasoningContent>{sanitizeReasoningContent(content)}</ReasoningContent>}
+      {hasContent && <ReasoningContent>{content}</ReasoningContent>}
     </Reasoning>
   )
 }
@@ -231,6 +229,22 @@ export function ChatMessages({ threadId }: { threadId: string }) {
   )
   const canRetry = displayMessages.some((message) => message.role === 'user')
 
+  const lastUserIndex = displayMessages.findLastIndex((message) => message.role === 'user')
+  const messagesAfterUser = lastUserIndex >= 0 ? displayMessages.slice(lastUserIndex + 1) : []
+  const hasActiveAssistantOutput = messagesAfterUser.some((message) => {
+    if (message.role === 'assistant') {
+      const hasText = typeof message.content === 'string' && message.content.trim().length > 0
+      const hasTools = Array.isArray(message.toolCalls) && message.toolCalls.length > 0
+      return hasText || hasTools
+    }
+    if (message.role === 'reasoning') {
+      return typeof message.content === 'string' && message.content.length > 0
+    }
+    return message.role === 'activity'
+  })
+
+  const showPendingPlaceholder = isRunning && !hasActiveAssistantOutput
+
   const handleRetry = () => {
     void retryLastRun(displayMessages)
   }
@@ -280,6 +294,7 @@ export function ChatMessages({ threadId }: { threadId: string }) {
           </Fragment>
         )
       })}
+      {showPendingPlaceholder && <ChatPendingMessage />}
       {runError && (
         <ChatRunError message={runError} onRetry={handleRetry} disabled={isRunning || !canRetry} />
       )}

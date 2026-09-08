@@ -1,10 +1,6 @@
 import { useRenderToolCall } from '@copilotkit/react-core/v2'
 import { Fragment } from 'react'
 
-import { hasDedicatedResultUi } from '@/components/ai/tool-display'
-
-import { getToolCallName } from '../lib/group-tool-calls'
-
 import type { ToolCallLike } from '../lib/group-tool-calls'
 
 interface ToolResultMessage {
@@ -26,19 +22,19 @@ interface CopilotKitToolCall {
   }
 }
 
-function isDedicatedResultToolCall(toolCall: ToolCallLike): toolCall is CopilotKitToolCall {
-  return Boolean(toolCall.id && hasDedicatedResultUi(getToolCallName(toolCall)))
+function isValidToolCall(toolCall: ToolCallLike): toolCall is CopilotKitToolCall {
+  return Boolean(toolCall.id && toolCall.function?.name)
 }
 
 export function GroupedToolCallsView({ toolCalls, messages }: GroupedToolCallsViewProps) {
   const renderToolCall = useRenderToolCall()
-  const dedicatedToolCalls = toolCalls.filter(isDedicatedResultToolCall)
+  const validToolCalls = toolCalls.filter(isValidToolCall)
 
-  if (dedicatedToolCalls.length === 0) return null
+  if (validToolCalls.length === 0) return null
 
   return (
     <>
-      {dedicatedToolCalls.map((toolCall) => {
+      {validToolCalls.map((toolCall) => {
         const toolMessage = messages.find(
           (message) => message.role === 'tool' && message.toolCallId === toolCall.id
         )
