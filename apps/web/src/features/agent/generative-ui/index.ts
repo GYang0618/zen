@@ -1,1 +1,2 @@
-export { useUsersTable } from './user-table'
+export { useDefaultToolRender } from './default-tool'
+export { useUsersTableRender } from './user-table'

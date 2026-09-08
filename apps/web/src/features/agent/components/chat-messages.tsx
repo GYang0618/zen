@@ -16,25 +16,12 @@ import {
 import { AlertCircle, RefreshCw } from 'lucide-react'
 import { Fragment, useMemo, useRef } from 'react'
 
-import {
-  formatActiveToolsLabel,
-  hasDedicatedResultUi,
-  resolveActivityToolNames,
-  sanitizeReasoningContent
-} from '@/components/ai/tool-display'
+import { hasDedicatedResultUi, sanitizeReasoningContent } from '@/components/ai/tool-display'
 
-import {
-  isStreamingAssistantText,
-  isTrailingReasoningAfterReply,
-  lastMeaningfulMessage,
-  streamingActivitySignature
-} from '../activity-state'
 import { DisplayMessageCache } from '../display-messages'
 import { useAgentRetry } from '../hooks/use-agent-retry'
 import { useLiveAgentMessages } from '../hooks/use-live-agent-messages'
-import { useStreamIdle } from '../hooks/use-stream-idle'
 import { getToolCallName, resolveAssistantToolCalls } from '../lib/group-tool-calls'
-import { ChatActivityIndicator } from './chat-activity'
 import { GroupedToolCallsView } from './grouped-tool-calls-view'
 
 import type { AssistantToolMessageLike } from '../lib/group-tool-calls'
@@ -121,7 +108,7 @@ interface AssistantMessageProps {
   content: string
   messages: CopilotkitMessage[]
   toolGroupingMessages: AssistantToolMessageLike[]
-  isActivelyStreaming: boolean
+  isRunning: boolean
 }
 
 function AssistantMessage({
@@ -129,14 +116,12 @@ function AssistantMessage({
   content,
   messages,
   toolGroupingMessages,
-  isActivelyStreaming
+  isRunning
 }: AssistantMessageProps) {
   'use no memo'
   const hasContent = Boolean(content.trim())
-  const last = lastMeaningfulMessage(messages)
-  const isStreaming = Boolean(
-    isActivelyStreaming && last?.id === message.id && last.role === 'assistant'
-  )
+  const isLatestAssistant = messages.at(-1)?.id === message.id
+  const isStreaming = Boolean(isRunning && isLatestAssistant)
   const { hidden, toolCalls } = resolveAssistantToolCalls(toolGroupingMessages, message.id)
   const resultToolCalls = toolCalls.filter((toolCall) =>
     hasDedicatedResultUi(getToolCallName(toolCall))
@@ -170,11 +155,8 @@ interface ReasoningMessageProps {
 
 function ReasoningMessage({ message, content, messages, isRunning }: ReasoningMessageProps) {
   'use no memo'
-  if (isTrailingReasoningAfterReply(messages, message.id)) return null
-
-  const last = lastMeaningfulMessage(messages)
   const isLatest = messages.at(-1)?.id === message.id
-  const isStreaming = Boolean(isRunning && (last?.id === message.id || isLatest))
+  const isStreaming = Boolean(isRunning && isLatest)
   const hasContent = Boolean(content.length)
 
   // 既无内容又非当前流式活跃的空 reasoning 不展示
@@ -221,26 +203,6 @@ function useDisplayMessages(messages: CopilotkitMessage[], threadId: string): Co
   }, [messages, threadId])
 }
 
-function collectUnresolvedToolNames(messages: CopilotkitMessage[]): string[] {
-  const resolvedIds = new Set(
-    messages
-      .filter((message): message is CopilotkitToolMessage => message.role === 'tool')
-      .map((message) => message.toolCallId)
-      .filter((id): id is string => Boolean(id))
-  )
-
-  const names: string[] = []
-  for (const message of messages) {
-    if (message.role !== 'assistant' || !message.toolCalls?.length) continue
-    for (const toolCall of message.toolCalls) {
-      if (!toolCall.id || resolvedIds.has(toolCall.id)) continue
-      const name = toolCall.function?.name
-      if (name) names.push(name)
-    }
-  }
-  return names
-}
-
 export function ChatMessages({ threadId }: { threadId: string }) {
   'use no memo'
   const { agent } = useAgent({
@@ -268,17 +230,6 @@ export function ChatMessages({ threadId }: { threadId: string }) {
     [displayMessages]
   )
   const canRetry = displayMessages.some((message) => message.role === 'user')
-  const unresolvedToolNames = collectUnresolvedToolNames(displayMessages)
-  const activityToolNames = resolveActivityToolNames(unresolvedToolNames)
-  const activityLabel =
-    formatActiveToolsLabel(activityToolNames) ??
-    (unresolvedToolNames.length > 0 ? '正在检索…' : undefined)
-  const structurallyStreaming = isStreamingAssistantText(displayMessages, isRunning)
-  const streamIdle = useStreamIdle(
-    isRunning && structurallyStreaming,
-    streamingActivitySignature(displayMessages)
-  )
-  const isActivelyStreamingText = structurallyStreaming && !streamIdle
 
   const handleRetry = () => {
     void retryLastRun(displayMessages)
@@ -314,7 +265,7 @@ export function ChatMessages({ threadId }: { threadId: string }) {
                 content={typeof message.content === 'string' ? message.content : ''}
                 messages={displayMessages}
                 toolGroupingMessages={toolGroupingMessages}
-                isActivelyStreaming={isActivelyStreamingText}
+                isRunning={isRunning}
               />
             )}
             {message.role === 'reasoning' && (
@@ -332,11 +283,6 @@ export function ChatMessages({ threadId }: { threadId: string }) {
       {runError && (
         <ChatRunError message={runError} onRetry={handleRetry} disabled={isRunning || !canRetry} />
       )}
-      <ChatActivityIndicator
-        isRunning={isRunning && !runError}
-        isStreamingText={structurallyStreaming}
-        activityLabel={activityLabel}
-      />
     </div>
   )
 }

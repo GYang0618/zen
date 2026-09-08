@@ -15,10 +15,6 @@ export function getToolTitle(name: string): string {
   return TOOL_TITLES[name] ?? name.replaceAll('_', ' ')
 }
 
-export function getToolActivityLabel(name: string): string {
-  return `正在${getToolTitle(name)}`
-}
-
 /** 思考过程对外展示用语：检索/办理，而不是「调用工具」。 */
 export function getToolReasoningPhrase(name: string, phase: 'pending' | 'done'): string {
   const title = getToolTitle(name)
@@ -58,21 +54,4 @@ export function sanitizeReasoningContent(text: string): string {
 
 export function hasDedicatedResultUi(name: string | undefined): boolean {
   return Boolean(name && DEDICATED_RESULT_UI_TOOL_SET.has(name))
-}
-
-/** 内部查证不占用活动文案；写操作与专属 UI 查询会显示「正在…」。 */
-export function isSilentLookupTool(name: string | undefined): boolean {
-  if (!name) return false
-  return name.startsWith('query_') && !hasDedicatedResultUi(name)
-}
-
-export function formatActiveToolsLabel(names: string[]): string | undefined {
-  const uniqueTitles = [...new Set(names.map(getToolTitle))]
-  if (uniqueTitles.length === 0) return undefined
-  return `正在${uniqueTitles.join('、')}`
-}
-
-/** 有写操作时只提示写操作；仅内部查证时不占用活动文案。 */
-export function resolveActivityToolNames(names: string[]): string[] {
-  return names.filter((name) => !isSilentLookupTool(name))
 }

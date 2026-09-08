@@ -1,13 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  formatActiveToolsLabel,
-  getToolActivityLabel,
   getToolReasoningPhrase,
   getToolTitle,
   hasDedicatedResultUi,
-  isSilentLookupTool,
-  resolveActivityToolNames,
   sanitizeReasoningContent
 } from './tool-display'
 
@@ -19,14 +15,6 @@ describe('getToolTitle', () => {
 
   it('未登记工具回退为下划线转空格', () => {
     expect(getToolTitle('unknown_tool')).toBe('unknown tool')
-  })
-})
-
-describe('getToolActivityLabel', () => {
-  it('按工具名生成进行中文案', () => {
-    expect(getToolActivityLabel('create_user')).toBe('正在创建用户')
-    expect(getToolActivityLabel('create_job_profile')).toBe('正在创建岗位')
-    expect(getToolActivityLabel('create_organization')).toBe('正在创建组织')
   })
 })
 
@@ -42,62 +30,6 @@ describe('hasDedicatedResultUi', () => {
     expect(hasDedicatedResultUi('appearance')).toBe(false)
     expect(hasDedicatedResultUi('create_user')).toBe(false)
     expect(hasDedicatedResultUi('query_organization_tree')).toBe(false)
-  })
-})
-
-describe('isSilentLookupTool', () => {
-  it('隐藏内部查证查询的活动文案', () => {
-    expect(isSilentLookupTool('query_organization_type_catalog')).toBe(true)
-    expect(isSilentLookupTool('query_organization_tree')).toBe(true)
-    expect(isSilentLookupTool('query_user_detail')).toBe(true)
-    expect(isSilentLookupTool('query_route_info')).toBe(true)
-  })
-
-  it('专属 UI 查询仍参与活动文案', () => {
-    expect(isSilentLookupTool('query_users_list')).toBe(false)
-    expect(isSilentLookupTool('query_job_profiles_list')).toBe(false)
-    expect(isSilentLookupTool('query_properties')).toBe(false)
-  })
-
-  it('写操作不视为内部查证', () => {
-    expect(isSilentLookupTool('create_user')).toBe(false)
-    expect(isSilentLookupTool('appearance')).toBe(false)
-  })
-})
-
-describe('formatActiveToolsLabel', () => {
-  it('单个工具使用对应进行中文案', () => {
-    expect(formatActiveToolsLabel(['create_user'])).toBe('正在创建用户')
-  })
-
-  it('同名工具只出现一次', () => {
-    expect(formatActiveToolsLabel(['create_user', 'create_user'])).toBe('正在创建用户')
-  })
-
-  it('多个不同工具并列标题', () => {
-    expect(formatActiveToolsLabel(['create_user', 'create_job_profile'])).toBe(
-      '正在创建用户、创建岗位'
-    )
-  })
-
-  it('空列表返回 undefined', () => {
-    expect(formatActiveToolsLabel([])).toBeUndefined()
-  })
-})
-
-describe('resolveActivityToolNames', () => {
-  it('有写操作时忽略内部查证', () => {
-    expect(
-      resolveActivityToolNames([
-        'query_organization_tree',
-        'create_user',
-        'query_organization_type_catalog'
-      ])
-    ).toEqual(['create_user'])
-  })
-
-  it('仅内部查证时返回空，活动区回退为思考中', () => {
-    expect(resolveActivityToolNames(['query_organization_tree'])).toEqual([])
   })
 })
 

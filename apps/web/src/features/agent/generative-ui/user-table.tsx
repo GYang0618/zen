@@ -34,7 +34,7 @@ function UsersTableToolView({ status, result }: UsersTableToolViewProps) {
   return <AITable data={data.items} columns={tableColumns} />
 }
 
-export function useUsersTable() {
+export function useUsersTableRender() {
   useRenderTool(
     {
       name: 'query_users_list',
