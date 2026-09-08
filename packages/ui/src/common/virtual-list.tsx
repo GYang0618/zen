@@ -1,8 +1,8 @@
-import { useVirtualizer } from '@tanstack/react-virtual'
+import { useVirtualizer, useWindowVirtualizer } from '@tanstack/react-virtual'
 import { cn } from '@zen/ui/lib/utils'
 import { useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react'
 
-import type { ScrollToOptions, Virtualizer } from '@tanstack/react-virtual'
+import type { ReactVirtualizer, ScrollToOptions } from '@tanstack/react-virtual'
 import type * as React from 'react'
 
 const DEFAULT_OVERSCAN = 8
@@ -11,13 +11,17 @@ const DEFAULT_END_REACHED_THRESHOLD = 8
 type VirtualListOrientation = 'vertical' | 'horizontal'
 type VirtualListAnchor = 'start' | 'end'
 type VirtualListFollowOnAppend = boolean | 'auto' | 'smooth' | 'instant'
+type VirtualListScroll = 'self' | 'window'
+type VirtualListVirtualizer =
+  | ReactVirtualizer<HTMLDivElement, Element>
+  | ReactVirtualizer<Window, Element>
 
 export interface VirtualListHandle {
   scrollToIndex: (index: number, options?: ScrollToOptions) => void
   scrollToOffset: (offset: number, options?: ScrollToOptions) => void
   scrollToEnd: (options?: Pick<ScrollToOptions, 'behavior'>) => void
-  getScrollElement: () => HTMLDivElement | null
-  getVirtualizer: () => Virtualizer<HTMLDivElement, HTMLDivElement>
+  getScrollElement: () => HTMLDivElement | Window | null
+  getVirtualizer: () => VirtualListVirtualizer
 }
 
 export interface VirtualListItemContext {
@@ -58,6 +62,12 @@ export type VirtualListProps<T> = Omit<React.ComponentProps<'div'>, 'children' |
   anchor?: VirtualListAnchor
   followOnAppend?: VirtualListFollowOnAppend
   enabled?: boolean
+  /**
+   * 滚动容器。
+   * - `self`（默认）：列表自身滚动，父级必须给出确定高度（如 `h-96` 或 `flex-1 min-h-0`）。
+   * - `window`：跟随页面滚动，滚动条出现在窗口右侧。
+   */
+  scroll?: VirtualListScroll
 }
 
 function resolveEstimateSize<T>(
@@ -107,15 +117,17 @@ function getVirtualItemStyle(options: {
   size: number
   lane: number
   measure: boolean
+  scrollMargin: number
 }): React.CSSProperties {
-  const { orientation, lanes, gap, start, size, lane, measure } = options
+  const { orientation, lanes, gap, start, size, lane, measure, scrollMargin } = options
   const isVertical = orientation === 'vertical'
+  const offset = start - scrollMargin
 
   return {
     position: 'absolute',
     top: 0,
     left: 0,
-    transform: isVertical ? `translateY(${start}px)` : `translateX(${start}px)`,
+    transform: isVertical ? `translateY(${offset}px)` : `translateX(${offset}px)`,
     ...(measure ? undefined : isVertical ? { height: size } : { width: size }),
     ...getCrossAxisStyle(orientation, lanes, lane, gap)
   }
@@ -155,6 +167,41 @@ function useAutoLanes(
   return minLaneSize == null ? fallbackLanes : autoLanes
 }
 
+function getWindowScrollMargin(element: HTMLElement, orientation: VirtualListOrientation) {
+  const rect = element.getBoundingClientRect()
+  return orientation === 'horizontal' ? rect.left + window.scrollX : rect.top + window.scrollY
+}
+
+function useWindowScrollMargin(
+  elementRef: React.RefObject<HTMLDivElement | null>,
+  enabled: boolean,
+  orientation: VirtualListOrientation
+) {
+  const [scrollMargin, setScrollMargin] = useState(0)
+
+  useLayoutEffect(() => {
+    if (!enabled) return
+    const element = elementRef.current
+    if (!element) return
+
+    const update = () => {
+      const next = getWindowScrollMargin(element, orientation)
+      setScrollMargin((current) => (current === next ? current : next))
+    }
+
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(element)
+    window.addEventListener('resize', update)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', update)
+    }
+  }, [elementRef, enabled, orientation])
+
+  return enabled ? scrollMargin : 0
+}
+
 function useEndReached(
   lastVisibleIndex: number | undefined,
   itemCount: number,
@@ -182,8 +229,11 @@ function useEndReached(
 }
 
 /**
- * 通用虚拟列表。父级必须给出确定高度（如 `h-96` 或 `flex-1 min-h-0`），
- * 否则可视区域等于内容高度，虚拟化不会生效。
+ * 通用虚拟列表。
+ *
+ * - `scroll="self"`（默认）：父级必须给出确定高度（如 `h-96` 或 `flex-1 min-h-0`），
+ *   否则可视区域等于内容高度，虚拟化不会生效。
+ * - `scroll="window"`：跟随页面滚动，适合整页列表。
  *
  * @example
  * ```tsx
@@ -214,17 +264,19 @@ function VirtualList<T>({
   anchor = 'start',
   followOnAppend,
   enabled = true,
+  scroll = 'self',
   ...props
 }: VirtualListProps<T>) {
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
   const isHorizontal = orientation === 'horizontal'
-  const resolvedLanes = useAutoLanes(scrollRef, minLaneSize, gap, orientation, lanes)
+  const isWindowScroll = scroll === 'window'
+  const resolvedLanes = useAutoLanes(listRef, minLaneSize, gap, orientation, lanes)
+  const scrollMargin = useWindowScrollMargin(listRef, isWindowScroll, orientation)
 
-  const virtualizer = useVirtualizer<HTMLDivElement, HTMLDivElement>({
+  const sharedOptions = {
     count: items.length,
-    getScrollElement: () => scrollRef.current,
-    estimateSize: (index) => resolveEstimateSize(estimateSize, items, index),
-    getItemKey: (index) => resolveItemKey(getItemKey, items, index),
+    estimateSize: (index: number) => resolveEstimateSize(estimateSize, items, index),
+    getItemKey: (index: number) => resolveItemKey(getItemKey, items, index),
     horizontal: isHorizontal,
     lanes: resolvedLanes,
     gap,
@@ -232,17 +284,30 @@ function VirtualList<T>({
     paddingStart,
     paddingEnd,
     initialOffset,
-    enabled,
     anchorTo: anchor,
     followOnAppend,
-    useFlushSync: false
+    useFlushSync: false as const
+  }
+
+  const selfVirtualizer = useVirtualizer({
+    ...sharedOptions,
+    enabled: enabled && !isWindowScroll,
+    getScrollElement: () => listRef.current
   })
+
+  const windowVirtualizer = useWindowVirtualizer({
+    ...sharedOptions,
+    enabled: enabled && isWindowScroll,
+    scrollMargin
+  })
+
+  const virtualizer = isWindowScroll ? windowVirtualizer : selfVirtualizer
 
   useImperativeHandle(ref, () => ({
     scrollToIndex: (index, options) => virtualizer.scrollToIndex(index, options),
     scrollToOffset: (offset, options) => virtualizer.scrollToOffset(offset, options),
     scrollToEnd: (options) => virtualizer.scrollToEnd(options),
-    getScrollElement: () => scrollRef.current,
+    getScrollElement: () => (isWindowScroll ? window : listRef.current),
     getVirtualizer: () => virtualizer
   }))
 
@@ -254,11 +319,13 @@ function VirtualList<T>({
 
   return (
     <div
-      ref={scrollRef}
+      ref={listRef}
       data-slot="virtual-list"
       data-orientation={orientation}
+      data-scroll={scroll}
       className={cn(
-        'relative min-h-0 overflow-auto overscroll-contain outline-none',
+        'relative outline-none',
+        !isWindowScroll && 'min-h-0 overflow-auto overscroll-contain',
         isEmpty && 'flex flex-col',
         className
       )}
@@ -302,7 +369,8 @@ function VirtualList<T>({
                   start: virtualItem.start,
                   size: virtualItem.size,
                   lane: virtualItem.lane,
-                  measure
+                  measure,
+                  scrollMargin: isWindowScroll ? virtualizer.options.scrollMargin : 0
                 })}
               >
                 {children(item, {

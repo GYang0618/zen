@@ -1,6 +1,5 @@
 'use client'
 
-import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import { cjk } from '@streamdown/cjk'
 import { code } from '@streamdown/code'
 import { math } from '@streamdown/math'
@@ -67,15 +66,18 @@ export const Reasoning = memo(
     // Track if defaultOpen was explicitly set to false (to prevent auto-open)
     const isExplicitlyClosed = defaultOpen === false
 
-    const [isOpen, setIsOpen] = useControllableState<boolean>({
-      defaultProp: resolvedDefaultOpen,
-      onChange: onOpenChange,
-      prop: open
-    })
-    const [duration, setDuration] = useControllableState<number | undefined>({
-      defaultProp: undefined,
-      prop: durationProp
-    })
+    const [internalOpen, setInternalOpen] = useState(resolvedDefaultOpen)
+    const isOpen = open ?? internalOpen
+    const setIsOpen = useCallback(
+      (nextOpen: boolean) => {
+        if (nextOpen === isOpen) return
+        if (open === undefined) setInternalOpen(nextOpen)
+        onOpenChange?.(nextOpen)
+      },
+      [isOpen, open, onOpenChange]
+    )
+    const [measuredDuration, setDuration] = useState<number>()
+    const duration = durationProp ?? measuredDuration
 
     const hasEverStreamedRef = useRef(isStreaming)
     const [hasAutoClosed, setHasAutoClosed] = useState(false)
@@ -92,7 +94,7 @@ export const Reasoning = memo(
         setDuration(Math.ceil((Date.now() - startTimeRef.current) / MS_IN_S))
         startTimeRef.current = null
       }
-    }, [isStreaming, setDuration])
+    }, [isStreaming])
 
     // Auto-open when streaming starts (unless explicitly closed)
     useEffect(() => {
@@ -198,7 +200,7 @@ export const ReasoningContent = memo(({ className, children, ...props }: Reasoni
   <CollapsibleContent
     className={cn(
       'mt-4 text-sm',
-      'data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-muted-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in',
+      'data-closed:fade-out-0 data-closed:slide-out-to-top-2 data-open:slide-in-from-top-2 text-muted-foreground outline-none data-closed:animate-out data-open:animate-in',
       className
     )}
     {...props}

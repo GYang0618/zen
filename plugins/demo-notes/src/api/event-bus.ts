@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 
-import { DEMO_NOTE_CREATED_EVENT } from '../constants'
+import { DEMO_NOTE_CREATED_EVENT } from '../constants.js'
 
 export type DemoNoteCreatedPayload = {
   noteId: string

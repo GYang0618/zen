@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { ROLE_MEMBER_PREVIEW_LIMIT } from '@zen/shared'
 
-import { PrismaService } from '@/infra/prisma/prisma.service'
+import { PrismaService } from '../../infra/prisma/prisma.service.js'
 
 import type { Prisma } from '@prisma/client'
 

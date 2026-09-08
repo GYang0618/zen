@@ -19,10 +19,10 @@ export const PLUGIN_WEB_ROUTES = [
     pluginId: 'demo-notes' as const,
     routeId: 'demo-notes-home' as const,
     path: '/plugins/notes' as const,
-    title: "演示便签",
+    title: '演示便签',
     icon: 'sticky-note' as const,
     order: 100,
-    permissions: ["demo:note:list"] as readonly string[],
+    permissions: ['demo:note:list'] as readonly string[],
     packageName: '@zen/plugin-demo-notes' as const,
     componentExport: 'NotesPage' as const
   },
@@ -30,10 +30,10 @@ export const PLUGIN_WEB_ROUTES = [
     pluginId: 'jobs' as const,
     routeId: 'jobs-home' as const,
     path: '/plugins/jobs' as const,
-    title: "任务中心",
+    title: '任务中心',
     icon: 'list-todo' as const,
     order: 130,
-    permissions: ["job:task:list"] as readonly string[],
+    permissions: ['job:task:list'] as readonly string[],
     packageName: '@zen/plugin-jobs' as const,
     componentExport: 'JobsPage' as const
   },
@@ -41,12 +41,11 @@ export const PLUGIN_WEB_ROUTES = [
     pluginId: 'notifications' as const,
     routeId: 'notifications-home' as const,
     path: '/plugins/notifications' as const,
-    title: "通知中心",
+    title: '通知中心',
     icon: 'bell' as const,
     order: 110,
-    permissions: ["notif:message:list"] as readonly string[],
+    permissions: ['notif:message:list'] as readonly string[],
     packageName: '@zen/plugin-notifications' as const,
     componentExport: 'NotificationsPage' as const
   }
 ] as const satisfies readonly PluginWebRouteLoader[]
-

@@ -1,15 +1,15 @@
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 
-import { AuthContextService } from '../auth/auth-context.service'
-import { setRequestAuditContext } from '../auth/request-audit-context'
-import { UserActivityService } from '../auth/user-activity.service'
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator'
-import { resolveTraceId } from '../utils/trace-id'
+import { AuthContextService } from '../auth/auth-context.service.js'
+import { setRequestAuditContext } from '../auth/request-audit-context.js'
+import { UserActivityService } from '../auth/user-activity.service.js'
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator.js'
+import { resolveTraceId } from '../utils/trace-id.js'
 
 import type { CanActivate, ExecutionContext } from '@nestjs/common'
 import type { AuthContext } from '@zen/shared'
-import type { JwtPayload } from '../interfaces/jwt-payload.interface'
+import type { JwtPayload } from '../interfaces/jwt-payload.interface.js'
 
 type HttpRequest = {
   user?: JwtPayload

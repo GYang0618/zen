@@ -1,4 +1,4 @@
-import { registerConfig } from '../helper'
+import { registerConfig } from '../helper.js'
 
 /**
  * JWT 认证配置

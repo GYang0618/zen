@@ -2,14 +2,14 @@ import { ForbiddenException, Inject, Injectable } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { hasAllPermissions, hasAnyPermission } from '@zen/shared'
 
-import { ALLOW_AUTHENTICATED_KEY } from '../decorators/allow-authenticated.decorator'
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator'
-import { REQUIRE_PERMISSIONS_KEY } from '../decorators/require-permission.decorator'
+import { ALLOW_AUTHENTICATED_KEY } from '../decorators/allow-authenticated.decorator.js'
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator.js'
+import { REQUIRE_PERMISSIONS_KEY } from '../decorators/require-permission.decorator.js'
 
 import type { CanActivate, ExecutionContext } from '@nestjs/common'
 import type { AuthContext } from '@zen/shared'
-import type { RequirePermissionsMeta } from '../decorators/require-permission.decorator'
-import type { JwtPayload } from '../interfaces/jwt-payload.interface'
+import type { RequirePermissionsMeta } from '../decorators/require-permission.decorator.js'
+import type { JwtPayload } from '../interfaces/jwt-payload.interface.js'
 
 type HttpRequest = {
   method?: string

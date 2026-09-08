@@ -1,4 +1,4 @@
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from '@tanstack/react-form'
 import { Link, useNavigate } from '@tanstack/react-router'
 import {
   Button,
@@ -12,7 +12,6 @@ import {
   sleep
 } from '@zen/ui'
 import { Loader2 } from 'lucide-react'
-import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
@@ -51,13 +50,16 @@ type FormValues = z.infer<typeof formSchema>
 export function SignUpForm() {
   const { mutate: signUp, error, isPending } = useSignUpMutation()
   const navigate = useNavigate()
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  const form = useForm({
     defaultValues: {
       username: '',
       email: '',
       password: '',
       confirmPassword: ''
+    } as FormValues,
+    validators: { onChange: formSchema },
+    onSubmit: async ({ value }) => {
+      await onSubmit(formSchema.parse(value))
     }
   })
 
@@ -77,7 +79,14 @@ export function SignUpForm() {
   }
 
   return (
-    <form className="p-6 md:p-8" onSubmit={form.handleSubmit(onSubmit)}>
+    <form
+      className="p-6 md:p-8"
+      onSubmit={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        void form.handleSubmit()
+      }}
+    >
       <FieldGroup>
         <div className="flex flex-col items-center gap-2 text-center">
           <h1 className="text-2xl font-bold">创建你的账户</h1>
@@ -90,71 +99,87 @@ export function SignUpForm() {
           </div>
         </div>
 
-        <Controller
-          name="username"
-          control={form.control}
-          render={({ field, fieldState }) => (
+        <form.Field name="username">
+          {(field) => (
             <Field>
               <FieldLabel htmlFor="username">用户名</FieldLabel>
               <Input
-                {...field}
+                name={field.name}
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
                 id="username"
                 type="text"
                 placeholder="输入用户名，只包含字母、数字、下划线"
               />
-              {fieldState.error && <FieldError errors={[fieldState.error]} />}
+              {field.state.meta.errors.length > 0 && (
+                <FieldError errors={field.state.meta.errors} />
+              )}
             </Field>
           )}
-        />
+        </form.Field>
 
-        <Controller
-          name="email"
-          control={form.control}
-          render={({ field, fieldState }) => (
+        <form.Field name="email">
+          {(field) => (
             <Field>
               <FieldLabel htmlFor="email">邮箱</FieldLabel>
-              <Input {...field} id="email" placeholder="输入邮箱" />
-              {fieldState.error && <FieldError errors={[fieldState.error]} />}
+              <Input
+                name={field.name}
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+                id="email"
+                placeholder="输入邮箱"
+              />
+              {field.state.meta.errors.length > 0 && (
+                <FieldError errors={field.state.meta.errors} />
+              )}
             </Field>
           )}
-        />
+        </form.Field>
 
         <Field>
           <Field className="grid grid-cols-2 gap-4">
-            <Controller
-              name="password"
-              control={form.control}
-              render={({ field, fieldState }) => (
+            <form.Field name="password">
+              {(field) => (
                 <Field>
                   <FieldLabel htmlFor="password">密码</FieldLabel>
                   <Input
-                    {...field}
+                    name={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.target.value)}
                     id="password"
                     type="password"
                     autoComplete="true"
                     placeholder="••••••••"
                   />
-                  {fieldState.error && <FieldError errors={[fieldState.error]} />}
+                  {field.state.meta.errors.length > 0 && (
+                    <FieldError errors={field.state.meta.errors} />
+                  )}
                 </Field>
               )}
-            />
-            <Controller
-              name="confirmPassword"
-              control={form.control}
-              render={({ field, fieldState }) => (
+            </form.Field>
+            <form.Field name="confirmPassword">
+              {(field) => (
                 <Field>
                   <FieldLabel htmlFor="confirm-password">确认密码</FieldLabel>
                   <Input
-                    {...field}
+                    name={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.target.value)}
                     id="confirm-password"
                     type="password"
                     autoComplete="true"
                     placeholder="••••••••"
                   />
-                  {fieldState.error && <FieldError errors={[fieldState.error]} />}
+                  {field.state.meta.errors.length > 0 && (
+                    <FieldError errors={field.state.meta.errors} />
+                  )}
                 </Field>
               )}
-            />
+            </form.Field>
           </Field>
         </Field>
 

@@ -75,28 +75,30 @@ export function UsersCardActions({
 
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={`打开${user.username}的操作菜单`}
-          className={cn(
-            'opacity-0 transition-opacity duration-200',
-            'group-hover/card:opacity-100',
-            'focus-visible:opacity-100',
-            'data-[state=open]:opacity-100',
-            '[@media(hover:none)]:opacity-100',
-            className
-          )}
-        >
-          <MoreHorizontal />
-        </Button>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`打开${user.username}的操作菜单`}
+            className={cn(
+              'opacity-0 transition-opacity duration-200',
+              'group-hover/card:opacity-100',
+              'focus-visible:opacity-100',
+              'data-popup-open:opacity-100',
+              '[@media(hover:none)]:opacity-100',
+              className
+            )}
+          />
+        }
+      >
+        <MoreHorizontal />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-45">
         {onEnterSelecting ? (
           <>
             <DropdownMenuGroup>
-              <DropdownMenuItem onSelect={onEnterSelecting}>
+              <DropdownMenuItem onClick={onEnterSelecting}>
                 选择
                 <DropdownMenuShortcut>
                   <CheckSquare />

@@ -1,20 +1,5 @@
 import { z } from 'zod'
 
-import type { UIMessage } from 'ai'
-
-export const copilotCallSchema = z.object({
-  id: z.string().optional(),
-  messages: z.custom<UIMessage[]>(),
-  /**
-   * 是否开启模型的“思考/推理”模式。
-   * 默认关闭：不向模型请求 reasoning 相关能力。
-   */
-  enableThinking: z.boolean().optional().default(false)
-})
-
-/** 与 {@link copilotCallSchema} 相同，供 Chat 命名空间使用 */
-export const chatCallSchema = copilotCallSchema
-
 export const copilotRunStatusSchema = z.enum([
   'pending',
   'running',
@@ -74,7 +59,10 @@ export const copilotRunBudgetSchema = z.object({
   maxTotalTokens: z.number().int().positive(),
   maxFailures: z.number().int().positive(),
   maxOutputTokensPerModelCall: z.number().int().positive(),
-  timeoutMs: z.number().int().positive()
+  timeoutMs: z.number().int().positive(),
+  maxConcurrentRuns: z.number().int().positive(),
+  maxMemoriesPerUser: z.number().int().positive(),
+  maxMemoryContentChars: z.number().int().positive()
 })
 
 export const copilotRunEventSchema = z.object({

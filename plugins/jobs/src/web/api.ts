@@ -1,6 +1,6 @@
-import { JOB_PERMISSIONS } from '../constants'
+import { JOB_PERMISSIONS } from '../constants.js'
 
-import type { JobDto } from '../job.schema'
+import type { JobDto } from '../job.schema.js'
 
 export type JobsRequest = {
   get: <T>(url: string) => Promise<T>

@@ -58,8 +58,12 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
         <Main className="flex flex-1 flex-col gap-4">
           <div className="flex flex-col items-center gap-3 py-12">
             <p className="text-sm text-muted-foreground">组织不存在或无权访问</p>
-            <Button variant="outline" asChild>
-              <Link to="/system/organization">返回组织管理</Link>
+            <Button
+              variant="outline"
+              render={<Link to="/system/organization" />}
+              nativeButton={false}
+            >
+              返回组织管理
             </Button>
           </div>
         </Main>
@@ -72,10 +76,14 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
       <AppHeader />
       <Main className="flex flex-1 flex-col gap-4">
         <PageHeader size="lg">
-          <Button variant="outline" size="icon-lg" className="rounded-full" asChild>
-            <Link to="/system/organization" aria-label="返回组织管理">
-              <ArrowLeft />
-            </Link>
+          <Button
+            variant="outline"
+            size="icon-lg"
+            className="rounded-full"
+            nativeButton={false}
+            render={<Link to="/system/organization" aria-label="返回组织管理" />}
+          >
+            <ArrowLeft />
           </Button>
           <PageHeaderMedia>
             <Building2 />

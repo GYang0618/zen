@@ -4,7 +4,7 @@
  * Source: https://github.com/shadcn-ui/ui/blob/main/apps/v4/registry/themes.ts
  */
 
-[data-brand-color='green'] {
+[data-brand-color="green"] {
   --primary: oklch(0.527 0.154 150.069);
   --primary-foreground: oklch(0.982 0.018 155.826);
   --secondary: oklch(0.967 0.001 286.375);
@@ -18,7 +18,7 @@
   --sidebar-primary-foreground: oklch(0.982 0.018 155.826);
 }
 
-.dark[data-brand-color='green'] {
+.dark[data-brand-color="green"] {
   --primary: oklch(0.448 0.119 151.328);
   --primary-foreground: oklch(0.982 0.018 155.826);
   --secondary: oklch(0.274 0.006 286.033);
@@ -31,4 +31,3 @@
   --sidebar-primary: oklch(0.723 0.219 149.579);
   --sidebar-primary-foreground: oklch(0.982 0.018 155.826);
 }
-

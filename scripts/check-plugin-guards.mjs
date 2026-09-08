@@ -2,7 +2,7 @@
 /**
  * 静态门禁：plugins 下所有 *.controller.ts 必须出现 RequirePlugin。
  */
-import { readdirSync, readFileSync, existsSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const pluginsRoot = join(process.cwd(), 'plugins')

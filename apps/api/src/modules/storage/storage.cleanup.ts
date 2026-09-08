@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
 
-import { StorageService } from './storage.service'
+import { StorageService } from './storage.service.js'
 
 import type { OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 

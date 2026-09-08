@@ -3,8 +3,8 @@ import { Reflector } from '@nestjs/core'
 import { REQUIRE_PLUGIN_ID_KEY } from '@zen/plugin-sdk'
 import { DEFAULT_TENANT_ID } from '@zen/shared'
 
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator'
-import { TenantPluginStateService } from '@/modules/plugin/tenant-plugin-state.service'
+import { TenantPluginStateService } from '../../modules/plugin/tenant-plugin-state.service.js'
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator.js'
 
 import type { CanActivate, ExecutionContext } from '@nestjs/common'
 import type { AuthContext } from '@zen/shared'

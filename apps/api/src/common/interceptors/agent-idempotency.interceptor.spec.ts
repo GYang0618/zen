@@ -3,10 +3,13 @@ import { createHash } from 'node:crypto'
 import { ConflictException } from '@nestjs/common'
 import { lastValueFrom, of } from 'rxjs'
 
-import { AgentIdempotencyInterceptor } from './agent-idempotency.interceptor'
+import { AgentIdempotencyService } from '../auth/agent-idempotency.service.js'
+import { AgentIdempotencyInterceptor } from './agent-idempotency.interceptor.js'
 
 import type { CallHandler, ExecutionContext } from '@nestjs/common'
-import type { PrismaService } from '@/infra/prisma'
+import type { PrismaService } from '../../infra/prisma/index.js'
+
+const { jest } = import.meta
 
 const auth = { tenantId: 'tenant-1', userId: 'user-1' }
 
@@ -25,6 +28,10 @@ function context(key = 'run-1:call-1', body: unknown = { name: 'A' }) {
   } as unknown as ExecutionContext
 }
 
+function interceptor(prisma: PrismaService) {
+  return new AgentIdempotencyInterceptor(new AgentIdempotencyService(prisma))
+}
+
 describe('AgentIdempotencyInterceptor', () => {
   it('首次写请求执行一次并持久化响应', async () => {
     const findUnique = jest.fn().mockResolvedValue(null)
@@ -41,9 +48,9 @@ describe('AgentIdempotencyInterceptor', () => {
     } as unknown as PrismaService
     const next = { handle: jest.fn(() => of({ id: 'created' })) } as CallHandler
 
-    await expect(
-      lastValueFrom(new AgentIdempotencyInterceptor(prisma).intercept(context(), next))
-    ).resolves.toEqual({ id: 'created' })
+    await expect(lastValueFrom(interceptor(prisma).intercept(context(), next))).resolves.toEqual({
+      id: 'created'
+    })
     expect(next.handle).toHaveBeenCalledTimes(1)
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -86,12 +93,11 @@ describe('AgentIdempotencyInterceptor', () => {
         })
       }
     } as unknown as PrismaService
-    const interceptor = new AgentIdempotencyInterceptor(prisma)
     const next = { handle: jest.fn(() => of({ id: 'new' })) } as CallHandler
 
-    await expect(lastValueFrom(interceptor.intercept(firstContext, next))).resolves.toEqual({
-      id: 'cached'
-    })
+    await expect(lastValueFrom(interceptor(prisma).intercept(firstContext, next))).resolves.toEqual(
+      { id: 'cached' }
+    )
     expect(next.handle).not.toHaveBeenCalled()
   })
 
@@ -119,10 +125,38 @@ describe('AgentIdempotencyInterceptor', () => {
 
     await expect(
       lastValueFrom(
-        new AgentIdempotencyInterceptor(prisma).intercept(context(), {
+        interceptor(prisma).intercept(context(), {
           handle: jest.fn(() => of(null))
         } as CallHandler)
       )
     ).rejects.toBeInstanceOf(ConflictException)
+  })
+
+  it('SSE 与 Copilot 路由不进入 JSON 幂等缓存', async () => {
+    const prisma = { agentIdempotencyRecord: { findUnique: jest.fn() } } as unknown as PrismaService
+    const next = { handle: jest.fn(() => of({ streamed: true })) } as CallHandler
+    const sseContext = {
+      switchToHttp: () => ({
+        getRequest: () => ({
+          method: 'POST',
+          path: '/api/copilot',
+          originalUrl: '/api/copilot',
+          query: {},
+          body: {},
+          auth,
+          get: (name: string) =>
+            name === 'x-agent-idempotency-key'
+              ? 'run-1:call-1'
+              : name === 'accept'
+                ? 'text/event-stream'
+                : undefined
+        })
+      })
+    } as unknown as ExecutionContext
+
+    await expect(lastValueFrom(interceptor(prisma).intercept(sseContext, next))).resolves.toEqual({
+      streamed: true
+    })
+    expect(prisma.agentIdempotencyRecord.findUnique).not.toHaveBeenCalled()
   })
 })

@@ -1,7 +1,16 @@
-import { existsSync, mkdirSync, readdirSync, unlinkSync, writeFileSync, readFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  unlinkSync,
+  writeFileSync
+} from 'node:fs'
 import { dirname, join } from 'node:path'
 
-import type { PluginRegistryEntry } from './types'
+import { formatGeneratedSource } from './format-generated.js'
+
+import type { PluginRegistryEntry } from './types.js'
 
 function packageName(pluginId: string): string {
   return `@zen/plugin-${pluginId}`
@@ -50,8 +59,7 @@ export function renderConfigHostSource(entries: PluginRegistryEntry[]): string {
   const withConfig = entries.filter((entry) => entry.config)
   const imports = withConfig
     .map(
-      (entry) =>
-        `import { ${entry.config!.schemaExport} } from '${packageName(entry.id)}/config'`
+      (entry) => `import { ${entry.config!.schemaExport} } from '${packageName(entry.id)}/config'`
     )
     .join('\n')
   const mapEntries = withConfig
@@ -96,27 +104,33 @@ export function renderWebRouteSource(
   const segment = routeSegment(route.path)
   const iconName = iconImportName(route.icon)
   const pageExport = route.componentExport
-  const permissions = JSON.stringify(route.permissions ?? [])
-  const title = JSON.stringify(route.title)
 
   return `${headerComment()}import { createFileRoute } from '@tanstack/react-router'
-import { ${iconName} } from 'lucide-react'
 import { ${pageExport} } from '${packageName(entry.id)}/web'
+import { PLUGIN_WEB_ROUTES } from '@zen/plugin-registry/web'
+import { ${iconName} } from 'lucide-react'
 
+import { RoutePending } from '@/components/route-pending'
 import { PluginPageShell } from '@/features/plugins/plugin-page-shell'
 import { requireActivePlugin } from '@/lib/plugins/require-active-plugin'
 
+const pluginRoute = PLUGIN_WEB_ROUTES.find((item) => item.path === '${route.path}')
+if (!pluginRoute) {
+  throw new Error('Missing plugin web route metadata: ${route.path}')
+}
+
 export const Route = createFileRoute('/_authenticated/plugins/${segment}')({
-  beforeLoad: () => requireActivePlugin('${entry.id}'),
+  beforeLoad: () => requireActivePlugin(pluginRoute.pluginId),
+  pendingComponent: RoutePending,
   component: function PluginRoutePage() {
     return <PluginPageShell page={${pageExport}} />
   },
   staticData: {
-    title: ${title},
+    title: pluginRoute.title,
     icon: ${iconName},
-    order: ${route.order ?? 100},
-    permissions: ${permissions},
-    pluginId: '${entry.id}'
+    order: pluginRoute.order,
+    permissions: [...pluginRoute.permissions],
+    pluginId: pluginRoute.pluginId
   }
 })
 `
@@ -208,12 +222,13 @@ export function writeOrCheckHostFiles(
   const checked: string[] = []
 
   for (const file of files) {
+    const source = formatGeneratedSource(file.source, file.absolutePath)
     if (check) {
       if (!existsSync(file.absolutePath)) {
         throw new Error(`生成物不存在，无法 --check: ${file.relativePath}`)
       }
       const existing = readFileSync(file.absolutePath, 'utf8')
-      if (existing !== file.source) {
+      if (existing !== source) {
         throw new Error(
           `${file.relativePath} 与当前 plugins Manifest 不一致，请运行 pnpm plugin:generate`
         )
@@ -223,7 +238,7 @@ export function writeOrCheckHostFiles(
     }
 
     mkdirSync(dirname(file.absolutePath), { recursive: true })
-    writeFileSync(file.absolutePath, file.source, 'utf8')
+    writeFileSync(file.absolutePath, source, 'utf8')
     written.push(file.relativePath)
   }
 

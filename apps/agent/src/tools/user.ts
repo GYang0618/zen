@@ -30,7 +30,6 @@ import {
   userControllerUpdate,
   userControllerUpdateStatus
 } from '../api'
-import { compactPagedToolResult, compactUserListItem } from './compact-result'
 import { executeApiCallOrRecover } from './recoverable-error'
 
 import type { UserControllerAdminResetPasswordData, UserControllerFindAllData } from '../api'
@@ -124,19 +123,18 @@ const USER_WRITE_HINTS: RecoverableHint[] = [
 ]
 
 export const getUsersTool = tool(
-  async (input, config) =>
-    compactPagedToolResult(
-      await executeApiCall(config, () =>
-        userControllerFindAll({
-          query: normalizeUsersQuery(input)
-        })
-      ),
-      compactUserListItem
-    ),
+  async (input, config) => {
+    return executeApiCall(config, async (_context) =>
+      userControllerFindAll({
+        query: normalizeUsersQuery(input)
+      })
+    )
+  },
   {
     name: 'query_users_list',
     description:
       '查询用户列表。keyword 为子串匹配（谷歌邮箱用 gmail.com / @gmail.com，不要用 google.com）。' +
+      '按状态筛选注意：已停用/禁用账号必须使用 status="suspended"（inactive 仅表示尚未完成激活流程）。' +
       'page 与 pageSize 可只传其一。返回精简字段；完整资料用 query_user_detail。',
     schema: usersQuerySchema
   }
@@ -144,7 +142,11 @@ export const getUsersTool = tool(
 
 export const createUserTool = tool(
   async (input, config) =>
-    executeApiCallOrRecover(config, () => userControllerCreate({ body: input }), USER_WRITE_HINTS),
+    executeApiCallOrRecover(
+      config,
+      async (_context) => userControllerCreate({ body: input }),
+      USER_WRITE_HINTS
+    ),
   {
     name: 'create_user',
     description:
@@ -157,7 +159,7 @@ export const createUserTool = tool(
 
 export const getUserTool = tool(
   async ({ id }, config) =>
-    executeApiCall(config, () =>
+    executeApiCall(config, async (_context) =>
       userControllerFindOne({
         path: { id }
       })
@@ -215,7 +217,11 @@ export const updateUsersStatusTool = tool(
 
 export const unlockUserTool = tool(
   async ({ id }, config) =>
-    executeApiCallOrRecover(config, () => userControllerUnlock({ path: { id } }), USER_WRITE_HINTS),
+    executeApiCallOrRecover(
+      config,
+      async (_context) => userControllerUnlock({ path: { id } }),
+      USER_WRITE_HINTS
+    ),
   {
     name: 'unlock_user',
     description: '解锁因登录失败次数过多而被锁定的用户账号',

@@ -14,13 +14,13 @@ import { formatUnhandledToolError } from '@/api/tool-failure'
 import { ContextSchema } from '@/schema/context'
 import {
   collectConversationHints,
-  resolveToolDomains,
-  selectToolNamesForDomains
+  resolveToolCapabilities,
+  selectToolNamesForCapabilities
 } from '@/tool-domains'
 import { createApprovalPolicy } from '@/tool-policy'
-import { getAgentToolPluginId } from '@/tools'
+import { defaultAgentToolDescriptors, getAgentToolPluginId } from '@/tools'
 
-import type { createQwenModel } from '@/models'
+import type { createModel } from '@/models'
 
 export const pluginToolVisibilityMiddleware = createMiddleware({
   name: 'pluginToolVisibility',
@@ -45,9 +45,15 @@ export const pluginToolVisibilityMiddleware = createMiddleware({
     if (pluginId && !activePluginIds.includes(pluginId)) {
       return new ToolMessage({
         content: JSON.stringify({
-          success: false,
+          code: 503,
           reason: 'TOOL_UNAVAILABLE',
-          message: `插件 ${pluginId} 未启用，该工具不可用。`
+          message: `插件 ${pluginId} 未启用，该工具不可用。`,
+          path: '',
+          traceId: 'agent-local',
+          timestamp: new Date().toISOString(),
+          error: null,
+          fieldErrors: null,
+          formErrors: null
         }),
         tool_call_id: request.toolCall.id ?? `disabled:${request.toolCall.name}`
       })
@@ -60,27 +66,46 @@ export const pluginToolVisibilityMiddleware = createMiddleware({
 export const domainToolFilterMiddleware = createMiddleware({
   name: 'domainToolFilter',
   wrapModelCall: (request, handler) => {
-    const availableNames = request.tools.flatMap((registeredTool) =>
-      typeof registeredTool.name === 'string' ? [registeredTool.name] : []
-    )
+    const getToolName = (toolItem: unknown): string | undefined => {
+      if (!toolItem || typeof toolItem !== 'object') return undefined
+      if ('name' in toolItem && typeof (toolItem as { name?: unknown }).name === 'string') {
+        return (toolItem as { name: string }).name
+      }
+      if (
+        'function' in toolItem &&
+        typeof (toolItem as { function?: { name?: unknown } }).function?.name === 'string'
+      ) {
+        return (toolItem as { function: { name: string } }).function.name
+      }
+      return undefined
+    }
+
+    const availableNames = request.tools.flatMap((registeredTool) => {
+      const name = getToolName(registeredTool)
+      return name ? [name] : []
+    })
     const hints = collectConversationHints(request.messages)
-    const selected = selectToolNamesForDomains(
+    const selected = selectToolNamesForCapabilities(
       availableNames,
-      resolveToolDomains(hints.text, hints.recentToolNames)
+      resolveToolCapabilities(hints.text, hints.recentToolNames)
     )
     if (!selected) return handler(request)
     const allowed = new Set(selected)
+    const registeredBackendNames = new Set(defaultAgentToolDescriptors.map((item) => item.name))
+
     return handler({
       ...request,
-      tools: request.tools.filter(
-        (registeredTool) =>
-          typeof registeredTool.name !== 'string' || allowed.has(registeredTool.name)
-      )
+      tools: request.tools.filter((registeredTool) => {
+        const name = getToolName(registeredTool)
+        // 动态注入的前端工具或未在服务端清单注册的工具一律放行，不被服务端领域规则裁剪
+        if (!name || !registeredBackendNames.has(name)) return true
+        return allowed.has(name)
+      })
     })
   }
 })
 
-export function createDefaultAgentMiddleware(model: ReturnType<typeof createQwenModel>) {
+export function createDefaultAgentMiddleware(model: ReturnType<typeof createModel>) {
   return [
     pluginToolVisibilityMiddleware,
     domainToolFilterMiddleware,

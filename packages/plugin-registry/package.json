@@ -6,41 +6,49 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js",
+      "browser": "./src/index.ts"
     },
     "./catalog": {
-      "types": "./src/catalog.ts",
-      "default": "./src/catalog.ts"
+      "types": "./dist/catalog.d.ts",
+      "default": "./dist/catalog.js",
+      "browser": "./src/catalog.ts"
     },
     "./api": {
-      "types": "./src/api.ts",
-      "default": "./src/api.ts"
+      "types": "./dist/api.d.ts",
+      "default": "./dist/api.js",
+      "browser": "./src/api.ts"
     },
     "./web": {
-      "types": "./src/web.ts",
-      "default": "./src/web.ts"
+      "types": "./dist/web.d.ts",
+      "default": "./dist/web.js",
+      "browser": "./src/web.ts"
     },
     "./config": {
-      "types": "./src/config.ts",
-      "default": "./src/config.ts"
+      "types": "./dist/config.d.ts",
+      "default": "./dist/config.js",
+      "browser": "./src/config.ts"
     },
     "./lifecycle": {
-      "types": "./src/lifecycle.ts",
-      "default": "./src/lifecycle.ts"
+      "types": "./dist/lifecycle.d.ts",
+      "default": "./dist/lifecycle.js",
+      "browser": "./src/lifecycle.ts"
     },
     "./agent": {
-      "types": "./src/agent.ts",
-      "default": "./src/agent.ts"
+      "types": "./dist/agent.d.ts",
+      "default": "./dist/agent.js",
+      "browser": "./src/agent.ts"
     }
   },
   "files": [
+    "dist",
     "src"
   ],
   "scripts": {
-    "build": "tsc --noEmit",
+    "build": "tsc",
     "check-types": "tsc --noEmit",
-    "lint": "biome check --write ."
+    "lint": "biome check ."
   },
   "dependencies": {
     "@zen/plugin-demo-notes": "workspace:*",
@@ -53,6 +61,5 @@
     "@types/node": "^26.1.1",
     "@typescript/native": "npm:typescript@7.0.2",
     "typescript": "npm:@typescript/typescript6@6.0.2"
-  },
-  "packageManager": "pnpm@11.17.0"
+  }
 }

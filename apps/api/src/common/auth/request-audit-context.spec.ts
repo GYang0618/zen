@@ -2,7 +2,7 @@ import {
   getRequestAuditContext,
   runWithRequestAuditContext,
   setRequestAuditContext
-} from './request-audit-context'
+} from './request-audit-context.js'
 
 describe('request-audit-context', () => {
   it('未包裹请求上下文时读取为空', () => {

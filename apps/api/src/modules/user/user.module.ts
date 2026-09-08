@@ -1,11 +1,10 @@
 import { Module } from '@nestjs/common'
 
-import { StorageModule } from '@/modules/storage/storage.module'
-
-import { UserTool } from './tools/user.tool'
-import { UserController } from './user.controller'
-import { UserRepository } from './user.repository'
-import { UserService } from './user.service'
+import { StorageModule } from '../storage/storage.module.js'
+import { UserTool } from './tools/user.tool.js'
+import { UserController } from './user.controller.js'
+import { UserRepository } from './user.repository.js'
+import { UserService } from './user.service.js'
 
 @Module({
   imports: [StorageModule],

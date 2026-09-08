@@ -187,7 +187,7 @@ export function HistoryRow({
               </div>
             </div>
           </Link>
-          <div className="relative hidden shrink-0 items-center gap-1 group-hover/item:flex group-focus-within/item:flex has-data-[state=open]:flex">
+          <div className="relative hidden shrink-0 items-center gap-1 group-hover/item:flex group-focus-within/item:flex has-data-popup-open:flex">
             <div
               aria-hidden
               className="pointer-events-none absolute inset-y-0 -left-5 w-5 bg-linear-to-r from-transparent to-sidebar group-hover/item:to-muted/70 group-data-active/item:to-muted"
@@ -196,16 +196,18 @@ export function HistoryRow({
               {formatRelativeTime(thread.updatedAt)}
             </span>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="对话操作"
-                  className="relative rounded-full"
-                >
-                  <MoreHorizontal />
-                </Button>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="对话操作"
+                    className="relative rounded-full"
+                  />
+                }
+              >
+                <MoreHorizontal />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-36">
                 <DropdownMenuItem onClick={onRename}>

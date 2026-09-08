@@ -2,7 +2,9 @@ import { LangGraphAgent as CopilotkitLangGraphAgent } from '@copilotkit/runtime/
 import { DEFAULT_AGENT_RUN_BUDGET } from '@zen/shared'
 import { Observable } from 'rxjs'
 
-import { LangGraphAgent } from './langgraph-runtime-agent'
+import { LangGraphAgent } from './langgraph-runtime-agent.js'
+
+const { jest } = import.meta
 
 const RUN_INPUT = {
   threadId: 'thread-1',
@@ -132,27 +134,6 @@ describe('LangGraphAgent runtime policy', () => {
     expect(onError).toHaveBeenCalledWith(new Error('Default Agent run timed out'))
   })
 
-  it('Default Agent 进入审批中断后不再按空闲超时取消', async () => {
-    jest.useFakeTimers()
-    let remoteSubscriber: { next: (event: unknown) => void } | undefined
-    const source = new Observable((subscriber) => {
-      remoteSubscriber = subscriber
-    })
-    jest.spyOn(CopilotkitLangGraphAgent.prototype, 'run').mockReturnValue(source as never)
-    const agent = new LangGraphAgent({
-      deploymentUrl: 'http://langgraph.test',
-      graphId: 'default_agent'
-    })
-    const abortRun = jest.spyOn(agent, 'abortRun').mockImplementation()
-
-    agent.run(RUN_INPUT as never).subscribe()
-    await Promise.resolve()
-    remoteSubscriber?.next({ type: 'CUSTOM', name: 'on_interrupt', value: '{}' })
-    jest.advanceTimersByTime(DEFAULT_AGENT_RUN_BUDGET.timeoutMs * 2)
-
-    expect(abortRun).not.toHaveBeenCalled()
-  })
-
   it('Default Agent 工具连续失败时以带用量的预算错误结束', async () => {
     const source = new Observable((subscriber) => {
       for (let index = 0; index < DEFAULT_AGENT_RUN_BUDGET.maxFailures + 1; index += 1) {
@@ -276,46 +257,6 @@ describe('LangGraphAgent runtime policy', () => {
     expect(hooks.onComplete).not.toHaveBeenCalled()
   })
 
-  it('仅为 Default Agent 的 legacy interrupt 补充稳定 ID', () => {
-    const dispatch = jest
-      .spyOn(CopilotkitLangGraphAgent.prototype, 'dispatchEvent')
-      .mockReturnValue(true)
-    const agent = new LangGraphAgent({
-      deploymentUrl: 'http://langgraph.test',
-      graphId: 'default_agent'
-    })
-
-    agent.dispatchEvent({
-      type: 'CUSTOM',
-      name: 'on_interrupt',
-      value: JSON.stringify({ actionRequests: [{ name: 'delete_users', args: { ids: ['1'] } }] }),
-      rawEvent: { id: 'interrupt-1' }
-    } as never)
-
-    const forwarded = dispatch.mock.calls[0]?.[0] as unknown as { value: string }
-    expect(JSON.parse(forwarded.value)).toMatchObject({ __zenInterruptId: 'interrupt-1' })
-  })
-
-  it('plan Agent 的 legacy interrupt 保持原样', () => {
-    const dispatch = jest
-      .spyOn(CopilotkitLangGraphAgent.prototype, 'dispatchEvent')
-      .mockReturnValue(true)
-    const agent = new LangGraphAgent({
-      deploymentUrl: 'http://langgraph.test',
-      graphId: 'plan_agent'
-    })
-    const event = {
-      type: 'CUSTOM',
-      name: 'on_interrupt',
-      value: '{}',
-      rawEvent: { id: 'popup-interrupt' }
-    }
-
-    agent.dispatchEvent(event as never)
-
-    expect(dispatch).toHaveBeenCalledWith(event)
-  })
-
   it('plan Agent 保持原输入且不启用 Default Agent 超时', () => {
     jest.useFakeTimers()
     const source = new Observable(() => undefined)
@@ -336,5 +277,182 @@ describe('LangGraphAgent runtime policy', () => {
       messages: [RUN_INPUT.messages[0]]
     })
     expect(abortRun).not.toHaveBeenCalled()
+  })
+
+  it('把 GraphInterrupt / RUN_ERROR interrupt 转成 INTERRUPT + RUN_FINISHED', async () => {
+    const source = new Observable((subscriber) => {
+      subscriber.next({ type: 'RUN_STARTED' })
+      subscriber.next({ type: 'RUN_ERROR', message: 'interrupt' })
+    })
+    jest.spyOn(CopilotkitLangGraphAgent.prototype, 'run').mockReturnValue(source as never)
+    const hooks = {
+      onStart: jest.fn().mockResolvedValue(undefined),
+      onEvent: jest.fn().mockResolvedValue(undefined),
+      onError: jest.fn().mockResolvedValue(undefined),
+      onComplete: jest.fn().mockResolvedValue(undefined)
+    }
+    const agent = new LangGraphAgent({
+      deploymentUrl: 'http://langgraph.test',
+      graphId: 'default_agent'
+    }).setRuntimeHooks(hooks)
+    const types: string[] = []
+    await new Promise<void>((resolve, reject) => {
+      agent.run(RUN_INPUT as never).subscribe({
+        next: (event: { type: string }) => types.push(event.type),
+        error: reject,
+        complete: resolve
+      })
+    })
+    expect(types).toEqual(['RUN_STARTED', 'CUSTOM', 'RUN_FINISHED'])
+    expect(hooks.onError).not.toHaveBeenCalled()
+    expect(hooks.onComplete).toHaveBeenCalledTimes(1)
+    expect(hooks.onEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        type: 'RUN_FINISHED',
+        outcome: expect.objectContaining({
+          type: 'interrupt',
+          interrupts: [expect.objectContaining({ id: expect.any(String), reason: 'approval' })]
+        })
+      })
+    )
+  })
+
+  it('把 on_interrupt CUSTOM 载荷写入 RUN_FINISHED interrupts', async () => {
+    const hitl = {
+      actionRequests: [{ name: 'update_user_status', args: { ids: ['u1'], status: 'suspended' } }]
+    }
+    const source = new Observable((subscriber) => {
+      subscriber.next({ type: 'RUN_STARTED' })
+      subscriber.next({
+        type: 'CUSTOM',
+        name: 'on_interrupt',
+        value: JSON.stringify(hitl),
+        rawEvent: { id: 'lg-interrupt-1', value: hitl }
+      })
+      subscriber.next({ type: 'RUN_ERROR', message: 'interrupt' })
+    })
+    jest.spyOn(CopilotkitLangGraphAgent.prototype, 'run').mockReturnValue(source as never)
+    const hooks = {
+      onStart: jest.fn().mockResolvedValue(undefined),
+      onEvent: jest.fn().mockResolvedValue(undefined),
+      onError: jest.fn().mockResolvedValue(undefined),
+      onComplete: jest.fn().mockResolvedValue(undefined)
+    }
+    const agent = new LangGraphAgent({
+      deploymentUrl: 'http://langgraph.test',
+      graphId: 'default_agent'
+    }).setRuntimeHooks(hooks)
+    const events: Array<{
+      type: string
+      name?: string
+      outcome?: { interrupts?: Array<{ id: string }> }
+    }> = []
+    await new Promise<void>((resolve, reject) => {
+      agent.run(RUN_INPUT as never).subscribe({
+        next: (event: { type: string }) => events.push(event as never),
+        error: reject,
+        complete: resolve
+      })
+    })
+    expect(events.map((event) => event.type)).toEqual(['RUN_STARTED', 'CUSTOM', 'RUN_FINISHED'])
+    expect(events[1]).toEqual(
+      expect.objectContaining({
+        type: 'CUSTOM',
+        name: 'on_interrupt'
+      })
+    )
+    expect(JSON.parse(String((events[1] as { value?: unknown }).value))).toEqual(
+      expect.objectContaining({ id: 'lg-interrupt-1', actionRequests: hitl.actionRequests })
+    )
+    expect(hooks.onEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        type: 'RUN_FINISHED',
+        outcome: {
+          type: 'interrupt',
+          interrupts: [expect.objectContaining({ id: 'lg-interrupt-1' })]
+        }
+      })
+    )
+    expect(hooks.onError).not.toHaveBeenCalled()
+  })
+
+  it('CUSTOM on_interrupt 后直接 RUN_FINISHED 时仍持久化 interrupt outcome', async () => {
+    const hitl = {
+      actionRequests: [{ name: 'update_user_status', args: { ids: ['u1'], status: 'suspended' } }]
+    }
+    const source = new Observable((subscriber) => {
+      subscriber.next({ type: 'RUN_STARTED' })
+      subscriber.next({
+        type: 'TOOL_CALL_START',
+        toolCallId: 'tool-call-1',
+        toolCallName: 'update_user_status'
+      })
+      subscriber.next({
+        type: 'CUSTOM',
+        name: 'on_interrupt',
+        value: JSON.stringify(hitl)
+      })
+      subscriber.next({ type: 'STATE_SNAPSHOT', snapshot: {} })
+      subscriber.next({
+        type: 'RUN_FINISHED',
+        threadId: 'thread-1',
+        runId: 'run-1'
+      })
+      subscriber.complete()
+    })
+    jest.spyOn(CopilotkitLangGraphAgent.prototype, 'run').mockReturnValue(source as never)
+    const hooks = {
+      onStart: jest.fn().mockResolvedValue(undefined),
+      onEvent: jest.fn().mockResolvedValue(undefined),
+      onError: jest.fn().mockResolvedValue(undefined),
+      onComplete: jest.fn().mockResolvedValue(undefined)
+    }
+    const agent = new LangGraphAgent({
+      deploymentUrl: 'http://langgraph.test',
+      graphId: 'default_agent'
+    }).setRuntimeHooks(hooks)
+    const events: Array<{ type: string; outcome?: unknown; value?: unknown }> = []
+    await new Promise<void>((resolve, reject) => {
+      agent.run(RUN_INPUT as never).subscribe({
+        next: (event: { type: string }) => events.push(event as never),
+        error: reject,
+        complete: resolve
+      })
+    })
+    expect(events.map((event) => event.type)).toEqual([
+      'RUN_STARTED',
+      'TOOL_CALL_START',
+      'CUSTOM',
+      'STATE_SNAPSHOT',
+      'RUN_FINISHED'
+    ])
+    expect(events.at(-1)).toEqual({
+      type: 'RUN_FINISHED',
+      threadId: 'thread-1',
+      runId: 'run-1'
+    })
+    expect(JSON.parse(String(events[2]?.value))).toEqual(
+      expect.objectContaining({
+        id: 'tool-call-1',
+        actionRequests: hitl.actionRequests
+      })
+    )
+    expect(hooks.onEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        type: 'RUN_FINISHED',
+        outcome: {
+          type: 'interrupt',
+          interrupts: [expect.objectContaining({ id: 'tool-call-1', toolCallId: 'tool-call-1' })]
+        }
+      })
+    )
+    expect(
+      hooks.onEvent.mock.calls.some(([, event]) => event.type === 'RUN_FINISHED' && !event.outcome)
+    ).toBe(false)
+    expect(hooks.onComplete).toHaveBeenCalledTimes(1)
+    expect(hooks.onError).not.toHaveBeenCalled()
   })
 })

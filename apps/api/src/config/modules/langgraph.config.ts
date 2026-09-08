@@ -1,4 +1,4 @@
-import { registerConfig } from '../helper'
+import { registerConfig } from '../helper.js'
 
 /**
  * LangGraph / Copilot 运行时配置

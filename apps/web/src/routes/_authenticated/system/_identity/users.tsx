@@ -18,6 +18,7 @@ const usersSearchSchema = z.object({
 export const Route = createFileRoute('/_authenticated/system/_identity/users')({
   component: Users,
   validateSearch: usersSearchSchema,
+  loaderDeps: ({ search }) => search,
   staticData: {
     title: '用户管理',
     description: '管理账号、角色归属与组织岗位',

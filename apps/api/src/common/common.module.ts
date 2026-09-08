@@ -3,27 +3,27 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
 import { JwtModule } from '@nestjs/jwt'
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler'
 
-import { authConfig, securityConfig } from '@/config'
-import { LoggerModule } from '@/infra/logger'
-import { PrismaModule } from '@/infra/prisma'
-import { TenantPluginStateService } from '@/modules/plugin/tenant-plugin-state.service'
+import { authConfig, securityConfig } from '../config/index.js'
+import { LoggerModule } from '../infra/logger/index.js'
+import { PrismaModule } from '../infra/prisma/index.js'
+import { TenantPluginStateService } from '../modules/plugin/tenant-plugin-state.service.js'
+import { AgentIdempotencyService } from './auth/agent-idempotency.service.js'
+import { AuditService } from './auth/audit.service.js'
+import { AuthContextService } from './auth/auth-context.service.js'
+import { MembershipService } from './auth/membership.service.js'
+import { PermissionCatalogSyncService } from './auth/permission-catalog-sync.service.js'
+import { SessionService } from './auth/session.service.js'
+import { UserActivityService } from './auth/user-activity.service.js'
+import { AllExceptionsFilter } from './filters/all-exceptions.filter.js'
+import { AuthGuard } from './guards/auth.guard.js'
+import { AuthContextGuard } from './guards/auth-context.guard.js'
+import { PermissionGuard } from './guards/permission.guard.js'
+import { PluginActiveGuard } from './guards/plugin-active.guard.js'
+import { StepUpGuard } from './guards/step-up.guard.js'
+import { AgentIdempotencyInterceptor } from './interceptors/agent-idempotency.interceptor.js'
+import { TransformInterceptor } from './interceptors/transform.interceptor.js'
 
-import { AuditService } from './auth/audit.service'
-import { AuthContextService } from './auth/auth-context.service'
-import { MembershipService } from './auth/membership.service'
-import { PermissionCatalogSyncService } from './auth/permission-catalog-sync.service'
-import { SessionService } from './auth/session.service'
-import { UserActivityService } from './auth/user-activity.service'
-import { AllExceptionsFilter } from './filters/all-exceptions.filter'
-import { AuthGuard } from './guards/auth.guard'
-import { AuthContextGuard } from './guards/auth-context.guard'
-import { PermissionGuard } from './guards/permission.guard'
-import { PluginActiveGuard } from './guards/plugin-active.guard'
-import { StepUpGuard } from './guards/step-up.guard'
-import { AgentIdempotencyInterceptor } from './interceptors/agent-idempotency.interceptor'
-import { TransformInterceptor } from './interceptors/transform.interceptor'
-
-import type { AuthConfig, SecurityConfig } from '@/config'
+import type { AuthConfig, SecurityConfig } from '../config/index.js'
 
 @Global()
 @Module({
@@ -31,12 +31,18 @@ import type { AuthConfig, SecurityConfig } from '@/config'
     LoggerModule,
     PrismaModule,
     ThrottlerModule.forRootAsync({
+      imports: [],
       inject: [securityConfig.KEY],
       useFactory: (security: SecurityConfig) => [
         {
           name: 'default',
           ttl: security.throttle.ttl,
           limit: security.throttle.limit
+        },
+        {
+          name: 'copilot',
+          ttl: security.copilotThrottle.ttl,
+          limit: security.copilotThrottle.limit
         }
       ]
     }),
@@ -49,6 +55,7 @@ import type { AuthConfig, SecurityConfig } from '@/config'
   ],
   providers: [
     AuthContextService,
+    AgentIdempotencyService,
     AuditService,
     SessionService,
     UserActivityService,
@@ -95,6 +102,7 @@ import type { AuthConfig, SecurityConfig } from '@/config'
   exports: [
     JwtModule,
     AuthContextService,
+    AgentIdempotencyService,
     AuditService,
     SessionService,
     UserActivityService,

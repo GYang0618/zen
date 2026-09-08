@@ -6,9 +6,9 @@ import {
   ORGANIZATION_TYPE_LABELS,
   ORGANIZATION_TYPE_VALUES,
   ROOT_ORGANIZATION_TYPES
-} from './organization.hierarchy'
+} from './organization.hierarchy.js'
 
-import type { OrganizationTypeValue } from './organization.hierarchy'
+import type { OrganizationTypeValue } from './organization.hierarchy.js'
 
 export const ORGANIZATION_TYPE_TEMPLATE_IDS = [
   'general',

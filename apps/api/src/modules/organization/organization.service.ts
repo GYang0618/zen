@@ -15,30 +15,30 @@ import {
   serializeOrganizationTypeCatalog
 } from '@zen/shared'
 
-import { applyOrganizationTreeDataScope } from '@/common/auth/apply-data-scope'
-import { AuditService } from '@/common/auth/audit.service'
-import { AuthContextService } from '@/common/auth/auth-context.service'
-import { SessionService } from '@/common/auth/session.service'
-import { paginate } from '@/common/pagination/paginate.util'
-import { PostService } from '@/modules/post'
-
+import { applyOrganizationTreeDataScope } from '../../common/auth/apply-data-scope.js'
+import { AuditService } from '../../common/auth/audit.service.js'
+import { AuthContextService } from '../../common/auth/auth-context.service.js'
+import { SessionService } from '../../common/auth/session.service.js'
+import { paginate } from '../../common/pagination/paginate.util.js'
+import { PostService } from '../post/index.js'
 import {
   fromApiOrganizationType,
   toApiOrganizationType,
   toOrganizationMemberResponse,
   toOrganizationResponse
-} from './organization.mapper'
-import { OrganizationRepository } from './organization.repository'
-import { assertValidParentType, canBeChildOf, throwMoveRejection } from './organization.rules'
+} from './organization.mapper.js'
+import { OrganizationRepository } from './organization.repository.js'
+import { assertValidParentType, canBeChildOf, throwMoveRejection } from './organization.rules.js'
 import {
   buildOrganizationCreatedDiff,
+  buildOrganizationDeletedDiff,
   buildOrganizationLeaderDiff,
   buildOrganizationMembersDiff,
   buildOrganizationParentDiff,
   buildOrganizationPositionCreatedDiff,
   buildOrganizationUpdatedDiff,
   toUserDisplayName
-} from './organization-audit-diff'
+} from './organization-audit-diff.js'
 
 import type { Prisma } from '@prisma/client'
 import type {
@@ -60,15 +60,15 @@ import type {
   UpdateOrganizationDto,
   UpdateOrganizationLeaderDto,
   UpdateOrganizationPositionDto
-} from './dto'
-import type { OrganizationWithRelations } from './organization.repository'
+} from './dto/index.js'
+import type { OrganizationWithRelations } from './organization.repository.js'
 import type {
   OrganizationActivitiesResponse,
   OrganizationMemberResponse,
   OrganizationResponse,
   OrganizationTreeResponse,
   PositionResponse
-} from './responses/organization.response'
+} from './responses/organization.response.js'
 
 const NAME_COLLATOR = new Intl.Collator('zh-CN', {
   numeric: true,
@@ -77,6 +77,7 @@ const NAME_COLLATOR = new Intl.Collator('zh-CN', {
 
 const ORGANIZATION_ACTION_TITLES: Record<string, string> = {
   'system.organization.created': '创建了组织',
+  'system.organization.deleted': '删除了组织',
   'system.organization.updated': '更新了信息',
   'system.organization.leader_updated': '变更了负责人',
   'system.organization.parent_changed': '调整了上级',
@@ -269,6 +270,30 @@ export class OrganizationService {
       buildOrganizationUpdatedDiff(existing, data)
     )
     return toOrganizationResponse(updated)
+  }
+
+  async remove(id: string, auth: AuthContext): Promise<void> {
+    const existing = await this.requireVisible(id, auth)
+    const children = await this.orgRepo.findChildrenTypes(id)
+
+    if (children.length > 0) {
+      throw new ConflictException('请先删除或迁移下级组织')
+    }
+    if (existing._count.users > 0) {
+      throw new ConflictException('请先移除当前组织成员')
+    }
+    if (existing._count.posts > 0) {
+      throw new ConflictException('请先解除当前组织岗位')
+    }
+
+    await this.orgRepo.delete(id)
+    await this.writeAudit(
+      auth,
+      id,
+      'system.organization.deleted',
+      buildOrganizationDeletedDiff(existing)
+    )
+    this.authContextService.invalidateCache()
   }
 
   async updateLeader(
@@ -492,8 +517,8 @@ export class OrganizationService {
   ): Promise<OrganizationActivitiesResponse> {
     await this.requireVisible(id, auth)
     const page = await paginate({
-      page: query.page,
-      pageSize: query.pageSize,
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? 10,
       count: () => this.orgRepo.countActivities(auth.tenantId, id),
       findMany: (pagination) => this.orgRepo.listActivities(auth.tenantId, id, pagination)
     })

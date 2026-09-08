@@ -15,18 +15,21 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger'
 import { PermissionCode } from '@zen/shared'
 
-import { RequirePermission } from '@/common/decorators/require-permission.decorator'
-import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
-import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '@/common/swagger'
-
+import { RequirePermission } from '../../common/decorators/require-permission.decorator.js'
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js'
+import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '../../common/swagger/index.js'
 import {
   createJobProfileSchema,
   findJobProfilesQuerySchema,
   updateJobProfileSchema
-} from './dto'
-import { PostService } from './post.service'
+} from './dto/index.js'
+import { PostService } from './post.service.js'
 
-import type { CreateJobProfileDto, FindJobProfilesQueryDto, UpdateJobProfileDto } from './dto'
+import type {
+  CreateJobProfileDto,
+  FindJobProfilesQueryDto,
+  UpdateJobProfileDto
+} from './dto/index.js'
 
 @ApiTags('岗位管理')
 @ApiBearerAuth(ACCESS_TOKEN_AUTH)

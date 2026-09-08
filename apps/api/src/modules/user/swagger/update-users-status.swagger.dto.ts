@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger'
 
-import { UserStatusSwagger } from './user-status.swagger'
+import { UserStatusSwagger } from './user-status.swagger.js'
 
 /** 批量更新用户状态请求体（与 updateUsersStatusSchema 对齐） */
 export class UpdateUsersStatusSwaggerDto {

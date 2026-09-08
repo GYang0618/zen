@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { POSITION_MEMBER_PREVIEW_LIMIT } from '@zen/shared'
 
-import { PrismaService } from '@/infra/prisma/prisma.service'
+import { PrismaService } from '../../infra/prisma/prisma.service.js'
 
 import type { JobProfileStatus, Prisma } from '@prisma/client'
 
@@ -187,11 +187,15 @@ export class PostRepository {
 
   buildProfileWhere(input: {
     keyword?: string
-    status?: JobProfileStatus
+    status?: JobProfileStatus | JobProfileStatus[]
     level?: string
   }): Prisma.JobProfileWhereInput {
     const where: Prisma.JobProfileWhereInput = {}
-    if (input.status) where.status = input.status
+    if (Array.isArray(input.status)) {
+      where.status = { in: input.status }
+    } else if (input.status) {
+      where.status = input.status
+    }
     if (input.level) where.level = input.level
     if (input.keyword?.trim()) {
       const keyword = input.keyword.trim()

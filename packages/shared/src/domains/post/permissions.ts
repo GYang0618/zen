@@ -1,4 +1,4 @@
-import { defineKernelPermissions } from '../permission/define-permissions'
+import { defineKernelPermissions } from '../permission/define-permissions.js'
 
 export const POST_PERMISSIONS = defineKernelPermissions({
   namespace: 'system',

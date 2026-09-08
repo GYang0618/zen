@@ -1,4 +1,6 @@
-import { DefaultAgentRunControl } from './default-agent-run-control'
+import { DefaultAgentRunControl } from './default-agent-run-control.js'
+
+const { jest } = import.meta
 
 describe('DefaultAgentRunControl', () => {
   it('取消只执行一次并在结束时注销', () => {

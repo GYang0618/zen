@@ -1,4 +1,4 @@
-import type { Paged, PageMeta } from './pagination.types'
+import type { Paged, PageMeta } from './pagination.types.js'
 
 export interface PaginateParams<T> {
   page: number

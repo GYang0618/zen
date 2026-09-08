@@ -235,6 +235,18 @@ export function useUpdateOrganization() {
   })
 }
 
+export function useDeleteOrganization() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => organizationApi.remove(id),
+    onSuccess: async () => {
+      await invalidateOrganizationQueries(queryClient)
+      toast.success('组织已删除')
+    },
+    onError: (error: Error) => toast.error(error.message || '删除失败')
+  })
+}
+
 export function useUpdateOrganizationLeader() {
   const queryClient = useQueryClient()
   return useMutation({

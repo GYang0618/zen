@@ -229,49 +229,55 @@ export function PermissionMatrix({
               <CardAction className="opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                 <div className="flex">
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`${group.module}全选`}
-                        disabled={disabled}
-                        onClick={() => applyLocalPreset(fullModuleCodes, 'all')}
-                      >
-                        <CheckCheck />
-                      </Button>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`${group.module}全选`}
+                          disabled={disabled}
+                          onClick={() => applyLocalPreset(fullModuleCodes, 'all')}
+                        />
+                      }
+                    >
+                      <CheckCheck />
                     </TooltipTrigger>
                     <TooltipContent>全选</TooltipContent>
                   </Tooltip>
 
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`${group.module}仅只读`}
-                        disabled={disabled}
-                        onClick={() => applyLocalPreset(fullModuleCodes, 'readonly')}
-                      >
-                        <Eye />
-                      </Button>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`${group.module}仅只读`}
+                          disabled={disabled}
+                          onClick={() => applyLocalPreset(fullModuleCodes, 'readonly')}
+                        />
+                      }
+                    >
+                      <Eye />
                     </TooltipTrigger>
                     <TooltipContent>只读</TooltipContent>
                   </Tooltip>
 
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`${group.module}清除`}
-                        disabled={disabled}
-                        onClick={() => applyLocalPreset(fullModuleCodes, 'none')}
-                      >
-                        <Eraser />
-                      </Button>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`${group.module}清除`}
+                          disabled={disabled}
+                          onClick={() => applyLocalPreset(fullModuleCodes, 'none')}
+                        />
+                      }
+                    >
+                      <Eraser />
                     </TooltipTrigger>
                     <TooltipContent>清除</TooltipContent>
                   </Tooltip>

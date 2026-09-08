@@ -1,4 +1,4 @@
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from '@tanstack/react-form'
 import {
   Button,
   Card,
@@ -18,7 +18,6 @@ import {
   InputGroupText,
   InputGroupTextarea
 } from '@zen/ui'
-import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 const formSchema = z.object({
@@ -29,11 +28,14 @@ const formSchema = z.object({
 type FormSchema = z.infer<typeof formSchema>
 
 export function AIForm() {
-  const form = useForm<FormSchema>({
-    resolver: zodResolver(formSchema),
+  const form = useForm({
     defaultValues: {
       title: '',
       description: ''
+    } as FormSchema,
+    validators: { onChange: formSchema },
+    onSubmit: async ({ value }) => {
+      await onSubmit(formSchema.parse(value))
     }
   })
 
@@ -48,51 +50,60 @@ export function AIForm() {
         <CardDescription>反馈你遇到的问题</CardDescription>
       </CardHeader>
       <CardContent>
-        <form id="form-rhf-demo" onSubmit={form.handleSubmit(onSubmit)}>
+        <form
+          id="feedback-form"
+          onSubmit={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            void form.handleSubmit()
+          }}
+        >
           <FieldGroup>
-            <Controller
-              name="title"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="form-rhf-demo-title">标题</FieldLabel>
+            <form.Field name="title">
+              {(field) => (
+                <Field data-invalid={!field.state.meta.isValid}>
+                  <FieldLabel htmlFor="feedback-form-title">标题</FieldLabel>
                   <Input
-                    {...field}
-                    id="form-rhf-demo-title"
-                    aria-invalid={fieldState.invalid}
+                    name={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                    id="feedback-form-title"
+                    aria-invalid={!field.state.meta.isValid}
                     placeholder="如：手机上的登录按钮无法正常工作"
                     autoComplete="off"
                   />
-                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  {!field.state.meta.isValid && <FieldError errors={field.state.meta.errors} />}
                 </Field>
               )}
-            />
-            <Controller
-              name="description"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="form-rhf-demo-description">描述</FieldLabel>
+            </form.Field>
+            <form.Field name="description">
+              {(field) => (
+                <Field data-invalid={!field.state.meta.isValid}>
+                  <FieldLabel htmlFor="feedback-form-description">描述</FieldLabel>
                   <InputGroup>
                     <InputGroupTextarea
-                      {...field}
-                      id="form-rhf-demo-description"
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                      id="feedback-form-description"
                       placeholder="如：我的手机登录按钮有问题。"
                       rows={6}
                       className="min-h-24 resize-none"
-                      aria-invalid={fieldState.invalid}
+                      aria-invalid={!field.state.meta.isValid}
                     />
                     <InputGroupAddon align="block-end">
                       <InputGroupText className="tabular-nums">
-                        {field.value.length}/100 字符
+                        {field.state.value.length}/100 字符
                       </InputGroupText>
                     </InputGroupAddon>
                   </InputGroup>
                   <FieldDescription>请列出重现步骤、预期行为和实际发生的情况。</FieldDescription>
-                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  {!field.state.meta.isValid && <FieldError errors={field.state.meta.errors} />}
                 </Field>
               )}
-            />
+            </form.Field>
           </FieldGroup>
         </form>
       </CardContent>
@@ -101,7 +112,7 @@ export function AIForm() {
           <Button type="button" variant="outline" onClick={() => form.reset()}>
             重置
           </Button>
-          <Button type="submit" form="form-rhf-demo">
+          <Button type="submit" form="feedback-form">
             提交
           </Button>
         </Field>

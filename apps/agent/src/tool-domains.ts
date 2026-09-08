@@ -1,106 +1,17 @@
-import type { TOOL_EXECUTION_POLICIES } from './tool-policy'
+import { defaultAgentToolDescriptors } from './tools/registry'
 
 export type ToolDomainId = 'user' | 'role' | 'organization' | 'post' | 'plugin'
 
-interface ToolDomain {
-  id: ToolDomainId
-  tools: readonly string[]
-  keywords: readonly string[]
+const SIDE_EFFECT_TAGS = new Set(['read', 'write', 'none', 'destructive'])
+
+/** 能力标签的语义别名。工具按 ToolManifest.capabilities 裁剪，而不是按关键词绑定工具名。 */
+const CAPABILITY_ALIASES: Record<string, readonly string[]> = {
+  user: ['user', '用户', '账号', '邮箱', 'gmail', 'google', '密码', '登录', '会话', '锁定', '昵称'],
+  role: ['role', 'permission', '角色', '权限', '数据范围'],
+  organization: ['organization', 'org', '组织', '部门', '编制', '组织树', '负责人'],
+  post: ['post', 'job', '岗位', '职位', 'pos-'],
+  plugin: ['plugin', 'note', '笔记', 'demo']
 }
-
-const USER_TOOLS = [
-  'query_users_list',
-  'query_user_detail',
-  'create_user',
-  'update_user_info',
-  'restore_deleted_users',
-  'update_user_status',
-  'unlock_user',
-  'reset_user_password',
-  'revoke_user_sessions',
-  'assign_user_roles',
-  'replace_user_organizations',
-  'delete_users',
-  'hard_delete_users'
-] as const satisfies ReadonlyArray<keyof typeof TOOL_EXECUTION_POLICIES>
-
-const ROLE_TOOLS = [
-  'query_roles_list',
-  'query_role_detail',
-  'query_permissions_list',
-  'query_role_members',
-  'create_role',
-  'update_role_info',
-  'clone_role',
-  'add_role_members',
-  'remove_role_member',
-  'assign_role_permissions',
-  'assign_role_data_scope',
-  'delete_roles'
-] as const satisfies ReadonlyArray<keyof typeof TOOL_EXECUTION_POLICIES>
-
-const ORGANIZATION_TOOLS = [
-  'query_organization_tree',
-  'query_organization_type_catalog',
-  'query_organization_detail',
-  'query_organization_members',
-  'query_organization_positions',
-  'query_organization_activities',
-  'update_organization_type_catalog',
-  'create_organization',
-  'update_organization_info',
-  'update_organization_leader',
-  'change_organization_parent',
-  'add_organization_member',
-  'remove_organization_member',
-  'create_organization_position',
-  'update_organization_position',
-  'remove_organization_position'
-] as const satisfies ReadonlyArray<keyof typeof TOOL_EXECUTION_POLICIES>
-
-const POST_TOOLS = [
-  'query_job_profiles_list',
-  'query_job_profile_detail',
-  'create_job_profile',
-  'update_job_profile_info',
-  'delete_job_profile'
-] as const satisfies ReadonlyArray<keyof typeof TOOL_EXECUTION_POLICIES>
-
-const PLUGIN_TOOLS = ['list_demo_notes'] as const satisfies ReadonlyArray<
-  keyof typeof TOOL_EXECUTION_POLICIES
->
-
-export const TOOL_DOMAINS: readonly ToolDomain[] = [
-  {
-    id: 'user',
-    tools: USER_TOOLS,
-    keywords: ['用户', '账号', '邮箱', 'gmail', 'google', '密码', '登录', '会话', '锁定', '昵称']
-  },
-  {
-    id: 'role',
-    tools: ROLE_TOOLS,
-    keywords: ['角色', '权限', '数据范围']
-  },
-  {
-    id: 'organization',
-    tools: ORGANIZATION_TOOLS,
-    keywords: ['组织', '部门', '编制', '组织树', '负责人']
-  },
-  {
-    id: 'post',
-    tools: POST_TOOLS,
-    keywords: ['岗位', '职位', 'pos-']
-  },
-  {
-    id: 'plugin',
-    tools: PLUGIN_TOOLS,
-    keywords: ['笔记', 'note', 'demo']
-  }
-]
-
-const TOOL_DOMAIN_BY_NAME = new Map(
-  TOOL_DOMAINS.flatMap((domain) => domain.tools.map((toolName) => [toolName, domain.id] as const))
-)
 
 export function collectConversationHints(messages: readonly unknown[]): {
   text: string
@@ -161,35 +72,61 @@ function toolNamesOf(record: Record<string, unknown>): string[] {
   return names
 }
 
-export function resolveToolDomains(
+function domainCapabilitiesOf(toolName: string): string[] {
+  const descriptor = defaultAgentToolDescriptors.find((item) => item.name === toolName)
+  return (descriptor?.capabilities ?? []).filter((capability) => !SIDE_EFFECT_TAGS.has(capability))
+}
+
+export function resolveToolCapabilities(
   text: string,
   recentToolNames: readonly string[]
-): Set<ToolDomainId> {
-  const matched = new Set<ToolDomainId>()
+): Set<string> {
+  const matched = new Set<string>()
   const haystack = text.toLowerCase()
 
-  for (const domain of TOOL_DOMAINS) {
-    if (domain.keywords.some((keyword) => haystack.includes(keyword.toLowerCase()))) {
-      matched.add(domain.id)
+  for (const [capability, aliases] of Object.entries(CAPABILITY_ALIASES)) {
+    if (aliases.some((alias) => haystack.includes(alias.toLowerCase()))) {
+      matched.add(capability)
     }
   }
 
   for (const toolName of recentToolNames) {
-    const domainId = TOOL_DOMAIN_BY_NAME.get(toolName)
-    if (domainId) matched.add(domainId)
+    for (const capability of domainCapabilitiesOf(toolName)) {
+      matched.add(capability)
+    }
   }
 
   return matched
 }
 
+export function selectToolNamesForCapabilities(
+  availableNames: readonly string[],
+  capabilities: ReadonlySet<string>
+): string[] | undefined {
+  if (capabilities.size === 0) return undefined
+  const selected = availableNames.filter((name) =>
+    domainCapabilitiesOf(name).some((capability) => capabilities.has(capability))
+  )
+  return selected.length ? selected : undefined
+}
+
+/** @deprecated 使用 resolveToolCapabilities；保留给过渡测试 */
+export function resolveToolDomains(
+  text: string,
+  recentToolNames: readonly string[]
+): Set<ToolDomainId> {
+  const capabilities = resolveToolCapabilities(text, recentToolNames)
+  return new Set(
+    [...capabilities].filter((item): item is ToolDomainId =>
+      ['user', 'role', 'organization', 'post', 'plugin'].includes(item)
+    )
+  )
+}
+
+/** @deprecated 使用 selectToolNamesForCapabilities */
 export function selectToolNamesForDomains(
   availableNames: readonly string[],
   domains: ReadonlySet<ToolDomainId>
 ): string[] | undefined {
-  if (domains.size === 0) return undefined
-  const allowed = new Set(
-    TOOL_DOMAINS.filter((domain) => domains.has(domain.id)).flatMap((domain) => [...domain.tools])
-  )
-  const selected = availableNames.filter((name) => allowed.has(name))
-  return selected.length ? selected : undefined
+  return selectToolNamesForCapabilities(availableNames, domains)
 }

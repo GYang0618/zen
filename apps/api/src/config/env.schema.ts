@@ -76,6 +76,22 @@ export const envSchema = z
       .default(10)
       .describe('限流时间窗口内最大请求数'),
 
+    /** Copilot 路由限流窗口期（毫秒） */
+    COPILOT_THROTTLE_TTL: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(60000)
+      .describe('Copilot 路由限流时间窗口（毫秒）'),
+
+    /** Copilot 路由限流请求数 */
+    COPILOT_THROTTLE_LIMIT: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(60)
+      .describe('Copilot 路由限流时间窗口内最大请求数'),
+
     // ==================== Swagger 配置 ====================
     /** 是否启用 Swagger */
     SWAGGER_ENABLED: z.coerce.boolean().default(true).describe('是否启用 Swagger API 文档'),

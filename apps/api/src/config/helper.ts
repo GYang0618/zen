@@ -1,7 +1,7 @@
 import { registerAs } from '@nestjs/config'
 
 import type { ConfigObject } from '@nestjs/config'
-import type { Env } from './env.schema'
+import type { Env } from './env.schema.js'
 
 function toEnv(rawEnv: Record<string, unknown>) {
   return rawEnv as Env

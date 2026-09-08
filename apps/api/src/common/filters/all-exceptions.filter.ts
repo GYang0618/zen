@@ -2,13 +2,12 @@ import { Catch, HttpException, HttpStatus, Inject } from '@nestjs/common'
 import { HttpAdapterHost } from '@nestjs/core'
 import { Logger } from 'nestjs-pino'
 
-import { appConfig } from '@/config'
-
-import { resolveTraceId, TRACE_ID_HEADER } from '../utils/trace-id'
+import { appConfig } from '../../config/index.js'
+import { resolveTraceId, TRACE_ID_HEADER } from '../utils/trace-id.js'
 
 import type { ArgumentsHost, ExceptionFilter } from '@nestjs/common'
-import type { AppConfig } from '@/config'
-import type { ApiErrorResponse } from '../interfaces/api-response.interface'
+import type { AppConfig } from '../../config/index.js'
+import type { ApiErrorResponse } from '../interfaces/api-response.interface.js'
 
 type HttpRequest = {
   id?: string

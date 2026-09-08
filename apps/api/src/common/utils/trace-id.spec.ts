@@ -1,4 +1,4 @@
-import { resolveTraceId, TRACE_ID_HEADER } from './trace-id'
+import { resolveTraceId, TRACE_ID_HEADER } from './trace-id.js'
 
 describe('resolveTraceId', () => {
   it('优先使用 x-trace-id', () => {

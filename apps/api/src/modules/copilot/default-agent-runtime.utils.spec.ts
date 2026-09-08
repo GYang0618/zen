@@ -1,4 +1,4 @@
-import { decodeThreadCursor, encodeThreadCursor } from './default-agent-runtime.utils'
+import { decodeThreadCursor, encodeThreadCursor } from './default-agent-runtime.utils.js'
 
 describe('thread list cursor', () => {
   it('编码并还原会话游标', () => {

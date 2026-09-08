@@ -1,4 +1,4 @@
-import { registerConfig } from '../helper'
+import { registerConfig } from '../helper.js'
 
 /**
  * 应用程序基础配置

@@ -1,4 +1,4 @@
-import { toApiOrganizationType } from '@/modules/organization/organization.mapper'
+import { toApiOrganizationType } from '../organization/organization.mapper.js'
 
 import type { Gender, MfaType, Prisma, Theme, UserStatusCode } from '@prisma/client'
 import type {
@@ -16,8 +16,13 @@ import type {
   UserInfoResponse,
   UserListItemResponse,
   UserTheme
-} from './responses/user.response'
-import type { UserBasicInfo, UserOrganizations, UserRoles, UserWithDomain } from './user.repository'
+} from './responses/user.response.js'
+import type {
+  UserBasicInfo,
+  UserOrganizations,
+  UserRoles,
+  UserWithDomain
+} from './user.repository.js'
 
 const GENDER_MAP: Record<Gender, UserGender> = {
   MALE: 'male',

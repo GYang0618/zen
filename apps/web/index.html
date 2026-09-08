@@ -6,34 +6,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>web</title>
     <script>
-      ;(function () {
+      ;(() => {
         try {
           // Cookie 名须与 src/context/theme-provider.tsx 等保持一致
-          var root = document.documentElement
-          var themeMatch = document.cookie.match(/(?:^|; )vite-ui-theme=([^;]*)/)
-          var theme = themeMatch ? decodeURIComponent(themeMatch[1]) : 'system'
+          const root = document.documentElement
+          const themeMatch = document.cookie.match(/(?:^|; )vite-ui-theme=([^;]*)/)
+          let theme = themeMatch ? decodeURIComponent(themeMatch[1]) : 'system'
           if (theme !== 'light' && theme !== 'dark' && theme !== 'system') theme = 'system'
-          var resolvedTheme =
+          const resolvedTheme =
             theme === 'dark' ||
             (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
               ? 'dark'
               : 'light'
           root.classList.remove('light', 'dark')
           root.classList.add(resolvedTheme)
-          var baseMatch = document.cookie.match(/(?:^|; )vite-ui-base-color=([^;]*)/)
-          var brandMatch = document.cookie.match(/(?:^|; )vite-ui-brand-color=([^;]*)/)
-          var styleMatch = document.cookie.match(/(?:^|; )vite-ui-style=([^;]*)/)
-          var fontMatch = document.cookie.match(/(?:^|; )vite-ui-font=([^;]*)/)
-          var legacyFontMatch = document.cookie.match(/(?:^|; )font=([^;]*)/)
-          var base = baseMatch ? decodeURIComponent(baseMatch[1]) : 'slate'
-          var brand = brandMatch ? decodeURIComponent(brandMatch[1]) : 'slate'
-          var style = styleMatch ? decodeURIComponent(styleMatch[1]) : 'nova'
-          var font = fontMatch
+          const baseMatch = document.cookie.match(/(?:^|; )vite-ui-base-color=([^;]*)/)
+          const brandMatch = document.cookie.match(/(?:^|; )vite-ui-brand-color=([^;]*)/)
+          const styleMatch = document.cookie.match(/(?:^|; )vite-ui-style=([^;]*)/)
+          const fontMatch = document.cookie.match(/(?:^|; )vite-ui-font=([^;]*)/)
+          const legacyFontMatch = document.cookie.match(/(?:^|; )font=([^;]*)/)
+          let base = baseMatch ? decodeURIComponent(baseMatch[1]) : 'slate'
+          let brand = brandMatch ? decodeURIComponent(brandMatch[1]) : 'slate'
+          const style = styleMatch ? decodeURIComponent(styleMatch[1]) : 'nova'
+          let font = fontMatch
             ? decodeURIComponent(fontMatch[1])
             : legacyFontMatch
               ? decodeURIComponent(legacyFontMatch[1])
               : 'geist'
-          var bases = [
+          const bases = [
             'slate',
             'neutral',
             'stone',
@@ -43,7 +43,7 @@
             'mist',
             'taupe'
           ]
-          var brands = [
+          const brands = [
             'slate',
             'neutral',
             'amber',
@@ -64,8 +64,8 @@
             'violet',
             'yellow'
           ]
-          var styles = ['nova', 'vega', 'maia', 'lyra', 'mira', 'luma', 'sera', 'rhea']
-          var fonts = [
+          const styles = ['nova', 'vega', 'maia', 'lyra', 'mira', 'luma', 'sera', 'rhea']
+          const fonts = [
             'geist',
             'inter',
             'noto-sans',

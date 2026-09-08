@@ -7,7 +7,7 @@ import {
   securityConfig,
   storageConfig,
   swaggerConfig
-} from './modules'
+} from './modules/index.js'
 
 /**
  * 配置命名空间键（用于 registerAs）

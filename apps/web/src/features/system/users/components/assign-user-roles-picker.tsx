@@ -166,33 +166,39 @@ export function AssignUserRolesPicker({
               const checked = roleIds.includes(role.id)
 
               return (
-                <Item key={role.id} asChild variant="outline" className="cursor-pointer">
-                  <label htmlFor={`assign-role-${role.id}`}>
-                    <ItemMedia>
-                      <Checkbox
-                        id={`assign-role-${role.id}`}
-                        checked={checked}
-                        onCheckedChange={(next) => onToggle(role.id, next === true)}
-                        aria-label={`选择 ${role.name}`}
-                      />
-                    </ItemMedia>
-                    <ItemMedia>
-                      <UserRoleIcon
-                        className="size-8 rounded-lg"
-                        icon={role.icon}
-                        iconColor={role.iconColor}
-                      />
-                    </ItemMedia>
-                    <ItemContent>
-                      <ItemTitle className="min-w-0">
-                        <span className="truncate">{role.name}</span>
-                        <span className="font-mono text-xs font-normal text-muted-foreground">
-                          {role.code}
-                        </span>
-                      </ItemTitle>
-                      <ItemDescription>{role.description || '该角色暂无描述'}</ItemDescription>
-                    </ItemContent>
-                  </label>
+                <Item
+                  key={role.id}
+                  variant="outline"
+                  className="cursor-pointer"
+                  render={
+                    // biome-ignore lint/a11y/noLabelWithoutControl: Base UI render prop 将 Item 内容渲染至 label 内部
+                    <label htmlFor={`assign-role-${role.id}`} />
+                  }
+                >
+                  <ItemMedia>
+                    <Checkbox
+                      id={`assign-role-${role.id}`}
+                      checked={checked}
+                      onCheckedChange={(next) => onToggle(role.id, next === true)}
+                      aria-label={`选择 ${role.name}`}
+                    />
+                  </ItemMedia>
+                  <ItemMedia>
+                    <UserRoleIcon
+                      className="size-8 rounded-lg"
+                      icon={role.icon}
+                      iconColor={role.iconColor}
+                    />
+                  </ItemMedia>
+                  <ItemContent>
+                    <ItemTitle className="min-w-0">
+                      <span className="truncate">{role.name}</span>
+                      <span className="font-mono text-xs font-normal text-muted-foreground">
+                        {role.code}
+                      </span>
+                    </ItemTitle>
+                    <ItemDescription>{role.description || '该角色暂无描述'}</ItemDescription>
+                  </ItemContent>
                 </Item>
               )
             })}

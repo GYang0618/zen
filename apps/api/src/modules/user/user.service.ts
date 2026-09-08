@@ -2,20 +2,19 @@ import { BadRequestException, Inject, Injectable, NotFoundException } from '@nes
 import { Gender, UserStatusCode } from '@prisma/client'
 import { completePageQuery } from '@zen/shared'
 
-import { toArray } from '@/common'
-import { applyUserListDataScope } from '@/common/auth/apply-data-scope'
-import { AuditService } from '@/common/auth/audit.service'
-import { AuthContextService } from '@/common/auth/auth-context.service'
-import { MembershipService } from '@/common/auth/membership.service'
-import { SessionService } from '@/common/auth/session.service'
-import { buildPaginationMeta, paginate } from '@/common/pagination'
-import argon2 from '@/common/utils/argon2'
-import { CONFIG_NAMESPACES } from '@/config'
-import { durationToSeconds } from '@/modules/auth/auth-cookie'
-
-import { StorageService } from '../storage/storage.service'
-import { findUsersQuerySchema } from './dto/find-users-query.dto'
-import { generateTemporaryPassword } from './generate-temporary-password'
+import { applyUserListDataScope } from '../../common/auth/apply-data-scope.js'
+import { AuditService } from '../../common/auth/audit.service.js'
+import { AuthContextService } from '../../common/auth/auth-context.service.js'
+import { MembershipService } from '../../common/auth/membership.service.js'
+import { SessionService } from '../../common/auth/session.service.js'
+import { buildPaginationMeta, paginate } from '../../common/pagination/index.js'
+import argon2 from '../../common/utils/argon2.js'
+import { toArray } from '../../common/utils/util.js'
+import { CONFIG_NAMESPACES } from '../../config/index.js'
+import { durationToSeconds } from '../auth/auth-cookie.js'
+import { StorageService } from '../storage/storage.service.js'
+import { findUsersQuerySchema } from './dto/find-users-query.dto.js'
+import { generateTemporaryPassword } from './generate-temporary-password.js'
 import {
   toAssignUserRolesResult,
   toBirthdayDate,
@@ -23,23 +22,23 @@ import {
   toUpdateUserResult,
   toUserInfoResponse,
   toUserResponse
-} from './user.mapper'
-import { UserRepository } from './user.repository'
+} from './user.mapper.js'
+import { UserRepository } from './user.repository.js'
 
 import type { Prisma } from '@prisma/client'
 import type { AuthContext, UpdateMyProfile, UserGender } from '@zen/shared'
-import type { AuthConfig } from '@/config'
-import type { AssignUserRolesDto } from './dto/assign-user-roles.dto'
-import type { CreateUserDto } from './dto/create-user.dto'
+import type { AuthConfig } from '../../config/index.js'
+import type { AssignUserRolesDto } from './dto/assign-user-roles.dto.js'
+import type { CreateUserDto } from './dto/create-user.dto.js'
 import type {
   FindUsersQueryDto,
   UserStatus,
   UsersSortBy,
   UsersSortOrder
-} from './dto/find-users-query.dto'
-import type { ReplaceUserOrganizationsDto } from './dto/replace-user-organizations.dto'
-import type { UpdateUserDto } from './dto/update-user.dto'
-import type { UpdateUsersStatusDto } from './dto/update-users-status.dto'
+} from './dto/find-users-query.dto.js'
+import type { ReplaceUserOrganizationsDto } from './dto/replace-user-organizations.dto.js'
+import type { UpdateUserDto } from './dto/update-user.dto.js'
+import type { UpdateUsersStatusDto } from './dto/update-users-status.dto.js'
 import type {
   AssignUserRolesResponse,
   CreateUserResponse,
@@ -49,7 +48,7 @@ import type {
   UserListItemResponse,
   UserListResponse,
   UserResponse
-} from './responses/user.response'
+} from './responses/user.response.js'
 
 const DEFAULT_ROLE_CODE = 'user'
 const SUPER_ADMIN_ROLE_CODE = 'super_admin'

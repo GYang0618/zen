@@ -1,7 +1,6 @@
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
 import {
   cn,
-  ScrollArea,
   Skeleton,
   Table,
   TableBody,
@@ -23,16 +22,6 @@ export interface AITableProps<TData extends RowData> {
   isFetching?: boolean
   /** 骨架屏行数，与 users-table 初次加载占位一致 */
   skeletonRowCount?: number
-}
-
-function TableColGroup<TData extends RowData>({ table }: { table: TanStackTable<TData> }) {
-  return (
-    <colgroup>
-      {table.getVisibleLeafColumns().map((column) => (
-        <col key={column.id} style={{ width: `${column.getSize()}px` }} />
-      ))}
-    </colgroup>
-  )
 }
 
 function AITableRows<TData extends RowData>({
@@ -102,34 +91,25 @@ export function AITable<TData extends RowData>({
   return (
     <div
       className={cn(
-        'overflow-hidden rounded-md border transition-opacity',
-        '**:data-[slot=table-container]:contents',
+        'w-full overflow-hidden rounded-md border transition-opacity',
         isFetching && !showSkeleton && 'opacity-70'
       )}
     >
-      <Table className="table-fixed">
-        <TableColGroup table={table} />
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id} className="hover:bg-transparent">
-              {headerGroup.headers.map((header) => (
-                <TableHead key={header.id} colSpan={header.colSpan}>
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(header.column.columnDef.header, header.getContext())}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-      </Table>
-
-      <ScrollArea
-        type="hover"
-        className="max-h-80 overscroll-contain *:data-[slot=scroll-area-viewport]:h-auto *:data-[slot=scroll-area-viewport]:max-h-80"
-      >
-        <Table className="table-fixed">
-          <TableColGroup table={table} />
+      <div className="max-h-80 w-full overflow-auto overscroll-contain">
+        <Table className="min-w-[680px]">
+          <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur-xs">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id} className="hover:bg-transparent">
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id} colSpan={header.colSpan}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
           <TableBody>
             <AITableRows
               table={table}
@@ -140,7 +120,7 @@ export function AITable<TData extends RowData>({
             />
           </TableBody>
         </Table>
-      </ScrollArea>
+      </div>
     </div>
   )
 }

@@ -2,10 +2,10 @@ import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/commo
 import { Reflector } from '@nestjs/core'
 import { JwtService } from '@nestjs/jwt'
 
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator'
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator.js'
 
 import type { CanActivate, ExecutionContext } from '@nestjs/common'
-import type { JwtPayload } from '../interfaces/jwt-payload.interface'
+import type { JwtPayload } from '../interfaces/jwt-payload.interface.js'
 
 type HttpRequest = {
   user?: JwtPayload

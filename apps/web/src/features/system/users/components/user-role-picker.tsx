@@ -65,23 +65,25 @@ export function UserRolePicker({
         if (!nextOpen) setKeyword('')
       }}
     >
-      <PopoverTrigger asChild>
-        <Button
-          id={id}
-          type="button"
-          variant="outline"
-          disabled={disabled}
-          data-empty={selectedRoles.length === 0}
-          className="w-full justify-between font-normal data-[empty=true]:text-muted-foreground"
-        >
-          <span className="flex min-w-0 items-center gap-2">
-            {selectedRoles.length === 0 ? <Shield aria-hidden /> : null}
-            <span className="truncate">{selectedLabel || '选择角色'}</span>
-          </span>
-          <ChevronsUpDown data-icon="inline-end" />
-        </Button>
+      <PopoverTrigger
+        render={
+          <Button
+            id={id}
+            type="button"
+            variant="outline"
+            disabled={disabled}
+            data-empty={selectedRoles.length === 0}
+            className="w-full justify-between font-normal data-[empty=true]:text-muted-foreground"
+          />
+        }
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          {selectedRoles.length === 0 ? <Shield aria-hidden /> : null}
+          <span className="truncate">{selectedLabel || '选择角色'}</span>
+        </span>
+        <ChevronsUpDown data-icon="inline-end" />
       </PopoverTrigger>
-      <PopoverContent className="w-(--radix-popover-trigger-width) p-2" align="start">
+      <PopoverContent className="w-(--anchor-width) p-2" align="start">
         <InputGroup>
           <InputGroupInput
             value={keyword}
@@ -94,7 +96,7 @@ export function UserRolePicker({
             <Search />
           </InputGroupAddon>
         </InputGroup>
-        <ScrollArea type="hover">
+        <ScrollArea>
           {visibleRoles.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">没有找到匹配角色</p>
           ) : (
@@ -105,37 +107,38 @@ export function UserRolePicker({
                 return (
                   <Item
                     key={role.id}
-                    asChild
                     variant="outline"
                     size="sm"
                     className="cursor-pointer"
+                    render={
+                      // biome-ignore lint/a11y/noLabelWithoutControl: Base UI render prop 将 Item 内容渲染至 label 内部
+                      <label htmlFor={`create-role-${role.id}`} />
+                    }
                   >
-                    <label htmlFor={`create-role-${role.id}`}>
-                      <ItemMedia>
-                        <Checkbox
-                          id={`create-role-${role.id}`}
-                          checked={checked}
-                          onCheckedChange={(next) => toggleRole(role.id, next === true)}
-                          aria-label={`选择 ${role.name}`}
-                        />
-                      </ItemMedia>
-                      <ItemMedia>
-                        <UserRoleIcon
-                          className="size-6 rounded-md"
-                          icon={role.icon}
-                          iconColor={role.iconColor}
-                        />
-                      </ItemMedia>
-                      <ItemContent>
-                        <ItemTitle className="min-w-0">
-                          <span className="truncate">{role.name}</span>
-                          <span className="font-mono text-xs font-normal text-muted-foreground">
-                            {role.code}
-                          </span>
-                        </ItemTitle>
-                        <ItemDescription>{role.description || '该角色暂无描述'}</ItemDescription>
-                      </ItemContent>
-                    </label>
+                    <ItemMedia>
+                      <Checkbox
+                        id={`create-role-${role.id}`}
+                        checked={checked}
+                        onCheckedChange={(next) => toggleRole(role.id, next === true)}
+                        aria-label={`选择 ${role.name}`}
+                      />
+                    </ItemMedia>
+                    <ItemMedia>
+                      <UserRoleIcon
+                        className="size-6 rounded-md"
+                        icon={role.icon}
+                        iconColor={role.iconColor}
+                      />
+                    </ItemMedia>
+                    <ItemContent>
+                      <ItemTitle className="min-w-0">
+                        <span className="truncate">{role.name}</span>
+                        <span className="font-mono text-xs font-normal text-muted-foreground">
+                          {role.code}
+                        </span>
+                      </ItemTitle>
+                      <ItemDescription>{role.description || '该角色暂无描述'}</ItemDescription>
+                    </ItemContent>
                   </Item>
                 )
               })}

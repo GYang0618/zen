@@ -23,14 +23,16 @@ describe('executeApiCall Artifact handling', () => {
       artifactRequest = input
       return new Response(
         JSON.stringify({
-          code: 0,
+          code: 200,
           message: 'ok',
           data: {
             id: 'artifact-1',
             name: 'query_users_list-result.json',
             size: 33_100,
             summary: '完整结果'
-          }
+          },
+          traceId: 'artifact-trace',
+          timestamp: '2026-09-08T06:00:00.000Z'
         }),
         { status: 201, headers: { 'Content-Type': 'application/json' } }
       )
@@ -38,24 +40,72 @@ describe('executeApiCall Artifact handling', () => {
 
     const result = await executeApiCall(
       {
-        configurable: { accessToken: 'token' },
-        context: { agentRunId: 'run-1' },
+        configurable: {
+          accessToken: 'token',
+          tenantId: 'tenant-1',
+          userId: 'user-1',
+          threadId: 'thread-1',
+          agentRunId: 'run-1'
+        },
         toolCallId: 'tool-call-1',
         toolCall: { name: 'query_users_list' }
       } as never,
-      async () => ({ rows: ['x'.repeat(33_000)] })
+      async (context) => {
+        assert.equal(context.tenantId, 'tenant-1')
+        assert.equal(context.userId, 'user-1')
+        assert.equal(context.runId, 'run-1')
+        assert.equal(context.toolCallId, 'tool-call-1')
+        return { rows: ['x'.repeat(33_000)] }
+      }
     )
 
     assert.match(String(artifactRequest), /\/api\/copilot\/runtime\/runs\/run-1\/artifacts$/)
-    assert.deepEqual(JSON.parse(result), {
-      success: true,
+    const parsed = JSON.parse(result) as {
+      code: number
+      message: string
       data: {
-        artifactId: 'artifact-1',
-        name: 'query_users_list-result.json',
-        size: 33_100,
-        summary: '完整结果',
-        message: '结果较大，已保存为 Artifact。'
+        artifactId: string
+        name: string
+        size: number
+        summary: string
+        message: string
       }
+      traceId: string
+      timestamp: string
+    }
+    assert.equal(parsed.code, 200)
+    assert.equal(parsed.message, 'Success')
+    assert.deepEqual(parsed.data, {
+      artifactId: 'artifact-1',
+      name: 'query_users_list-result.json',
+      size: 33_100,
+      summary: '完整结果',
+      message: '结果较大，已保存为 Artifact。'
     })
+    assert.equal(typeof parsed.traceId, 'string')
+    assert.equal(typeof parsed.timestamp, 'string')
+  })
+})
+
+describe('executeApiCall fail-closed writes', () => {
+  it('写操作缺少 run/tenant/user 标识时拒绝执行', async () => {
+    const result = await executeApiCall(
+      {
+        configurable: { accessToken: 'token' },
+        toolCallId: 'tool-call-1',
+        toolCall: { name: 'delete_users' }
+      } as never,
+      async () => {
+        throw new Error('should not run')
+      }
+    )
+    const parsed = JSON.parse(result) as {
+      code: number
+      reason: string
+      message: string
+    }
+    assert.equal(parsed.code, 400)
+    assert.equal(parsed.reason, 'MISSING_EXECUTION_CONTEXT')
+    assert.match(parsed.message, /写操作缺少 run\/tool\/tenant\/user 标识/)
   })
 })

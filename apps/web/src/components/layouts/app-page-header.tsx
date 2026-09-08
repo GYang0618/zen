@@ -51,7 +51,6 @@ export function AppPageHeader({
         <Button
           variant="outline"
           className="rounded-full size-10"
-          asChild
           onClick={() => router.history.back()}
         >
           <ArrowLeft />

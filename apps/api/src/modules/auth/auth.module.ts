@@ -1,12 +1,11 @@
 import { Module } from '@nestjs/common'
 import { JwtModule } from '@nestjs/jwt'
 
-import { authConfig } from '@/config'
-
-import { UserModule } from '../user/user.module'
-import { AuthController } from './auth.controller'
-import { AuthService } from './auth.service'
-import { AuthTokenService } from './auth.token.service'
+import { authConfig } from '../../config/index.js'
+import { UserModule } from '../user/user.module.js'
+import { AuthController } from './auth.controller.js'
+import { AuthService } from './auth.service.js'
+import { AuthTokenService } from './auth.token.service.js'
 
 import type { ConfigType } from '@nestjs/config'
 

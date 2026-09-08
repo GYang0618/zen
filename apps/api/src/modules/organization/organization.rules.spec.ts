@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common'
 import { ROOT_ORGANIZATION_TYPES } from '@zen/shared'
 
-import { assertValidParentType, canBeChildOf } from './organization.rules'
+import { assertValidParentType, canBeChildOf } from './organization.rules.js'
 
 describe('organization hierarchy rules', () => {
   it.each([

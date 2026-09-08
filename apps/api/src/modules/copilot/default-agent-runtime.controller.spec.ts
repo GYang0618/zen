@@ -1,10 +1,12 @@
 import { NotFoundException } from '@nestjs/common'
 
-import { DefaultAgentRuntimeController } from './default-agent-runtime.controller'
+import { DefaultAgentRuntimeController } from './default-agent-runtime.controller.js'
 
 import type { AuthContext } from '@zen/shared'
-import type { DefaultAgentRunControl } from './default-agent-run-control'
-import type { DefaultAgentRuntimeStore } from './default-agent-runtime.store'
+import type { DefaultAgentRunControl } from './default-agent-run-control.js'
+import type { DefaultAgentRuntimeStore } from './default-agent-runtime.store.js'
+
+const { jest } = import.meta
 
 const auth = { tenantId: 'tenant-1', userId: 'user-1' } as AuthContext
 

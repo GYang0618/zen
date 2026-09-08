@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common'
 
-import { NotificationController } from './notification.controller'
-import { NotificationRepository } from './notification.repository'
-import { NotificationService } from './notification.service'
-import { NOTIFICATIONS_PRISMA } from './tokens'
+import { NotificationController } from './notification.controller.js'
+import { NotificationRepository } from './notification.repository.js'
+import { NotificationService } from './notification.service.js'
+import { NOTIFICATIONS_PRISMA } from './tokens.js'
 
 import type { DynamicModule, FactoryProvider } from '@nestjs/common'
 import type { PrismaClient } from '@prisma/client'

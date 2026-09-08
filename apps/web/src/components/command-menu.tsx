@@ -82,7 +82,7 @@ export function CommandMenu() {
       <Command>
         <CommandInput placeholder="输入命令或搜索..." />
         <CommandList>
-          <ScrollArea type="hover" className="h-72 pe-1">
+          <ScrollArea className="h-72 pe-1">
             <CommandEmpty>未找到结果。</CommandEmpty>
             {navGroups.map((group) => {
               const links = flattenNavLinks(group.items)

@@ -1,8 +1,8 @@
 import { z } from 'zod'
 
-import { organizationTypeSchema } from '../organization/organization.schema'
-import { paged, pageQuerySchema } from '../pagination'
-import { roleKindSchema, roleStatusSchema } from '../role/role.schema'
+import { organizationTypeSchema } from '../organization/organization.schema.js'
+import { paged, pageQuerySchema } from '../pagination/index.js'
+import { roleKindSchema, roleStatusSchema } from '../role/role.schema.js'
 
 export const userStatusSchema = z
   .enum(['active', 'inactive', 'pending', 'suspended'])
@@ -244,7 +244,9 @@ export const usersQuerySchema = pageQuerySchema.extend({
   status: z
     .union([userStatusSchema, userStatusSchema.array()])
     .optional()
-    .describe('按账号状态筛选，支持单个或多个，如 `active` 或 [`active`, `suspended`]'),
+    .describe(
+      '按账号状态筛选，支持单个或多个。状态枚举：active=已激活/正常可用；inactive=未激活（仅表示尚未完成初始邀请设密流程）；pending=待审核；suspended=已停用/已禁用/封禁/冻结。注意：查询停用、禁用账号必须使用 suspended，切勿使用 inactive'
+    ),
   role: z
     .union([z.string(), z.string().array()])
     .optional()

@@ -30,6 +30,8 @@ export const organizationApi = {
   update: (id: string, data: UpdateOrganization) =>
     request.patch<Organization, UpdateOrganization>(`/organizations/${id}`, data),
 
+  remove: (id: string) => request.delete<void>(`/organizations/${id}`),
+
   updateLeader: (id: string, data: UpdateOrganizationLeader) =>
     request.patch<Organization, UpdateOrganizationLeader>(`/organizations/${id}/leader`, data),
 

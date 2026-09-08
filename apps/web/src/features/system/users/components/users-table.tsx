@@ -1,7 +1,6 @@
 'use no memo'
 
 import {
-  flexRender,
   getCoreRowModel,
   getFacetedRowModel,
   getFacetedUniqueValues,
@@ -10,19 +9,9 @@ import {
   getSortedRowModel,
   useReactTable
 } from '@tanstack/react-table'
-import {
-  cn,
-  Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@zen/ui'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
+import { DataTable, DataTableToolbar } from '@/components/data-table'
 import { useTableUrlState } from '@/hooks'
 import { toOptions } from '@/lib/config-utils'
 
@@ -33,6 +22,7 @@ import { usersColumns as columns } from './users-columns'
 
 import type { OnChangeFn, SortingState, VisibilityState } from '@tanstack/react-table'
 import type { User, UsersQuery as UsersSearch, UsersSortBy, UsersSortOrder } from '@zen/shared'
+import type { ReactNode } from 'react'
 import type { NavigateFn } from '@/hooks'
 
 const USERS_SORTABLE_COLUMNS: Record<UsersSortBy, true> = {
@@ -52,6 +42,8 @@ type DataTableProps = {
   data: User[]
   isLoading?: boolean
   isFetching?: boolean
+  isError?: boolean
+  error?: ReactNode
   search: UsersSearch
   navigate: NavigateFn
 }
@@ -60,6 +52,8 @@ export function UsersTable({
   data,
   isLoading = false,
   isFetching = false,
+  isError = false,
+  error,
   search,
   navigate
 }: DataTableProps) {
@@ -169,107 +163,39 @@ export function UsersTable({
     if (!isLoading) ensurePageInRange(pageCount)
   }, [pageCount, ensurePageInRange, isLoading])
 
-  const rows = table.getRowModel().rows
-  const showSkeleton = isLoading && data.length === 0
-
   return (
-    <div className={cn('max-sm:has-[div[role="toolbar"]]:mb-16', 'flex flex-1 flex-col gap-4')}>
-      <DataTableToolbar
-        table={table}
-        searchPlaceholder="搜索用户名、姓名、邮箱、手机号"
-        searchValue={globalFilter ?? undefined}
-        onSearchChange={handleSearchChange}
-        filters={[
-          {
-            columnId: 'status',
-            title: '状态',
-            options: toOptions(statusConfig)
-          },
-          {
-            columnId: 'roles',
-            title: '角色',
-            options: roleFilterOptions
-          }
-        ]}
-      />
-      <div
-        className={cn(
-          'overflow-hidden rounded-md border transition-opacity',
-          isFetching && !showSkeleton && 'opacity-70'
-        )}
-      >
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="group/row">
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead
-                      key={header.id}
-                      colSpan={header.colSpan}
-                      className={cn(
-                        'bg-background group-hover/row:bg-muted group-data-[state=selected]/row:bg-muted',
-                        header.column.columnDef.meta?.className,
-                        header.column.columnDef.meta?.thClassName
-                      )}
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  )
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {showSkeleton ? (
-              Array.from({ length: pagination.pageSize }).map((_, rowIndex) => (
-                <TableRow key={`skeleton-${rowIndex}`}>
-                  {table.getVisibleLeafColumns().map((column) => (
-                    <TableCell key={column.id} className={column.columnDef.meta?.className}>
-                      <Skeleton className="h-5 w-full" />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : rows.length ? (
-              rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                  className="group/row"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className={cn(
-                        'bg-background group-hover/row:bg-muted group-data-[state=selected]/row:bg-muted',
-                        cell.column.columnDef.meta?.className,
-                        cell.column.columnDef.meta?.tdClassName
-                      )}
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  没有结果.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      <DataTablePagination table={table} className="mt-auto" />
-      <UsersBulkActions
-        selectedItems={table.getFilteredSelectedRowModel().rows.map((row) => row.original)}
-        onClearSelection={() => table.resetRowSelection()}
-      />
-    </div>
+    <DataTable
+      table={table}
+      isLoading={isLoading}
+      isFetching={isFetching}
+      isError={isError}
+      error={error}
+      toolbar={
+        <DataTableToolbar
+          table={table}
+          searchPlaceholder="搜索用户名、姓名、邮箱、手机号"
+          searchValue={globalFilter ?? undefined}
+          onSearchChange={handleSearchChange}
+          filters={[
+            {
+              columnId: 'status',
+              title: '状态',
+              options: toOptions(statusConfig)
+            },
+            {
+              columnId: 'roles',
+              title: '角色',
+              options: roleFilterOptions
+            }
+          ]}
+        />
+      }
+      footer={
+        <UsersBulkActions
+          selectedItems={table.getFilteredSelectedRowModel().rows.map((row) => row.original)}
+          onClearSelection={() => table.resetRowSelection()}
+        />
+      }
+    />
   )
 }

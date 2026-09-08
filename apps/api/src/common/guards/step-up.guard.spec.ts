@@ -1,13 +1,14 @@
 import { ForbiddenException } from '@nestjs/common'
-import { AGENT_HITL_STEP_UP_WINDOW_MS } from '@zen/shared'
 
-import { StepUpGuard } from './step-up.guard'
+import { StepUpGuard } from './step-up.guard.js'
 
 import type { ExecutionContext } from '@nestjs/common'
 import type { Reflector } from '@nestjs/core'
 import type { JwtService } from '@nestjs/jwt'
-import type { AuthConfig } from '@/config'
-import type { PrismaService } from '@/infra/prisma'
+import type { AuthConfig } from '../../config/index.js'
+import type { PrismaService } from '../../infra/prisma/index.js'
+
+const { jest } = import.meta
 
 const auth = { tenantId: 'tenant-1', userId: 'user-1' }
 
@@ -34,12 +35,14 @@ function createGuard(findFirst: jest.Mock) {
   } as unknown as JwtService
   const authCfg = { secret: 'test-secret' } as AuthConfig
   const prisma = {
-    agentApproval: { findFirst }
+    agentApproval: { findFirst },
+    agentStepUpGrant: { updateMany: jest.fn() }
   } as unknown as PrismaService
   return {
     guard: new StepUpGuard(reflector, jwtService, authCfg, prisma),
     jwtService,
-    reflector
+    reflector,
+    prisma
   }
 }
 
@@ -75,29 +78,68 @@ describe('StepUpGuard', () => {
     )
   })
 
-  it('对话审批刚通过时，即使没有 step-up token 也放行', async () => {
-    const findFirst = jest.fn().mockResolvedValue({ id: 'approval-1' })
+  it('没有 step-up token 时要求二次确认', async () => {
+    const findFirst = jest.fn()
     const { guard } = createGuard(findFirst)
 
-    await expect(guard.canActivate(context())).resolves.toBe(true)
-    expect(findFirst).toHaveBeenCalledWith(
+    await expect(guard.canActivate(context())).rejects.toMatchObject({ message: '需要二次确认' })
+    expect(findFirst).not.toHaveBeenCalled()
+  })
+
+  it('拒绝未绑定请求上下文的 Agent HITL token', async () => {
+    const { guard, jwtService, prisma } = createGuard(jest.fn())
+    ;(jwtService.verifyAsync as jest.Mock).mockResolvedValue({
+      typ: 'step-up',
+      purpose: 'agent-hitl',
+      sub: 'user-1',
+      tenantId: 'tenant-1',
+      runId: 'run-1',
+      toolName: 'delete_users',
+      approvalId: 'approval-1',
+      nonce: 'nonce-1'
+    })
+    await expect(
+      guard.canActivate(context({ 'x-step-up-token': 'token-1' }))
+    ).rejects.toBeInstanceOf(ForbiddenException)
+    expect((prisma as any).agentStepUpGrant.updateMany).not.toHaveBeenCalled()
+  })
+
+  it('按完整绑定原子消费 Agent HITL token', async () => {
+    const { guard, jwtService, prisma } = createGuard(jest.fn())
+    ;(jwtService.verifyAsync as jest.Mock).mockResolvedValue({
+      typ: 'step-up',
+      purpose: 'agent-hitl',
+      sub: 'user-1',
+      tenantId: 'tenant-1',
+      runId: 'run-1',
+      toolName: 'delete_users',
+      approvalId: 'approval-1',
+      nonce: 'nonce-1'
+    })
+    ;((prisma as any).agentStepUpGrant.updateMany as jest.Mock).mockResolvedValue({ count: 1 })
+    await expect(
+      guard.canActivate(
+        context({
+          'x-step-up-token': 'token-1',
+          'x-agent-run-id': 'run-1',
+          'x-agent-tool-name': 'delete_users',
+          'x-agent-approval-id': 'approval-1'
+        })
+      )
+    ).resolves.toBe(true)
+    expect((prisma as any).agentStepUpGrant.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           tenantId: 'tenant-1',
           userId: 'user-1',
-          status: 'approved',
-          decidedAt: { gte: expect.any(Date) }
-        })
+          runId: 'run-1',
+          toolName: 'delete_users',
+          approvalId: 'approval-1',
+          nonce: 'nonce-1',
+          consumedAt: null
+        }),
+        data: { consumedAt: expect.any(Date) }
       })
     )
-    const decidedAt = findFirst.mock.calls[0][0].where.decidedAt.gte as Date
-    expect(Date.now() - decidedAt.getTime()).toBeLessThan(AGENT_HITL_STEP_UP_WINDOW_MS + 1_000)
-  })
-
-  it('没有近期已批准审批时仍要求二次确认', async () => {
-    const findFirst = jest.fn().mockResolvedValue(null)
-    const { guard } = createGuard(findFirst)
-
-    await expect(guard.canActivate(context())).rejects.toMatchObject({ message: '需要二次确认' })
   })
 })

@@ -8,6 +8,7 @@ import { Header, Main } from '@/components/layouts'
 import { useElementHeight } from '@/hooks'
 import { isApiClientError } from '@/lib/request/utils'
 
+import { buildApprovalDecisions, toHitlResume } from './approval-decision'
 import { ChatApprovalRegistration } from './components/chat-approval'
 import { ChatGreeting } from './components/chat-greeting'
 import { ChatInput } from './components/chat-input'
@@ -22,7 +23,7 @@ import { deriveChatRunState } from './run-state'
 import { defaultAgentRuntimeApi, THREAD_HISTORY_PAGE_SIZE } from './runtime-api'
 import { useAgentChatShellStore } from './stores/agent-chat-shell'
 
-import type { AgentThreadSummary } from './runtime-api'
+import type { AgentApproval, AgentThreadSummary } from './runtime-api'
 
 const THREAD_TITLE_MAX_LENGTH = 80
 const DRAFT_ROUTE_THREAD_ID = 'draft'
@@ -40,6 +41,18 @@ function buildOptimisticThread(id: string, firstMessage: string): AgentThreadSum
     updatedAt: now,
     _count: { messages: 1, runs: 1 }
   }
+}
+
+async function loadPendingApproval(run: { id: string }): Promise<AgentApproval | null> {
+  const detail = await defaultAgentRuntimeApi.getRun(run.id)
+  return detail.approvals.find((approval) => approval.status === 'pending') ?? null
+}
+
+async function restorePendingApproval(threadId: string): Promise<AgentApproval | null> {
+  const thread = await defaultAgentRuntimeApi.getThread(threadId)
+  const latestRun = thread.runs[0]
+  if (!latestRun) return null
+  return loadPendingApproval(latestRun)
 }
 
 export function AgentChat() {
@@ -92,6 +105,7 @@ function Chat() {
 
   const [recovered, setRecovered] = useState(false)
   const [awaitingApproval, setAwaitingApproval] = useState(false)
+  const [persistedApproval, setPersistedApproval] = useState<AgentApproval | null>(null)
   const wasRunningRef = useRef(agent.isRunning)
   const threadSelectionVersionRef = useRef(0)
   const activeRunIdRef = useRef<string | undefined>(undefined)
@@ -205,6 +219,7 @@ function Chat() {
     setThreadLoading(false)
     setRecovered(false)
     setAwaitingApproval(false)
+    setPersistedApproval(null)
     await navigate({ to: '/chat' })
   }, [agent, navigate, setCurrentThreadId, setThreadLoading, stopActiveRun])
 
@@ -232,7 +247,19 @@ function Chat() {
     async (threadId: string) => {
       const { currentThreadId: selectedId, threadLoading: loading } =
         useAgentChatShellStore.getState()
-      if (threadId === selectedId && !loading) return
+      if (threadId === selectedId && !loading) {
+        const selectionVersion = threadSelectionVersionRef.current
+        try {
+          const pending = await restorePendingApproval(threadId)
+          if (selectionVersion !== threadSelectionVersionRef.current) return
+          if (useAgentChatShellStore.getState().currentThreadId !== threadId) return
+          setPersistedApproval(pending)
+          setAwaitingApproval(Boolean(pending))
+        } catch (error) {
+          console.error('AgentChat: failed to restore pending approval', error)
+        }
+        return
+      }
 
       const previousThreadId = selectedId
       const previousAgentThreadId = agent.threadId
@@ -241,6 +268,7 @@ function Chat() {
       setCurrentThreadId(threadId)
       setThreadLoading(true)
       setAwaitingApproval(false)
+      setPersistedApproval(null)
 
       if (agent.isRunning) {
         stopLocalAgent()
@@ -272,6 +300,15 @@ function Chat() {
           localStorage.setItem(`default-agent:cursor:${latestRun.id}`, String(replay.cursor))
         } catch (error) {
           console.error('AgentChat: failed to replay thread events', error)
+        }
+
+        try {
+          const pending = await loadPendingApproval(latestRun)
+          if (selectionVersion !== threadSelectionVersionRef.current) return
+          setPersistedApproval(pending)
+          setAwaitingApproval(Boolean(pending))
+        } catch (error) {
+          console.error('AgentChat: failed to restore pending approval', error)
         }
       } catch (error) {
         if (selectionVersion !== threadSelectionVersionRef.current) return
@@ -320,6 +357,7 @@ function Chat() {
     setThreadLoading(false)
     setRecovered(false)
     setAwaitingApproval(false)
+    setPersistedApproval(null)
   }, [agent, routeThreadId, selectThread, setCurrentThreadId, setThreadLoading])
 
   const renameThread = useCallback(async (threadId: string, title: string) => {
@@ -370,15 +408,28 @@ function Chat() {
           replace: true
         })
       }
-      const resumedRunId = crypto.randomUUID()
-      activeRunIdRef.current = resumedRunId
+      activeRunIdRef.current = runId
       try {
-        await copilotkit.runAgent({ agent, runId: resumedRunId })
+        await copilotkit.runAgent({ agent, runId })
       } finally {
-        if (activeRunIdRef.current === resumedRunId) activeRunIdRef.current = undefined
+        if (activeRunIdRef.current === runId) activeRunIdRef.current = undefined
       }
     },
     [agent, copilotkit, navigate, routeThreadId, setCurrentThreadId]
+  )
+
+  const clearPersistedApproval = useCallback(() => setPersistedApproval(null), [])
+
+  const resumePersistedApproval = useCallback(
+    async (decision: 'approve' | 'reject') => {
+      const decisions = buildApprovalDecisions(1, decision)
+      await copilotkit.runAgent({
+        agent,
+        forwardedProps: { command: { resume: toHitlResume(decisions) } }
+      })
+      setPersistedApproval(null)
+    },
+    [agent, copilotkit]
   )
 
   const cancelRun = useCallback(
@@ -434,7 +485,12 @@ function Chat() {
                   key={currentThreadId ?? DRAFT_ROUTE_THREAD_ID}
                   threadId={currentThreadId ?? DRAFT_ROUTE_THREAD_ID}
                 />
-                <ChatApprovalRegistration onPendingChange={setAwaitingApproval} />
+                <ChatApprovalRegistration
+                  persistedApproval={persistedApproval}
+                  onPendingChange={setAwaitingApproval}
+                  onPersistedDecision={resumePersistedApproval}
+                  onLiveInterrupt={clearPersistedApproval}
+                />
               </>
             )}
           </div>

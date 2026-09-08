@@ -18,3 +18,7 @@ export function buildApprovalDecisions(
       : { type: 'reject' as const, message: FINAL_REJECTION_MESSAGE }
   )
 }
+
+export function toHitlResume(decisions: ApprovalDecision[]) {
+  return { decisions }
+}

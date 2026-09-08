@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common'
 import { RecordStatus, RoleDataScope } from '@prisma/client'
 import { DEFAULT_TENANT_ID } from '@zen/shared'
 
-import { PrismaService } from '@/infra/prisma'
+import { PrismaService } from '../../infra/prisma/index.js'
 
 import type { RoleKind } from '@prisma/client'
 import type { AuthContext, DataScope } from '@zen/shared'

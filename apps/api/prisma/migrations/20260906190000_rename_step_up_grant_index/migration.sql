@@ -1,0 +1,2 @@
+-- RenameIndex
+ALTER INDEX "agent_step_up_grants_tenant_id_user_id_run_id_tool_name_expires" RENAME TO "agent_step_up_grants_tenant_id_user_id_run_id_tool_name_exp_idx";

@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common'
 
-import { JobController } from './job.controller'
-import { JobRepository } from './job.repository'
-import { JobService } from './job.service'
-import { JOBS_PRISMA } from './tokens'
+import { JobController } from './job.controller.js'
+import { JobRepository } from './job.repository.js'
+import { JobService } from './job.service.js'
+import { JOBS_PRISMA } from './tokens.js'
 
 import type { DynamicModule, FactoryProvider } from '@nestjs/common'
 import type { PrismaClient } from '@prisma/client'

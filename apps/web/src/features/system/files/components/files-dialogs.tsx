@@ -16,7 +16,18 @@ import { FilePreviewDialog } from './file-preview-dialog'
 
 export function FilesDialogs({ accept }: { accept?: string }) {
   const queryClient = useQueryClient()
-  const { open, setOpen, currentRow, setCurrentRow } = useFiles()
+  const {
+    open,
+    setOpen,
+    currentRow,
+    setCurrentRow,
+    previewFile,
+    hasPreviousPreview,
+    hasNextPreview,
+    previousPreview,
+    nextPreview,
+    closePreview
+  } = useFiles()
   const deleteFile = useDeleteFileMutation()
   const restoreFile = useRestoreFileMutation()
   const purgeFile = usePurgeFileMutation()
@@ -31,7 +42,7 @@ export function FilesDialogs({ accept }: { accept?: string }) {
   return (
     <>
       <Dialog open={open === 'upload'} onOpenChange={(next) => !next && close()}>
-        <DialogContent>
+        <DialogContent className="min-w-0 sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>上传文件</DialogTitle>
             <DialogDescription>预签名直传到对象存储，完成后写入文件元数据。</DialogDescription>
@@ -49,9 +60,27 @@ export function FilesDialogs({ accept }: { accept?: string }) {
         </DialogContent>
       </Dialog>
 
+      <FilePreviewDialog
+        file={previewFile}
+        open={Boolean(previewFile)}
+        onOpenChange={(next) => {
+          if (!next) closePreview()
+        }}
+        onDelete={(file) => {
+          setCurrentRow(file)
+          setOpen('delete')
+        }}
+        hasPrevious={hasPreviousPreview}
+        hasNext={hasNextPreview}
+        onPrevious={previousPreview}
+        onNext={nextPreview}
+      />
+
       {currentRow && open === 'delete' ? (
         <ConfirmDialog
           open
+          className="!z-[1203]"
+          overlayClassName="!z-[1202]"
           onOpenChange={(next) => !next && close()}
           title="移入回收站"
           desc={`确定将「${currentRow.originalName}」移入回收站吗？可稍后恢复。`}
@@ -64,6 +93,7 @@ export function FilesDialogs({ accept }: { accept?: string }) {
               onSuccess: () => {
                 toast.success('已移入回收站')
                 close()
+                closePreview()
               },
               onError: (error) => toast.error(error.message)
             })
@@ -130,6 +160,7 @@ export function FilesDialogs({ accept }: { accept?: string }) {
                     onSuccess: () => {
                       toast.success('已彻底删除')
                       close()
+                      closePreview()
                     },
                     onError: (error) => toast.error(error.message)
                   }
@@ -141,14 +172,6 @@ export function FilesDialogs({ accept }: { accept?: string }) {
           }}
         />
       ) : null}
-
-      <FilePreviewDialog
-        file={currentRow}
-        open={open === 'preview'}
-        onOpenChange={(next) => {
-          if (!next) close()
-        }}
-      />
     </>
   )
 }

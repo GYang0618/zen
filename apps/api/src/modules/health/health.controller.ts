@@ -1,8 +1,7 @@
 import { Controller, Get, Inject } from '@nestjs/common'
 
-import { Public } from '@/common'
-
-import { HealthService } from './health.service'
+import { Public } from '../../common/index.js'
+import { HealthService } from './health.service.js'
 
 @Controller()
 export class HealthController {

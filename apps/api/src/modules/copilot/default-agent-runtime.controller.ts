@@ -15,12 +15,11 @@ import {
 } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger'
 
-import { AllowAuthenticated } from '@/common/decorators/allow-authenticated.decorator'
-import { CurrentAuth } from '@/common/decorators/current-auth.decorator'
-import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
-import { ACCESS_TOKEN_AUTH } from '@/common/swagger'
-
-import { DefaultAgentRunControl } from './default-agent-run-control'
+import { AllowAuthenticated } from '../../common/decorators/allow-authenticated.decorator.js'
+import { CurrentAuth } from '../../common/decorators/current-auth.decorator.js'
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js'
+import { ACCESS_TOKEN_AUTH } from '../../common/swagger/index.js'
+import { DefaultAgentRunControl } from './default-agent-run-control.js'
 import {
   approvalDecisionSchema,
   approvalListQuerySchema,
@@ -32,8 +31,8 @@ import {
   runResumeSchema,
   threadListQuerySchema,
   threadUpdateSchema
-} from './default-agent-runtime.schemas'
-import { DefaultAgentRuntimeStore } from './default-agent-runtime.store'
+} from './default-agent-runtime.schemas.js'
+import { DefaultAgentRuntimeStore } from './default-agent-runtime.store.js'
 
 import type { AuthContext } from '@zen/shared'
 import type {
@@ -47,7 +46,7 @@ import type {
   RunResumeInput,
   ThreadListQuery,
   ThreadUpdateInput
-} from './default-agent-runtime.schemas'
+} from './default-agent-runtime.schemas.js'
 
 @ApiTags('Default Agent Runtime')
 @ApiBearerAuth(ACCESS_TOKEN_AUTH)

@@ -1,21 +1,20 @@
-import { PermissionCode } from '@zen/shared'
+import { PLUGIN_CATALOG } from '@zen/plugin-registry/catalog'
+import { PermissionCode, toolManifestSchema } from '@zen/shared'
 
-export type ToolRiskLevel = 'low' | 'medium' | 'high' | 'critical'
-export type ToolSideEffect = 'none' | 'write' | 'destructive'
+import type { ToolExecutionPolicy } from '@zen/shared'
 
-export interface ToolExecutionPolicy {
-  permissionCode?: string
-  riskLevel: ToolRiskLevel
-  sideEffect: ToolSideEffect
-  requiresApproval: boolean
-  timeoutMs: number
-  retryPolicy: {
-    maxRetries: number
-    retryableReasons: readonly string[]
-  }
-  idempotencyPolicy: 'none' | 'run-tool-call'
-  pluginId?: string
-}
+export type { ToolExecutionPolicy, ToolRiskLevel, ToolSideEffect } from '@zen/shared'
+
+const pluginPolicies: Record<string, ToolExecutionPolicy> = Object.fromEntries(
+  PLUGIN_CATALOG.flatMap((entry) =>
+    'agentTools' in entry
+      ? entry.agentTools.manifests.map((manifest) => [
+          manifest.name,
+          toolManifestSchema.parse(manifest)
+        ])
+      : []
+  )
+)
 
 const READ_POLICY = {
   riskLevel: 'low',
@@ -112,16 +111,16 @@ export const TOOL_EXECUTION_POLICIES = {
   update_job_profile_info: write(PermissionCode.POST_MANAGE),
   delete_job_profile: destructive(PermissionCode.POST_MANAGE),
 
-  list_demo_notes: {
-    ...read('demo:note:list'),
-    pluginId: 'demo-notes'
-  }
+  ...pluginPolicies
 } as const satisfies Record<string, ToolExecutionPolicy>
 
-export type RegisteredToolName = keyof typeof TOOL_EXECUTION_POLICIES
+type PluginWithTools = Extract<(typeof PLUGIN_CATALOG)[number], { agentTools: unknown }>
+export type RegisteredToolName =
+  | keyof typeof TOOL_EXECUTION_POLICIES
+  | PluginWithTools['agentTools']['manifests'][number]['name']
 
 export function getToolExecutionPolicy(toolName: string): ToolExecutionPolicy | undefined {
-  return TOOL_EXECUTION_POLICIES[toolName as RegisteredToolName]
+  return (TOOL_EXECUTION_POLICIES as Record<string, ToolExecutionPolicy>)[toolName]
 }
 
 export const APPROVAL_REQUIRED_TOOLS = Object.entries(TOOL_EXECUTION_POLICIES)

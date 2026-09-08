@@ -122,13 +122,19 @@ function LeaderSelect({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
-          {selected ? `${selected.name} · ${selected.email}` : '搜索用户 ID、姓名或邮箱'}
-          <ChevronsUpDown className="text-muted-foreground" />
-        </Button>
+      <PopoverTrigger
+        render={
+          <Button
+            variant="outline"
+            role="combobox"
+            className="w-full justify-between font-normal"
+          />
+        }
+      >
+        {selected ? `${selected.name} · ${selected.email}` : '搜索用户 ID、姓名或邮箱'}
+        <ChevronsUpDown className="text-muted-foreground" />
       </PopoverTrigger>
-      <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
+      <PopoverContent className="w-(--anchor-width) p-0" align="start">
         <Command>
           <CommandInput placeholder="搜索用户 ID、姓名或邮箱" />
           <CommandList>
@@ -334,11 +340,12 @@ export function OrganizationDetailsPanel({
                   新建下级组织
                 </Button>
               )}
-              <Button asChild>
-                <Link to="/system/organization/$id" params={{ id: organization.id }}>
-                  进入组织详情
-                  <ArrowRight data-icon="inline-end" />
-                </Link>
+              <Button
+                nativeButton={false}
+                render={<Link to="/system/organization/$id" params={{ id: organization.id }} />}
+              >
+                进入组织详情
+                <ArrowRight data-icon="inline-end" />
               </Button>
             </div>
           )}
@@ -410,13 +417,13 @@ export function CreateOrganizationSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-md">
+      <SheetContent className="overflow-hidden sm:max-w-md">
         <SheetHeader className="border-b">
           <SheetTitle>新建组织</SheetTitle>
           <SheetDescription>先创建基础信息，成员与岗位可在组织详情中配置</SheetDescription>
         </SheetHeader>
-        <div className="flex-1 overflow-y-auto px-4">
-          <FieldGroup>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <FieldGroup className="px-4">
             <Field>
               <FieldLabel htmlFor="new-organization-name">名称 *</FieldLabel>
               <Input
@@ -428,7 +435,13 @@ export function CreateOrganizationSheet({
             </Field>
             <Field>
               <FieldLabel htmlFor="new-organization-type">组织类型</FieldLabel>
-              <Select value={type} onValueChange={setType}>
+              <Select
+                items={childTypes.map((option) => ({ label: option, value: option }))}
+                value={type}
+                onValueChange={(value) => {
+                  if (value) setType(value)
+                }}
+              >
                 <SelectTrigger id="new-organization-type" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -446,7 +459,16 @@ export function CreateOrganizationSheet({
             </Field>
             <Field>
               <FieldLabel htmlFor="parent-organization">上级组织</FieldLabel>
-              <Select value={selectedParent?.id} onValueChange={changeParent}>
+              <Select
+                items={parentOptions.map((option) => ({
+                  label: `${option.name} · ${option.type}`,
+                  value: option.id
+                }))}
+                value={selectedParent?.id}
+                onValueChange={(value) => {
+                  if (value) changeParent(value)
+                }}
+              >
                 <SelectTrigger id="parent-organization" className="w-full">
                   <SelectValue placeholder="选择上级组织" />
                 </SelectTrigger>

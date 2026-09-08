@@ -1,12 +1,11 @@
 import { Module } from '@nestjs/common'
 
-import { OBJECT_STORAGE, S3CompatibleStorage } from '@/infra/storage'
-
-import { MeAvatarController } from './me-avatar.controller'
-import { StorageCleanupService } from './storage.cleanup'
-import { StorageController } from './storage.controller'
-import { StorageRepository } from './storage.repository'
-import { StorageService } from './storage.service'
+import { OBJECT_STORAGE, S3CompatibleStorage } from '../../infra/storage/index.js'
+import { MeAvatarController } from './me-avatar.controller.js'
+import { StorageCleanupService } from './storage.cleanup.js'
+import { StorageController } from './storage.controller.js'
+import { StorageRepository } from './storage.repository.js'
+import { StorageService } from './storage.service.js'
 
 @Module({
   controllers: [StorageController, MeAvatarController],

@@ -1,3 +1,3 @@
-export { PostModule } from './post.module'
-export { PostRepository } from './post.repository'
-export { PostService } from './post.service'
+export { PostModule } from './post.module.js'
+export { PostRepository } from './post.repository.js'
+export { PostService } from './post.service.js'

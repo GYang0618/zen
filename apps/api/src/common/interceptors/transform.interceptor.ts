@@ -2,12 +2,12 @@ import { HttpStatus, Inject, Injectable } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { map } from 'rxjs/operators'
 
-import { BYPASS_TRANSFORM_KEY } from '../decorators/bypass-transform.decorator'
-import { resolveTraceId, TRACE_ID_HEADER } from '../utils/trace-id'
+import { BYPASS_TRANSFORM_KEY } from '../decorators/bypass-transform.decorator.js'
+import { resolveTraceId, TRACE_ID_HEADER } from '../utils/trace-id.js'
 
 import type { CallHandler, ExecutionContext, NestInterceptor } from '@nestjs/common'
 import type { Observable } from 'rxjs'
-import type { ApiResponse } from '../interfaces/api-response.interface'
+import type { ApiResponse } from '../interfaces/api-response.interface.js'
 
 type HttpRequest = {
   id?: string

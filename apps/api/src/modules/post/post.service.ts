@@ -6,16 +6,15 @@ import {
   NotFoundException
 } from '@nestjs/common'
 
-import { paginate } from '@/common/pagination'
-
+import { paginate } from '../../common/pagination/index.js'
 import {
   fromApiJobProfileStatus,
   fromApiOrganizationPositionStatus,
   toJobProfileDetailResponse,
   toJobProfileResponse,
   toOrganizationPositionResponse
-} from './post.mapper'
-import { PostRepository } from './post.repository'
+} from './post.mapper.js'
+import { PostRepository } from './post.repository.js'
 
 import type {
   CreateJobProfileDto,
@@ -23,22 +22,27 @@ import type {
   LinkOrganizationPositionDto,
   UpdateJobProfileDto,
   UpdateOrganizationPositionDto
-} from './dto'
+} from './dto/index.js'
 import type {
   JobProfileDetailResponse,
   JobProfileResponse,
   JobProfilesPageResponse,
   OrganizationPositionResponse
-} from './responses/post.response'
+} from './responses/post.response.js'
 
 @Injectable()
 export class PostService {
   constructor(@Inject(PostRepository) private readonly postRepo: PostRepository) {}
 
   async findAll(query: FindJobProfilesQueryDto): Promise<JobProfilesPageResponse> {
+    const resolvedStatus = Array.isArray(query.status)
+      ? query.status.map(fromApiJobProfileStatus)
+      : query.status
+        ? fromApiJobProfileStatus(query.status)
+        : undefined
     const where = this.postRepo.buildProfileWhere({
       keyword: query.keyword,
-      status: query.status ? fromApiJobProfileStatus(query.status) : undefined,
+      status: resolvedStatus,
       level: query.level
     })
 

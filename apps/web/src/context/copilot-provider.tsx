@@ -1,4 +1,4 @@
-import { CopilotKitProvider, useAgentContext, useCopilotKit } from '@copilotkit/react-core/v2'
+import { CopilotKit, useAgentContext, useCopilotKit } from '@copilotkit/react-core/v2'
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 
@@ -17,12 +17,12 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
   }, [accessToken])
 
   return (
-    <CopilotKitProvider runtimeUrl={copilotKitApi} useSingleEndpoint={false} headers={headers}>
+    <CopilotKit runtimeUrl={copilotKitApi} useSingleEndpoint={false} headers={headers}>
       <CopilotRuntimeRegistrations />
       <AgentSharedRegistrations />
       {children}
       <CopilotAuthRetry />
-    </CopilotKitProvider>
+    </CopilotKit>
   )
 }
 

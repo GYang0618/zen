@@ -194,35 +194,37 @@ export function OrganizationParentSelect({
 
   return (
     <Popover modal open={open} onOpenChange={handleOpenChange}>
-      <PopoverTrigger asChild>
-        <Button
-          id={id}
-          type="button"
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          aria-invalid={ariaInvalid}
-          aria-label={ariaLabel}
-          disabled={disabled}
-          className="w-full justify-between font-normal"
-        >
-          {selected ? (
-            <span className="truncate">
-              {selected.name}
-              <span className="text-muted-foreground"> · {getLabel(selected.type)}</span>
-            </span>
-          ) : allowEmpty ? (
-            <span className="truncate">
-              无（根节点）
-              <span className="text-muted-foreground"> · 独立根节点</span>
-            </span>
-          ) : (
-            <span className="truncate text-muted-foreground">{placeholder}</span>
-          )}
-          <ChevronsUpDown data-icon="inline-end" className="text-muted-foreground" />
-        </Button>
+      <PopoverTrigger
+        render={
+          <Button
+            id={id}
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            aria-invalid={ariaInvalid}
+            aria-label={ariaLabel}
+            disabled={disabled}
+            className="w-full justify-between font-normal"
+          />
+        }
+      >
+        {selected ? (
+          <span className="truncate">
+            {selected.name}
+            <span className="text-muted-foreground"> · {getLabel(selected.type)}</span>
+          </span>
+        ) : allowEmpty ? (
+          <span className="truncate">
+            无（根节点）
+            <span className="text-muted-foreground"> · 独立根节点</span>
+          </span>
+        ) : (
+          <span className="truncate text-muted-foreground">{placeholder}</span>
+        )}
+        <ChevronsUpDown data-icon="inline-end" className="text-muted-foreground" />
       </PopoverTrigger>
-      <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
+      <PopoverContent className="w-(--anchor-width) p-0" align="start">
         <Command shouldFilter={false}>
           <CommandInput placeholder="搜索组织名称" value={query} onValueChange={setQuery} />
           <CommandList>

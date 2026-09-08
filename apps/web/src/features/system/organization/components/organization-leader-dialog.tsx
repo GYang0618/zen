@@ -48,6 +48,7 @@ export function OrganizationLeaderDialog({
   onOpenChange
 }: OrganizationLeaderDialogProps) {
   const { updateOrganizationLeader } = useOrganizations()
+  const hasLeader = Boolean(currentRow.leader)
   const [leaderId, setLeaderId] = useState(currentRow.leader?.id ?? '')
   const [preview, setPreview] = useState<OrganizationUserOption | undefined>(
     currentRow.leader ? toUserOption(currentRow.leader) : undefined
@@ -97,7 +98,7 @@ export function OrganizationLeaderDialog({
           <DialogTitle>
             <span className="flex items-center gap-2">
               <UserRound className="size-5" />
-              更换负责人
+              {hasLeader ? '更换负责人' : '设置负责人'}
             </span>
           </DialogTitle>
           <DialogDescription>

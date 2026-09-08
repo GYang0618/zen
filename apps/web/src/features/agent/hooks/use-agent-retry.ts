@@ -4,15 +4,64 @@ import { useAgent, useCopilotKit } from '@copilotkit/react-core/v2'
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 
 import { buildRetryMessages } from '../lib/messages'
-import { isRunCancellation } from '../run-state'
+import { isRunCancellation, isRunInterrupt } from '../run-state'
 
-const RUN_ERROR_MESSAGE = '请求失败'
+export function classifyRunError(error: unknown): { title: string; detail?: string } {
+  const raw =
+    error instanceof Error
+      ? error.message
+      : typeof error === 'string'
+        ? error
+        : typeof error === 'object' && error !== null && 'message' in error
+          ? String((error as { message: unknown }).message)
+          : ''
+
+  const lower = raw.toLowerCase()
+
+  if (lower.includes('timeout') || lower.includes('timed out') || lower.includes('timed_out')) {
+    return { title: '智能体响应超时', detail: '模型生成或接口处理超时，请点击重试' }
+  }
+  if (
+    lower.includes('rate limit') ||
+    lower.includes('429') ||
+    lower.includes('too many requests')
+  ) {
+    return { title: '请求过于频繁', detail: '触发访问频次限制，请稍候片刻再重试' }
+  }
+  if (lower.includes('token') && lower.includes('budget')) {
+    return { title: 'Token 消耗超限', detail: '单次运行消耗的 Token 超出安全预算上限' }
+  }
+  if (lower.includes('failure') && lower.includes('budget')) {
+    return { title: '连续重试熔断', detail: '底层工具执行连续失败超出容错上限，已自动终止' }
+  }
+  if (lower.includes('recursion') || lower.includes('recursion_limit')) {
+    return { title: '执行步数超限', detail: '智能体调用递归步数超出上限，请精简提问' }
+  }
+  if (lower.includes('401') || lower.includes('unauthorized')) {
+    return { title: '认证状态失效', detail: '用户登录凭据已过期，请刷新或重新登录' }
+  }
+  if (lower.includes('403') || lower.includes('forbidden')) {
+    return { title: '无权限操作', detail: '当前账号未被授予执行此项任务所需的系统权限' }
+  }
+  if (
+    lower.includes('fetch') ||
+    lower.includes('network') ||
+    lower.includes('connection') ||
+    lower.includes('econnrefused')
+  ) {
+    return { title: '网络连接异常', detail: '无法连接到智能体服务，请检查网络后重试' }
+  }
+
+  if (import.meta.env.DEV && raw.trim()) {
+    return { title: '执行遇到异常', detail: raw }
+  }
+
+  return { title: '执行遇到异常', detail: raw.trim() || undefined }
+}
 
 function formatRunError(error: unknown): string {
-  if (import.meta.env.DEV && error instanceof Error && error.message.trim()) {
-    return `${RUN_ERROR_MESSAGE}：${error.message}`
-  }
-  return RUN_ERROR_MESSAGE
+  const { title, detail } = classifyRunError(error)
+  return detail && detail !== title ? `${title}：${detail}` : title
 }
 
 export function useAgentRetry() {
@@ -45,7 +94,7 @@ export function useAgentRetry() {
       },
       onRunInitialized: () => setRunError(null),
       onRunFailed: ({ error }) => {
-        if (isRunCancellation(error)) {
+        if (isRunCancellation(error) || isRunInterrupt(error)) {
           setFailedUserMessage(null)
           setRunError(null)
           return
@@ -55,7 +104,7 @@ export function useAgentRetry() {
         setRunError(formatRunError(error))
       },
       onRunErrorEvent: ({ event }) => {
-        if (isRunCancellation(event.message)) {
+        if (isRunCancellation(event.message) || isRunInterrupt(event.message)) {
           setFailedUserMessage(null)
           setRunError(null)
           return

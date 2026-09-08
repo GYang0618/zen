@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common'
 
-import { NOTIFICATIONS_PRISMA } from './tokens'
+import { NOTIFICATIONS_PRISMA } from './tokens.js'
 
 import type { PrismaClient } from '@prisma/client'
 

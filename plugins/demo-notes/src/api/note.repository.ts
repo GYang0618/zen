@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { applyOrgScopedResourceDataScope } from '@zen/plugin-sdk'
 
-import { DEMO_NOTES_PRISMA } from './tokens'
+import { DEMO_NOTES_PRISMA } from './tokens.js'
 
 import type { Prisma, PrismaClient } from '@prisma/client'
 import type { AuthContext } from '@zen/shared'

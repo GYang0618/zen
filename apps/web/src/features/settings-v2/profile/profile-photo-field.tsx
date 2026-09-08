@@ -10,11 +10,13 @@ import {
 } from '@zen/ui'
 import { useEffect, useId, useRef, useState } from 'react'
 
+import { AvatarCropDialog } from './avatar-crop-dialog'
+
 import type { ChangeEvent } from 'react'
 
-const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/gif'] as const
+const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as const
 const ACCEPT_ATTR = ACCEPTED_TYPES.join(',')
-const MAX_SIZE_BYTES = 2 * 1024 * 1024
+const MAX_SOURCE_SIZE_BYTES = 20 * 1024 * 1024
 
 type ProfilePhotoFieldProps = {
   initialSrc?: string
@@ -41,6 +43,8 @@ export function ProfilePhotoField({
   const inputRef = useRef<HTMLInputElement>(null)
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(initialSrc)
   const [error, setError] = useState<string>()
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const [cropOpen, setCropOpen] = useState(false)
   const objectUrlRef = useRef<string | undefined>(undefined)
 
   useEffect(() => {
@@ -73,15 +77,21 @@ export function ProfilePhotoField({
     if (!file) return
 
     if (!ACCEPTED_TYPES.includes(file.type as (typeof ACCEPTED_TYPES)[number])) {
-      setError('仅支持 JPG、PNG 或 GIF 格式')
+      setError('仅支持 JPG、PNG、WebP 或 GIF 格式')
       return
     }
 
-    if (file.size > MAX_SIZE_BYTES) {
-      setError('图片大小不能超过 2MB')
+    if (file.size > MAX_SOURCE_SIZE_BYTES) {
+      setError('原图大小不能超过 20MB')
       return
     }
 
+    setPendingFile(file)
+    setCropOpen(true)
+    setError(undefined)
+  }
+
+  const handleCropComplete = (file: File) => {
     revokeObjectUrl()
     const nextUrl = URL.createObjectURL(file)
     objectUrlRef.current = nextUrl
@@ -92,6 +102,8 @@ export function ProfilePhotoField({
 
   const handleRemove = () => {
     revokeObjectUrl()
+    setPendingFile(null)
+    setCropOpen(false)
     setPreviewUrl(undefined)
     setError(undefined)
     onFileChange?.(null)
@@ -109,7 +121,9 @@ export function ProfilePhotoField({
       <FieldContent className="gap-2 ml-4">
         <div className="flex flex-col gap-0.5">
           <FieldTitle>头像</FieldTitle>
-          <FieldDescription>JPG、PNG 或 GIF。最大 2MB。</FieldDescription>
+          <FieldDescription>
+            JPG、PNG、WebP 或 GIF；原图最大 20MB，裁切后自动优化。
+          </FieldDescription>
         </div>
 
         <div className="flex items-center gap-2">
@@ -137,6 +151,16 @@ export function ProfilePhotoField({
           onChange={handleFileChange}
         />
       </FieldContent>
+
+      <AvatarCropDialog
+        file={pendingFile}
+        open={cropOpen}
+        onOpenChange={(nextOpen) => {
+          setCropOpen(nextOpen)
+          if (!nextOpen) setPendingFile(null)
+        }}
+        onComplete={handleCropComplete}
+      />
     </Field>
   )
 }

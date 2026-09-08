@@ -1,12 +1,6 @@
 'use no memo'
 
 import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  DoubleArrowLeftIcon,
-  DoubleArrowRightIcon
-} from '@radix-ui/react-icons'
-import {
   Button,
   cn,
   getPageNumbers,
@@ -16,6 +10,12 @@ import {
   SelectTrigger,
   SelectValue
 } from '@zen/ui'
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChevronsLeft as DoubleArrowLeftIcon,
+  ChevronsRight as DoubleArrowRightIcon
+} from 'lucide-react'
 
 export const LIST_PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50] as const
 
@@ -59,8 +59,13 @@ export function ListPagination({
         </div>
         <div className="flex items-center gap-2 @max-2xl/content:flex-row-reverse">
           <Select
+            items={pageSizeOptions.map((option) => ({
+              label: `${option}`,
+              value: `${option}`
+            }))}
             value={`${pageSize}`}
             onValueChange={(value) => {
+              if (!value) return
               onPageSizeChange(Number(value))
             }}
           >

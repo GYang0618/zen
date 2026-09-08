@@ -7,7 +7,7 @@ import {
   defaultAgentRunBudgetSchema
 } from '@zen/shared'
 
-import { defaultAgent, planAgent } from './agents'
+import { defaultAgent, planAgent } from './agents.js'
 
 describe('Copilot agent registration', () => {
   it('default agent 使用 default_agent 和统一运行预算', () => {
@@ -19,12 +19,17 @@ describe('Copilot agent registration', () => {
     })
 
     expect(agent.graphId).toBe(DEFAULT_AGENT_GRAPH_ID)
-    expect(agent.assistantConfig).toEqual({
+    expect(agent.assistantConfig).toMatchObject({
       recursion_limit: DEFAULT_AGENT_RUN_BUDGET.recursionLimit,
       configurable: {
         accessToken: 'token',
         activeAgentPlugins: ['demo-notes'],
-        agentRunId: 'run-1'
+        agentRunId: 'run-1',
+        locale: 'zh-CN',
+        permissions: [],
+        modelMetadata: {
+          provider: 'qwen'
+        }
       }
     })
   })

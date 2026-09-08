@@ -16,8 +16,3 @@ overrides:
   fastify: 5.10.0
   hono: ^4.12.32
   three-mesh-bvh: 0.9.13
-# @hookform/resolvers 顶层 import "zod/v4/core" 但未声明 zod peer；pnpm 隔离下 Rolldown 解析失败
-packageExtensions:
-  "@hookform/resolvers":
-    peerDependencies:
-      zod: "*"

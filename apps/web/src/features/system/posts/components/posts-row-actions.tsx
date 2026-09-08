@@ -53,33 +53,40 @@ export function PostsRowActions({
 
   const menu = (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button type="button" variant="ghost" size="icon-sm" aria-label={`打开${item.name}的操作`}>
-          <MoreHorizontal />
-        </Button>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`打开${item.name}的操作`}
+          />
+        }
+      >
+        <MoreHorizontal />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-36">
         <DropdownMenuGroup>
           {onEnterSelecting ? (
-            <DropdownMenuItem onSelect={onEnterSelecting}>
+            <DropdownMenuItem onClick={onEnterSelecting}>
               <CheckSquare />
               选择
             </DropdownMenuItem>
           ) : null}
           <Can permission={PermissionCode.POST_MANAGE}>
-            <DropdownMenuItem onSelect={() => openDialog('edit')}>
+            <DropdownMenuItem onClick={() => openDialog('edit')}>
               <Pencil />
               编辑
             </DropdownMenuItem>
             {item.status === 'active' ? (
-              <DropdownMenuItem variant="destructive" onSelect={() => openDialog('disable')}>
+              <DropdownMenuItem variant="destructive" onClick={() => openDialog('disable')}>
                 <Ban />
                 停用
               </DropdownMenuItem>
             ) : (
               <DropdownMenuItem
                 disabled={isPending}
-                onSelect={() => {
+                onClick={() => {
                   updateStatus(
                     { ids: [item.id], status: 'active' },
                     {
@@ -95,7 +102,7 @@ export function PostsRowActions({
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onSelect={() => openDialog('delete')}>
+            <DropdownMenuItem variant="destructive" onClick={() => openDialog('delete')}>
               <Trash2 />
               删除
             </DropdownMenuItem>

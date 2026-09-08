@@ -1,11 +1,13 @@
+import { validateManifestObject } from './validate.js'
+
 import type {
   PermissionContribution,
   PluginAgentToolsContribution,
   PluginApiContributionSchema,
   PluginRouteContribution,
   PluginWidgetContribution
-} from './manifest.schema'
-import type { PluginInstallStatus, PluginRegistryEntry } from './types'
+} from './manifest.schema.js'
+import type { PluginInstallStatus, PluginRegistryEntry } from './types.js'
 
 /**
  * 运行时贡献点注册表：按插件启停过滤后供宿主聚合。
@@ -22,6 +24,24 @@ export class ContributionRegistry {
   private readonly status = new Map<string, PluginInstallStatus>()
 
   loadFromRegistry(entries: PluginRegistryEntry[]) {
+    const names = new Set<string>()
+    for (const entry of entries) {
+      const issues = validateManifestObject(entry).filter((issue) => issue.level === 'error')
+      if (issues.length) throw new Error(issues.map((issue) => issue.message).join('; '))
+      for (const tool of entry.agentTools?.manifests ?? []) {
+        if (names.has(tool.name)) throw new Error(`Duplicate tool name: ${tool.name}`)
+        names.add(tool.name)
+      }
+    }
+    this.permissions.clear()
+    this.routes.clear()
+    this.apiModules.clear()
+    this.agentTools.clear()
+    this.widgets.clear()
+    this.events.clear()
+    this.jobs.clear()
+    const ids = new Set(entries.map((entry) => entry.id))
+    for (const id of this.status.keys()) if (!ids.has(id)) this.status.delete(id)
     for (const entry of entries) {
       this.permissions.set(entry.id, entry.permissions)
       if (entry.routes.length > 0) {

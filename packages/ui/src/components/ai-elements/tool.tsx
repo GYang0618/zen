@@ -85,7 +85,7 @@ export const ToolHeader = ({ className, title, state, ...props }: ToolHeaderProp
     <WrenchIcon className="size-4 shrink-0" />
     <span className="min-w-0 flex-1 truncate text-left font-medium">{title}</span>
     {getStatusBadge(state)}
-    <ChevronDownIcon className="size-4 shrink-0 transition-transform group-data-[state=open]:rotate-180" />
+    <ChevronDownIcon className="size-4 shrink-0 transition-transform in-data-panel-open:rotate-180" />
   </CollapsibleTrigger>
 )
 
@@ -94,7 +94,7 @@ export type ToolContentProps = ComponentProps<typeof CollapsibleContent>
 export const ToolContent = ({ className, ...props }: ToolContentProps) => (
   <CollapsibleContent
     className={cn(
-      'border-t text-sm outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0',
+      'border-t text-sm outline-none data-closed:animate-out data-closed:fade-out-0 data-open:animate-in data-open:fade-in-0',
       className
     )}
     {...props}

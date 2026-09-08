@@ -40,8 +40,10 @@ export function UserMembershipFields({
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <Select
+          items={options.map((option) => ({ label: option.name, value: option.id }))}
           value={organizationId || undefined}
           onValueChange={(value) => {
+            if (!value) return
             onOrganizationChange(value)
             onPostChange('')
           }}
@@ -79,8 +81,14 @@ export function UserMembershipFields({
 
       {organizationId ? (
         <Select
+          items={positions.map((position) => ({
+            label: `${position.name} · ${position.level}`,
+            value: position.id
+          }))}
           value={postId || undefined}
-          onValueChange={onPostChange}
+          onValueChange={(value) => {
+            if (value) onPostChange(value)
+          }}
           disabled={disabled || positions.length === 0}
         >
           <SelectTrigger className="w-full" aria-label="选择岗位">

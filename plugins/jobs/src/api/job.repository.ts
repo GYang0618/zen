@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common'
 
-import { JOBS_PRISMA } from './tokens'
+import { JOBS_PRISMA } from './tokens.js'
 
 import type { PrismaClient } from '@prisma/client'
 

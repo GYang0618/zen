@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common'
 import { PluginInstallStatus } from '@prisma/client'
 import { DEFAULT_TENANT_ID } from '@zen/shared'
 
-import { PrismaService } from '@/infra/prisma'
+import { PrismaService } from '../../infra/prisma/index.js'
 
 import type { OnModuleDestroy } from '@nestjs/common'
 import type { PluginInstallStatus as SdkStatus } from '@zen/plugin-sdk'
@@ -79,10 +79,7 @@ export class TenantPluginStateService implements OnModuleDestroy {
         item.pluginId,
         item.status === PluginInstallStatus.ACTIVE ? 'active' : 'inactive'
       )
-      configByPluginId.set(
-        item.pluginId,
-        (item.config as Record<string, unknown> | null) ?? null
-      )
+      configByPluginId.set(item.pluginId, (item.config as Record<string, unknown> | null) ?? null)
     }
 
     const entry: CacheEntry = {

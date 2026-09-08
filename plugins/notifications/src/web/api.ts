@@ -1,6 +1,6 @@
-import { NOTIF_PERMISSIONS } from '../constants'
+import { NOTIF_PERMISSIONS } from '../constants.js'
 
-import type { NotificationDto } from '../notification.schema'
+import type { NotificationDto } from '../notification.schema.js'
 
 export type NotificationsRequest = {
   get: <T>(url: string) => Promise<T>

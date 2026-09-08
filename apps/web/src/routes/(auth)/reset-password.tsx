@@ -9,5 +9,6 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute('/(auth)/reset-password')({
   component: ResetPasswordForm,
-  validateSearch: searchSchema
+  validateSearch: searchSchema,
+  loaderDeps: ({ search }) => search
 })

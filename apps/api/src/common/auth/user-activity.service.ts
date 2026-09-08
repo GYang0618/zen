@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
 
-import { PrismaService } from '@/infra/prisma'
+import { PrismaService } from '../../infra/prisma/index.js'
 
 const TOUCH_INTERVAL_MS = 60 * 1000
 const TOUCH_CACHE_MAX = 500

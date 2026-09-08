@@ -1,9 +1,11 @@
 import { ForbiddenException } from '@nestjs/common'
 import { PermissionCode } from '@zen/shared'
 
-import { StorageService } from './storage.service'
+import { StorageService } from './storage.service.js'
 
 import type { AuthContext, CreateUploadIntent } from '@zen/shared'
+
+const { jest } = import.meta
 
 function auth(overrides: Partial<AuthContext> = {}): AuthContext {
   return {

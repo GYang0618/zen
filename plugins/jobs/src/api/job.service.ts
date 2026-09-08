@@ -1,11 +1,11 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { DEFAULT_TENANT_ID } from '@zen/shared'
 
-import { JOB_STATUS } from '../constants'
-import { JobRepository } from './job.repository'
+import { JOB_STATUS } from '../constants.js'
+import { JobRepository } from './job.repository.js'
 
 import type { AuthContext } from '@zen/shared'
-import type { CreateJobInput, JobDto } from '../job.schema'
+import type { CreateJobInput, JobDto } from '../job.schema.js'
 
 @Injectable()
 export class JobService {

@@ -27,20 +27,10 @@ import type { FileAsset } from '@zen/shared'
 type FilesTableProps = {
   data: FileAsset[]
   isLoading: boolean
-  page: number
-  totalPages: number
-  onPageChange: (page: number) => void
   onPreview: (file: FileAsset) => void
 }
 
-export function FilesTable({
-  data,
-  isLoading,
-  page,
-  totalPages,
-  onPageChange,
-  onPreview
-}: FilesTableProps) {
+export function FilesTable({ data, isLoading, onPreview }: FilesTableProps) {
   const { setOpen, setCurrentRow } = useFiles()
 
   if (isLoading) {
@@ -58,7 +48,7 @@ export function FilesTable({
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
@@ -88,19 +78,23 @@ export function FilesTable({
               </TableCell>
               <TableCell>
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button type="button" size="icon" variant="ghost" aria-label="文件操作">
-                      <MoreHorizontal />
-                    </Button>
+                  <DropdownMenuTrigger
+                    render={
+                      <Button type="button" size="icon" variant="ghost" aria-label="文件操作" />
+                    }
+                  >
+                    <MoreHorizontal />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <Can permission={PermissionCode.FILE_READ}>
-                      <DropdownMenuItem onSelect={() => onPreview(file)}>预览</DropdownMenuItem>
-                    </Can>
+                    {file.status === 'ready' ? (
+                      <Can permission={PermissionCode.FILE_READ}>
+                        <DropdownMenuItem onClick={() => onPreview(file)}>预览</DropdownMenuItem>
+                      </Can>
+                    ) : null}
                     {file.status !== 'deleted' ? (
                       <Can permission={PermissionCode.FILE_DELETE}>
                         <DropdownMenuItem
-                          onSelect={() => {
+                          onClick={() => {
                             setCurrentRow(file)
                             setOpen('delete')
                           }}
@@ -111,7 +105,7 @@ export function FilesTable({
                     ) : (
                       <Can permission={PermissionCode.FILE_RESTORE}>
                         <DropdownMenuItem
-                          onSelect={() => {
+                          onClick={() => {
                             setCurrentRow(file)
                             setOpen('restore')
                           }}
@@ -123,7 +117,7 @@ export function FilesTable({
                     <Can permission={PermissionCode.FILE_PURGE}>
                       <DropdownMenuItem
                         variant="destructive"
-                        onSelect={() => {
+                        onClick={() => {
                           setCurrentRow(file)
                           setOpen('purge')
                         }}
@@ -138,26 +132,6 @@ export function FilesTable({
           ))}
         </TableBody>
       </Table>
-      <div className="flex justify-end gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={page <= 1}
-          onClick={() => onPageChange(page - 1)}
-        >
-          上一页
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={page >= totalPages}
-          onClick={() => onPageChange(page + 1)}
-        >
-          下一页
-        </Button>
-      </div>
     </div>
   )
 }

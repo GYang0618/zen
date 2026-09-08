@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common'
 
-import { PrismaService } from '@/infra/prisma/prisma.service'
+import { PrismaService } from '../../infra/prisma/prisma.service.js'
 
 import type { Prisma } from '@prisma/client'
 
@@ -90,6 +90,10 @@ export class OrganizationRepository {
       data,
       include: ORGANIZATION_INCLUDE
     })
+  }
+
+  delete(id: string) {
+    return this.prisma.organization.delete({ where: { id } })
   }
 
   updateManyPaths(

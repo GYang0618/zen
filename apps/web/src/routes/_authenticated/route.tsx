@@ -3,18 +3,22 @@ import { cn } from '@zen/ui'
 import { useEffect } from 'react'
 
 import { AuthenticatedLayout } from '@/components/layouts'
+import { RoutePending } from '@/components/route-pending'
 import { CopilotProvider } from '@/context/copilot-provider'
 import { AgentPopup } from '@/features/agent'
 import { useAgentChatShellStore } from '@/features/agent/stores/agent-chat-shell'
 import { authApi } from '@/features/auth/api'
+import { GeneralError } from '@/features/errors/general-error'
 import { canAccess } from '@/lib/auth/permissions'
 import { isAccessTokenExpiringSoon } from '@/lib/request/jwt-expiry'
 import { isForbidden, isSessionExpired } from '@/lib/request/utils'
 import { isAgentChatPath, useAuthStore, useShellModeStore } from '@/stores'
 
 export const Route = createFileRoute('/_authenticated')({
-  beforeLoad: async ({ location, matches }) => {
-    const existingToken = useAuthStore.getState().accessToken
+  pendingComponent: RoutePending,
+  errorComponent: GeneralError,
+  beforeLoad: async ({ location, matches, context }) => {
+    const existingToken = context.auth.getAccessToken()
     if (!existingToken || isAccessTokenExpiringSoon(existingToken)) {
       try {
         const session = await authApi.refresh()
@@ -59,7 +63,7 @@ export const Route = createFileRoute('/_authenticated')({
 
 /** 不需要显示 AgentPopup 的页面 */
 function shouldHideAgentPopup(pathname: string): boolean {
-  return isAgentChatPath(pathname) || pathname === '/chat-v2'
+  return isAgentChatPath(pathname)
 }
 
 function AuthenticatedLayoutComponent() {

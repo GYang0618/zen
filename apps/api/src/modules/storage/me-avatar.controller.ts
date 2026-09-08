@@ -9,12 +9,11 @@ import {
 } from '@nestjs/swagger'
 import { completeUploadSchema, createUploadIntentSchema } from '@zen/shared'
 
-import { AllowAuthenticated } from '@/common/decorators/allow-authenticated.decorator'
-import { CurrentAuth } from '@/common/decorators/current-auth.decorator'
-import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
-import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '@/common/swagger'
-
-import { StorageService } from './storage.service'
+import { AllowAuthenticated } from '../../common/decorators/allow-authenticated.decorator.js'
+import { CurrentAuth } from '../../common/decorators/current-auth.decorator.js'
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js'
+import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '../../common/swagger/index.js'
+import { StorageService } from './storage.service.js'
 
 import type {
   AuthContext,

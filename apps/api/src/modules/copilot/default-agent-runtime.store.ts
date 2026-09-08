@@ -1,4 +1,14 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { randomUUID } from 'node:crypto'
+
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+  Optional
+} from '@nestjs/common'
+import { AgentRiskLevel, AgentRunStatus as AgentRunStatusValue } from '@prisma/client'
 import {
   AGENT_HITL_STEP_UP_WINDOW_MS,
   DEFAULT_AGENT_GRAPH_ID,
@@ -6,52 +16,97 @@ import {
   DEFAULT_AGENT_VERSIONS
 } from '@zen/shared'
 
-import { PrismaService } from '@/infra/prisma'
-
+import { PrismaService } from '../../infra/prisma/index.js'
+import { DefaultAgentApprovalService } from './default-agent-approval.service.js'
+import { DefaultAgentArtifactService } from './default-agent-artifact.service.js'
+import { DefaultAgentCheckpointService } from './default-agent-checkpoint.service.js'
+import { DefaultAgentEventService } from './default-agent-event.service.js'
+import { DefaultAgentMemoryService } from './default-agent-memory.service.js'
+import { DefaultAgentMetricsService } from './default-agent-metrics.service.js'
+import { DefaultAgentReconciliationService } from './default-agent-reconciliation.service.js'
+import { DefaultAgentRunService } from './default-agent-run.service.js'
 import {
   asRecord,
-  clamp,
-  decodeThreadCursor,
-  encodeThreadCursor,
-  findTokenUsage,
   hashJson,
   normalizeDisplayMessages,
   normalizeRuntimeMessages,
-  omitRawEvent,
-  parseJson,
-  parseRecord,
-  percentile,
   serializeError,
   toJson,
   turnIdFor
-} from './default-agent-runtime.utils'
+} from './default-agent-runtime.utils.js'
+import { DefaultAgentThreadService } from './default-agent-thread.service.js'
+import { DefaultAgentToolLedgerService } from './default-agent-tool-ledger.service.js'
 
-import type { Prisma } from '@prisma/client'
+import type {
+  AgentApprovalDecision,
+  AgentApprovalStatus,
+  AgentEndReason,
+  AgentRunStatus,
+  Prisma
+} from '@prisma/client'
 import type { AuthContext } from '@zen/shared'
 import type {
   DefaultAgentRequestContext,
   DefaultAgentRuntimeHooks,
   RuntimeEvent,
   RuntimeRunInput
-} from './default-agent-runtime.types'
-import type { JsonRecord, NormalizedMessage } from './default-agent-runtime.utils'
+} from './default-agent-runtime.types.js'
+import type { JsonRecord, NormalizedMessage } from './default-agent-runtime.utils.js'
 
 const DEFAULT_EVENT_PAGE_SIZE = 200
 const MAX_EVENT_PAGE_SIZE = 1_000
 const APPROVAL_TTL_MS = 15 * 60 * 1_000
-const MAX_PROMPT_MEMORY_CHARS = 6_000
-const LEGACY_INTERRUPT_EVENT_NAME = 'on_interrupt'
-const INTERRUPT_ID_FIELD = '__zenInterruptId'
 const RUN_LEASE_MS = 30_000
 
 export {
   normalizeDisplayMessages,
   normalizeRuntimeMessages
-} from './default-agent-runtime.utils'
+} from './default-agent-runtime.utils.js'
 
 @Injectable()
 export class DefaultAgentRuntimeStore {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  private readonly artifactService: DefaultAgentArtifactService
+  private readonly approvalService: DefaultAgentApprovalService
+  private readonly checkpointService: DefaultAgentCheckpointService
+  private readonly eventService: DefaultAgentEventService
+  private readonly memoryService: DefaultAgentMemoryService
+  private readonly metricsService: DefaultAgentMetricsService
+  private readonly reconciliationService: DefaultAgentReconciliationService
+  private readonly runService: DefaultAgentRunService
+  private readonly threadService: DefaultAgentThreadService
+  private readonly toolLedgerService: DefaultAgentToolLedgerService
+
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Optional() @Inject(DefaultAgentArtifactService) artifactService?: DefaultAgentArtifactService,
+    @Optional() @Inject(DefaultAgentApprovalService) approvalService?: DefaultAgentApprovalService,
+    @Optional()
+    @Inject(DefaultAgentCheckpointService)
+    checkpointService?: DefaultAgentCheckpointService,
+    @Optional() @Inject(DefaultAgentEventService) eventService?: DefaultAgentEventService,
+    @Optional() @Inject(DefaultAgentMemoryService) memoryService?: DefaultAgentMemoryService,
+    @Optional() @Inject(DefaultAgentMetricsService) metricsService?: DefaultAgentMetricsService,
+    @Optional()
+    @Inject(DefaultAgentReconciliationService)
+    reconciliationService?: DefaultAgentReconciliationService,
+    @Optional() @Inject(DefaultAgentRunService) runService?: DefaultAgentRunService,
+    @Optional() @Inject(DefaultAgentThreadService) threadService?: DefaultAgentThreadService,
+    @Optional()
+    @Inject(DefaultAgentToolLedgerService)
+    toolLedgerService?: DefaultAgentToolLedgerService
+  ) {
+    this.artifactService = artifactService ?? new DefaultAgentArtifactService(prisma)
+    this.approvalService = approvalService ?? new DefaultAgentApprovalService(prisma)
+    this.checkpointService = checkpointService ?? new DefaultAgentCheckpointService(prisma)
+    this.eventService = eventService ?? new DefaultAgentEventService(prisma)
+    this.memoryService = memoryService ?? new DefaultAgentMemoryService(prisma)
+    this.metricsService = metricsService ?? new DefaultAgentMetricsService(prisma)
+    this.reconciliationService =
+      reconciliationService ?? new DefaultAgentReconciliationService(prisma)
+    this.runService = runService ?? new DefaultAgentRunService(prisma)
+    this.threadService = threadService ?? new DefaultAgentThreadService(prisma)
+    this.toolLedgerService = toolLedgerService ?? new DefaultAgentToolLedgerService(prisma)
+  }
 
   createHooks(context: DefaultAgentRequestContext): DefaultAgentRuntimeHooks {
     return {
@@ -145,6 +200,16 @@ export class DefaultAgentRuntimeStore {
           }
         })
       } else {
+        const activeRuns = await tx.agentRun.count({
+          where: {
+            tenantId: auth.tenantId,
+            userId: auth.userId,
+            status: { in: ['pending', 'running', 'finishing'] }
+          }
+        })
+        if (activeRuns >= DEFAULT_AGENT_RUN_BUDGET.maxConcurrentRuns) {
+          throw new ConflictException('Agent concurrency quota exceeded')
+        }
         await tx.agentRun.create({
           data: {
             id: input.runId,
@@ -200,64 +265,19 @@ export class DefaultAgentRuntimeStore {
   }
 
   async recordEvent(input: RuntimeRunInput, event: RuntimeEvent, auth: AuthContext): Promise<void> {
-    if (event.type === 'RAW') {
-      await this.recordModelUsage(input.runId, event, auth)
-      return
-    }
-
-    const persistedEvent = omitRawEvent(event)
-    const payload = toJson(persistedEvent)
-    const sequence = await this.prisma.$transaction(async (tx) => {
-      if (
-        persistedEvent.type === 'TEXT_MESSAGE_CONTENT' &&
-        typeof persistedEvent.delta === 'string' &&
-        persistedEvent.delta.length > 0
-      ) {
-        await tx.agentRun.updateMany({
-          where: {
-            id: input.runId,
-            tenantId: auth.tenantId,
-            userId: auth.userId,
-            firstTokenAt: null
-          },
-          data: { firstTokenAt: new Date() }
-        })
-      }
-      const run = await tx.agentRun.update({
-        where: { id: input.runId, tenantId: auth.tenantId, userId: auth.userId },
-        data: {
-          eventSequence: { increment: 1 },
-          lastHeartbeatAt: new Date(),
-          leaseExpiresAt: new Date(Date.now() + RUN_LEASE_MS)
-        },
-        select: { eventSequence: true, threadId: true }
-      })
-      if (run.threadId !== input.threadId) throw new NotFoundException('Agent run not found')
-      await tx.agentEvent.create({
-        data: {
-          runId: input.runId,
-          threadId: input.threadId,
-          tenantId: auth.tenantId,
-          sequence: run.eventSequence,
-          type: persistedEvent.type,
-          payload
-        }
-      })
-      return run.eventSequence
-    })
-
-    await this.applyEvent(input, persistedEvent, auth, sequence)
+    const result = await this.eventService.record(input, event, auth)
+    if (result) await this.applyEvent(input, result.event, auth, result.sequence)
   }
 
   async failRun(input: RuntimeRunInput, error: unknown, auth: AuthContext): Promise<void> {
     const message = error instanceof Error ? error.message : ''
-    const [status, reason] = /budget exceeded/i.test(message)
-      ? ['failed', 'budget_exceeded']
+    const [status, reason]: [AgentRunStatus, AgentEndReason] = /budget exceeded/i.test(message)
+      ? [AgentRunStatusValue.failed, 'budget_exceeded']
       : /timed out/i.test(message)
-        ? ['timed_out', 'timeout']
+        ? [AgentRunStatusValue.timed_out, 'timeout']
         : /cancelled|disconnected/i.test(message)
-          ? ['cancelled', 'disconnected']
-          : ['failed', 'model_error']
+          ? [AgentRunStatusValue.cancelled, 'disconnected']
+          : [AgentRunStatusValue.failed, 'model_error']
     await this.finishRun(input.runId, auth, status, reason, serializeError(error), true)
   }
 
@@ -281,94 +301,15 @@ export class DefaultAgentRuntimeStore {
   }
 
   async listThreads(auth: AuthContext, query: { limit?: number; cursor?: string } = {}) {
-    const pageSize = clamp(query.limit ?? 30, 1, 100)
-    const cursor = query.cursor ? decodeThreadCursor(query.cursor) : undefined
-    if (query.cursor && !cursor) {
-      throw new BadRequestException('Invalid thread cursor')
-    }
-
-    const records = await this.prisma.agentThread.findMany({
-      where: {
-        tenantId: auth.tenantId,
-        userId: auth.userId,
-        agentId: DEFAULT_AGENT_GRAPH_ID,
-        ...(cursor
-          ? {
-              OR: [
-                { updatedAt: { lt: cursor.updatedAt } },
-                { updatedAt: cursor.updatedAt, id: { lt: cursor.id } }
-              ]
-            }
-          : {})
-      },
-      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
-      take: pageSize + 1,
-      select: {
-        id: true,
-        title: true,
-        status: true,
-        lastMessageAt: true,
-        createdAt: true,
-        updatedAt: true,
-        _count: { select: { messages: true, runs: true } }
-      }
-    })
-
-    const hasMore = records.length > pageSize
-    const items = hasMore ? records.slice(0, pageSize) : records
-    const last = items.at(-1)
-
-    return {
-      items,
-      cursor: last ? encodeThreadCursor(last) : null,
-      hasMore
-    }
+    return this.threadService.list(auth, query)
   }
 
   async listRuns(auth: AuthContext, query: { threadId?: string; status?: string; limit?: number }) {
-    return this.prisma.agentRun.findMany({
-      where: {
-        tenantId: auth.tenantId,
-        userId: auth.userId,
-        agentId: DEFAULT_AGENT_GRAPH_ID,
-        ...(query.threadId ? { threadId: query.threadId } : {}),
-        ...(query.status ? { status: query.status } : {})
-      },
-      orderBy: { createdAt: 'desc' },
-      take: clamp(query.limit ?? 30, 1, 100),
-      include: {
-        _count: { select: { events: true, toolExecutions: true, approvals: true, artifacts: true } }
-      }
-    })
+    return this.runService.list(auth, query)
   }
 
   async getRun(runId: string, auth: AuthContext) {
-    const run = await this.prisma.agentRun.findFirst({
-      where: { id: runId, tenantId: auth.tenantId, userId: auth.userId },
-      include: {
-        turns: { orderBy: { sequence: 'asc' } },
-        toolExecutions: { orderBy: { createdAt: 'asc' } },
-        approvals: { orderBy: { createdAt: 'asc' } },
-        artifacts: {
-          orderBy: { createdAt: 'asc' },
-          select: {
-            id: true,
-            runId: true,
-            threadId: true,
-            toolExecutionId: true,
-            kind: true,
-            name: true,
-            mimeType: true,
-            size: true,
-            summary: true,
-            status: true,
-            createdAt: true
-          }
-        }
-      }
-    })
-    if (!run) throw new NotFoundException('Agent run not found')
-    return run
+    return this.runService.get(runId, auth)
   }
 
   async cancelRun(runId: string, auth: AuthContext) {
@@ -400,25 +341,7 @@ export class DefaultAgentRuntimeStore {
   }
 
   async prepareRunResume(runId: string, reason: string | undefined, auth: AuthContext) {
-    const run = await this.requireRun(runId, auth)
-    if (!['failed', 'cancelled', 'timed_out', 'interrupted'].includes(run.status)) {
-      throw new BadRequestException('Only stopped runs can be resumed')
-    }
-    const thread = await this.getThread(run.threadId, auth)
-    await this.prisma.agentRun.update({
-      where: { id: runId },
-      data: {
-        resumeCount: { increment: 1 },
-        error: reason ? toJson({ resumeReason: reason }) : undefined
-      }
-    })
-    return {
-      sourceRunId: runId,
-      threadId: run.threadId,
-      messages: thread.messages,
-      checkpoint: thread.checkpoints[0] ?? null,
-      eventCursor: run.eventSequence
-    }
+    return this.runService.prepareResume(runId, reason, auth)
   }
 
   async createArtifact(
@@ -433,6 +356,9 @@ export class DefaultAgentRuntimeStore {
     },
     auth: AuthContext
   ) {
+    return this.artifactService.create(runId, input, auth)
+    /* istanbul ignore next -- compatibility implementation retained below for old fixtures */
+    /*
     const run = await this.requireRun(runId, auth)
     const serialized = JSON.stringify(input.content ?? null)
     const toolExecution = input.toolCallId
@@ -469,54 +395,19 @@ export class DefaultAgentRuntimeStore {
         createdAt: true
       }
     })
+    */
   }
 
   async listArtifacts(runId: string, auth: AuthContext) {
-    await this.requireRun(runId, auth)
-    return this.prisma.agentArtifact.findMany({
-      where: { runId, tenantId: auth.tenantId, userId: auth.userId, status: 'available' },
-      orderBy: { createdAt: 'asc' },
-      select: {
-        id: true,
-        runId: true,
-        threadId: true,
-        toolExecutionId: true,
-        kind: true,
-        name: true,
-        mimeType: true,
-        size: true,
-        summary: true,
-        status: true,
-        createdAt: true
-      }
-    })
+    return this.artifactService.list(runId, auth)
   }
 
   async getArtifact(artifactId: string, auth: AuthContext) {
-    const artifact = await this.prisma.agentArtifact.findFirst({
-      where: {
-        id: artifactId,
-        tenantId: auth.tenantId,
-        userId: auth.userId,
-        status: 'available',
-        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }]
-      }
-    })
-    if (!artifact) throw new NotFoundException('Agent artifact not found')
-    return artifact
+    return this.artifactService.get(artifactId, auth)
   }
 
   async getThread(threadId: string, auth: AuthContext) {
-    const thread = await this.prisma.agentThread.findFirst({
-      where: { id: threadId, tenantId: auth.tenantId, userId: auth.userId },
-      include: {
-        messages: { orderBy: { sequence: 'asc' } },
-        runs: { orderBy: { createdAt: 'desc' }, take: 20 },
-        checkpoints: { orderBy: { version: 'desc' }, take: 1 }
-      }
-    })
-    if (!thread) throw new NotFoundException('Agent thread not found')
-    return thread
+    return this.threadService.get(threadId, auth)
   }
 
   async updateThread(
@@ -524,58 +415,27 @@ export class DefaultAgentRuntimeStore {
     input: { title?: string; status?: 'active' | 'archived' },
     auth: AuthContext
   ) {
-    await this.requireThread(threadId, auth)
-    const title = input.title?.trim()
-    if (title !== undefined && (title.length === 0 || title.length > 120)) {
-      throw new BadRequestException('Thread title must be between 1 and 120 characters')
-    }
-    return this.prisma.agentThread.update({
-      where: { id: threadId },
-      data: { ...(title ? { title } : {}), ...(input.status ? { status: input.status } : {}) }
-    })
+    return this.threadService.update(threadId, input, auth)
   }
 
   async deleteThread(threadId: string, auth: AuthContext): Promise<void> {
-    const result = await this.prisma.agentThread.deleteMany({
-      where: { id: threadId, tenantId: auth.tenantId, userId: auth.userId }
-    })
-    if (!result.count) throw new NotFoundException('Agent thread not found')
+    return this.threadService.delete(threadId, auth)
   }
 
   async listEvents(runId: string, auth: AuthContext, after = 0, limit = DEFAULT_EVENT_PAGE_SIZE) {
-    await this.requireRun(runId, auth)
-    const items = await this.prisma.agentEvent.findMany({
-      where: { runId, tenantId: auth.tenantId, sequence: { gt: Math.max(0, after) } },
-      orderBy: { sequence: 'asc' },
-      take: clamp(limit, 1, MAX_EVENT_PAGE_SIZE)
-    })
-    return {
-      items,
-      cursor: items.at(-1)?.sequence ?? Math.max(0, after),
-      hasMore: items.length === clamp(limit, 1, MAX_EVENT_PAGE_SIZE)
-    }
+    return this.eventService.list(runId, auth, after, Math.min(limit, MAX_EVENT_PAGE_SIZE))
   }
 
   async listApprovals(auth: AuthContext, status?: string) {
-    await this.expireApprovals(auth)
-    return this.prisma.agentApproval.findMany({
-      where: { tenantId: auth.tenantId, userId: auth.userId, ...(status ? { status } : {}) },
-      orderBy: { createdAt: 'desc' },
-      take: 100
-    })
+    return this.approvalService.list(auth, status)
   }
 
   async hasRecentApprovedHitl(auth: AuthContext): Promise<boolean> {
-    const approval = await this.prisma.agentApproval.findFirst({
-      where: {
-        tenantId: auth.tenantId,
-        userId: auth.userId,
-        status: 'approved',
-        decidedAt: { gte: new Date(Date.now() - AGENT_HITL_STEP_UP_WINDOW_MS) }
-      },
-      select: { id: true }
-    })
-    return Boolean(approval)
+    return this.approvalService.recentApproved(auth)
+  }
+
+  async getStepUpGrant(auth: AuthContext, runId: string) {
+    return this.approvalService.getStepUpGrant(auth, runId)
   }
 
   async decideApproval(
@@ -607,8 +467,9 @@ export class DefaultAgentRuntimeStore {
     approval: {
       id: string
       runId: string
-      status: string
-      decision: string | null
+      toolName: string
+      status: AgentApprovalStatus
+      decision: AgentApprovalDecision | null
       expiresAt: Date
     } | null,
     decision: 'approve' | 'reject',
@@ -642,6 +503,18 @@ export class DefaultAgentRuntimeStore {
     })
     if (decision === 'reject') {
       await this.finalizeRejectedApproval(approval.runId, auth)
+    } else {
+      await this.prisma.agentStepUpGrant.create({
+        data: {
+          tenantId: auth.tenantId,
+          userId: auth.userId,
+          runId: approval.runId,
+          toolName: approval.toolName,
+          approvalId: approval.id,
+          nonce: randomUUID(),
+          expiresAt: new Date(Date.now() + AGENT_HITL_STEP_UP_WINDOW_MS)
+        }
+      })
     }
     return decidedApproval
   }
@@ -663,40 +536,11 @@ export class DefaultAgentRuntimeStore {
   }
 
   async listMemories(auth: AuthContext) {
-    return this.prisma.agentMemory.findMany({
-      where: {
-        tenantId: auth.tenantId,
-        userId: auth.userId,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }]
-      },
-      orderBy: { updatedAt: 'desc' }
-    })
+    return this.memoryService.list(auth)
   }
 
   async getPromptMemory(auth: AuthContext, threadId?: string): Promise<string | undefined> {
-    const memories = await this.prisma.agentMemory.findMany({
-      where: {
-        tenantId: auth.tenantId,
-        userId: auth.userId,
-        sensitivity: 'non_sensitive',
-        shareWithModel: true,
-        modelProvider: 'qwen',
-        approvedForModelAt: { not: null },
-        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-        AND: [{ OR: [{ threadId: null }, ...(threadId ? [{ threadId }] : [])] }]
-      },
-      orderBy: { updatedAt: 'desc' },
-      take: 50,
-      select: { scope: true, kind: true, key: true, content: true }
-    })
-    if (!memories.length) return undefined
-    return memories
-      .map(
-        (memory) =>
-          `- [${memory.scope}/${memory.kind}] ${memory.key}: ${JSON.stringify(memory.content)}`
-      )
-      .join('\n')
-      .slice(0, MAX_PROMPT_MEMORY_CHARS)
+    return this.memoryService.getPrompt(auth, threadId)
   }
 
   async upsertMemory(
@@ -713,58 +557,11 @@ export class DefaultAgentRuntimeStore {
     },
     auth: AuthContext
   ) {
-    if (!input.scope || !input.kind || !input.key) throw new BadRequestException('Invalid memory')
-    if (input.threadId) await this.requireThread(input.threadId, auth)
-    const shareWithModel = input.shareWithModel === true
-    if (
-      shareWithModel &&
-      (input.sensitivity !== 'non_sensitive' || input.modelProvider !== 'qwen')
-    ) {
-      throw new BadRequestException(
-        'Only non-sensitive memories explicitly approved for qwen may be shared with the model'
-      )
-    }
-    const consent = {
-      sensitivity: input.sensitivity ?? 'private',
-      shareWithModel,
-      modelProvider: shareWithModel ? 'qwen' : null,
-      approvedForModelAt: shareWithModel ? new Date() : null
-    } as const
-    return this.prisma.agentMemory.upsert({
-      where: {
-        tenantId_userId_scope_key: {
-          tenantId: auth.tenantId,
-          userId: auth.userId,
-          scope: input.scope,
-          key: input.key
-        }
-      },
-      create: {
-        tenantId: auth.tenantId,
-        userId: auth.userId,
-        threadId: input.threadId,
-        scope: input.scope,
-        kind: input.kind,
-        key: input.key,
-        content: toJson(input.content),
-        ...consent,
-        expiresAt: input.expiresAt ? new Date(input.expiresAt) : null
-      },
-      update: {
-        threadId: input.threadId,
-        kind: input.kind,
-        content: toJson(input.content),
-        ...consent,
-        expiresAt: input.expiresAt ? new Date(input.expiresAt) : null
-      }
-    })
+    return this.memoryService.upsert(input, auth)
   }
 
   async deleteMemory(id: string, auth: AuthContext): Promise<void> {
-    const result = await this.prisma.agentMemory.deleteMany({
-      where: { id, tenantId: auth.tenantId, userId: auth.userId }
-    })
-    if (!result.count) throw new NotFoundException('Agent memory not found')
+    return this.memoryService.delete(id, auth)
   }
 
   async recordEvaluation(
@@ -796,241 +593,11 @@ export class DefaultAgentRuntimeStore {
   }
 
   async getMetrics(auth: AuthContext) {
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1_000)
-    const [runs, recentRuns, pendingApprovals, tools, scores] = await Promise.all([
-      this.prisma.agentRun.groupBy({
-        by: ['status'],
-        where: { tenantId: auth.tenantId, userId: auth.userId, createdAt: { gte: since } },
-        _count: true
-      }),
-      this.prisma.agentRun.findMany({
-        where: {
-          tenantId: auth.tenantId,
-          userId: auth.userId,
-          createdAt: { gte: since },
-          startedAt: { not: null },
-          endedAt: { not: null }
-        },
-        select: {
-          startedAt: true,
-          endedAt: true,
-          firstTokenAt: true,
-          inputTokens: true,
-          outputTokens: true
-        },
-        take: 1_000
-      }),
-      this.prisma.agentApproval.count({
-        where: { tenantId: auth.tenantId, userId: auth.userId, status: 'pending' }
-      }),
-      this.prisma.agentToolExecution.groupBy({
-        by: ['status'],
-        where: {
-          tenantId: auth.tenantId,
-          createdAt: { gte: since },
-          run: { userId: auth.userId }
-        },
-        _count: true
-      }),
-      this.prisma.agentEvaluation.aggregate({
-        where: {
-          tenantId: auth.tenantId,
-          createdAt: { gte: since },
-          run: { userId: auth.userId }
-        },
-        _avg: { score: true },
-        _count: true
-      })
-    ])
-    const durations = recentRuns
-      .map((run) => run.endedAt!.getTime() - run.startedAt!.getTime())
-      .sort((a, b) => a - b)
-    const firstTokenDurations = recentRuns
-      .filter((run) => run.firstTokenAt)
-      .map((run) => run.firstTokenAt!.getTime() - run.startedAt!.getTime())
-      .sort((a, b) => a - b)
-    return {
-      window: '24h',
-      runs,
-      pendingApprovals,
-      tools,
-      latencyMs: { p50: percentile(durations, 0.5), p95: percentile(durations, 0.95) },
-      firstTokenLatencyMs: {
-        p50: percentile(firstTokenDurations, 0.5),
-        p95: percentile(firstTokenDurations, 0.95)
-      },
-      tokens: recentRuns.reduce(
-        (total, run) => ({
-          input: total.input + (run.inputTokens ?? 0),
-          output: total.output + (run.outputTokens ?? 0)
-        }),
-        { input: 0, output: 0 }
-      ),
-      evaluations: scores
-    }
+    return this.metricsService.get(auth)
   }
 
   async reconcile(auth: AuthContext) {
-    const staleBefore = new Date(Date.now() - DEFAULT_AGENT_RUN_BUDGET.timeoutMs)
-    const now = new Date()
-    const rejectedApprovalWhere = {
-      tenantId: auth.tenantId,
-      userId: auth.userId,
-      status: 'rejected',
-      decision: 'reject'
-    } as const
-    const expiredApprovalWhere = {
-      tenantId: auth.tenantId,
-      userId: auth.userId,
-      status: 'pending',
-      expiresAt: { lte: now }
-    } as const
-    const [
-      runs,
-      turns,
-      timedOutTools,
-      rejectedApprovalRuns,
-      rejectedApprovalTurns,
-      rejectedApprovalTools,
-      expiredApprovalRuns,
-      expiredApprovalTurns,
-      expiredApprovalTools,
-      expiredApprovals,
-      idempotency
-    ] = await this.prisma.$transaction([
-      this.prisma.agentRun.updateMany({
-        where: {
-          tenantId: auth.tenantId,
-          userId: auth.userId,
-          status: { in: ['pending', 'running', 'finishing'] },
-          OR: [
-            { leaseExpiresAt: { lte: now } },
-            { leaseExpiresAt: null, updatedAt: { lt: staleBefore } }
-          ]
-        },
-        data: { status: 'timed_out', endReason: 'timeout', endedAt: now }
-      }),
-      this.prisma.agentTurn.updateMany({
-        where: {
-          tenantId: auth.tenantId,
-          status: { in: ['pending', 'running', 'finishing'] },
-          updatedAt: { lt: staleBefore },
-          run: { tenantId: auth.tenantId, userId: auth.userId }
-        },
-        data: { status: 'timed_out', endReason: 'timeout', endedAt: now }
-      }),
-      this.prisma.agentToolExecution.updateMany({
-        where: {
-          tenantId: auth.tenantId,
-          status: { in: ['pending', 'running'] },
-          run: {
-            tenantId: auth.tenantId,
-            userId: auth.userId,
-            status: 'timed_out',
-            endReason: 'timeout'
-          }
-        },
-        data: {
-          status: 'cancelled',
-          errorReason: 'RUN_TIMED_OUT',
-          endedAt: now
-        }
-      }),
-      this.prisma.agentRun.updateMany({
-        where: {
-          tenantId: auth.tenantId,
-          userId: auth.userId,
-          status: 'interrupted',
-          approvals: { some: rejectedApprovalWhere }
-        },
-        data: { status: 'cancelled', endReason: 'approval_rejected', endedAt: now }
-      }),
-      this.prisma.agentTurn.updateMany({
-        where: {
-          tenantId: auth.tenantId,
-          status: 'interrupted',
-          run: {
-            tenantId: auth.tenantId,
-            userId: auth.userId,
-            approvals: { some: rejectedApprovalWhere }
-          }
-        },
-        data: { status: 'cancelled', endReason: 'approval_rejected', endedAt: now }
-      }),
-      this.prisma.agentToolExecution.updateMany({
-        where: {
-          tenantId: auth.tenantId,
-          status: { in: ['pending', 'running'] },
-          run: {
-            tenantId: auth.tenantId,
-            userId: auth.userId,
-            approvals: { some: rejectedApprovalWhere }
-          }
-        },
-        data: {
-          status: 'cancelled',
-          errorReason: 'APPROVAL_REJECTED',
-          endedAt: now
-        }
-      }),
-      this.prisma.agentRun.updateMany({
-        where: {
-          tenantId: auth.tenantId,
-          userId: auth.userId,
-          status: 'interrupted',
-          approvals: { some: expiredApprovalWhere }
-        },
-        data: { status: 'timed_out', endReason: 'approval_expired', endedAt: now }
-      }),
-      this.prisma.agentTurn.updateMany({
-        where: {
-          tenantId: auth.tenantId,
-          status: 'interrupted',
-          run: {
-            tenantId: auth.tenantId,
-            userId: auth.userId,
-            approvals: { some: expiredApprovalWhere }
-          }
-        },
-        data: { status: 'timed_out', endReason: 'approval_expired', endedAt: now }
-      }),
-      this.prisma.agentToolExecution.updateMany({
-        where: {
-          tenantId: auth.tenantId,
-          status: { in: ['pending', 'running'] },
-          run: {
-            tenantId: auth.tenantId,
-            userId: auth.userId,
-            approvals: { some: expiredApprovalWhere }
-          }
-        },
-        data: {
-          status: 'cancelled',
-          errorReason: 'APPROVAL_EXPIRED',
-          endedAt: now
-        }
-      }),
-      this.prisma.agentApproval.updateMany({
-        where: expiredApprovalWhere,
-        data: { status: 'expired' }
-      }),
-      this.prisma.agentIdempotencyRecord.deleteMany({
-        where: { tenantId: auth.tenantId, userId: auth.userId, expiresAt: { lte: now } }
-      })
-    ])
-    return {
-      timedOutRuns: runs.count,
-      timedOutTurns: turns.count,
-      timedOutTools: timedOutTools.count,
-      rejectedApprovalRuns: rejectedApprovalRuns.count,
-      rejectedApprovalTurns: rejectedApprovalTurns.count,
-      rejectedApprovalTools: rejectedApprovalTools.count,
-      expiredApprovalRuns: expiredApprovalRuns.count,
-      expiredApprovalTurns: expiredApprovalTurns.count,
-      expiredApprovalTools: expiredApprovalTools.count,
-      expiredApprovals: expiredApprovals.count,
-      deletedIdempotencyRecords: idempotency.count
-    }
+    return this.reconciliationService.reconcile(auth)
   }
 
   private async applyEvent(
@@ -1050,16 +617,12 @@ export class DefaultAgentRuntimeStore {
           auth.tenantId,
           displayMessages
         )
-        await tx.agentCheckpoint.upsert({
-          where: { threadId_version: { threadId: input.threadId, version: sequence } },
-          create: {
-            threadId: input.threadId,
-            runId: input.runId,
-            tenantId: auth.tenantId,
-            version: sequence,
-            state: toJson({ messages: modelMessages })
-          },
-          update: { state: toJson({ messages: modelMessages }) }
+        await this.checkpointService.upsertInTransaction(tx, {
+          threadId: input.threadId,
+          runId: input.runId,
+          tenantId: auth.tenantId,
+          version: sequence,
+          state: { messages: modelMessages }
         })
       })
     }
@@ -1069,30 +632,24 @@ export class DefaultAgentRuntimeStore {
     }
 
     if (event.type === 'STATE_SNAPSHOT') {
-      await this.prisma.agentCheckpoint.upsert({
-        where: { threadId_version: { threadId: input.threadId, version: sequence } },
-        create: {
-          threadId: input.threadId,
-          runId: input.runId,
-          tenantId: auth.tenantId,
-          version: sequence,
-          state: toJson(event.snapshot ?? event.state ?? {})
-        },
-        update: { state: toJson(event.snapshot ?? event.state ?? {}) }
+      await this.checkpointService.upsertProjection({
+        threadId: input.threadId,
+        runId: input.runId,
+        tenantId: auth.tenantId,
+        version: sequence,
+        state: event.snapshot ?? event.state ?? {}
       })
     }
 
-    if (event.type === 'TOOL_CALL_START') await this.startToolExecution(input, event, auth)
-    if (event.type === 'TOOL_CALL_ARGS') await this.updateToolArguments(input, event, auth)
-    if (event.type === 'TOOL_CALL_RESULT') await this.finishToolExecution(input, event, auth)
-    if (event.type === 'CUSTOM' && event.name === LEGACY_INTERRUPT_EVENT_NAME) {
-      await this.persistLegacyInterrupt(input, event, auth)
-    }
+    if (event.type === 'TOOL_CALL_START') await this.toolLedgerService.start(input, event, auth)
+    if (event.type === 'TOOL_CALL_ARGS')
+      await this.toolLedgerService.updateArguments(input, event, auth)
+    if (event.type === 'TOOL_CALL_RESULT') await this.toolLedgerService.finish(input, event, auth)
 
     if (event.type === 'RUN_FINISHED') {
       const outcome = asRecord(event.outcome)
       if (outcome?.type === 'interrupt') {
-        await this.persistInterrupts(input, outcome, auth)
+        await this.persistInterrupts(input, outcome, auth, sequence)
         await this.finishRun(input.runId, auth, 'interrupted', 'interrupted', undefined, true)
       } else {
         const pendingApprovals = await this.prisma.agentApproval.count({
@@ -1118,173 +675,65 @@ export class DefaultAgentRuntimeStore {
     }
   }
 
-  private async startToolExecution(input: RuntimeRunInput, event: RuntimeEvent, auth: AuthContext) {
-    const toolCallId = String(event.toolCallId ?? event.id ?? '')
-    const toolName = String(event.toolCallName ?? event.name ?? 'unknown_tool')
-    if (!toolCallId) return
-    await this.prisma.agentToolExecution.upsert({
-      where: { runId_toolCallId: { runId: input.runId, toolCallId } },
-      create: {
-        runId: input.runId,
-        tenantId: auth.tenantId,
-        toolCallId,
-        toolName,
-        idempotencyKey: `${input.runId}:${toolCallId}`,
-        status: 'running',
-        startedAt: new Date()
-      },
-      update: { status: 'running', startedAt: new Date() }
-    })
-  }
-
-  private async updateToolArguments(
+  private async persistInterrupts(
     input: RuntimeRunInput,
-    event: RuntimeEvent,
-    auth: AuthContext
+    outcome: JsonRecord,
+    auth: AuthContext,
+    sequence: number
   ) {
-    const toolCallId = String(event.toolCallId ?? '')
-    if (!toolCallId) return
-    const args = await this.collectToolArgs(input.runId, toolCallId, auth)
-    await this.prisma.agentToolExecution.updateMany({
-      where: { runId: input.runId, toolCallId, tenantId: auth.tenantId },
-      data: { arguments: toJson(parseJson(args)) }
-    })
-  }
-
-  private async finishToolExecution(
-    input: RuntimeRunInput,
-    event: RuntimeEvent,
-    auth: AuthContext
-  ) {
-    const toolCallId = String(event.toolCallId ?? '')
-    if (!toolCallId) return
-    const result = parseJson(event.content ?? event.result)
-    const failed = asRecord(result)?.success === false
-    await this.prisma.$transaction([
-      this.prisma.agentToolExecution.updateMany({
-        where: { runId: input.runId, toolCallId, tenantId: auth.tenantId },
-        data: {
-          result: toJson(result),
-          status: failed ? 'failed' : 'succeeded',
-          errorReason: failed ? String(asRecord(result)?.reason ?? 'tool_error') : null,
-          endedAt: new Date()
-        }
-      }),
-      this.prisma.agentRun.updateMany({
-        where: { id: input.runId, tenantId: auth.tenantId, userId: auth.userId },
-        data: failed ? { failureCount: { increment: 1 } } : {}
-      })
-    ])
-  }
-
-  private async collectToolArgs(runId: string, toolCallId: string, auth: AuthContext) {
-    const events = await this.prisma.agentEvent.findMany({
-      where: { runId, tenantId: auth.tenantId, type: 'TOOL_CALL_ARGS' },
-      orderBy: { sequence: 'asc' },
-      select: { payload: true }
-    })
-    return events
-      .map(({ payload }) =>
-        asRecord(payload)?.toolCallId === toolCallId ? String(asRecord(payload)?.delta ?? '') : ''
-      )
-      .join('')
-  }
-
-  private async persistInterrupts(input: RuntimeRunInput, outcome: JsonRecord, auth: AuthContext) {
     const interrupts = Array.isArray(outcome.interrupts) ? outcome.interrupts : []
-    for (const value of interrupts) {
-      const interrupt = asRecord(value)
-      if (!interrupt) continue
-      const metadata = asRecord(interrupt.metadata)
-      const hitl = asRecord(metadata?.value ?? metadata)
-      const requests = Array.isArray(hitl?.actionRequests) ? hitl.actionRequests : []
-      const request = asRecord(requests[0])
-      const toolCallId = String(interrupt.toolCallId ?? interrupt.id ?? '')
-      const interruptId = String(interrupt.id ?? toolCallId)
-      if (!toolCallId || !interruptId) continue
-      const toolName = String(request?.name ?? metadata?.toolName ?? 'unknown_tool')
-      const args = request?.args ?? metadata?.args ?? {}
-      const summary = summarizeApproval(toolName, args)
-      const expiresAt = interrupt.expiresAt
-        ? new Date(String(interrupt.expiresAt))
-        : new Date(Date.now() + APPROVAL_TTL_MS)
-      await this.prisma.agentApproval.upsert({
-        where: { runId_toolCallId: { runId: input.runId, toolCallId } },
-        create: {
-          runId: input.runId,
-          tenantId: auth.tenantId,
-          userId: auth.userId,
-          toolCallId,
-          interruptId,
-          toolName,
-          ...summary,
-          arguments: toJson(args),
-          argumentsHash: hashJson(args),
-          expiresAt
-        },
-        update: {
-          interruptId,
-          toolName,
-          ...summary,
-          arguments: toJson(args),
-          argumentsHash: hashJson(args),
-          expiresAt
-        }
-      })
-    }
-  }
-
-  private async persistLegacyInterrupt(
-    input: RuntimeRunInput,
-    event: RuntimeEvent,
-    auth: AuthContext
-  ) {
-    const value = parseRecord(event.value)
-    const interruptId =
-      typeof value?.[INTERRUPT_ID_FIELD] === 'string' ? value[INTERRUPT_ID_FIELD] : undefined
-    const actions = Array.isArray(value?.actionRequests)
-      ? value.actionRequests.map(asRecord).filter((action): action is JsonRecord => Boolean(action))
-      : []
-    if (!interruptId || !actions.length) return
-    const toolName = actions.map((action) => String(action.name ?? 'unknown_tool')).join(', ')
-    const args = actions.length === 1 ? (actions[0]?.args ?? {}) : { actions }
-    const summary = summarizeApproval(toolName, args)
-    const expiresAt = new Date(Date.now() + APPROVAL_TTL_MS)
-
-    await this.prisma.agentApproval.upsert({
-      where: { runId_toolCallId: { runId: input.runId, toolCallId: interruptId } },
-      create: {
+    await this.prisma.$transaction(async (tx) => {
+      await this.checkpointService.upsertInTransaction(tx, {
+        threadId: input.threadId,
         runId: input.runId,
         tenantId: auth.tenantId,
-        userId: auth.userId,
-        toolCallId: interruptId,
-        interruptId,
-        toolName,
-        ...summary,
-        arguments: toJson(args),
-        argumentsHash: hashJson(args),
-        expiresAt
-      },
-      update: {
-        toolName,
-        ...summary,
-        arguments: toJson(args),
-        argumentsHash: hashJson(args),
-        expiresAt
-      }
-    })
-  }
-
-  private async recordModelUsage(runId: string, event: RuntimeEvent, auth: AuthContext) {
-    const raw = asRecord(event.event) ?? asRecord(event.rawEvent)
-    if (raw?.event !== 'on_chat_model_end') return
-    const usage = findTokenUsage(event)
-    await this.prisma.agentRun.updateMany({
-      where: { id: runId, tenantId: auth.tenantId, userId: auth.userId },
-      data: {
-        inputTokens: { increment: usage.inputTokens },
-        outputTokens: { increment: usage.outputTokens },
-        modelCalls: { increment: 1 }
+        version: sequence,
+        state: { interrupts: outcome.interrupts ?? [] },
+        summary: 'hitl-interrupt'
+      })
+      for (const value of interrupts) {
+        const interrupt = asRecord(value)
+        if (!interrupt) continue
+        const metadata = asRecord(interrupt.metadata)
+        const hitl = asRecord(metadata?.value ?? metadata)
+        const requests = Array.isArray(hitl?.actionRequests) ? hitl.actionRequests : []
+        const request = asRecord(requests[0])
+        const toolCallId = String(interrupt.toolCallId ?? interrupt.id ?? '')
+        const interruptId = String(interrupt.id ?? toolCallId)
+        if (!toolCallId || !interruptId) continue
+        const toolName = String(request?.name ?? metadata?.toolName ?? 'unknown_tool')
+        const args = request?.args ?? metadata?.args ?? {}
+        const summary = summarizeApproval(toolName, args)
+        const expiresAt = interrupt.expiresAt
+          ? new Date(String(interrupt.expiresAt))
+          : new Date(Date.now() + APPROVAL_TTL_MS)
+        await tx.agentApproval.upsert({
+          where: { runId_toolCallId: { runId: input.runId, toolCallId } },
+          create: {
+            runId: input.runId,
+            tenantId: auth.tenantId,
+            userId: auth.userId,
+            toolCallId,
+            interruptId,
+            toolName,
+            ...summary,
+            arguments: toJson(args),
+            argumentsHash: hashJson(args),
+            expiresAt
+          },
+          update: {
+            interruptId,
+            toolName,
+            ...summary,
+            arguments: toJson(args),
+            argumentsHash: hashJson(args),
+            expiresAt
+          }
+        })
+        await tx.agentToolExecution.updateMany({
+          where: { runId: input.runId, toolCallId, tenantId: auth.tenantId, status: 'running' },
+          data: { status: 'pending' }
+        })
       }
     })
   }
@@ -1292,14 +741,16 @@ export class DefaultAgentRuntimeStore {
   private async finishRun(
     runId: string,
     auth: AuthContext,
-    status: string,
-    endReason: string,
+    status: AgentRunStatus,
+    endReason: AgentEndReason,
     error?: Prisma.InputJsonValue,
-    allowedSourceStatuses?: string[] | true
+    allowedSourceStatuses?: AgentRunStatus[] | true
   ) {
     const now = new Date()
     const sourceStatuses =
-      allowedSourceStatuses === true ? ['pending', 'running', 'finishing'] : allowedSourceStatuses
+      allowedSourceStatuses === true
+        ? [AgentRunStatusValue.pending, AgentRunStatusValue.running, AgentRunStatusValue.finishing]
+        : allowedSourceStatuses
     const statusGuard = sourceStatuses ? { status: { in: sourceStatuses } } : {}
     await this.prisma.$transaction([
       this.prisma.agentRun.updateMany({
@@ -1393,18 +844,6 @@ export class DefaultAgentRuntimeStore {
     }
   }
 
-  private async expireApprovals(auth: AuthContext) {
-    await this.prisma.agentApproval.updateMany({
-      where: {
-        tenantId: auth.tenantId,
-        userId: auth.userId,
-        status: 'pending',
-        expiresAt: { lte: new Date() }
-      },
-      data: { status: 'expired' }
-    })
-  }
-
   private async requireRun(runId: string, auth: AuthContext) {
     const run = await this.prisma.agentRun.findFirst({
       where: { id: runId, tenantId: auth.tenantId, userId: auth.userId },
@@ -1412,14 +851,6 @@ export class DefaultAgentRuntimeStore {
     })
     if (!run) throw new NotFoundException('Agent run not found')
     return run
-  }
-
-  private async requireThread(threadId: string, auth: AuthContext) {
-    const thread = await this.prisma.agentThread.findFirst({
-      where: { id: threadId, tenantId: auth.tenantId, userId: auth.userId },
-      select: { id: true }
-    })
-    if (!thread) throw new NotFoundException('Agent thread not found')
   }
 }
 
@@ -1460,7 +891,7 @@ function summarizeApproval(toolName: string, args: unknown) {
     impactSummary: destructive
       ? `将删除 ${count} 个对象，可能影响关联数据`
       : `将修改 ${count} 个对象的业务数据`,
-    riskLevel: destructive ? 'critical' : 'high',
+    riskLevel: destructive ? AgentRiskLevel.critical : AgentRiskLevel.high,
     parameterSummary:
       parameterSummary.length > 500 ? `${parameterSummary.slice(0, 497)}...` : parameterSummary
   }

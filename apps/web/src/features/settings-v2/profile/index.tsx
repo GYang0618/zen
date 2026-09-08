@@ -1,4 +1,3 @@
-import { useQueryClient } from '@tanstack/react-query'
 import {
   Button,
   Calendar,
@@ -20,7 +19,7 @@ import { authApi } from '@/features/auth/api'
 import { uploadWithIntent } from '@/lib/storage-upload'
 
 import { SectionContent } from '../components/section-content'
-import { settingsV2Keys, useApplyMeSession, useMeQuery, useUpdateMeMutation } from '../queries'
+import { useApplyMeSession, useMeQuery, useUpdateMeMutation } from '../queries'
 import { buildProfileUpdate, formatBirthday, parseBirthday } from './profile-form'
 import { ProfilePhotoField } from './profile-photo-field'
 
@@ -32,7 +31,6 @@ const BIRTHDAY_FORMATTER = new Intl.DateTimeFormat('zh-CN', {
 })
 
 export function SettingsProfile() {
-  const queryClient = useQueryClient()
   const { data: me, isLoading } = useMeQuery()
   const applyMeSession = useApplyMeSession()
   const updateMe = useUpdateMeMutation()
@@ -86,12 +84,8 @@ export function SettingsProfile() {
   }
 
   const refreshMeAfterAvatar = async () => {
-    const nextMe = await queryClient.fetchQuery({
-      queryKey: settingsV2Keys.me(),
-      queryFn: () => authApi.getMe()
-    })
+    const nextMe = await authApi.getMe()
     applyMeSession(nextMe)
-    toast.success('已保存')
   }
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -114,14 +108,15 @@ export function SettingsProfile() {
       if (Object.keys(payload).length > 0) {
         stage = 'patch'
         await updateMe.mutateAsync(payload)
-        setAvatarRemoved(false)
-        return
       }
 
       if (selectedFile) {
         stage = 'refresh'
         await refreshMeAfterAvatar()
       }
+
+      setAvatarRemoved(false)
+      toast.success('已保存')
     } catch (error) {
       if (stage === 'patch') return
       toast.error(
@@ -198,17 +193,19 @@ export function SettingsProfile() {
 
             <div className="flex items-center gap-2">
               <Popover open={birthdayOpen} onOpenChange={setBirthdayOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="birthday"
-                    type="button"
-                    variant="outline"
-                    data-empty={!birthday}
-                    className="flex-1 justify-between font-normal data-[empty=true]:text-muted-foreground"
-                  >
-                    {birthday ? BIRTHDAY_FORMATTER.format(birthday) : '选择您的出生日期'}
-                    <CalendarIcon data-icon="inline-start" />
-                  </Button>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      id="birthday"
+                      type="button"
+                      variant="outline"
+                      data-empty={!birthday}
+                      className="flex-1 justify-between font-normal data-[empty=true]:text-muted-foreground"
+                    />
+                  }
+                >
+                  {birthday ? BIRTHDAY_FORMATTER.format(birthday) : '选择您的出生日期'}
+                  <CalendarIcon data-icon="inline-start" />
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar

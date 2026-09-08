@@ -380,7 +380,12 @@ function RoleDetailContent({ role }: { role: Role }) {
         </Tabs>
       </Main>
 
-      <RoleActionDialog currentRow={role} open={editOpen} onOpenChange={setEditOpen} />
+      <RoleActionDialog
+        key={role.id}
+        currentRow={role}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+      />
       {!role.isSystem ? (
         <RoleCloneDialog currentRow={role} open={cloneOpen} onOpenChange={setCloneOpen} />
       ) : null}

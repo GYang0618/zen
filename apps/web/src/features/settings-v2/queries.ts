@@ -51,7 +51,6 @@ export function useUpdateMeMutation() {
     mutationFn: (data: UpdateMyProfile) => authApi.updateMe(data),
     onSuccess: (me) => {
       applyMeSession(me)
-      toast.success('已保存')
     },
     onError: (error: Error) => toast.error(error.message || '保存失败')
   })

@@ -73,15 +73,15 @@ export function RolesRowActions({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label={`${role.name} 更多操作`}>
-          <MoreHorizontal />
-        </Button>
+      <DropdownMenuTrigger
+        render={<Button variant="ghost" size="icon" aria-label={`${role.name} 更多操作`} />}
+      >
+        <MoreHorizontal />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={4}>
         <DropdownMenuGroup>
           {onEnterSelecting ? (
-            <DropdownMenuItem onSelect={onEnterSelecting}>
+            <DropdownMenuItem onClick={onEnterSelecting}>
               <CheckSquare /> 选择
             </DropdownMenuItem>
           ) : null}

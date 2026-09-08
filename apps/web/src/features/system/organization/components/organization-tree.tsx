@@ -1,6 +1,6 @@
-import { DragDropProvider, DragOverlay } from '@dnd-kit/react'
-import { useSortable } from '@dnd-kit/react/sortable'
+import { DragDropProvider, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/react'
 import { Link } from '@tanstack/react-router'
+import { PermissionCode } from '@zen/shared'
 import {
   Badge,
   Button,
@@ -30,10 +30,14 @@ import {
   ChevronsDownUp,
   ChevronsUpDown,
   GripVertical,
-  Settings
+  Settings,
+  Trash2
 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+
+import { Can } from '@/components/auth/can'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 
 import { useOrganizations } from '../organizations-provider'
 import { useOrganizationTypeCatalog } from '../queries'
@@ -43,14 +47,12 @@ import {
   DEFAULT_ORGANIZATION_TREE_EXPAND_DEPTH,
   findOrganization,
   getOrganizationDropRejectionMessage,
-  moveOrganizationInTree,
   validateOrganizationDrop
 } from '../utils'
 import { OrganizationTypeIcon } from './organization-icon'
 
 import type { DragEndEvent, DragOverEvent } from '@dnd-kit/react'
 import type { Organization } from '../type'
-import type { OrganizationDropValidation } from '../utils'
 
 interface TreeNodePreviewProps {
   data: Organization
@@ -97,50 +99,57 @@ function TreeNodePreview({ data, className, isBlocked }: TreeNodePreviewProps) {
 
 interface TreeNodeProps {
   data: Organization
-  index: number
   expandedIds: Set<string>
   onExpandedChange: (id: string, open: boolean) => void
   onSelect?: (node: Organization) => void
-  activeDragId: string | null
+  onDelete: (node: Organization) => void
+  isDragging: boolean
   dragOverId: string | null
-  dropValidation: OrganizationDropValidation | null
   /** 校验某个正在拖拽的组织是否允许放置到当前节点，用于在碰撞检测阶段直接拒绝非法目标 */
   canAcceptDraggable: (activeId: string, overId: string) => boolean
 }
 
 function TreeNode({
   data,
-  index,
   expandedIds,
   onExpandedChange,
   onSelect,
-  activeDragId,
+  onDelete,
+  isDragging,
   dragOverId,
-  dropValidation,
   canAcceptDraggable
 }: TreeNodeProps) {
   const { getLabel } = useOrganizationTypeCatalog()
-  const { id, name, type, memberCount, children, parentId } = data
+  const { id, name, type, memberCount, children } = data
   const hasChildren = Boolean(children?.length)
   const { currentNode } = useOrganizations()
   const open = expandedIds.has(id)
   const isSelected = currentNode?.id === id
 
-  // 顶层可能存在多个根组织（如多个集团），因此根节点同样可拖拽以调整彼此间的排序，
-  // 具体能否落到某个目标节点由 canAcceptDraggable / validateOrganizationDrop 统一校验
-  const { isDragging, isDropTarget, handleRef, ref } = useSortable({
+  const { isDragSource, handleRef, ref: draggableRef } = useDraggable({ id })
+  const { isDropTarget, ref: droppableRef } = useDroppable({
     id,
-    index,
-    group: parentId ?? 'root',
-    // 碰撞检测阶段即拒绝不满足层级规则的目标，避免 dnd-kit 对非法跨组拖放做出真实 DOM 位移
     accept: (source) => {
       const sourceId = String(source.id)
       return sourceId !== id && canAcceptDraggable(sourceId, id)
-    },
-    transition: { duration: 250, easing: 'ease', idle: true }
+    }
   })
+  const setNodeRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      draggableRef(element)
+      droppableRef(element)
+    },
+    [draggableRef, droppableRef]
+  )
 
-  const canAcceptDrop = Boolean(activeDragId) && isDropTarget && dragOverId === id
+  const canAcceptDrop = isDragging && isDropTarget && dragOverId === id
+  const deleteBlockReason = hasChildren
+    ? '请先删除或迁移下级组织'
+    : memberCount > 0
+      ? '请先移除当前组织成员'
+      : data.positionCount > 0
+        ? '请先解除当前组织岗位'
+        : null
 
   return (
     <Collapsible
@@ -148,11 +157,11 @@ function TreeNode({
       onOpenChange={hasChildren ? (nextOpen) => onExpandedChange(id, nextOpen) : undefined}
     >
       <div
-        ref={ref}
+        ref={setNodeRef}
         className={cn(
           'rounded-lg transition-colors',
-          isDragging && 'opacity-40',
-          canAcceptDrop && !isDragging && 'bg-primary/5 ring-1 ring-primary/30'
+          isDragSource && 'opacity-40',
+          canAcceptDrop && !isDragSource && 'bg-primary/5 ring-1 ring-primary/30'
         )}
       >
         <Item
@@ -176,15 +185,17 @@ function TreeNode({
             </Button>
 
             {hasChildren ? (
-              <CollapsibleTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="group size-7"
-                  onClick={(event) => event.stopPropagation()}
-                  aria-label={open ? `收起${name}` : `展开${name}`}
-                >
-                  <ChevronRightIcon className="transition-transform group-data-[state=open]:rotate-90" />
-                </Button>
+              <CollapsibleTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    className="group size-7"
+                    onClick={(event) => event.stopPropagation()}
+                    aria-label={open ? `收起${name}` : `展开${name}`}
+                  />
+                }
+              >
+                <ChevronRightIcon className="transition-transform in-data-panel-open:rotate-90" />
               </CollapsibleTrigger>
             ) : null}
             <div className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
@@ -202,26 +213,53 @@ function TreeNode({
               className="h-3 opacity-0 transition-opacity duration-200 group-hover/item:opacity-100"
               orientation="vertical"
             />
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="配置"
-                  className="pointer-events-none opacity-0 transition-opacity duration-200 group-hover/item:pointer-events-auto group-hover/item:opacity-100"
-                  asChild
+            <div className="flex items-center">
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="配置"
+                      className="pointer-events-none opacity-0 transition-opacity duration-200 group-hover/item:pointer-events-auto group-hover/item:opacity-100"
+                      nativeButton={false}
+                      render={
+                        <Link
+                          to="/system/organization/$id"
+                          params={{ id }}
+                          onClick={(event) => event.stopPropagation()}
+                        />
+                      }
+                    />
+                  }
                 >
-                  <Link
-                    to="/system/organization/$id"
-                    params={{ id }}
-                    onClick={(event) => event.stopPropagation()}
+                  <Settings />
+                </TooltipTrigger>
+                <TooltipContent>配置</TooltipContent>
+              </Tooltip>
+              <Can permission={PermissionCode.ORG_DELETE}>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`删除${name}`}
+                        disabled={Boolean(deleteBlockReason)}
+                        className="pointer-events-none text-destructive opacity-0 transition-opacity duration-200 hover:text-destructive group-hover/item:pointer-events-auto group-hover/item:opacity-100"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          onDelete(data)
+                        }}
+                      />
+                    }
                   >
-                    <Settings />
-                  </Link>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>配置</TooltipContent>
-            </Tooltip>
+                    <Trash2 data-icon="inline-start" />
+                  </TooltipTrigger>
+                  <TooltipContent>{deleteBlockReason ?? '删除组织'}</TooltipContent>
+                </Tooltip>
+              </Can>
+            </div>
           </ItemActions>
         </Item>
       </div>
@@ -229,17 +267,16 @@ function TreeNode({
       {hasChildren ? (
         <CollapsibleContent className="ml-9">
           <div className="flex flex-col gap-1">
-            {children?.map((child, childIndex) => (
+            {children?.map((child) => (
               <TreeNode
                 data={child}
                 key={child.id}
-                index={childIndex}
                 expandedIds={expandedIds}
                 onExpandedChange={onExpandedChange}
                 onSelect={onSelect}
-                activeDragId={activeDragId}
+                onDelete={onDelete}
+                isDragging={isDragging}
                 dragOverId={dragOverId}
-                dropValidation={dropValidation}
                 canAcceptDraggable={canAcceptDraggable}
               />
             ))}
@@ -251,40 +288,34 @@ function TreeNode({
 }
 
 export function OrganizationTree() {
-  const { currentNode, setCurrentNode, organizations, moveOrganization, isLoading } =
-    useOrganizations()
+  const {
+    currentNode,
+    setCurrentNode,
+    organizations,
+    deleteOrganization,
+    moveOrganization,
+    isLoading
+  } = useOrganizations()
   const { catalog } = useOrganizationTypeCatalog()
   const expandableIds = useMemo(() => collectExpandableIds(organizations), [organizations])
   const [expandedIds, setExpandedIds] = useState(
     () => new Set(collectExpandedIdsToDepth(organizations, DEFAULT_ORGANIZATION_TREE_EXPAND_DEPTH))
   )
-  const [activeId, setActiveId] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
-  const [dropValidation, setDropValidation] = useState<OrganizationDropValidation | null>(null)
-  const [previewOrganizations, setPreviewOrganizations] = useState(organizations)
+  const [deleteTarget, setDeleteTarget] = useState<Organization | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const organizationsSnapshotRef = useRef(organizations)
   // 拖拽结束后浏览器可能仍会触发一次 click，从而误选中。
   // 用“时间窗”来吞掉这类误触发，避免依赖 setTimeout(0) 的不稳定时序。
   const suppressSelectUntilRef = useRef<number>(0)
-  const stableDragOverTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null)
-  const stableDragOverSeqRef = useRef(0)
-  const lastStableOverIdRef = useRef<string | null>(null)
 
-  // 拖拽起始时的树快照作为唯一校验依据，避免预览态的中间结构影响碰撞判定
+  // 拖拽起始时固定树快照，保证整个操作使用一致的层级校验依据。
   const canAcceptOrganizationDrop = useCallback(
     (activeId: string, overId: string) =>
       validateOrganizationDrop(organizationsSnapshotRef.current, activeId, overId).isValid,
     []
   )
-
-  useEffect(() => {
-    if (!isDragging) {
-      setPreviewOrganizations(organizations)
-    }
-  }, [organizations, isDragging])
-
-  const displayOrganizations = isDragging ? previewOrganizations : organizations
 
   const handleExpandedChange = (id: string, nextOpen: boolean) => {
     setExpandedIds((current) => {
@@ -296,44 +327,26 @@ export function OrganizationTree() {
   }
 
   const resetDragState = () => {
-    if (stableDragOverTimerRef.current) {
-      window.clearTimeout(stableDragOverTimerRef.current)
-      stableDragOverTimerRef.current = null
-    }
     setIsDragging(false)
-    setActiveId(null)
     setDragOverId(null)
-    setDropValidation(null)
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
     const snapshot = organizationsSnapshotRef.current
-    // 先读取稳定落点（resetDragState 里不再清理它），避免 dragEnd 误用抖动的 target.id
-    const stableOverId = lastStableOverIdRef.current
     resetDragState()
     // 给一个足够小但稳定的窗口，覆盖“拖拽 mouseup -> click”的延迟链路
     suppressSelectUntilRef.current = Date.now() + 1000
 
-    if (event.canceled) {
-      setPreviewOrganizations(snapshot)
-      return
-    }
+    if (event.canceled) return
 
     const { source, target } = event.operation
-    if (!source || !target) {
-      setPreviewOrganizations(snapshot)
-      return
-    }
+    if (!source || !target) return
 
     const activeId = String(source.id)
-    // 用稳定落点替换可能抖动的 target.id，避免 overId 被误判成自身
-    const overId = stableOverId ?? String(target.id)
+    const overId = String(target.id)
     const validation = validateOrganizationDrop(snapshot, activeId, overId)
 
     if (!validation.isValid) {
-      setPreviewOrganizations(snapshot)
-      // 拖拽结束时如果判定为 same-organization，通常是 overId 抖动造成的“误判落点”
-      // 这里不 toast，直接回退即可，避免“提示完数据就坏了”的体验问题。
       if (validation.reason !== 'same-organization') {
         toast.error(
           getOrganizationDropRejectionMessage(
@@ -356,25 +369,14 @@ export function OrganizationTree() {
           next.add(destinationParentId)
           return next
         })
-      } else {
-        setPreviewOrganizations(snapshot)
       }
     })
-
-    // 清理稳定落点，避免下一次拖拽误用
-    lastStableOverIdRef.current = null
   }
 
   const handleDragOver = (event: DragOverEvent) => {
     const { source, target } = event.operation
     if (!source || !target) {
-      if (stableDragOverTimerRef.current) {
-        window.clearTimeout(stableDragOverTimerRef.current)
-        stableDragOverTimerRef.current = null
-      }
       setDragOverId(null)
-      setDropValidation(null)
-      setPreviewOrganizations(organizationsSnapshotRef.current)
       return
     }
 
@@ -382,36 +384,25 @@ export function OrganizationTree() {
     const overId = String(target.id)
     const snapshot = organizationsSnapshotRef.current
     const validation = validateOrganizationDrop(snapshot, activeId, overId)
+    setDragOverId(validation.isValid ? overId : null)
+  }
 
-    // 边缘抖动时 dnd-kit 的 overId 会在相邻节点之间频繁切换，
-    // 从而触发高亮样式（dragOverId）和预览树结构（previewOrganizations）不断重排，表现为闪烁。
-    // 使用短暂“稳定延迟”：只有在 overId 连续一小段时间保持一致时才更新 UI。
-    stableDragOverSeqRef.current += 1
-    const seq = stableDragOverSeqRef.current
-    const nextOverId = overId
+  const handleDelete = async () => {
+    const target = deleteTarget
+    if (!target || isDeleting) return
 
-    if (stableDragOverTimerRef.current) {
-      window.clearTimeout(stableDragOverTimerRef.current)
-      stableDragOverTimerRef.current = null
-    }
-
-    stableDragOverTimerRef.current = window.setTimeout(() => {
-      if (stableDragOverSeqRef.current !== seq) return
-
-      setDragOverId(nextOverId)
-      setDropValidation(validation)
-      lastStableOverIdRef.current = nextOverId
-
-      if (!validation.isValid) {
-        setPreviewOrganizations(snapshot)
-        return
+    setIsDeleting(true)
+    try {
+      await deleteOrganization(target.id)
+      if (currentNode?.id === target.id) {
+        setCurrentNode(null)
       }
-
-      // 拖拽悬停稳定后，进行“占位预览 -> 实时排序”（确保 DOM/碰撞结果和数据一致），
-      // 避免 dnd-kit 在跨层情况下产生半透明幽灵节点。
-      const next = moveOrganizationInTree(snapshot, activeId, nextOverId)
-      setPreviewOrganizations(next ?? snapshot)
-    }, 80)
+      setDeleteTarget(null)
+    } catch {
+      // 删除失败已由 mutation 提示，保持确认框打开以便用户查看并处理阻塞条件。
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   return (
@@ -420,30 +411,34 @@ export function OrganizationTree() {
         <CardTitle>组织架构树</CardTitle>
         <CardAction>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label="全部展开"
-                onClick={() => setExpandedIds(new Set(expandableIds))}
-              >
-                <ChevronsUpDown />
-              </Button>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="全部展开"
+                  onClick={() => setExpandedIds(new Set(expandableIds))}
+                />
+              }
+            >
+              <ChevronsUpDown />
             </TooltipTrigger>
             <TooltipContent>全部展开</TooltipContent>
           </Tooltip>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label="全部收起"
-                onClick={() => setExpandedIds(new Set())}
-              >
-                <ChevronsDownUp />
-              </Button>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="全部收起"
+                  onClick={() => setExpandedIds(new Set())}
+                />
+              }
+            >
+              <ChevronsDownUp />
             </TooltipTrigger>
             <TooltipContent>全部收起</TooltipContent>
           </Tooltip>
@@ -452,7 +447,7 @@ export function OrganizationTree() {
       <CardContent className="min-h-0 flex-1 overflow-y-auto px-2">
         {isLoading ? (
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">加载组织树…</p>
-        ) : displayOrganizations.length === 0 ? (
+        ) : organizations.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">
             暂无组织，请先创建根组织
           </p>
@@ -462,28 +457,23 @@ export function OrganizationTree() {
               const source = event.operation.source
               if (!source) return
               organizationsSnapshotRef.current = organizations
-              setPreviewOrganizations(organizations)
               setIsDragging(true)
-              setActiveId(String(source.id))
               setDragOverId(null)
-              setDropValidation(null)
-              lastStableOverIdRef.current = null
               // 拖拽开始后先进入抑制态；拖拽结束时会刷新时间窗
               suppressSelectUntilRef.current = Date.now() + 1000
             }}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
           >
-            {displayOrganizations.map((item, index) => (
+            {organizations.map((item) => (
               <TreeNode
                 data={item}
                 key={item.id}
-                index={index}
                 expandedIds={expandedIds}
                 onExpandedChange={handleExpandedChange}
-                activeDragId={activeId}
+                onDelete={setDeleteTarget}
+                isDragging={isDragging}
                 dragOverId={dragOverId}
-                dropValidation={dropValidation}
                 canAcceptDraggable={canAcceptOrganizationDrop}
                 onSelect={(node) => {
                   if (Date.now() < suppressSelectUntilRef.current) return
@@ -498,7 +488,7 @@ export function OrganizationTree() {
 
             <DragOverlay dropAnimation={null}>
               {(source) => {
-                const node = findOrganization(displayOrganizations, String(source.id))
+                const node = findOrganization(organizations, String(source.id))
                 return node ? (
                   <TreeNodePreview data={node} isBlocked={isDragging && !dragOverId} />
                 ) : null
@@ -507,6 +497,32 @@ export function OrganizationTree() {
           </DragDropProvider>
         )}
       </CardContent>
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) setDeleteTarget(null)
+        }}
+        handleConfirm={() => {
+          void handleDelete()
+        }}
+        isLoading={isDeleting}
+        title="删除组织"
+        desc={
+          <div className="flex flex-col gap-3">
+            <p>
+              确定要删除组织{' '}
+              <span className="font-medium text-foreground">{deleteTarget?.name}</span>{' '}
+              吗？此操作无法撤销。
+            </p>
+            <p className="text-sm text-muted-foreground">
+              仅可删除没有下级组织、成员和岗位的组织。
+            </p>
+          </div>
+        }
+        confirmText="删除"
+        cancelBtnText="取消"
+        destructive
+      />
     </Card>
   )
 }

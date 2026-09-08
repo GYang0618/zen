@@ -1,13 +1,18 @@
 import { Body, Controller, Get, Inject, Param, Post } from '@nestjs/common'
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger'
-import { CurrentAuth, RequirePermission, RequirePlugin, ZodValidationPipe } from '@zen/plugin-sdk/nest'
+import {
+  CurrentAuth,
+  RequirePermission,
+  RequirePlugin,
+  ZodValidationPipe
+} from '@zen/plugin-sdk/nest'
 
-import { JOB_PERMISSIONS, JOBS_PLUGIN_ID } from '../constants'
-import { createJobSchema } from '../job.schema'
-import { JobService } from './job.service'
+import { JOB_PERMISSIONS, JOBS_PLUGIN_ID } from '../constants.js'
+import { createJobSchema } from '../job.schema.js'
+import { JobService } from './job.service.js'
 
 import type { AuthContext } from '@zen/shared'
-import type { CreateJobInput, JobDto } from '../job.schema'
+import type { CreateJobInput, JobDto } from '../job.schema.js'
 
 @ApiTags('任务中心')
 @ApiBearerAuth('access-token')

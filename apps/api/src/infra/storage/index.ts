@@ -1,5 +1,5 @@
-export { OBJECT_STORAGE } from './object-storage.port'
-export { S3CompatibleStorage } from './s3-compatible.storage'
+export { OBJECT_STORAGE } from './object-storage.port.js'
+export { S3CompatibleStorage } from './s3-compatible.storage.js'
 
 export type {
   ObjectGetResult,
@@ -8,4 +8,4 @@ export type {
   PresignGetInput,
   PresignPutInput,
   PresignPutResult
-} from './object-storage.port'
+} from './object-storage.port.js'

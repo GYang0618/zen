@@ -68,18 +68,20 @@ export function PostsBulkActions({
       >
         <Can permission={PermissionCode.POST_MANAGE}>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleBulkStatusChange('active')}
-                className="size-8"
-                aria-label="启用已选择的岗位"
-                disabled={!hasSelection || enableTargets.length === 0 || isUpdatingStatus}
-              >
-                <Power />
-                <span className="sr-only">启用已选择的岗位</span>
-              </Button>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleBulkStatusChange('active')}
+                  className="size-8"
+                  aria-label="启用已选择的岗位"
+                  disabled={!hasSelection || enableTargets.length === 0 || isUpdatingStatus}
+                />
+              }
+            >
+              <Power />
+              <span className="sr-only">启用已选择的岗位</span>
             </TooltipTrigger>
             <TooltipContent>
               <p>启用已选择的岗位</p>
@@ -87,18 +89,20 @@ export function PostsBulkActions({
           </Tooltip>
 
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleBulkStatusChange('disabled')}
-                className="size-8"
-                aria-label="停用已选择的岗位"
-                disabled={!hasSelection || disableTargets.length === 0 || isUpdatingStatus}
-              >
-                <Ban />
-                <span className="sr-only">停用已选择的岗位</span>
-              </Button>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleBulkStatusChange('disabled')}
+                  className="size-8"
+                  aria-label="停用已选择的岗位"
+                  disabled={!hasSelection || disableTargets.length === 0 || isUpdatingStatus}
+                />
+              }
+            >
+              <Ban />
+              <span className="sr-only">停用已选择的岗位</span>
             </TooltipTrigger>
             <TooltipContent>
               <p>停用已选择的岗位</p>
@@ -106,18 +110,20 @@ export function PostsBulkActions({
           </Tooltip>
 
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="destructive"
-                size="icon"
-                onClick={() => setShowDeleteConfirm(true)}
-                className="size-8"
-                aria-label="删除已选择的岗位"
-                disabled={!hasSelection || deletableItems.length === 0}
-              >
-                <Trash2 />
-                <span className="sr-only">删除已选择的岗位</span>
-              </Button>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="size-8"
+                  aria-label="删除已选择的岗位"
+                  disabled={!hasSelection || deletableItems.length === 0}
+                />
+              }
+            >
+              <Trash2 />
+              <span className="sr-only">删除已选择的岗位</span>
             </TooltipTrigger>
             <TooltipContent>
               <p>

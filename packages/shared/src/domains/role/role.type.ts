@@ -19,7 +19,7 @@ import type {
   rolesPageSchema,
   rolesQuerySchema,
   updateRoleSchema
-} from './role.schema'
+} from './role.schema.js'
 
 export type RoleStatus = z.infer<typeof roleStatusSchema>
 export type RoleEffectiveStatus = z.infer<typeof roleEffectiveStatusSchema>

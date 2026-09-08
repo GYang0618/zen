@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common'
 
-import { PrismaService } from '@/infra/prisma'
+import { PrismaService } from '../../infra/prisma/index.js'
 
 import type { FileAsset, Prisma, UploadSession } from '@prisma/client'
 import type { FilePurpose, FileStatus } from '@zen/shared'

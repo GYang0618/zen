@@ -1,7 +1,8 @@
-/** 前端 useRenderTool / Generative UI 已渲染工具结果时的回复约束 */
-const FRONTEND_RENDERED_TOOLS = ['query_users_list', 'query_job_profiles_list'] as const
+import { DEDICATED_RESULT_UI_TOOL_NAMES } from '@zen/shared'
 
-const frontendRenderedToolList = FRONTEND_RENDERED_TOOLS.map((name) => `\`${name}\``).join('、')
+const frontendRenderedToolList = DEDICATED_RESULT_UI_TOOL_NAMES.map((name) => `\`${name}\``).join(
+  '、'
+)
 
 export const GENERATIVE_UI_REPLY_RULES = `
 ## Generative UI 回复规则

@@ -6,6 +6,7 @@ import {
   CollapsibleTrigger,
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -57,7 +58,7 @@ type NavAnchorProps = {
   external?: boolean
   onNavigate?: () => void
   className?: string
-  children: ReactNode
+  children?: ReactNode
 } & Omit<ComponentPropsWithoutRef<'a'>, 'href' | 'children'>
 
 function NavAnchor({ url, external, onNavigate, className, children, ...rest }: NavAnchorProps) {
@@ -88,16 +89,20 @@ function SidebarMenuLink({ item, href }: { item: NavLink; href: string }) {
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
-        asChild
         isActive={!item.external && checkIsActive(href, item)}
         tooltip={item.title}
+        render={
+          <NavAnchor
+            url={item.url}
+            external={item.external}
+            onNavigate={() => setOpenMobile(false)}
+          />
+        }
       >
-        <NavAnchor url={item.url} external={item.external} onNavigate={() => setOpenMobile(false)}>
-          {item.icon && <item.icon />}
-          <span>{item.title}</span>
-          {item.external && <ExternalLink className="ms-auto size-3.5 opacity-60" aria-hidden />}
-          {item.badge && <NavBadge>{item.badge}</NavBadge>}
-        </NavAnchor>
+        {item.icon && <item.icon />}
+        <span>{item.title}</span>
+        {item.external && <ExternalLink className="ms-auto size-3.5 opacity-60" aria-hidden />}
+        {item.badge && <NavBadge>{item.badge}</NavBadge>}
       </SidebarMenuButton>
     </SidebarMenuItem>
   )
@@ -107,45 +112,41 @@ function SidebarMenuCollapsible({ item, href }: { item: NavCollapsible; href: st
   const { setOpenMobile } = useSidebar()
   return (
     <Collapsible
-      asChild
       defaultOpen={checkIsActive(href, item, true)}
       className="group/collapsible"
+      render={<SidebarMenuItem />}
     >
-      <SidebarMenuItem>
-        <CollapsibleTrigger asChild>
-          <SidebarMenuButton tooltip={item.title}>
-            {item.icon && <item.icon />}
-            <span>{item.title}</span>
-            {item.badge && <NavBadge>{item.badge}</NavBadge>}
-            <ChevronRight className="ms-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 rtl:rotate-180" />
-          </SidebarMenuButton>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="CollapsibleContent">
-          <SidebarMenuSub>
-            {item.items.map((subItem) => (
-              <SidebarMenuSubItem key={subItem.title}>
-                <SidebarMenuSubButton
-                  asChild
-                  isActive={!subItem.external && checkIsActive(href, subItem)}
-                >
+      <CollapsibleTrigger render={<SidebarMenuButton tooltip={item.title} />}>
+        {item.icon && <item.icon />}
+        <span>{item.title}</span>
+        {item.badge && <NavBadge>{item.badge}</NavBadge>}
+        <ChevronRight className="ms-auto transition-transform duration-200 in-data-panel-open:rotate-90 rtl:rotate-180" />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="CollapsibleContent">
+        <SidebarMenuSub>
+          {item.items.map((subItem) => (
+            <SidebarMenuSubItem key={subItem.title}>
+              <SidebarMenuSubButton
+                isActive={!subItem.external && checkIsActive(href, subItem)}
+                render={
                   <NavAnchor
                     url={subItem.url}
                     external={subItem.external}
                     onNavigate={() => setOpenMobile(false)}
-                  >
-                    {subItem.icon && <subItem.icon />}
-                    <span>{subItem.title}</span>
-                    {subItem.external && (
-                      <ExternalLink className="ms-auto size-3 opacity-60" aria-hidden />
-                    )}
-                    {subItem.badge && <NavBadge>{subItem.badge}</NavBadge>}
-                  </NavAnchor>
-                </SidebarMenuSubButton>
-              </SidebarMenuSubItem>
-            ))}
-          </SidebarMenuSub>
-        </CollapsibleContent>
-      </SidebarMenuItem>
+                  />
+                }
+              >
+                {subItem.icon && <subItem.icon />}
+                <span>{subItem.title}</span>
+                {subItem.external && (
+                  <ExternalLink className="ms-auto size-3 opacity-60" aria-hidden />
+                )}
+                {subItem.badge && <NavBadge>{subItem.badge}</NavBadge>}
+              </SidebarMenuSubButton>
+            </SidebarMenuSubItem>
+          ))}
+        </SidebarMenuSub>
+      </CollapsibleContent>
     </Collapsible>
   )
 }
@@ -154,33 +155,49 @@ function SidebarMenuCollapsedDropdown({ item, href }: { item: NavCollapsible; hr
   return (
     <SidebarMenuItem>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <SidebarMenuButton tooltip={item.title} isActive={checkIsActive(href, item)}>
-            {item.icon && <item.icon />}
-            <span>{item.title}</span>
-            {item.badge && <NavBadge>{item.badge}</NavBadge>}
-            <ChevronRight className="ms-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-          </SidebarMenuButton>
+        <DropdownMenuTrigger
+          render={
+            <SidebarMenuButton
+              isActive={checkIsActive(href, item)}
+              className="data-popup-open:bg-sidebar-accent data-popup-open:text-sidebar-accent-foreground"
+            />
+          }
+        >
+          {item.icon && <item.icon />}
+          <span>{item.title}</span>
+          {item.badge && <NavBadge>{item.badge}</NavBadge>}
+          <ChevronRight className="ms-auto transition-transform duration-200 in-data-panel-open:rotate-90" />
         </DropdownMenuTrigger>
-        <DropdownMenuContent side="right" align="start" sideOffset={4}>
-          <DropdownMenuLabel>
-            {item.title} {item.badge ? `(${item.badge})` : ''}
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {item.items.map((sub) => (
-            <DropdownMenuItem key={`${sub.title}-${sub.url}`} asChild>
-              <NavAnchor
-                url={sub.url}
-                external={sub.external}
-                className={!sub.external && checkIsActive(href, sub) ? 'bg-secondary' : ''}
+        <DropdownMenuContent
+          side="right"
+          align="start"
+          sideOffset={4}
+          className="min-w-56 rounded-lg"
+        >
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>
+              {item.title} {item.badge ? `(${item.badge})` : ''}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {item.items.map((sub) => (
+              <DropdownMenuItem
+                key={`${sub.title}-${sub.url}`}
+                nativeButton={false}
+                render={
+                  <NavAnchor
+                    url={sub.url}
+                    external={sub.external}
+                    className={!sub.external && checkIsActive(href, sub) ? 'bg-secondary' : ''}
+                  />
+                }
               >
                 {sub.icon && <sub.icon />}
                 <span className="max-w-52 text-wrap">{sub.title}</span>
                 {sub.external && <ExternalLink className="ms-auto size-3 opacity-60" aria-hidden />}
                 {sub.badge && <span className="ms-auto text-xs">{sub.badge}</span>}
-              </NavAnchor>
-            </DropdownMenuItem>
-          ))}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
     </SidebarMenuItem>

@@ -11,10 +11,10 @@ import {
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { createDictItemSchema, createDictTypeSchema, PermissionCode } from '@zen/shared'
 
-import { RequirePermission } from '@/common/decorators/require-permission.decorator'
-import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
-import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '@/common/swagger'
-import { PrismaService } from '@/infra/prisma'
+import { RequirePermission } from '../../common/decorators/require-permission.decorator.js'
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js'
+import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '../../common/swagger/index.js'
+import { PrismaService } from '../../infra/prisma/index.js'
 
 import type { CreateDictItem, CreateDictType, DictItem, DictType } from '@zen/shared'
 

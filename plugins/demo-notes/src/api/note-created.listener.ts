@@ -1,10 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common'
 
-import { DEMO_NOTE_CREATED_EVENT } from '../constants'
-import { DemoNotesEventBus } from './event-bus'
+import { DEMO_NOTE_CREATED_EVENT } from '../constants.js'
+import { DemoNotesEventBus } from './event-bus.js'
 
 import type { OnModuleInit } from '@nestjs/common'
-import type { DemoNoteCreatedPayload } from './event-bus'
+import type { DemoNoteCreatedPayload } from './event-bus.js'
 
 @Injectable()
 export class DemoNoteCreatedListener implements OnModuleInit {

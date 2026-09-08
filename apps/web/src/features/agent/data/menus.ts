@@ -10,11 +10,6 @@ export const menus = [
     description: 'chat页面'
   },
   {
-    name: 'copilot',
-    path: '/chat-v2',
-    description: 'copilot页面'
-  },
-  {
     name: '三维场景（BIM）',
     path: '/bim',
     description: '三维场景（BIM）页面（threejs）'

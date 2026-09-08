@@ -20,26 +20,25 @@ import {
   updateMyProfileSchema
 } from '@zen/shared'
 
-import { AllowAuthenticated } from '@/common/decorators/allow-authenticated.decorator'
-import { Public } from '@/common/decorators/public.decorator'
-import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe'
-import { CONFIG_NAMESPACES } from '@/config'
-
-import { AuthService } from './auth.service'
-import { AuthTokenService } from './auth.token.service'
-import { durationToSeconds, REFRESH_TOKEN_COOKIE_NAME } from './auth-cookie'
-import { loginSchema } from './dto/login.dto'
-import { registerSchema } from './dto/register.dto'
+import { AllowAuthenticated } from '../../common/decorators/allow-authenticated.decorator.js'
+import { Public } from '../../common/decorators/public.decorator.js'
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js'
+import { CONFIG_NAMESPACES } from '../../config/index.js'
+import { AuthService } from './auth.service.js'
+import { AuthTokenService } from './auth.token.service.js'
+import { durationToSeconds, REFRESH_TOKEN_COOKIE_NAME } from './auth-cookie.js'
+import { loginSchema } from './dto/login.dto.js'
+import { registerSchema } from './dto/register.dto.js'
 
 import type { ChangePassword, ForgotPassword, ResetPassword, UpdateMyProfile } from '@zen/shared'
 import type { Request, Response } from 'express'
-import type { JwtPayload } from '@/common/interfaces/jwt-payload.interface'
-import type { AppConfig, AuthConfig } from '@/config'
-import type { UserInfoResponse } from '@/modules/user/responses/user.response'
-import type { JwtTokenPayload } from './auth.token.service'
-import type { LoginDto } from './dto/login.dto'
-import type { RegisterDto } from './dto/register.dto'
-import type { LoginResponse, RefreshResponse, RegisterResponse } from './responses/auth.response'
+import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface.js'
+import type { AppConfig, AuthConfig } from '../../config/index.js'
+import type { UserInfoResponse } from '../user/responses/user.response.js'
+import type { JwtTokenPayload } from './auth.token.service.js'
+import type { LoginDto } from './dto/login.dto.js'
+import type { RegisterDto } from './dto/register.dto.js'
+import type { LoginResponse, RefreshResponse, RegisterResponse } from './responses/auth.response.js'
 
 @AllowAuthenticated()
 @Controller('auth')

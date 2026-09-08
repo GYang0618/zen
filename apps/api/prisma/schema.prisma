@@ -132,6 +132,84 @@ enum OrganizationPositionStatus {
   FROZEN @map("frozen")
 }
 
+enum AgentThreadStatus {
+  active
+  archived
+}
+
+enum AgentRunStatus {
+  pending
+  running
+  finishing
+  succeeded
+  failed
+  cancelled
+  timed_out
+  interrupted
+}
+
+enum AgentEndReason {
+  completed
+  interrupted
+  cancelled
+  disconnected
+  timeout
+  budget_exceeded
+  model_error
+  approval_rejected
+  approval_expired
+}
+
+enum AgentToolExecutionStatus {
+  pending
+  running
+  succeeded
+  failed
+  cancelled
+}
+
+enum AgentApprovalStatus {
+  pending
+  approved
+  rejected
+  expired
+  cancelled
+}
+
+enum AgentApprovalDecision {
+  approve
+  reject
+}
+
+enum AgentRiskLevel {
+  low
+  medium
+  high
+  critical
+}
+
+enum AgentSideEffect {
+  read_only
+  write
+}
+
+enum AgentArtifactStatus {
+  available
+  expired
+  deleted
+}
+
+enum AgentMemorySensitivity {
+  private
+  non_sensitive
+}
+
+enum AgentIdempotencyStatus {
+  running
+  succeeded
+  failed
+}
+
 /// 租户表（单租户交付阶段仅种子 default；全链路 Context 必带 tenantId）
 model Tenant {
   /// 租户 ID
@@ -149,26 +227,31 @@ model Tenant {
   /// 更新时间
   updatedAt DateTime     @updatedAt @map("updated_at")
 
+  agentThreads AgentThread[]
+
   @@index([status])
   @@map("tenants")
 }
 
 /// Default Agent 对话线程。Popup/plan_agent 不写入该表。
 model AgentThread {
-  id            String   @id
-  tenantId      String   @map("tenant_id")
-  userId        String   @map("user_id")
-  agentId       String   @default("default_agent") @map("agent_id")
+  id            String            @id
+  tenantId      String            @map("tenant_id")
+  userId        String            @map("user_id")
+  agentId       String            @default("default_agent") @map("agent_id")
   title         String?
-  status        String   @default("active")
-  lastMessageAt DateTime? @map("last_message_at")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  status        AgentThreadStatus @default(active)
+  lastMessageAt DateTime?         @map("last_message_at")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
 
-  runs       AgentRun[]
-  messages   AgentMessage[]
+  runs        AgentRun[]
+  messages    AgentMessage[]
   checkpoints AgentCheckpoint[]
-  memories   AgentMemory[]
+  memories    AgentMemory[]
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@index([tenantId, userId, updatedAt])
   @@index([tenantId, agentId, status])
@@ -177,35 +260,35 @@ model AgentThread {
 
 /// 一次模型执行；runId 直接复用 AG-UI runId，便于端到端追踪。
 model AgentRun {
-  id             String   @id
-  threadId       String   @map("thread_id")
-  tenantId       String   @map("tenant_id")
-  userId         String   @map("user_id")
-  agentId        String   @default("default_agent") @map("agent_id")
-  status         String   @default("pending")
-  endReason      String?  @map("end_reason")
-  budget         Json
-  error          Json?
-  eventSequence  Int      @default(0) @map("event_sequence")
-  inputTokens    Int      @default(0) @map("input_tokens")
-  outputTokens   Int      @default(0) @map("output_tokens")
-  modelCalls     Int      @default(0) @map("model_calls")
-  failureCount   Int      @default(0) @map("failure_count")
-  traceId        String?  @map("trace_id")
-  modelVersion   String?  @map("model_version")
-  promptVersion  String?  @map("prompt_version")
-  toolSchemaVersion String? @map("tool_schema_version")
-  firstTokenAt   DateTime? @map("first_token_at")
-  lastHeartbeatAt DateTime? @map("last_heartbeat_at")
-  leaseOwner     String?  @map("lease_owner")
-  leaseExpiresAt DateTime? @map("lease_expires_at")
-  resumeCount    Int      @default(0) @map("resume_count")
-  startedAt      DateTime? @map("started_at")
-  endedAt        DateTime? @map("ended_at")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id                String          @id
+  threadId          String          @map("thread_id")
+  tenantId          String          @map("tenant_id")
+  userId            String          @map("user_id")
+  agentId           String          @default("default_agent") @map("agent_id")
+  status            AgentRunStatus  @default(pending)
+  endReason         AgentEndReason? @map("end_reason")
+  budget            Json
+  error             Json?
+  eventSequence     Int             @default(0) @map("event_sequence")
+  inputTokens       Int             @default(0) @map("input_tokens")
+  outputTokens      Int             @default(0) @map("output_tokens")
+  modelCalls        Int             @default(0) @map("model_calls")
+  failureCount      Int             @default(0) @map("failure_count")
+  traceId           String?         @map("trace_id")
+  modelVersion      String?         @map("model_version")
+  promptVersion     String?         @map("prompt_version")
+  toolSchemaVersion String?         @map("tool_schema_version")
+  firstTokenAt      DateTime?       @map("first_token_at")
+  lastHeartbeatAt   DateTime?       @map("last_heartbeat_at")
+  leaseOwner        String?         @map("lease_owner")
+  leaseExpiresAt    DateTime?       @map("lease_expires_at")
+  resumeCount       Int             @default(0) @map("resume_count")
+  startedAt         DateTime?       @map("started_at")
+  endedAt           DateTime?       @map("ended_at")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
 
-  thread         AgentThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  thread         AgentThread          @relation(fields: [threadId], references: [id], onDelete: Cascade)
   turns          AgentTurn[]
   events         AgentEvent[]
   approvals      AgentApproval[]
@@ -222,18 +305,18 @@ model AgentRun {
 
 /// 当前实现中一次 AG-UI Run 对应一个 Turn；模型允许后续扩展为多 Turn Run。
 model AgentTurn {
-  id        String   @id
-  runId     String   @map("run_id")
-  tenantId  String   @map("tenant_id")
-  sequence  Int      @default(0)
-  status    String   @default("pending")
-  endReason String?  @map("end_reason")
-  startedAt DateTime? @map("started_at")
-  endedAt   DateTime? @map("ended_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id        String          @id
+  runId     String          @map("run_id")
+  tenantId  String          @map("tenant_id")
+  sequence  Int             @default(0)
+  status    AgentRunStatus  @default(pending)
+  endReason AgentEndReason? @map("end_reason")
+  startedAt DateTime?       @map("started_at")
+  endedAt   DateTime?       @map("ended_at")
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
 
-  run      AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  run      AgentRun       @relation(fields: [runId], references: [id], onDelete: Cascade)
   messages AgentMessage[]
 
   @@unique([runId, sequence])
@@ -285,48 +368,55 @@ model AgentEvent {
 
 /// 会话状态快照；reasoning/activity 会在写入前过滤。
 model AgentCheckpoint {
-  id        String   @id @default(cuid())
-  threadId  String   @map("thread_id")
-  runId     String   @map("run_id")
-  tenantId  String   @map("tenant_id")
-  version   Int
-  state     Json
-  summary   String?
-  createdAt DateTime @default(now()) @map("created_at")
+  id         String   @id @default(cuid())
+  threadId   String   @map("thread_id")
+  runId      String   @map("run_id")
+  tenantId   String   @map("tenant_id")
+  version    Int
+  parentId   String?  @map("parent_id")
+  namespace  String   @default("default")
+  stateHash  String   @default("") @map("state_hash")
+  state      Json
+  summary    String?
+  createdAt  DateTime @default(now()) @map("created_at")
 
-  thread AgentThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  thread AgentThread      @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  parent AgentCheckpoint? @relation("CheckpointLineage", fields: [parentId], references: [id], onDelete: SetNull)
+  children AgentCheckpoint[] @relation("CheckpointLineage")
 
   @@unique([threadId, version])
   @@index([tenantId, threadId, createdAt])
+  @@index([parentId])
   @@map("agent_checkpoints")
 }
 
 /// 高风险 Tool 的人工审批记录。
 model AgentApproval {
-  id            String   @id @default(cuid())
-  runId         String   @map("run_id")
-  tenantId      String   @map("tenant_id")
-  userId        String   @map("user_id")
-  toolCallId    String   @map("tool_call_id")
-  interruptId   String   @map("interrupt_id")
-  toolName      String   @map("tool_name")
-  operation     String?
-  targetSummary String?  @map("target_summary")
-  impactSummary String?  @map("impact_summary")
-  riskLevel     String?  @map("risk_level")
-  parameterSummary String? @map("parameter_summary")
-  arguments     Json
-  argumentsHash String   @map("arguments_hash")
-  status        String   @default("pending")
-  decision      String?
-  reason        String?
-  decidedBy     String?  @map("decided_by")
-  decidedAt     DateTime? @map("decided_at")
-  expiresAt     DateTime @map("expires_at")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id               String                 @id @default(cuid())
+  runId            String                 @map("run_id")
+  tenantId         String                 @map("tenant_id")
+  userId           String                 @map("user_id")
+  toolCallId       String                 @map("tool_call_id")
+  interruptId      String                 @map("interrupt_id")
+  toolName         String                 @map("tool_name")
+  operation        String?
+  targetSummary    String?                @map("target_summary")
+  impactSummary    String?                @map("impact_summary")
+  riskLevel        AgentRiskLevel?        @map("risk_level")
+  parameterSummary String?                @map("parameter_summary")
+  arguments        Json
+  argumentsHash    String                 @map("arguments_hash")
+  status           AgentApprovalStatus    @default(pending)
+  decision         AgentApprovalDecision?
+  reason           String?
+  decidedBy        String?                @map("decided_by")
+  decidedAt        DateTime?              @map("decided_at")
+  expiresAt        DateTime               @map("expires_at")
+  createdAt        DateTime               @default(now()) @map("created_at")
+  updatedAt        DateTime               @updatedAt @map("updated_at")
 
   run AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  stepUpGrants AgentStepUpGrant[]
 
   @@unique([runId, toolCallId])
   @@unique([runId, interruptId])
@@ -334,29 +424,48 @@ model AgentApproval {
   @@map("agent_approvals")
 }
 
+/// 已批准的 Agent Tool 一次性 step-up 授权；令牌只允许匹配的 Run/Tool 使用一次。
+model AgentStepUpGrant {
+  id         String    @id @default(cuid())
+  tenantId   String    @map("tenant_id")
+  userId     String    @map("user_id")
+  runId      String    @map("run_id")
+  toolName   String    @map("tool_name")
+  approvalId String    @map("approval_id")
+  nonce      String    @unique
+  expiresAt  DateTime  @map("expires_at")
+  consumedAt DateTime? @map("consumed_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  approval AgentApproval @relation(fields: [approvalId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, userId, runId, toolName, expiresAt])
+  @@map("agent_step_up_grants")
+}
+
 /// Tool 执行账本；idempotencyKey 防止重连或重试造成重复写入。
 model AgentToolExecution {
-  id             String   @id @default(cuid())
-  runId          String   @map("run_id")
-  tenantId       String   @map("tenant_id")
-  toolCallId     String   @map("tool_call_id")
-  toolName       String   @map("tool_name")
-  permissionCode String?  @map("permission_code")
-  riskLevel      String?  @map("risk_level")
-  sideEffect     String?  @map("side_effect")
-  traceId        String?  @map("trace_id")
-  idempotencyKey String   @map("idempotency_key")
+  id             String                   @id @default(cuid())
+  runId          String                   @map("run_id")
+  tenantId       String                   @map("tenant_id")
+  toolCallId     String                   @map("tool_call_id")
+  toolName       String                   @map("tool_name")
+  permissionCode String?                  @map("permission_code")
+  riskLevel      AgentRiskLevel?          @map("risk_level")
+  sideEffect     AgentSideEffect?         @map("side_effect")
+  traceId        String?                  @map("trace_id")
+  idempotencyKey String                   @map("idempotency_key")
   arguments      Json?
   result         Json?
-  status         String   @default("pending")
-  attempt        Int      @default(1)
-  errorReason    String?  @map("error_reason")
-  startedAt      DateTime? @map("started_at")
-  endedAt        DateTime? @map("ended_at")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  status         AgentToolExecutionStatus @default(pending)
+  attempt        Int                      @default(1)
+  errorReason    String?                  @map("error_reason")
+  startedAt      DateTime?                @map("started_at")
+  endedAt        DateTime?                @map("ended_at")
+  createdAt      DateTime                 @default(now()) @map("created_at")
+  updatedAt      DateTime                 @updatedAt @map("updated_at")
 
-  run AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  run       AgentRun        @relation(fields: [runId], references: [id], onDelete: Cascade)
   artifacts AgentArtifact[]
 
   @@unique([tenantId, idempotencyKey])
@@ -367,25 +476,25 @@ model AgentToolExecution {
 
 /// Tool 大结果或可独立查看的运行产物。
 model AgentArtifact {
-  id              String   @id @default(cuid())
-  runId           String   @map("run_id")
-  threadId        String   @map("thread_id")
-  tenantId        String   @map("tenant_id")
-  userId          String   @map("user_id")
-  toolExecutionId String?  @map("tool_execution_id")
+  id              String              @id @default(cuid())
+  runId           String              @map("run_id")
+  threadId        String              @map("thread_id")
+  tenantId        String              @map("tenant_id")
+  userId          String              @map("user_id")
+  toolExecutionId String?             @map("tool_execution_id")
   kind            String
   name            String
-  mimeType        String   @default("application/json") @map("mime_type")
+  mimeType        String              @default("application/json") @map("mime_type")
   size            Int
   summary         String?
   content         Json?
-  storageKey      String?  @map("storage_key")
-  status          String   @default("available")
-  expiresAt       DateTime? @map("expires_at")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  storageKey      String?             @map("storage_key")
+  status          AgentArtifactStatus @default(available)
+  expiresAt       DateTime?           @map("expires_at")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
 
-  run           AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  run           AgentRun            @relation(fields: [runId], references: [id], onDelete: Cascade)
   toolExecution AgentToolExecution? @relation(fields: [toolExecutionId], references: [id], onDelete: SetNull)
 
   @@index([tenantId, userId, createdAt])
@@ -396,21 +505,21 @@ model AgentArtifact {
 
 /// 显式写入的用户/线程记忆；不自动保存敏感 Tool 参数。
 model AgentMemory {
-  id        String   @id @default(cuid())
-  threadId  String?  @map("thread_id")
-  tenantId  String   @map("tenant_id")
-  userId    String   @map("user_id")
-  scope     String
-  kind      String
-  key       String
-  content   Json
-  sensitivity String  @default("private")
-  shareWithModel Boolean @default(false) @map("share_with_model")
-  modelProvider String? @map("model_provider")
-  approvedForModelAt DateTime? @map("approved_for_model_at")
-  expiresAt DateTime? @map("expires_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id                 String                 @id @default(cuid())
+  threadId           String?                @map("thread_id")
+  tenantId           String                 @map("tenant_id")
+  userId             String                 @map("user_id")
+  scope              String
+  kind               String
+  key                String
+  content            Json
+  sensitivity        AgentMemorySensitivity @default(private)
+  shareWithModel     Boolean                @default(false) @map("share_with_model")
+  modelProvider      String?                @map("model_provider")
+  approvedForModelAt DateTime?              @map("approved_for_model_at")
+  expiresAt          DateTime?              @map("expires_at")
+  createdAt          DateTime               @default(now()) @map("created_at")
+  updatedAt          DateTime               @updatedAt @map("updated_at")
 
   thread AgentThread? @relation(fields: [threadId], references: [id], onDelete: Cascade)
 
@@ -439,16 +548,16 @@ model AgentEvaluation {
 
 /// Agent 写请求的 API 级幂等结果；按租户与用户隔离，在业务 Controller 前去重。
 model AgentIdempotencyRecord {
-  id          String   @id @default(cuid())
-  tenantId    String   @map("tenant_id")
-  userId      String   @map("user_id")
+  id          String                 @id @default(cuid())
+  tenantId    String                 @map("tenant_id")
+  userId      String                 @map("user_id")
   key         String
-  requestHash String   @map("request_hash")
-  status      String   @default("running")
+  requestHash String                 @map("request_hash")
+  status      AgentIdempotencyStatus @default(running)
   response    Json?
-  expiresAt   DateTime @map("expires_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  expiresAt   DateTime               @map("expires_at")
+  createdAt   DateTime               @default(now()) @map("created_at")
+  updatedAt   DateTime               @updatedAt @map("updated_at")
 
   @@unique([tenantId, userId, key])
   @@index([expiresAt])
@@ -603,6 +712,8 @@ model User {
   organizations       UserOrganization[]
   /// 负责的组织集合（一对多）
   ledOrganizations    Organization[]       @relation("OrganizationLeader")
+  /// Default Agent 线程
+  agentThreads        AgentThread[]
 
   @@index([email])
   @@index([username])
@@ -613,27 +724,27 @@ model User {
 /// 用户资料表
 model UserProfile {
   /// 资料ID
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   /// 用户ID
-  userId    String   @unique @map("user_id")
+  userId    String    @unique @map("user_id")
   /// 真实姓名
-  realName  String?  @map("real_name")
+  realName  String?   @map("real_name")
   /// 头像地址
   avatar    String?
   /// 性别
-  gender    Gender   @default(UNKNOWN)
+  gender    Gender    @default(UNKNOWN)
   /// 出生日期
   birthday  DateTime? @db.Date
   /// 职位名称
-  jobTitle  String?  @map("job_title")
+  jobTitle  String?   @map("job_title")
   /// 备注
   remark    String?
   /// 扩展元数据
   meta      Json?
   /// 创建时间
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt DateTime  @default(now()) @map("created_at")
   /// 更新时间
-  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
 
   /// 关联用户
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -808,17 +919,17 @@ model Organization {
   updatedAt     DateTime         @updatedAt @map("updated_at")
 
   /// 父级组织
-  parent    Organization?      @relation("OrganizationHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  parent     Organization?      @relation("OrganizationHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   /// 子级组织
-  children  Organization[]     @relation("OrganizationHierarchy")
+  children   Organization[]     @relation("OrganizationHierarchy")
   /// 负责人
-  leader    User?              @relation("OrganizationLeader", fields: [leaderId], references: [id], onDelete: SetNull)
+  leader     User?              @relation("OrganizationLeader", fields: [leaderId], references: [id], onDelete: SetNull)
   /// 组织岗位集合
-  posts     Post[]
+  posts      Post[]
   /// 组织成员关联
-  users     UserOrganization[]
+  users      UserOrganization[]
   /// 演示便签（参考插件）
-  demoNotes DemoNote[]
+  demoNotes  DemoNote[]
   /// 组织文件
   fileAssets FileAsset[]
 
@@ -844,9 +955,9 @@ model JobProfile {
   /// 岗位族
   family      String?
   /// 展示图标（Lucide 名）
-  icon         String?
+  icon        String?
   /// 图标颜色 token
-  iconColor    String?          @map("icon_color")
+  iconColor   String?          @map("icon_color")
   /// 启停状态
   status      JobProfileStatus @default(ACTIVE)
   /// 创建时间
@@ -1146,8 +1257,8 @@ model FileAsset {
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  owner        User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  owner        User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  organization Organization?   @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   sessions     UploadSession[]
   bindings     FileBinding[]
 
@@ -1164,16 +1275,16 @@ model FileAsset {
 
 /// 预签名上传会话
 model UploadSession {
-  id               String    @id @default(cuid())
-  tenantId         String    @default("cmtenant00000000000000001") @map("tenant_id")
-  fileId           String    @map("file_id")
-  strategy         String    @default("presign_put")
-  providerUploadId String?   @map("provider_upload_id")
-  idempotencyKey   String?   @map("idempotency_key")
+  id               String   @id @default(cuid())
+  tenantId         String   @default("cmtenant00000000000000001") @map("tenant_id")
+  fileId           String   @map("file_id")
+  strategy         String   @default("presign_put")
+  providerUploadId String?  @map("provider_upload_id")
+  idempotencyKey   String?  @map("idempotency_key")
   status           String
-  expiresAt        DateTime  @map("expires_at")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
+  expiresAt        DateTime @map("expires_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   file FileAsset @relation(fields: [fileId], references: [id], onDelete: Cascade)
 

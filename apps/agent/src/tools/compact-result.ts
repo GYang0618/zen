@@ -1,3 +1,5 @@
+import { isApiSuccessEnvelope } from '../api/tool-result'
+
 type JsonRecord = Record<string, unknown>
 
 function asRecord(value: unknown): JsonRecord | undefined {
@@ -20,7 +22,7 @@ export function compactPagedToolResult(
   compactItem: (item: JsonRecord) => JsonRecord
 ): string {
   const parsed = parseRecord(raw)
-  if (parsed?.success !== true) return raw
+  if (!parsed || !isApiSuccessEnvelope(parsed)) return raw
   const data = asRecord(parsed.data)
   if (!data || !Array.isArray(data.items)) return raw
 
@@ -41,7 +43,37 @@ export function compactUserListItem(user: JsonRecord): JsonRecord {
     ? user.roles.flatMap((role) => {
         const record = asRecord(role)
         return record
-          ? [{ id: record.id, code: record.code, name: record.name, status: record.status }]
+          ? [
+              {
+                id: record.id,
+                code: record.code,
+                name: record.name,
+                status: record.status,
+                ...(record.icon !== undefined ? { icon: record.icon } : {}),
+                ...(record.iconColor !== undefined ? { iconColor: record.iconColor } : {})
+              }
+            ]
+          : []
+      })
+    : undefined
+
+  const organizations = Array.isArray(user.organizations)
+    ? user.organizations.flatMap((org) => {
+        const record = asRecord(org)
+        return record
+          ? [
+              {
+                ...(record.id !== undefined ? { id: record.id } : {}),
+                ...(record.organizationId !== undefined
+                  ? { organizationId: record.organizationId }
+                  : {}),
+                ...(record.organizationName !== undefined
+                  ? { organizationName: record.organizationName }
+                  : {}),
+                ...(record.positionName !== undefined ? { positionName: record.positionName } : {}),
+                ...(record.isPrimary !== undefined ? { isPrimary: record.isPrimary } : {})
+              }
+            ]
           : []
       })
     : undefined
@@ -53,8 +85,12 @@ export function compactUserListItem(user: JsonRecord): JsonRecord {
     nickname: user.nickname,
     realName: user.realName,
     status: user.status,
+    ...(user.avatar !== undefined ? { avatar: user.avatar } : {}),
+    ...(user.phoneNumber !== undefined ? { phoneNumber: user.phoneNumber } : {}),
+    ...(user.isLocked !== undefined ? { isLocked: user.isLocked } : {}),
     ...(user.lastActiveAt === undefined ? {} : { lastActiveAt: user.lastActiveAt }),
-    ...(roles ? { roles } : {})
+    ...(roles ? { roles } : {}),
+    ...(organizations ? { organizations } : {})
   }
 }
 

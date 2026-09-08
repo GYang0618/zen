@@ -28,7 +28,8 @@ export function SidebarNav({ className, items, ...props }: SidebarNavProps) {
   const navigate = useNavigate()
   const [val, setVal] = useState(pathname)
 
-  const handleSelect = (href: string) => {
+  const handleSelect = (href: string | null) => {
+    if (!href) return
     setVal(href)
     navigate({ to: href })
   }
@@ -36,7 +37,11 @@ export function SidebarNav({ className, items, ...props }: SidebarNavProps) {
   return (
     <>
       <div className="p-1 md:hidden">
-        <Select value={val} onValueChange={handleSelect}>
+        <Select
+          items={items.map((item) => ({ label: item.title, value: item.href }))}
+          value={val}
+          onValueChange={handleSelect}
+        >
           <SelectTrigger className="h-12 sm:w-48">
             <SelectValue placeholder="选择设置项" />
           </SelectTrigger>
@@ -56,7 +61,7 @@ export function SidebarNav({ className, items, ...props }: SidebarNavProps) {
         </Select>
       </div>
 
-      <ScrollArea type="always" className="hidden w-full min-w-40 bg-background px-1 py-2 md:block">
+      <ScrollArea className="hidden w-full min-w-40 bg-background px-1 py-2 md:block">
         <nav
           className={cn('flex space-x-2 py-1 lg:flex-col lg:space-y-1 lg:space-x-0', className)}
           {...props}

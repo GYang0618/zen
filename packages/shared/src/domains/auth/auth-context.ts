@@ -1,22 +1,26 @@
+import { z } from 'zod'
+
+import { dataScopeSchema, idSchema } from '../../primitives/index.js'
+
 /** 默认租户编码（单租户交付阶段固定使用） */
 export const DEFAULT_TENANT_CODE = 'default'
 
 /** 默认租户稳定 ID（与 migration 种子一致） */
 export const DEFAULT_TENANT_ID = 'cmtenant00000000000000001'
 
-export type DataScope = 'all' | 'org_and_child' | 'org' | 'self' | 'custom'
+export const authContextSchema = z.object({
+  tenantId: idSchema,
+  userId: idSchema,
+  roles: z.array(z.string()),
+  permissions: z.array(z.string()),
+  isAdmin: z.boolean(),
+  dataScope: dataScopeSchema,
+  customOrgIds: z.array(idSchema).optional(),
+  primaryOrgId: idSchema.optional(),
+  primaryOrgPath: z.string().optional(),
+  orgIds: z.array(idSchema),
+  permVer: z.number().int().nonnegative()
+})
 
-export interface AuthContext {
-  tenantId: string
-  userId: string
-  roles: string[]
-  permissions: string[]
-  /** 有效角色含 super_admin 且未过期时为 true；守卫短路用 */
-  isAdmin: boolean
-  dataScope: DataScope
-  customOrgIds?: string[]
-  primaryOrgId?: string
-  primaryOrgPath?: string
-  orgIds: string[]
-  permVer: number
-}
+export type AuthContext = z.infer<typeof authContextSchema>
+export type { DataScope } from '../../primitives/index.js'

@@ -77,8 +77,7 @@ function collectUsedCodes(files) {
     /permissions\s*:\s*\[\s*([^\]]+)\]/g,
     /permission=\{?\s*['"]([a-z0-9_:-]+)['"]/g,
     /permission=\{\s*\[\s*([^\]]+)\]\s*\}/g,
-    /RequirePermission\(\s*['"]([a-z0-9_:-]+)['"]/g,
-    /['"]((?:system|[a-z][a-z0-9_-]*):[a-z0-9_:-]+)['"]/g
+    /RequirePermission\(\s*['"]([a-z0-9_:-]+)['"]/g
   ]
 
   for (const file of files) {

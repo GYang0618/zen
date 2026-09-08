@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import { generatePluginRegistry } from './generate-registry'
-import { validatePlugins } from './validate'
+import { generatePluginRegistry } from './generate-registry.js'
+import { validatePlugins } from './validate.js'
 
 function printHelp() {
   console.log(`Usage: zen-plugin <command>
@@ -14,9 +14,7 @@ Commands:
 `)
 }
 
-function printIssues(
-  issues: Array<{ level: string; pluginId?: string; message: string }>
-): void {
+function printIssues(issues: Array<{ level: string; pluginId?: string; message: string }>): void {
   for (const issue of issues) {
     const prefix = issue.level === 'error' ? 'ERROR' : 'WARN'
     const plugin = issue.pluginId ? `[${issue.pluginId}] ` : ''
@@ -65,7 +63,9 @@ function main(argv: string[]) {
         console.log(`已生成 loaders:\n${generated.loaderFiles.map((f) => `  - ${f}`).join('\n')}`)
         console.log(`已生成 host 文件:\n${generated.hostFiles.map((f) => `  - ${f}`).join('\n')}`)
         if (generated.prunedRoutes.length > 0) {
-          console.log(`已清理陈旧路由:\n${generated.prunedRoutes.map((f) => `  - ${f}`).join('\n')}`)
+          console.log(
+            `已清理陈旧路由:\n${generated.prunedRoutes.map((f) => `  - ${f}`).join('\n')}`
+          )
         }
       }
     } catch (error) {

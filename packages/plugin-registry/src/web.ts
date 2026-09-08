@@ -1,1 +1,1 @@
-export * from './generated/web.gen'
+export * from './generated/web.gen.js'

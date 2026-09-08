@@ -1,6 +1,5 @@
 'use no memo'
 
-import { ArrowDownIcon, ArrowUpIcon, CaretSortIcon, EyeNoneIcon } from '@radix-ui/react-icons'
 import {
   Button,
   cn,
@@ -10,6 +9,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@zen/ui'
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  ChevronsUpDown as CaretSortIcon,
+  EyeOff as EyeNoneIcon
+} from 'lucide-react'
 
 import type { Column } from '@tanstack/react-table'
 
@@ -30,17 +35,17 @@ export function DataTableColumnHeader<TData, TValue>({
   return (
     <div className={cn('flex items-center space-x-2', className)}>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="h-8 data-[state=open]:bg-accent">
-            <span>{title}</span>
-            {column.getIsSorted() === 'desc' ? (
-              <ArrowDownIcon className="ms-2 h-4 w-4" />
-            ) : column.getIsSorted() === 'asc' ? (
-              <ArrowUpIcon className="ms-2 h-4 w-4" />
-            ) : (
-              <CaretSortIcon className="ms-2 h-4 w-4" />
-            )}
-          </Button>
+        <DropdownMenuTrigger
+          render={<Button variant="ghost" size="sm" className="h-8 data-popup-open:bg-accent" />}
+        >
+          <span>{title}</span>
+          {column.getIsSorted() === 'desc' ? (
+            <ArrowDownIcon className="ms-2 h-4 w-4" />
+          ) : column.getIsSorted() === 'asc' ? (
+            <ArrowUpIcon className="ms-2 h-4 w-4" />
+          ) : (
+            <CaretSortIcon className="ms-2 h-4 w-4" />
+          )}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <DropdownMenuItem onClick={() => column.toggleSorting(false)}>

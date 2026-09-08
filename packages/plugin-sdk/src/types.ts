@@ -7,7 +7,7 @@ import type {
   PluginRouteContribution,
   PluginWidgetContribution,
   ZenPluginManifest
-} from './manifest.schema'
+} from './manifest.schema.js'
 
 export type PluginInstallStatus = 'active' | 'inactive'
 
@@ -36,10 +36,8 @@ export interface PluginModule {
 export interface PluginApiContribution {
   forRootAsync: (options: {
     // Nest DI tokens — 与现有插件 Module 约定一致
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    inject: any[]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    useFactory: (...args: any[]) => { prisma: unknown } | Promise<{ prisma: unknown }>
+    inject: unknown[]
+    useFactory: (...args: unknown[]) => { prisma: unknown } | Promise<{ prisma: unknown }>
   }) => unknown
 }
 

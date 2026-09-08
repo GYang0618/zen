@@ -1,1 +1,1 @@
-export * from './generated/catalog.gen'
+export * from './generated/catalog.gen.js'

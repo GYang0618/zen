@@ -1,7 +1,9 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
-import type { PluginRegistryEntry } from './types'
+import { formatGeneratedSource } from './format-generated.js'
+
+import type { PluginRegistryEntry } from './types.js'
 
 function packageName(pluginId: string): string {
   return `@zen/plugin-${pluginId}`
@@ -142,6 +144,7 @@ export function renderAgentLoaderSource(entries: PluginRegistryEntry[]): string 
       (entry) => `  {
     pluginId: '${entry.id}' as const,
     factory: ${entry.agentTools!.export},
+    manifests: ${JSON.stringify(entry.agentTools!.manifests)} as const,
     requiredPermissions: ${JSON.stringify(entry.agentTools!.requiredPermissions)} as readonly string[],
     agentPrompts: ${JSON.stringify(entry.agentTools!.agentPrompts)} as readonly string[]
   }`
@@ -209,12 +212,13 @@ export function writeOrCheckLoaderFiles(
   const checked: string[] = []
 
   for (const file of files) {
+    const source = formatGeneratedSource(file.source, file.absolutePath)
     if (check) {
       if (!existsSync(file.absolutePath)) {
         throw new Error(`生成物不存在，无法 --check: ${file.relativePath}`)
       }
       const existing = readFileSync(file.absolutePath, 'utf8')
-      if (existing !== file.source) {
+      if (existing !== source) {
         throw new Error(
           `${file.relativePath} 与当前 plugins Manifest 不一致，请运行 pnpm plugin:generate`
         )
@@ -224,7 +228,7 @@ export function writeOrCheckLoaderFiles(
     }
 
     mkdirSync(dirname(file.absolutePath), { recursive: true })
-    writeFileSync(file.absolutePath, file.source, 'utf8')
+    writeFileSync(file.absolutePath, source, 'utf8')
     written.push(file.relativePath)
   }
 

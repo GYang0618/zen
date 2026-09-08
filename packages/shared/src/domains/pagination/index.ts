@@ -1,2 +1,2 @@
-export * from './pagination.schema'
-export * from './pagination.type'
+export * from './pagination.schema.js'
+export * from './pagination.type.js'

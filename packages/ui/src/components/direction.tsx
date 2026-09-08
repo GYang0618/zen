@@ -1,5 +1,6 @@
-import { Direction } from 'radix-ui'
+'use client'
 
-const { DirectionProvider, Provider, useDirection } = Direction
-
-export { DirectionProvider, Provider, useDirection }
+export {
+  DirectionProvider,
+  useDirection
+} from '@base-ui/react/direction-provider'

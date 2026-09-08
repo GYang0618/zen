@@ -37,4 +37,5 @@ export interface ObjectStoragePort {
   get(key: string, range?: { start: number; end: number }): Promise<ObjectGetResult | null>
   put(key: string, body: Buffer, mimeType: string): Promise<void>
   delete(key: string): Promise<void>
+  healthCheck(): Promise<void>
 }

@@ -4,9 +4,9 @@ import { Button, Input, Skeleton, Textarea } from '@zen/ui'
 import { Check, Plus } from 'lucide-react'
 import { useState } from 'react'
 
-import { createNotificationsApi, NOTIF_PERMISSIONS } from '../api'
+import { createNotificationsApi, NOTIF_PERMISSIONS } from '../api.js'
 
-import type { NotificationsRequest } from '../api'
+import type { NotificationsRequest } from '../api.js'
 
 export interface NotificationsPageProps {
   request: NotificationsRequest

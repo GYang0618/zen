@@ -1,13 +1,18 @@
-import { OrganizationService } from './organization.service'
+import { OrganizationService } from './organization.service.js'
 
 import type { BadRequestException } from '@nestjs/common'
 import type { OrganizationType } from '@prisma/client'
 import type { AuthContext } from '@zen/shared'
-import type { AuditService } from '@/common/auth/audit.service'
-import type { AuthContextService } from '@/common/auth/auth-context.service'
-import type { SessionService } from '@/common/auth/session.service'
-import type { PostService } from '@/modules/post'
-import type { OrganizationRepository, OrganizationWithRelations } from './organization.repository'
+import type { AuditService } from '../../common/auth/audit.service.js'
+import type { AuthContextService } from '../../common/auth/auth-context.service.js'
+import type { SessionService } from '../../common/auth/session.service.js'
+import type { PostService } from '../post/index.js'
+import type {
+  OrganizationRepository,
+  OrganizationWithRelations
+} from './organization.repository.js'
+
+const { jest } = import.meta
 
 const auth: AuthContext = {
   tenantId: 'tenant',
@@ -25,6 +30,8 @@ function organization(input: {
   name: string
   parentId?: string | null
   type?: OrganizationType
+  memberCount?: number
+  positionCount?: number
 }): OrganizationWithRelations {
   return {
     id: input.id,
@@ -40,7 +47,7 @@ function organization(input: {
     createdAt: new Date('2026-08-13T00:00:00.000Z'),
     updatedAt: new Date('2026-08-13T00:00:00.000Z'),
     leader: null,
-    _count: { users: 0, posts: 0 }
+    _count: { users: input.memberCount ?? 0, posts: input.positionCount ?? 0 }
   }
 }
 
@@ -67,6 +74,8 @@ describe('OrganizationService', () => {
     countDescendantsByPathPrefix: jest.fn(),
     findDescendantsByPathPrefix: jest.fn(),
     updateManyPaths: jest.fn(),
+    findChildrenTypes: jest.fn(),
+    delete: jest.fn(),
     findActiveUserById: jest.fn(),
     findUsersDisplayByIds: jest.fn(),
     findOrganizationsDisplayByIds: jest.fn(),
@@ -154,6 +163,44 @@ describe('OrganizationService', () => {
     ])
     expect(authContextService.bumpPermVer).not.toHaveBeenCalled()
     expect(authContextService.invalidateCache).toHaveBeenCalledWith()
+  })
+
+  it('deletes an empty leaf organization and records the change', async () => {
+    const target = organization({ id: 'team', name: '平台团队', type: 'TEAM' })
+    repository.findByIdInScope.mockResolvedValue(target)
+    repository.findChildrenTypes.mockResolvedValue([])
+
+    await service.remove(target.id, auth)
+
+    expect(repository.delete).toHaveBeenCalledWith(target.id)
+    expect(auditService.write).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'system.organization.deleted',
+        diff: expect.objectContaining({ summary: '删除了组织「平台团队」' })
+      })
+    )
+    expect(authContextService.invalidateCache).toHaveBeenCalledWith()
+  })
+
+  it('rejects deleting an organization with children', async () => {
+    repository.findByIdInScope.mockResolvedValue(organization({ id: 'center', name: '研发中心' }))
+    repository.findChildrenTypes.mockResolvedValue([{ id: 'team', type: 'TEAM' }] as never)
+
+    await expect(service.remove('center', auth)).rejects.toThrow('请先删除或迁移下级组织')
+
+    expect(repository.delete).not.toHaveBeenCalled()
+  })
+
+  it('rejects deleting an organization with members or positions', async () => {
+    repository.findByIdInScope
+      .mockResolvedValueOnce(organization({ id: 'team', name: '平台团队', memberCount: 1 }))
+      .mockResolvedValueOnce(organization({ id: 'team', name: '平台团队', positionCount: 1 }))
+    repository.findChildrenTypes.mockResolvedValue([])
+
+    await expect(service.remove('team', auth)).rejects.toThrow('请先移除当前组织成员')
+    await expect(service.remove('team', auth)).rejects.toThrow('请先解除当前组织岗位')
+
+    expect(repository.delete).not.toHaveBeenCalled()
   })
 
   it('scopes an added member to the affected user without bumping tenant permVer', async () => {

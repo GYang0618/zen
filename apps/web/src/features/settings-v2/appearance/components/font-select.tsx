@@ -68,7 +68,13 @@ export function FontSelect() {
   const selected = FONT_OPTIONS.find((option) => option.value === font)
 
   return (
-    <Select value={font} onValueChange={(value) => setFont(value as Font)}>
+    <Select
+      items={FONT_OPTIONS.map((option) => ({ label: option.label, value: option.value }))}
+      value={font}
+      onValueChange={(value) => {
+        if (value) setFont(value as Font)
+      }}
+    >
       <SelectTrigger className="w-56" style={{ fontFamily: selected?.family }}>
         <SelectValue />
       </SelectTrigger>

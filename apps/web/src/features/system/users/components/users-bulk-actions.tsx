@@ -54,18 +54,20 @@ export function UsersBulkActions({
       >
         <Can permission={PermissionCode.USER_STATUS}>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleBulkStatusChange('active')}
-                className="size-8"
-                aria-label="激活已选择的用户"
-                disabled={!hasSelection || isUpdatingStatus}
-              >
-                <UserCheck />
-                <span className="sr-only">激活已选择的用户</span>
-              </Button>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleBulkStatusChange('active')}
+                  className="size-8"
+                  aria-label="激活已选择的用户"
+                  disabled={!hasSelection || isUpdatingStatus}
+                />
+              }
+            >
+              <UserCheck />
+              <span className="sr-only">激活已选择的用户</span>
             </TooltipTrigger>
             <TooltipContent>
               <p>激活已选择的用户</p>
@@ -73,18 +75,20 @@ export function UsersBulkActions({
           </Tooltip>
 
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleBulkStatusChange('suspended')}
-                className="size-8"
-                aria-label="停用已选择的用户"
-                disabled={!hasSelection || isUpdatingStatus}
-              >
-                <UserX />
-                <span className="sr-only">停用已选择的用户</span>
-              </Button>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleBulkStatusChange('suspended')}
+                  className="size-8"
+                  aria-label="停用已选择的用户"
+                  disabled={!hasSelection || isUpdatingStatus}
+                />
+              }
+            >
+              <UserX />
+              <span className="sr-only">停用已选择的用户</span>
             </TooltipTrigger>
             <TooltipContent>
               <p>停用已选择的用户</p>
@@ -94,18 +98,20 @@ export function UsersBulkActions({
 
         <Can permission={PermissionCode.USER_DELETE}>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="destructive"
-                size="icon"
-                onClick={() => setShowDeleteConfirm(true)}
-                className="size-8"
-                aria-label="删除已选择的用户"
-                disabled={!hasSelection}
-              >
-                <Trash2 />
-                <span className="sr-only">删除已选择的用户</span>
-              </Button>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="size-8"
+                  aria-label="删除已选择的用户"
+                  disabled={!hasSelection}
+                />
+              }
+            >
+              <Trash2 />
+              <span className="sr-only">删除已选择的用户</span>
             </TooltipTrigger>
             <TooltipContent>
               <p>{hasSelection ? '删除已选择的用户' : '请先选择用户'}</p>

@@ -40,37 +40,35 @@ export function ProfileDropdown() {
   return (
     <>
       <DropdownMenu modal={false}>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={user?.avatar ?? undefined} alt="个人头像" />
-              <AvatarFallback>{initials}</AvatarFallback>
-            </Avatar>
-          </Button>
+        <DropdownMenuTrigger
+          render={<Button variant="ghost" className="relative h-8 w-8 rounded-full" />}
+        >
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={user?.avatar ?? undefined} alt="个人头像" />
+            <AvatarFallback>{initials}</AvatarFallback>
+          </Avatar>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56" align="end" forceMount>
-          <DropdownMenuLabel className="font-normal">
-            <div className="flex flex-col gap-1.5">
-              <p className="text-sm leading-none font-medium">{displayName}</p>
-              <p className="text-xs leading-none text-muted-foreground">{email}</p>
-            </div>
-          </DropdownMenuLabel>
+        <DropdownMenuContent className="w-56" align="end">
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col gap-1.5">
+                <p className="text-sm leading-none font-medium">{displayName}</p>
+                <p className="text-xs leading-none text-muted-foreground">{email}</p>
+              </div>
+            </DropdownMenuLabel>
+          </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <DropdownMenuItem asChild>
-              <Link to="/settings/profile">
-                个人资料
-                <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
-              </Link>
+            <DropdownMenuItem render={<Link to="/settings/profile" />} nativeButton={false}>
+              个人资料
+              <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link to="/settings/profile">
-                账户设置
-                <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
-              </Link>
+            <DropdownMenuItem render={<Link to="/settings/profile" />} nativeButton={false}>
+              账户设置
+              <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link to="/settings/appearance">外观设置</Link>
+            <DropdownMenuItem render={<Link to="/settings/appearance" />} nativeButton={false}>
+              外观设置
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />

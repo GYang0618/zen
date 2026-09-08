@@ -4,21 +4,29 @@
  */
 import { createFileRoute } from '@tanstack/react-router'
 import { NotificationsPage } from '@zen/plugin-notifications/web'
+import { PLUGIN_WEB_ROUTES } from '@zen/plugin-registry/web'
 import { Bell } from 'lucide-react'
 
+import { RoutePending } from '@/components/route-pending'
 import { PluginPageShell } from '@/features/plugins/plugin-page-shell'
 import { requireActivePlugin } from '@/lib/plugins/require-active-plugin'
 
+const pluginRoute = PLUGIN_WEB_ROUTES.find((item) => item.path === '/plugins/notifications')
+if (!pluginRoute) {
+  throw new Error('Missing plugin web route metadata: /plugins/notifications')
+}
+
 export const Route = createFileRoute('/_authenticated/plugins/notifications')({
-  beforeLoad: () => requireActivePlugin('notifications'),
+  beforeLoad: () => requireActivePlugin(pluginRoute.pluginId),
+  pendingComponent: RoutePending,
   component: function PluginRoutePage() {
     return <PluginPageShell page={NotificationsPage} />
   },
   staticData: {
-    title: '通知中心',
+    title: pluginRoute.title,
     icon: Bell,
-    order: 110,
-    permissions: ['notif:message:list'],
-    pluginId: 'notifications'
+    order: pluginRoute.order,
+    permissions: [...pluginRoute.permissions],
+    pluginId: pluginRoute.pluginId
   }
 })

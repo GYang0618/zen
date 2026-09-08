@@ -1,3 +1,3 @@
-export * from './permissions'
-export * from './role.schema'
-export * from './role.type'
+export * from './permissions.js'
+export * from './role.schema.js'
+export * from './role.type.js'

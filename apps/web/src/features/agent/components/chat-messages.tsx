@@ -3,6 +3,7 @@
 import { UseAgentUpdate, useAgent, useRenderActivityMessage } from '@copilotkit/react-core/v2'
 import {
   Alert,
+  AlertDescription,
   AlertTitle,
   Button,
   Message,
@@ -169,18 +170,20 @@ interface ReasoningMessageProps {
 
 function ReasoningMessage({ message, content, messages, isRunning }: ReasoningMessageProps) {
   'use no memo'
+  if (isTrailingReasoningAfterReply(messages, message.id)) return null
+
   const last = lastMeaningfulMessage(messages)
-  const isStreaming = Boolean(isRunning && last?.id === message.id && last.role === 'reasoning')
+  const isLatest = messages.at(-1)?.id === message.id
+  const isStreaming = Boolean(isRunning && (last?.id === message.id || isLatest))
   const hasContent = Boolean(content.length)
 
-  // 空 reasoning、以及纯文本答案之后冒出来的收尾 reasoning，都不要露出「思考中」。
-  if (!hasContent) return null
-  if (isTrailingReasoningAfterReply(messages, message.id)) return null
+  // 既无内容又非当前流式活跃的空 reasoning 不展示
+  if (!hasContent && !isStreaming) return null
 
   return (
     <Reasoning className="w-full" isStreaming={isStreaming}>
       <ReasoningTrigger />
-      <ReasoningContent>{sanitizeReasoningContent(content)}</ReasoningContent>
+      {hasContent && <ReasoningContent>{sanitizeReasoningContent(content)}</ReasoningContent>}
     </Reasoning>
   )
 }
@@ -345,13 +348,17 @@ interface ChatRunErrorProps {
 }
 
 function ChatRunError({ message, onRetry, disabled }: ChatRunErrorProps) {
+  const [title, ...rest] = message.split('：')
+  const detail = rest.join('：')
+
   return (
     <Message from="assistant">
       <MessageContent>
         <div className="flex flex-col items-start gap-2">
           <Alert variant="destructive" className="max-w-max">
             <AlertCircle />
-            <AlertTitle>{message}</AlertTitle>
+            <AlertTitle>{title}</AlertTitle>
+            {detail ? <AlertDescription>{detail}</AlertDescription> : null}
           </Alert>
           <Button type="button" variant="outline" size="sm" onClick={onRetry} disabled={disabled}>
             <RefreshCw data-icon="inline-start" />

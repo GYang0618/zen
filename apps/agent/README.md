@@ -45,6 +45,17 @@ pnpm run dev          # LangGraph CLI
 pnpm run service      # Hono 服务（watch）
 ```
 
+开发模式的 `langgraphjs dev` 使用 CLI 的本地开发状态文件，仅适合单进程开发。
+需要验证跨进程恢复、断线重连或生产部署时，先启动 `zen-langgraph-postgres`，再执行：
+
+```bash
+pnpm run up
+```
+
+该命令强制要求 `LANGGRAPH_POSTGRES_URI`，调用官方 `langgraphjs up --postgres-uri`，
+由 LangGraph API 管理 checkpoint 和 Store；API 的 Prisma 数据库只保存查询投影、审批、
+工具账本、Artifact 和审计数据。
+
 只跑根目录 `pnpm dev`。Ctrl+C 等到退出，不要叉终端。Copilot 连不上时：
 
 ```powershell
