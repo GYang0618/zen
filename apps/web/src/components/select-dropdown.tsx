@@ -31,7 +31,10 @@ export function SelectDropdown({
     ? { value: defaultValue, onValueChange: handleValueChange }
     : { defaultValue, onValueChange: handleValueChange }
   return (
-    <Select {...defaultState} items={isPending ? [{ label: 'Loading...', value: 'loading' }] : items}>
+    <Select
+      {...defaultState}
+      items={isPending ? [{ label: 'Loading...', value: 'loading' }] : items}
+    >
       <SelectTrigger disabled={disabled} className={cn(className)}>
         <SelectValue placeholder={placeholder ?? 'Select'} />
       </SelectTrigger>

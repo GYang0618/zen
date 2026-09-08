@@ -134,14 +134,16 @@ export function OrganizationSideOverview() {
           <CardTitle>
             <div className="flex items-center justify-between">
               <h2>负责人</h2>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="编辑负责人"
-                onClick={() => setOpen('edit-leader')}
-              >
-                <Pencil />
-              </Button>
+              {leader ? (
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="编辑负责人"
+                  onClick={() => setOpen('edit-leader')}
+                >
+                  <Pencil />
+                </Button>
+              ) : null}
             </div>
           </CardTitle>
         </CardHeader>
@@ -172,9 +174,15 @@ export function OrganizationSideOverview() {
               </div>
             </>
           ) : (
-            <p className="border border-dashed rounded-2xl h-20 flex items-center justify-center">
-              <Plus />
-            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-24 w-full flex-col gap-2 border-dashed"
+              onClick={() => setOpen('edit-leader')}
+            >
+              <Plus data-icon="inline-start" />
+              添加负责人
+            </Button>
           )}
         </CardContent>
       </Card>

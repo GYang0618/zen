@@ -64,6 +64,17 @@ export function buildOrganizationCreatedDiff(org: {
   })
 }
 
+export function buildOrganizationDeletedDiff(org: {
+  id: string
+  code: string
+  name: string
+}): AuditDiff {
+  return createAuditDiff({
+    summary: `删除了组织「${org.name}」`,
+    target: { id: org.id, code: org.code, name: org.name }
+  })
+}
+
 export function buildOrganizationUpdatedDiff(
   existing: {
     id: string

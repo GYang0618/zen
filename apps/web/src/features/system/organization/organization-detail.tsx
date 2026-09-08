@@ -81,9 +81,7 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
             size="icon-lg"
             className="rounded-full"
             nativeButton={false}
-            render={
-              <Link to="/system/organization" aria-label="返回组织管理" />
-            }
+            render={<Link to="/system/organization" aria-label="返回组织管理" />}
           >
             <ArrowLeft />
           </Button>

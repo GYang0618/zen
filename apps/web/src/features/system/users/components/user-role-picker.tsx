@@ -110,32 +110,35 @@ export function UserRolePicker({
                     variant="outline"
                     size="sm"
                     className="cursor-pointer"
-                    render={<label htmlFor={`create-role-${role.id}`} />}
+                    render={
+                      // biome-ignore lint/a11y/noLabelWithoutControl: Base UI render prop 将 Item 内容渲染至 label 内部
+                      <label htmlFor={`create-role-${role.id}`} />
+                    }
                   >
-                      <ItemMedia>
-                        <Checkbox
-                          id={`create-role-${role.id}`}
-                          checked={checked}
-                          onCheckedChange={(next) => toggleRole(role.id, next === true)}
-                          aria-label={`选择 ${role.name}`}
-                        />
-                      </ItemMedia>
-                      <ItemMedia>
-                        <UserRoleIcon
-                          className="size-6 rounded-md"
-                          icon={role.icon}
-                          iconColor={role.iconColor}
-                        />
-                      </ItemMedia>
-                      <ItemContent>
-                        <ItemTitle className="min-w-0">
-                          <span className="truncate">{role.name}</span>
-                          <span className="font-mono text-xs font-normal text-muted-foreground">
-                            {role.code}
-                          </span>
-                        </ItemTitle>
-                        <ItemDescription>{role.description || '该角色暂无描述'}</ItemDescription>
-                      </ItemContent>
+                    <ItemMedia>
+                      <Checkbox
+                        id={`create-role-${role.id}`}
+                        checked={checked}
+                        onCheckedChange={(next) => toggleRole(role.id, next === true)}
+                        aria-label={`选择 ${role.name}`}
+                      />
+                    </ItemMedia>
+                    <ItemMedia>
+                      <UserRoleIcon
+                        className="size-6 rounded-md"
+                        icon={role.icon}
+                        iconColor={role.iconColor}
+                      />
+                    </ItemMedia>
+                    <ItemContent>
+                      <ItemTitle className="min-w-0">
+                        <span className="truncate">{role.name}</span>
+                        <span className="font-mono text-xs font-normal text-muted-foreground">
+                          {role.code}
+                        </span>
+                      </ItemTitle>
+                      <ItemDescription>{role.description || '该角色暂无描述'}</ItemDescription>
+                    </ItemContent>
                   </Item>
                 )
               })}

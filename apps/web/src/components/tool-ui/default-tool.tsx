@@ -61,7 +61,11 @@ export function ToolFallback({ part, className }: AssistantToolUIProps & { class
     <Collapsible className={cn('rounded-md has-data-open:bg-muted border bg-muted/40', className)}>
       <CollapsibleTrigger
         render={
-          <Button variant="ghost" size="lg" className="border-none p-2 group w-full justify-start" />
+          <Button
+            variant="ghost"
+            size="lg"
+            className="border-none p-2 group w-full justify-start"
+          />
         }
       >
         <ChevronRightIcon className="in-data-panel-open:rotate-90" />

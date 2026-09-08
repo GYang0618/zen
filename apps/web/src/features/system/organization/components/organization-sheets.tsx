@@ -124,7 +124,11 @@ function LeaderSelect({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         render={
-          <Button variant="outline" role="combobox" className="w-full justify-between font-normal" />
+          <Button
+            variant="outline"
+            role="combobox"
+            className="w-full justify-between font-normal"
+          />
         }
       >
         {selected ? `${selected.name} · ${selected.email}` : '搜索用户 ID、姓名或邮箱'}
@@ -338,9 +342,7 @@ export function OrganizationDetailsPanel({
               )}
               <Button
                 nativeButton={false}
-                render={
-                  <Link to="/system/organization/$id" params={{ id: organization.id }} />
-                }
+                render={<Link to="/system/organization/$id" params={{ id: organization.id }} />}
               >
                 进入组织详情
                 <ArrowRight data-icon="inline-end" />

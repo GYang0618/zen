@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { firstFrameTime, formatFileSize } from './utils'
+import { firstFrameTime, formatFileFormat, formatFileSize } from './utils'
 
 describe('formatFileSize', () => {
   it('formats bytes under 1 KB', () => {
@@ -25,5 +25,21 @@ describe('firstFrameTime', () => {
 
   it('seeks slightly past zero so the first visible frame can decode', () => {
     expect(firstFrameTime(12)).toBe(0.1)
+  })
+})
+
+describe('formatFileFormat', () => {
+  it('prefers the original file extension', () => {
+    expect(formatFileFormat({ originalName: '头像.JPEG', mimeType: 'image/jpeg' })).toBe('JPEG')
+  })
+
+  it('uses the MIME type when the file name has no extension', () => {
+    expect(
+      formatFileFormat({ originalName: '导出文件', mimeType: 'application/pdf; charset=utf-8' })
+    ).toBe('application/pdf')
+  })
+
+  it('falls back to an unknown format label', () => {
+    expect(formatFileFormat({ originalName: '未命名', mimeType: null })).toBe('未知格式')
   })
 })

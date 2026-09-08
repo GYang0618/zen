@@ -4,23 +4,75 @@ import { z } from 'zod'
 
 import type { BaseMessage } from '@langchain/core/messages'
 
-const frontendToolSchema = z.object({
-  type: z.literal('function'),
-  function: z.object({
-    name: z.string().regex(/^[a-zA-Z_][a-zA-Z0-9_-]*$/),
-    description: z.string(),
-    parameters: z.record(z.string(), z.unknown())
-  })
+const flexibleToolSchema = z.union([
+  z.object({
+    type: z.literal('function'),
+    function: z.object({
+      name: z.string().regex(/^[a-zA-Z_][a-zA-Z0-9_-]*$/),
+      description: z.string().default(''),
+      parameters: z.record(z.string(), z.unknown()).default({})
+    })
+  }),
+  z
+    .object({
+      name: z.string().regex(/^[a-zA-Z_][a-zA-Z0-9_-]*$/),
+      description: z.string().optional().default(''),
+      parameters: z.record(z.string(), z.unknown()).optional().default({})
+    })
+    .transform((tool) => ({
+      type: 'function' as const,
+      function: {
+        name: tool.name,
+        description: tool.description ?? '',
+        parameters: tool.parameters ?? {}
+      }
+    }))
+])
+
+const contextItemSchema = z.object({
+  description: z.string(),
+  value: z.string()
 })
 
 export const frontendStateSchema = z.object({
   'ag-ui': z
     .object({
-      tools: z.array(frontendToolSchema).default([]),
-      context: z.array(z.object({ description: z.string(), value: z.string() })).default([])
+      tools: z.array(flexibleToolSchema).default([]),
+      context: z.array(contextItemSchema).default([])
     })
-    .prefault({})
+    .prefault({ tools: [], context: [] }),
+  copilotkit: z
+    .object({
+      actions: z.array(flexibleToolSchema).optional().default([]),
+      context: z.array(contextItemSchema).optional().default([])
+    })
+    .optional()
 })
+
+export function extractFrontendTools(state: unknown) {
+  const parsed = frontendStateSchema.safeParse(state)
+  if (!parsed.success) return []
+  const data = parsed.data
+  const aguiTools = data['ag-ui']?.tools ?? []
+  const copilotkitActions = data.copilotkit?.actions ?? []
+  const all = [...aguiTools, ...copilotkitActions]
+  const deduped = new Map<string, (typeof all)[number]>()
+  for (const t of all) {
+    if (!deduped.has(t.function.name)) {
+      deduped.set(t.function.name, t)
+    }
+  }
+  return Array.from(deduped.values())
+}
+
+export function extractFrontendContext(state: unknown) {
+  const parsed = frontendStateSchema.safeParse(state)
+  if (!parsed.success) return []
+  const data = parsed.data
+  const aguiContext = data['ag-ui']?.context ?? []
+  const copilotkitContext = data.copilotkit?.context ?? []
+  return [...aguiContext, ...copilotkitContext]
+}
 
 function pendingToolCalls(messages: BaseMessage[]) {
   const lastAssistantIndex = messages.findLastIndex((message) => AIMessage.isInstance(message))
@@ -42,9 +94,10 @@ export function createFrontendToolsMiddleware(serverToolNames: readonly string[]
     name: 'agUiFrontendTools',
     stateSchema: frontendStateSchema,
     wrapModelCall: (request, handler) => {
-      const frontend = frontendStateSchema.parse(request.state)['ag-ui']
+      const frontendTools = extractFrontendTools(request.state)
+      const frontendContext = extractFrontendContext(request.state)
       const names = new Set<string>()
-      for (const tool of frontend.tools) {
+      for (const tool of frontendTools) {
         if (reservedNames.has(tool.function.name) || names.has(tool.function.name)) {
           throw new Error(
             `Frontend tool name conflicts with a registered tool: ${tool.function.name}`
@@ -54,10 +107,10 @@ export function createFrontendToolsMiddleware(serverToolNames: readonly string[]
       }
       return handler({
         ...request,
-        tools: [...request.tools, ...frontend.tools],
-        systemMessage: frontend.context.length
+        tools: [...request.tools, ...frontendTools],
+        systemMessage: frontendContext.length
           ? request.systemMessage.concat(
-              `\nApplication context:\n${JSON.stringify(frontend.context)}`
+              `\nApplication context:\n${JSON.stringify(frontendContext)}`
             )
           : request.systemMessage
       })
@@ -66,7 +119,7 @@ export function createFrontendToolsMiddleware(serverToolNames: readonly string[]
       canJumpTo: ['tools', 'end'],
       hook: (state) => {
         const pending = pendingToolCalls(state.messages)
-        const frontendNames = new Set(state['ag-ui'].tools.map((tool) => tool.function.name))
+        const frontendNames = new Set(extractFrontendTools(state).map((tool) => tool.function.name))
         if (pending.some((call) => frontendNames.has(call.name))) return { jumpTo: 'end' }
         // Mixed frontend/backend calls resume unfinished backend work only after browser results arrive.
         if (pending.some((call) => reservedNames.has(call.name))) return { jumpTo: 'tools' }
@@ -75,7 +128,7 @@ export function createFrontendToolsMiddleware(serverToolNames: readonly string[]
     afterModel: {
       canJumpTo: ['end'],
       hook: (state) => {
-        const frontendNames = new Set(state['ag-ui'].tools.map((tool) => tool.function.name))
+        const frontendNames = new Set(extractFrontendTools(state).map((tool) => tool.function.name))
         if (pendingToolCalls(state.messages).some((call) => frontendNames.has(call.name))) {
           return { jumpTo: 'end' }
         }

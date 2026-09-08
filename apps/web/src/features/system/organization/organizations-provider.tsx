@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import {
   useChangeOrganizationParent,
   useCreateOrganization,
+  useDeleteOrganization,
   useOrganizationTree,
   useUpdateOrganization,
   useUpdateOrganizationLeader
@@ -39,6 +40,7 @@ type OrganizationsContextType = {
     id: string,
     input: Omit<OrganizationBasicInput, 'code' | 'leaderId'> & { code?: string }
   ) => Promise<SharedOrganization | undefined>
+  deleteOrganization: (id: string) => Promise<void>
   updateOrganizationLeader: (id: string, leaderId: string | null) => Promise<SharedOrganization>
   moveOrganization: (activeId: string, overId: string) => Promise<boolean>
   hasOrganizationCode: (code: string, excludeId?: string) => boolean
@@ -54,6 +56,7 @@ export function OrganizationsProvider({ children }: { children: React.ReactNode 
   const { data: organizations = [], isLoading } = useOrganizationTree()
   const createOrganization = useCreateOrganization()
   const updateOrganizationMutation = useUpdateOrganization()
+  const deleteOrganizationMutation = useDeleteOrganization()
   const updateLeaderMutation = useUpdateOrganizationLeader()
   const changeParentMutation = useChangeOrganizationParent()
 
@@ -122,6 +125,10 @@ export function OrganizationsProvider({ children }: { children: React.ReactNode 
     })
   }
 
+  const deleteOrganization = async (id: string) => {
+    await deleteOrganizationMutation.mutateAsync(id)
+  }
+
   const moveOrganization = async (activeId: string, overId: string): Promise<boolean> => {
     const validation = validateOrganizationDrop(organizations, activeId, overId)
     if (!validation.isValid) return false
@@ -154,6 +161,7 @@ export function OrganizationsProvider({ children }: { children: React.ReactNode 
         isLoading,
         addOrganization,
         updateOrganization,
+        deleteOrganization,
         updateOrganizationLeader,
         moveOrganization,
         hasOrganizationCode,

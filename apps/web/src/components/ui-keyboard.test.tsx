@@ -62,7 +62,13 @@ describe('Base UI overlay keyboard contract', () => {
 
   it('Select 触发器可键盘聚焦并打开列表', () => {
     render(
-      <Select defaultValue="a" items={[{ label: '启用', value: 'a' }, { label: '停用', value: 'b' }]}>
+      <Select
+        defaultValue="a"
+        items={[
+          { label: '启用', value: 'a' },
+          { label: '停用', value: 'b' }
+        ]}
+      >
         <SelectTrigger aria-label="状态">
           <SelectValue />
         </SelectTrigger>

@@ -92,6 +92,10 @@ export class OrganizationRepository {
     })
   }
 
+  delete(id: string) {
+    return this.prisma.organization.delete({ where: { id } })
+  }
+
   updateManyPaths(
     updates: Array<{ id: string; path: string; level: number; parentId?: string | null }>
   ) {

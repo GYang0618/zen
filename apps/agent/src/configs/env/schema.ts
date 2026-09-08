@@ -3,7 +3,7 @@ import { z } from 'zod'
 export const envSchema = z.object({
   API_BASE_URL: z
     .url()
-    .default('http://127.0.0.1:3000')
+    .default('http://127.0.0.1:3100')
     .describe('后端 API 根地址（与 swagger.json 中路径前缀一致，不含尾部斜杠）'),
   OPENAI_API_KEY: z.string().describe('OpenAI API 密钥'),
   OPENAI_BASE_URL: z.url().optional().describe('OpenAI 基础 URL'),

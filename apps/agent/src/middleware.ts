@@ -18,7 +18,7 @@ import {
   selectToolNamesForCapabilities
 } from '@/tool-domains'
 import { createApprovalPolicy } from '@/tool-policy'
-import { getAgentToolPluginId } from '@/tools'
+import { defaultAgentToolDescriptors, getAgentToolPluginId } from '@/tools'
 
 import type { createQwenModel } from '@/models'
 
@@ -60,9 +60,24 @@ export const pluginToolVisibilityMiddleware = createMiddleware({
 export const domainToolFilterMiddleware = createMiddleware({
   name: 'domainToolFilter',
   wrapModelCall: (request, handler) => {
-    const availableNames = request.tools.flatMap((registeredTool) =>
-      typeof registeredTool.name === 'string' ? [registeredTool.name] : []
-    )
+    const getToolName = (toolItem: unknown): string | undefined => {
+      if (!toolItem || typeof toolItem !== 'object') return undefined
+      if ('name' in toolItem && typeof (toolItem as { name?: unknown }).name === 'string') {
+        return (toolItem as { name: string }).name
+      }
+      if (
+        'function' in toolItem &&
+        typeof (toolItem as { function?: { name?: unknown } }).function?.name === 'string'
+      ) {
+        return (toolItem as { function: { name: string } }).function.name
+      }
+      return undefined
+    }
+
+    const availableNames = request.tools.flatMap((registeredTool) => {
+      const name = getToolName(registeredTool)
+      return name ? [name] : []
+    })
     const hints = collectConversationHints(request.messages)
     const selected = selectToolNamesForCapabilities(
       availableNames,
@@ -70,12 +85,16 @@ export const domainToolFilterMiddleware = createMiddleware({
     )
     if (!selected) return handler(request)
     const allowed = new Set(selected)
+    const registeredBackendNames = new Set(defaultAgentToolDescriptors.map((item) => item.name))
+
     return handler({
       ...request,
-      tools: request.tools.filter(
-        (registeredTool) =>
-          typeof registeredTool.name !== 'string' || allowed.has(registeredTool.name)
-      )
+      tools: request.tools.filter((registeredTool) => {
+        const name = getToolName(registeredTool)
+        // 动态注入的前端工具或未在服务端清单注册的工具一律放行，不被服务端领域规则裁剪
+        if (!name || !registeredBackendNames.has(name)) return true
+        return allowed.has(name)
+      })
     })
   }
 })

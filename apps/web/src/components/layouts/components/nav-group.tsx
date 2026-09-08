@@ -92,7 +92,11 @@ function SidebarMenuLink({ item, href }: { item: NavLink; href: string }) {
         isActive={!item.external && checkIsActive(href, item)}
         tooltip={item.title}
         render={
-          <NavAnchor url={item.url} external={item.external} onNavigate={() => setOpenMobile(false)} />
+          <NavAnchor
+            url={item.url}
+            external={item.external}
+            onNavigate={() => setOpenMobile(false)}
+          />
         }
       >
         {item.icon && <item.icon />}
@@ -164,7 +168,12 @@ function SidebarMenuCollapsedDropdown({ item, href }: { item: NavCollapsible; hr
           {item.badge && <NavBadge>{item.badge}</NavBadge>}
           <ChevronRight className="ms-auto transition-transform duration-200 in-data-panel-open:rotate-90" />
         </DropdownMenuTrigger>
-        <DropdownMenuContent side="right" align="start" sideOffset={4} className="min-w-56 rounded-lg">
+        <DropdownMenuContent
+          side="right"
+          align="start"
+          sideOffset={4}
+          className="min-w-56 rounded-lg"
+        >
           <DropdownMenuGroup>
             <DropdownMenuLabel>
               {item.title} {item.badge ? `(${item.badge})` : ''}

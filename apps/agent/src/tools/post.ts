@@ -50,19 +50,20 @@ const POST_WRITE_HINTS: RecoverableHint[] = [
 
 export const getJobProfilesTool = tool(
   async (input, config) =>
-    executeApiCall(config, async (_context) =>
-      postControllerFindAll(
+    executeApiCall(config, async (_context) => {
+      const status = Array.isArray(input.status) ? input.status[0] : input.status
+      return postControllerFindAll(
         asSdkOptions({
           query: {
             ...(input.page !== undefined ? { page: Number(input.page) } : {}),
             ...(input.pageSize !== undefined ? { pageSize: Number(input.pageSize) } : {}),
             ...(input.keyword !== undefined ? { keyword: input.keyword } : {}),
-            ...(input.status !== undefined ? { status: input.status } : {}),
+            ...(status !== undefined ? { status } : {}),
             ...(input.level !== undefined ? { level: input.level } : {})
           }
         })
       )
-    ),
+    }),
   {
     name: 'query_job_profiles_list',
     description:

@@ -137,6 +137,7 @@ export const getUsersTool = tool(
     name: 'query_users_list',
     description:
       '查询用户列表。keyword 为子串匹配（谷歌邮箱用 gmail.com / @gmail.com，不要用 google.com）。' +
+      '按状态筛选注意：已停用/禁用账号必须使用 status="suspended"（inactive 仅表示尚未完成激活流程）。' +
       'page 与 pageSize 可只传其一。返回精简字段；完整资料用 query_user_detail。',
     schema: usersQuerySchema
   }

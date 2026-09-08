@@ -60,6 +60,7 @@ describe('compactPagedToolResult', () => {
             nickname: '赵磊',
             realName: '赵磊',
             status: 'active',
+            avatar: 'https://example.com/a.png',
             roles: [{ id: 'r1', code: 'user', name: '普通用户', status: 'active' }]
           }
         ],

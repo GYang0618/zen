@@ -112,7 +112,10 @@ export const findJobProfilesQuerySchema = pageQuerySchema
       .default(20)
       .describe('每页数量，默认 20，最大 100'),
     keyword: z.string().trim().optional().describe('关键字：匹配岗位名称或编码'),
-    status: jobProfileStatusSchema.optional(),
+    status: z
+      .union([jobProfileStatusSchema, jobProfileStatusSchema.array().nonempty()])
+      .optional()
+      .describe('岗位状态：active=启用；disabled=停用。支持单个或数组'),
     level: jobProfileLevelSchema.optional()
   })
   .strict()

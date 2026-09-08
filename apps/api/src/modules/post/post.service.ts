@@ -35,9 +35,14 @@ export class PostService {
   constructor(@Inject(PostRepository) private readonly postRepo: PostRepository) {}
 
   async findAll(query: FindJobProfilesQueryDto): Promise<JobProfilesPageResponse> {
+    const resolvedStatus = Array.isArray(query.status)
+      ? query.status.map(fromApiJobProfileStatus)
+      : query.status
+        ? fromApiJobProfileStatus(query.status)
+        : undefined
     const where = this.postRepo.buildProfileWhere({
       keyword: query.keyword,
-      status: query.status ? fromApiJobProfileStatus(query.status) : undefined,
+      status: resolvedStatus,
       level: query.level
     })
 

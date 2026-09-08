@@ -1,4 +1,6 @@
-import type { FileCategory, FilePurpose, FileStatus } from '@zen/shared'
+import { fileExtname } from '@zen/shared'
+
+import type { FileAsset, FileCategory, FilePurpose, FileStatus } from '@zen/shared'
 
 export const CATEGORY_LABEL: Record<FileCategory, string> = {
   image: '图片',
@@ -43,6 +45,12 @@ export function formatFileSize(bytes: number) {
     index += 1
   }
   return `${value.toFixed(index === 0 ? 0 : 1)} ${units[index]}`
+}
+
+export function formatFileFormat(file: Pick<FileAsset, 'originalName' | 'mimeType'>) {
+  const extension = fileExtname(file.originalName)
+  if (extension) return extension.slice(1).toUpperCase()
+  return file.mimeType?.split(';')[0]?.trim() || '未知格式'
 }
 
 /** 取接近片头的可解码位置：0 秒在部分编码下是空帧，超短视频则仍用 0。 */

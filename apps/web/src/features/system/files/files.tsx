@@ -15,40 +15,51 @@ import {
 import { LayoutGrid, TextAlignStart } from 'lucide-react'
 import { useState } from 'react'
 
+import { EmptyState } from '@/components/empty-state'
+import { InfiniteScrollSentinel } from '@/components/infinite-scroll-sentinel'
 import { AppHeader, Main } from '@/components/layouts'
 import { AppPageHeader } from '@/components/layouts/app-page-header'
+import { flattenPages } from '@/lib/infinite-list'
 
 import { FilesDialogs } from './components/files-dialogs'
 import { FilesGrid } from './components/files-grid'
 import { FilesPrimaryButtons } from './components/files-primary-buttons'
 import { FilesTable } from './components/files-table'
 import { FilesProvider, useFiles } from './files-provider'
-import { useFilesQuery } from './queries'
+import { useFilesInfiniteQuery } from './queries'
 import { CATEGORY_TABS, STATUS_LABEL } from './utils'
 
 import type { FileAsset, FileCategory, FileStatus } from '@zen/shared'
 
 function FilesContent() {
-  const { setOpen, setCurrentRow } = useFiles()
-  const [page, setPage] = useState(1)
+  const { openPreview } = useFiles()
   const [keyword, setKeyword] = useState('')
   const [category, setCategory] = useState<FileCategory | 'all'>('all')
   const [status, setStatus] = useState<FileStatus | 'all'>('all')
   const [includeDeleted, setIncludeDeleted] = useState(false)
   const [view, setView] = useState<'grid' | 'table'>('grid')
 
-  const { data, isLoading } = useFilesQuery({
-    page,
-    pageSize: 20,
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isError,
+    isFetchingNextPage,
+    isFetchNextPageError,
+    hasNextPage,
+    fetchNextPage
+  } = useFilesInfiniteQuery({
     keyword: keyword.trim() || undefined,
     category: category === 'all' ? undefined : category,
     status: status === 'all' ? undefined : status,
     includeDeleted: includeDeleted || undefined
   })
+  const files = flattenPages(data)
+  const previewImages = files.filter((file) => file.status === 'ready' && file.category === 'image')
+  const isFilterFetching = isFetching && !isFetchingNextPage
 
-  const openPreview = (file: FileAsset) => {
-    setCurrentRow(file)
-    setOpen('preview')
+  const handlePreview = (file: FileAsset) => {
+    openPreview(file, previewImages)
   }
 
   return (
@@ -60,7 +71,6 @@ function FilesContent() {
           value={category}
           onValueChange={(value) => {
             setCategory(value as FileCategory | 'all')
-            setPage(1)
           }}
         >
           <TabsList aria-label="文件分类">
@@ -76,10 +86,7 @@ function FilesContent() {
             className="max-w-64"
             placeholder="搜索文件名"
             value={keyword}
-            onChange={(event) => {
-              setKeyword(event.target.value)
-              setPage(1)
-            }}
+            onChange={(event) => setKeyword(event.target.value)}
             aria-label="搜索文件名"
           />
           <Select
@@ -94,7 +101,6 @@ function FilesContent() {
             onValueChange={(value) => {
               if (!value) return
               setStatus(value as FileStatus | 'all')
-              setPage(1)
             }}
           >
             <SelectTrigger className="w-36" aria-label="状态">
@@ -114,10 +120,7 @@ function FilesContent() {
           <Button
             type="button"
             variant={includeDeleted ? 'secondary' : 'outline'}
-            onClick={() => {
-              setIncludeDeleted((current) => !current)
-              setPage(1)
-            }}
+            onClick={() => setIncludeDeleted((current) => !current)}
           >
             {includeDeleted ? '含回收站' : '不含回收站'}
           </Button>
@@ -142,39 +145,26 @@ function FilesContent() {
             </Button>
           </div>
         </div>
-        {view === 'grid' ? (
-          <FilesGrid data={data?.items ?? []} isLoading={isLoading} onPreview={openPreview} />
-        ) : (
-          <FilesTable
-            data={data?.items ?? []}
-            isLoading={isLoading}
-            page={data?.pagination.page ?? page}
-            totalPages={Math.max(data?.pagination.totalPages ?? 1, 1)}
-            onPageChange={setPage}
-            onPreview={openPreview}
-          />
-        )}
-        {view === 'grid' ? (
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage(page - 1)}
-            >
-              上一页
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={page >= (data?.pagination.totalPages ?? 1)}
-              onClick={() => setPage(page + 1)}
-            >
-              下一页
-            </Button>
+        {isError && files.length === 0 ? (
+          <EmptyState title="文件列表加载失败" description="请稍后重试" compact />
+        ) : view === 'grid' ? (
+          <div className={isFilterFetching ? 'opacity-70 transition-opacity' : undefined}>
+            <FilesGrid data={files} isLoading={isLoading} onPreview={handlePreview} />
           </div>
+        ) : (
+          <div className={isFilterFetching ? 'opacity-70 transition-opacity' : undefined}>
+            <FilesTable data={files} isLoading={isLoading} onPreview={handlePreview} />
+          </div>
+        )}
+        {files.length > 0 ? (
+          <InfiniteScrollSentinel
+            hasNextPage={Boolean(hasNextPage)}
+            isFetchingNextPage={isFetchingNextPage}
+            isError={isFetchNextPageError}
+            onLoadMore={() => {
+              void fetchNextPage()
+            }}
+          />
         ) : null}
       </Main>
       <FilesDialogs accept={FILE_CATEGORY_ACCEPT[category]} />

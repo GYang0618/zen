@@ -43,17 +43,14 @@ function NewThreadButton({
   const isIconCollapsed = state === 'collapsed' && !isMobile
 
   return (
-    <>
+    <div className="flex flex-col gap-1">
       <Tooltip>
         <TooltipTrigger
           render={
             <Button
               variant="ghost"
               size={isIconCollapsed ? 'icon' : 'default'}
-              className={cn(
-                'h-8 rounded-full',
-                isIconCollapsed ? 'size-8' : 'w-full  justify-start '
-              )}
+              className={cn('h-8', isIconCollapsed ? 'size-8' : 'w-full  justify-start ')}
               disabled={disabled}
               onClick={onCreate}
               aria-label="发起新对话"
@@ -74,10 +71,7 @@ function NewThreadButton({
             <Button
               variant="ghost"
               size={isIconCollapsed ? 'icon' : 'default'}
-              className={cn(
-                'h-8 rounded-full',
-                isIconCollapsed ? 'size-8' : 'w-full  justify-start '
-              )}
+              className={cn('h-8', isIconCollapsed ? 'size-8' : 'w-full  justify-start ')}
               disabled={disabled}
               aria-label="自动化任务"
             />
@@ -90,6 +84,6 @@ function NewThreadButton({
           自动化任务
         </TooltipContent>
       </Tooltip>
-    </>
+    </div>
   )
 }

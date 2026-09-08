@@ -55,7 +55,12 @@ export function PostsRowActions({
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button type="button" variant="ghost" size="icon-sm" aria-label={`打开${item.name}的操作`} />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`打开${item.name}的操作`}
+          />
         }
       >
         <MoreHorizontal />

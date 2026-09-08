@@ -106,6 +106,18 @@ export class OrganizationController {
     return this.organizationService.update(id, payload, auth)
   }
 
+  @Delete(':id')
+  @RequirePermission(PermissionCode.ORG_DELETE)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: '删除组织',
+    description: '仅允许删除没有下级组织、成员和岗位的组织。'
+  })
+  @ApiParam({ name: 'id', description: '组织 ID' })
+  async remove(@Param('id') id: string, @CurrentAuth() auth: AuthContext): Promise<void> {
+    await this.organizationService.remove(id, auth)
+  }
+
   @Patch(':id/leader')
   @RequirePermission(PermissionCode.ORG_UPDATE)
   @ApiOperation({ summary: '变更组织负责人' })

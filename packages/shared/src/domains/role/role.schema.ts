@@ -214,7 +214,9 @@ export const rolesQuerySchema = pageQuerySchema.extend({
   status: z
     .union([roleStatusSchema, roleStatusSchema.array()])
     .optional()
-    .describe('持久化状态，支持单个或多个，如 `active` 或 [`active`, `disabled`]'),
+    .describe(
+      '持久化状态：active=启用；disabled=禁用。支持单个或多个，如 active 或 [active, disabled]'
+    ),
   effectiveStatus: z
     .union([roleEffectiveStatusSchema, roleEffectiveStatusSchema.array()])
     .optional()

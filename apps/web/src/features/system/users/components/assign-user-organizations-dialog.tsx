@@ -177,42 +177,44 @@ export function AssignUserOrganizationsDialog({
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
             <div className="px-4">
               {step === 'confirm' ? (
-              <div className="flex flex-col gap-4 py-2">
-                <AssignmentChangeSummary
-                  added={changes.addedIds.map((id) => ({ id, label: resolveOrgName(id) }))}
-                  removed={changes.removedIds.map((id) => ({ id, label: resolveOrgName(id) }))}
-                  details={changeDetails}
-                />
-                <AssignmentSessionAlert isSelf={isSelf} />
-              </div>
-            ) : null}
+                <div className="flex flex-col gap-4 py-2">
+                  <AssignmentChangeSummary
+                    added={changes.addedIds.map((id) => ({ id, label: resolveOrgName(id) }))}
+                    removed={changes.removedIds.map((id) => ({ id, label: resolveOrgName(id) }))}
+                    details={changeDetails}
+                  />
+                  <AssignmentSessionAlert isSelf={isSelf} />
+                </div>
+              ) : null}
 
-            {step === 'edit' ? (
-              <AssignUserOrganizationsEditor
-                treeLoading={treeLoading && tree.length === 0}
-                treeError={treeError}
-                hasAvailableOrgs={selectableIds.size > 0}
-                tree={tree}
-                selectableIds={selectableIds}
-                memberships={memberships}
-                primaryOrgId={primaryOrgId}
-                resolveOrgName={resolveOrgName}
-                resolveOrgType={resolveOrgType}
-                onRetry={() => {
-                  void refetch()
-                }}
-                onAdd={handleAdd}
-                onPrimaryChange={setPrimaryOrgId}
-                onPostChange={(organizationId, postId, postName) => {
-                  setMemberships((prev) =>
-                    prev.map((item) =>
-                      item.organizationId === organizationId ? { ...item, postId, postName } : item
+              {step === 'edit' ? (
+                <AssignUserOrganizationsEditor
+                  treeLoading={treeLoading && tree.length === 0}
+                  treeError={treeError}
+                  hasAvailableOrgs={selectableIds.size > 0}
+                  tree={tree}
+                  selectableIds={selectableIds}
+                  memberships={memberships}
+                  primaryOrgId={primaryOrgId}
+                  resolveOrgName={resolveOrgName}
+                  resolveOrgType={resolveOrgType}
+                  onRetry={() => {
+                    void refetch()
+                  }}
+                  onAdd={handleAdd}
+                  onPrimaryChange={setPrimaryOrgId}
+                  onPostChange={(organizationId, postId, postName) => {
+                    setMemberships((prev) =>
+                      prev.map((item) =>
+                        item.organizationId === organizationId
+                          ? { ...item, postId, postName }
+                          : item
+                      )
                     )
-                  )
-                }}
-                onRemove={handleRemove}
-              />
-            ) : null}
+                  }}
+                  onRemove={handleRemove}
+                />
+              ) : null}
             </div>
           </div>
 

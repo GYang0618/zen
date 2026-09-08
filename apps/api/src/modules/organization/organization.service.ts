@@ -31,6 +31,7 @@ import { OrganizationRepository } from './organization.repository.js'
 import { assertValidParentType, canBeChildOf, throwMoveRejection } from './organization.rules.js'
 import {
   buildOrganizationCreatedDiff,
+  buildOrganizationDeletedDiff,
   buildOrganizationLeaderDiff,
   buildOrganizationMembersDiff,
   buildOrganizationParentDiff,
@@ -76,6 +77,7 @@ const NAME_COLLATOR = new Intl.Collator('zh-CN', {
 
 const ORGANIZATION_ACTION_TITLES: Record<string, string> = {
   'system.organization.created': '创建了组织',
+  'system.organization.deleted': '删除了组织',
   'system.organization.updated': '更新了信息',
   'system.organization.leader_updated': '变更了负责人',
   'system.organization.parent_changed': '调整了上级',
@@ -268,6 +270,30 @@ export class OrganizationService {
       buildOrganizationUpdatedDiff(existing, data)
     )
     return toOrganizationResponse(updated)
+  }
+
+  async remove(id: string, auth: AuthContext): Promise<void> {
+    const existing = await this.requireVisible(id, auth)
+    const children = await this.orgRepo.findChildrenTypes(id)
+
+    if (children.length > 0) {
+      throw new ConflictException('请先删除或迁移下级组织')
+    }
+    if (existing._count.users > 0) {
+      throw new ConflictException('请先移除当前组织成员')
+    }
+    if (existing._count.posts > 0) {
+      throw new ConflictException('请先解除当前组织岗位')
+    }
+
+    await this.orgRepo.delete(id)
+    await this.writeAudit(
+      auth,
+      id,
+      'system.organization.deleted',
+      buildOrganizationDeletedDiff(existing)
+    )
+    this.authContextService.invalidateCache()
   }
 
   async updateLeader(
@@ -491,8 +517,8 @@ export class OrganizationService {
   ): Promise<OrganizationActivitiesResponse> {
     await this.requireVisible(id, auth)
     const page = await paginate({
-      page: query.page,
-      pageSize: query.pageSize,
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? 10,
       count: () => this.orgRepo.countActivities(auth.tenantId, id),
       findMany: (pagination) => this.orgRepo.listActivities(auth.tenantId, id, pagination)
     })

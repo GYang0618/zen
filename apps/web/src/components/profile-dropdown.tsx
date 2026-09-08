@@ -40,7 +40,9 @@ export function ProfileDropdown() {
   return (
     <>
       <DropdownMenu modal={false}>
-        <DropdownMenuTrigger render={<Button variant="ghost" className="relative h-8 w-8 rounded-full" />}>
+        <DropdownMenuTrigger
+          render={<Button variant="ghost" className="relative h-8 w-8 rounded-full" />}
+        >
           <Avatar className="h-8 w-8">
             <AvatarImage src={user?.avatar ?? undefined} alt="个人头像" />
             <AvatarFallback>{initials}</AvatarFallback>

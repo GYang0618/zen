@@ -232,9 +232,13 @@ export class LangGraphAgent extends CopilotkitLangGraphAgent {
                 afterPersistence(() => subscriber.error(budgetError.error))
                 return
               }
-              enqueuePersistence(() =>
-                this.runtimeHooks?.onEvent(runtimeInputForHooks, runtimeEvent)
-              )
+              if (runtimeEvent.type === 'TEXT_MESSAGE_CONTENT') {
+                void this.runtimeHooks?.onEvent(runtimeInputForHooks, runtimeEvent)
+              } else {
+                enqueuePersistence(() =>
+                  this.runtimeHooks?.onEvent(runtimeInputForHooks, runtimeEvent)
+                )
+              }
               subscriber.next(event)
             },
             error: (error) => {
