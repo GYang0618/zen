@@ -1,3 +1,5 @@
+import { toErrorEnvelope, unwrapToolSuccessData } from '../api/tool-result'
+
 export type OrganizationCatalogItem = {
   type: string
   label: string
@@ -26,21 +28,17 @@ function parseCatalogItem(value: unknown): OrganizationCatalogItem | undefined {
 export function parseOrganizationTypeCatalogItems(
   raw: string
 ): OrganizationCatalogItem[] | undefined {
-  try {
-    const parsed: unknown = JSON.parse(raw)
-    if (!isRecord(parsed) || !isRecord(parsed.catalog) || !Array.isArray(parsed.catalog.items)) {
-      return undefined
-    }
-    const items: OrganizationCatalogItem[] = []
-    for (const entry of parsed.catalog.items) {
-      const item = parseCatalogItem(entry)
-      if (!item) return undefined
-      items.push(item)
-    }
-    return items
-  } catch {
+  const data = unwrapToolSuccessData(raw)
+  if (!isRecord(data) || !isRecord(data.catalog) || !Array.isArray(data.catalog.items)) {
     return undefined
   }
+  const items: OrganizationCatalogItem[] = []
+  for (const entry of data.catalog.items) {
+    const item = parseCatalogItem(entry)
+    if (!item) return undefined
+    items.push(item)
+  }
+  return items
 }
 
 export function organizationTypeDisabledResult(
@@ -50,16 +48,18 @@ export function organizationTypeDisabledResult(
   const enabled = items.filter((item) => item.enabled)
   const disabled = items.filter((item) => !item.enabled)
   const format = (item: OrganizationCatalogItem) => `${item.type}（${item.label}）`
-  return JSON.stringify({
-    success: false,
-    reason: 'ORG_TYPE_DISABLED',
-    message:
-      `组织类型「${type}」未在本企业启用。` +
-      `当前已启用：${enabled.map(format).join('、') || '无'}。` +
-      `未启用：${disabled.map(format).join('、') || '无'}。` +
-      '请先基于 query_organization_type_catalog 返回的完整 items 调用 update_organization_type_catalog，' +
-      '将所需类型的 enabled 设为 true，其余保持原样（必选类型不可关闭），然后再重试本工具。'
-  })
+  return JSON.stringify(
+    toErrorEnvelope({
+      code: 400,
+      reason: 'ORG_TYPE_DISABLED',
+      message:
+        `组织类型「${type}」未在本企业启用。` +
+        `当前已启用：${enabled.map(format).join('、') || '无'}。` +
+        `未启用：${disabled.map(format).join('、') || '无'}。` +
+        '请先基于 query_organization_type_catalog 返回的完整 items 调用 update_organization_type_catalog，' +
+        '将所需类型的 enabled 设为 true，其余保持原样（必选类型不可关闭），然后再重试本工具。'
+    })
+  )
 }
 
 export function isOrganizationTypeDisabledError(error: unknown): boolean {

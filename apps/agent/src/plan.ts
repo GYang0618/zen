@@ -1,6 +1,6 @@
 import { createAgent } from 'langchain'
 
-import { createQwenModel } from '@/models'
+import { createModel } from '@/models'
 
 import { createFrontendToolsMiddleware } from './frontend-tools.js'
 import {
@@ -10,7 +10,7 @@ import {
 } from './prompts'
 
 export function createPlanAgent() {
-  const model = createQwenModel()
+  const model = createModel()
   return createAgent({
     model,
     tools: [],

@@ -30,7 +30,6 @@ import {
   userControllerUpdate,
   userControllerUpdateStatus
 } from '../api'
-import { compactPagedToolResult, compactUserListItem } from './compact-result'
 import { executeApiCallOrRecover } from './recoverable-error'
 
 import type { UserControllerAdminResetPasswordData, UserControllerFindAllData } from '../api'
@@ -124,15 +123,13 @@ const USER_WRITE_HINTS: RecoverableHint[] = [
 ]
 
 export const getUsersTool = tool(
-  async (input, config) =>
-    compactPagedToolResult(
-      await executeApiCall(config, async (_context) =>
-        userControllerFindAll({
-          query: normalizeUsersQuery(input)
-        })
-      ),
-      compactUserListItem
-    ),
+  async (input, config) => {
+    return executeApiCall(config, async (_context) =>
+      userControllerFindAll({
+        query: normalizeUsersQuery(input)
+      })
+    )
+  },
   {
     name: 'query_users_list',
     description:

@@ -23,14 +23,16 @@ describe('executeApiCall Artifact handling', () => {
       artifactRequest = input
       return new Response(
         JSON.stringify({
-          code: 0,
+          code: 200,
           message: 'ok',
           data: {
             id: 'artifact-1',
             name: 'query_users_list-result.json',
             size: 33_100,
             summary: '完整结果'
-          }
+          },
+          traceId: 'artifact-trace',
+          timestamp: '2026-09-08T06:00:00.000Z'
         }),
         { status: 201, headers: { 'Content-Type': 'application/json' } }
       )
@@ -58,16 +60,30 @@ describe('executeApiCall Artifact handling', () => {
     )
 
     assert.match(String(artifactRequest), /\/api\/copilot\/runtime\/runs\/run-1\/artifacts$/)
-    assert.deepEqual(JSON.parse(result), {
-      success: true,
+    const parsed = JSON.parse(result) as {
+      code: number
+      message: string
       data: {
-        artifactId: 'artifact-1',
-        name: 'query_users_list-result.json',
-        size: 33_100,
-        summary: '完整结果',
-        message: '结果较大，已保存为 Artifact。'
+        artifactId: string
+        name: string
+        size: number
+        summary: string
+        message: string
       }
+      traceId: string
+      timestamp: string
+    }
+    assert.equal(parsed.code, 200)
+    assert.equal(parsed.message, 'Success')
+    assert.deepEqual(parsed.data, {
+      artifactId: 'artifact-1',
+      name: 'query_users_list-result.json',
+      size: 33_100,
+      summary: '完整结果',
+      message: '结果较大，已保存为 Artifact。'
     })
+    assert.equal(typeof parsed.traceId, 'string')
+    assert.equal(typeof parsed.timestamp, 'string')
   })
 })
 
@@ -83,11 +99,13 @@ describe('executeApiCall fail-closed writes', () => {
         throw new Error('should not run')
       }
     )
-    assert.deepEqual(JSON.parse(result), {
-      success: false,
-      reason: 'MISSING_EXECUTION_CONTEXT',
-      message: '写操作缺少 run/tool/tenant/user 标识，已拒绝执行。',
-      retryable: false
-    })
+    const parsed = JSON.parse(result) as {
+      code: number
+      reason: string
+      message: string
+    }
+    assert.equal(parsed.code, 400)
+    assert.equal(parsed.reason, 'MISSING_EXECUTION_CONTEXT')
+    assert.match(parsed.message, /写操作缺少 run\/tool\/tenant\/user 标识/)
   })
 })

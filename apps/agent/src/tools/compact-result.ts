@@ -1,3 +1,5 @@
+import { isApiSuccessEnvelope } from '../api/tool-result'
+
 type JsonRecord = Record<string, unknown>
 
 function asRecord(value: unknown): JsonRecord | undefined {
@@ -20,7 +22,7 @@ export function compactPagedToolResult(
   compactItem: (item: JsonRecord) => JsonRecord
 ): string {
   const parsed = parseRecord(raw)
-  if (parsed?.success !== true) return raw
+  if (!parsed || !isApiSuccessEnvelope(parsed)) return raw
   const data = asRecord(parsed.data)
   if (!data || !Array.isArray(data.items)) return raw
 

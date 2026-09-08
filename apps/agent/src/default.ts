@@ -1,12 +1,8 @@
-import {
-  ACTIVE_AGENT_PLUGINS_CONFIGURABLE_KEY,
-  AGENT_MEMORY_CONFIGURABLE_KEY,
-  DEFAULT_AGENT_RUN_BUDGET
-} from '@zen/shared'
+import { ACTIVE_AGENT_PLUGINS_CONFIGURABLE_KEY, AGENT_MEMORY_CONFIGURABLE_KEY } from '@zen/shared'
 import { createAgent, dynamicSystemPromptMiddleware } from 'langchain'
 
 import { createDefaultAgentMiddleware } from '@/middleware'
-import { createQwenModel } from '@/models'
+import { qwenModel as model } from '@/models'
 import {
   APPROVAL_FLOW_RULES,
   GENERATIVE_UI_REPLY_RULES,
@@ -34,10 +30,6 @@ const BASE_SYSTEM_PROMPT = [
 
 /** 图工厂：每次创建新实例，禁止把请求级可变状态挂在模块单例上。 */
 export function createDefaultAgent() {
-  const model = createQwenModel({
-    maxTokens: DEFAULT_AGENT_RUN_BUDGET.maxOutputTokensPerModelCall
-  })
-
   return createAgent({
     model,
     tools: defaultAgentTools,

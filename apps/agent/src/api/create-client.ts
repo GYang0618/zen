@@ -51,10 +51,33 @@ export function getActiveAgentApiClient(): Client | undefined {
   return runClientStorage.getStore()
 }
 
+const CLIENT_HTTP_METHODS = [
+  'request',
+  'get',
+  'post',
+  'put',
+  'patch',
+  'delete',
+  'head',
+  'options',
+  'connect',
+  'trace'
+] as const satisfies ReadonlyArray<keyof Client>
+
+/**
+ * 将生成 SDK 的单例 client 方法代理到当前 ALS 中的 agent client。
+ * hey-api 的 get/post 等方法在 createClient 时闭包绑定了原始 request，
+ * 只替换 client.request 不会生效，必须一并代理各 HTTP method。
+ */
 export function bindGeneratedClient(client: Client): void {
-  const generatedRequest = client.request.bind(client)
-  client.request = ((options) => {
-    const active = runClientStorage.getStore()
-    return active ? active.request(options) : generatedRequest(options)
-  }) as Client['request']
+  for (const method of CLIENT_HTTP_METHODS) {
+    const original = client[method].bind(client) as Client[typeof method]
+    Object.assign(client, {
+      [method]: ((options: never) => {
+        const active = runClientStorage.getStore()
+        const target = active?.[method] ?? original
+        return (target as (opts: never) => unknown)(options)
+      }) as Client[typeof method]
+    })
+  }
 }

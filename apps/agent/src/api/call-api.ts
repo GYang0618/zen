@@ -9,32 +9,37 @@ import { createAgentApiClient, runWithAgentApiClient } from './create-client'
 import { getAccessTokenFromConfig, runWithAccessToken } from './request-context'
 import { resolveToolCallIdentity, resolveToolExecutionContext } from './tool-execution-context'
 import { classifyToolError, toToolFailureResult } from './tool-failure'
+import { isApiSuccessEnvelope, toErrorEnvelope, toSuccessEnvelope } from './tool-result'
 
 import type { RunnableConfig } from '@langchain/core/runnables'
 import type { ToolExecutionContext } from '@zen/shared'
 import type { RecoverableHint } from './tool-failure'
 
-interface ApiSuccessEnvelope<T> {
-  code: number
-  message: string
-  data: T
-  traceId: string
-  timestamp: string
-}
+export {
+  isApiErrorEnvelope,
+  isApiSuccessEnvelope,
+  isToolFailurePayload,
+  toErrorEnvelope,
+  toSuccessEnvelope,
+  unwrapToolSuccessData,
+  type ApiErrorEnvelope,
+  type ApiSuccessEnvelope
+} from './tool-result'
 
 const ARTIFACT_THRESHOLD_CHARS = 32_000
-const MISSING_CONTEXT_RESULT = JSON.stringify({
-  success: false,
-  reason: 'MISSING_EXECUTION_CONTEXT',
-  message: '写操作缺少 run/tool/tenant/user 标识，已拒绝执行。',
-  retryable: false
-})
+const MISSING_CONTEXT_RESULT = JSON.stringify(
+  toErrorEnvelope({
+    code: 400,
+    reason: 'MISSING_EXECUTION_CONTEXT',
+    message: '写操作缺少 run/tool/tenant/user 标识，已拒绝执行。'
+  })
+)
 
-function isApiSuccessEnvelope<T>(value: unknown): value is ApiSuccessEnvelope<T> {
-  if (typeof value !== 'object' || value === null) {
-    return false
-  }
-  return 'data' in value && 'code' in value && 'message' in value
+/** hey-api client 在 throwOnError=false 时返回的 { error } 失败体 */
+function isSdkFieldsErrorResult(value: unknown): value is { error: unknown } {
+  if (typeof value !== 'object' || value === null) return false
+  const record = value as Record<string, unknown>
+  return 'error' in record && record.error !== undefined && !('code' in record)
 }
 
 /** 解包 TransformInterceptor 返回的 { code, message, data, ... } */
@@ -57,8 +62,9 @@ export function toQueryArray<T>(value: T | T[] | undefined): T[] | undefined {
 }
 
 /**
- * 执行 SDK 请求并将业务 data 序列化为工具返回值。
- * 每次调用创建无状态 API client，写操作在缺少执行标识时 fail closed。
+ * 执行 SDK 请求，并将结果序列化为与原生 API 一致的信封：
+ * 成功 { code, message, data, traceId, timestamp }；
+ * 失败 { code, reason, message, path, traceId, timestamp, ... }。
  */
 export async function executeApiCall<T>(
   config: RunnableConfig | undefined,
@@ -136,8 +142,12 @@ export async function executeApiCall<T>(
           approvalId
         )
       )
-      const data = unwrapApiSuccessData<T>(body)
-      const serialized = JSON.stringify(data ?? null)
+      // hey-api fields 风格失败体：{ error }（throwOnError=false 时）。不得当成业务成功。
+      if (isSdkFieldsErrorResult(body)) {
+        return toToolFailureResult(body.error, hints)
+      }
+      const envelope = toSuccessEnvelope<T>(body)
+      const serialized = JSON.stringify(envelope)
       if (
         serialized.length > ARTIFACT_THRESHOLD_CHARS &&
         toolContext.runId &&
@@ -148,23 +158,22 @@ export async function executeApiCall<T>(
           runId: toolContext.runId,
           toolCallId: toolContext.toolCallId,
           toolName: toolContext.toolName,
-          data,
+          data: envelope.data,
           signal
         })
         if (artifact) {
-          return JSON.stringify({
-            success: true,
-            data: {
+          return JSON.stringify(
+            toSuccessEnvelope({
               artifactId: artifact.id,
               name: artifact.name,
               size: artifact.size,
               summary: artifact.summary,
               message: '结果较大，已保存为 Artifact。'
-            }
-          })
+            }, envelope.traceId)
+          )
         }
       }
-      return JSON.stringify(data === undefined ? { success: true } : { success: true, data })
+      return serialized
     } catch (error) {
       const reason = classifyToolError(error)
       const retryable = policy?.retryPolicy.retryableReasons.includes(reason) === true

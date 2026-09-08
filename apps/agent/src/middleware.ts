@@ -20,7 +20,7 @@ import {
 import { createApprovalPolicy } from '@/tool-policy'
 import { defaultAgentToolDescriptors, getAgentToolPluginId } from '@/tools'
 
-import type { createQwenModel } from '@/models'
+import type { createModel } from '@/models'
 
 export const pluginToolVisibilityMiddleware = createMiddleware({
   name: 'pluginToolVisibility',
@@ -45,9 +45,15 @@ export const pluginToolVisibilityMiddleware = createMiddleware({
     if (pluginId && !activePluginIds.includes(pluginId)) {
       return new ToolMessage({
         content: JSON.stringify({
-          success: false,
+          code: 503,
           reason: 'TOOL_UNAVAILABLE',
-          message: `插件 ${pluginId} 未启用，该工具不可用。`
+          message: `插件 ${pluginId} 未启用，该工具不可用。`,
+          path: '',
+          traceId: 'agent-local',
+          timestamp: new Date().toISOString(),
+          error: null,
+          fieldErrors: null,
+          formErrors: null
         }),
         tool_call_id: request.toolCall.id ?? `disabled:${request.toolCall.name}`
       })
@@ -99,7 +105,7 @@ export const domainToolFilterMiddleware = createMiddleware({
   }
 })
 
-export function createDefaultAgentMiddleware(model: ReturnType<typeof createQwenModel>) {
+export function createDefaultAgentMiddleware(model: ReturnType<typeof createModel>) {
   return [
     pluginToolVisibilityMiddleware,
     domainToolFilterMiddleware,

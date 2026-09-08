@@ -5,6 +5,13 @@ import { bindGeneratedClient } from './create-client'
 export * from '../api-client'
 export { asSdkOptions, executeApiCall, toQueryArray, unwrapApiSuccessData } from './call-api'
 export {
+  isApiErrorEnvelope,
+  isApiSuccessEnvelope,
+  toErrorEnvelope,
+  toSuccessEnvelope,
+  unwrapToolSuccessData
+} from './tool-result'
+export {
   createAgentApiClient,
   getActiveAgentApiClient,
   runWithAgentApiClient

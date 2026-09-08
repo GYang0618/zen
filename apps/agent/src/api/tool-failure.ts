@@ -1,4 +1,7 @@
+import { mergeErrorEnvelope, isToolFailurePayload } from './tool-result'
+
 import type { ApiErrorResponseSwaggerDto } from '../api-client/types.gen'
+import type { ApiErrorEnvelope } from './tool-result'
 
 export type RecoverableHint = {
   match: string
@@ -6,11 +9,7 @@ export type RecoverableHint = {
   hint: string
 }
 
-export type ToolFailureResult = {
-  success: false
-  reason: string
-  message: string
-}
+export type ToolFailureResult = ApiErrorEnvelope
 
 export type ToolErrorReason =
   | 'VALIDATION_ERROR'
@@ -110,27 +109,53 @@ function hintForReason(reason: string): string {
   return NON_RETRYABLE_REASONS.has(reason as ToolErrorReason) ? NO_RETRY_HINT : GENERIC_RETRY_HINT
 }
 
-/** 将任意工具/API 错误转为可回传给模型的 JSON 结果，避免打断整轮 agent run */
+function statusForReason(reason: string, error: unknown): number {
+  const status = errorStatus(error)
+  if (status !== undefined && status >= 400) return status
+  switch (reason) {
+    case 'UNAUTHORIZED':
+      return 401
+    case 'FORBIDDEN':
+    case 'STEP_UP_REQUIRED':
+      return 403
+    case 'RATE_LIMITED':
+      return 429
+    case 'TOOL_UNAVAILABLE':
+    case 'TIMEOUT':
+    case 'NETWORK_ERROR':
+    case 'UNKNOWN_ERROR':
+      return 500
+    default:
+      return 400
+  }
+}
+
+/** 将任意工具/API 错误转为与原生 API 一致的错误信封，避免打断整轮 agent run */
 export function toToolFailureResult(error: unknown, hints: RecoverableHint[] = []): string {
   const apiMessage = formatApiError(error)
   const matched = matchHint(apiMessage, hints)
-  const reason = matched?.reason ?? classifyToolError(error)
+  const classified = classifyToolError(error)
+  const existingReason =
+    typeof error === 'object' &&
+    error !== null &&
+    typeof (error as Record<string, unknown>).reason === 'string'
+      ? ((error as Record<string, unknown>).reason as string)
+      : undefined
+  const reason = matched?.reason ?? existingReason ?? classified
+  const message = `${apiMessage}。${matched?.hint ?? hintForReason(classified)}`
 
-  const result: ToolFailureResult = {
-    success: false,
-    reason,
-    message: `${apiMessage}。${matched?.hint ?? hintForReason(reason)}`
-  }
-
-  return JSON.stringify(result)
+  return JSON.stringify(
+    mergeErrorEnvelope(error, {
+      code: statusForReason(classified, error),
+      reason,
+      message
+    })
+  )
 }
 
 export function isToolFailureResult(raw: string): boolean {
   try {
-    const parsed: unknown = JSON.parse(raw)
-    if (typeof parsed !== 'object' || parsed === null) return false
-    const record = parsed as Record<string, unknown>
-    return record.success === false && typeof record.message === 'string'
+    return isToolFailurePayload(JSON.parse(raw) as unknown)
   } catch {
     return false
   }
@@ -140,10 +165,11 @@ export function isToolFailureResult(raw: string): boolean {
 export function formatUnhandledToolError(error: unknown, toolName: string): string {
   const message = formatApiError(error)
   const reason = classifyToolError(error)
-  const result: ToolFailureResult = {
-    success: false,
-    reason,
-    message: `工具「${toolName}」执行失败：${message}。${hintForReason(reason)}`
-  }
-  return JSON.stringify(result)
+  return JSON.stringify(
+    mergeErrorEnvelope(error, {
+      code: statusForReason(reason, error),
+      reason,
+      message: `工具「${toolName}」执行失败：${message}。${hintForReason(reason)}`
+    })
+  )
 }

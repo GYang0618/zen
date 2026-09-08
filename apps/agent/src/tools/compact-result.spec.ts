@@ -22,7 +22,8 @@ describe('completePageQuery', () => {
 describe('compactPagedToolResult', () => {
   it('列表结果只保留标识字段', () => {
     const raw = JSON.stringify({
-      success: true,
+      code: 200,
+      message: 'Success',
       data: {
         items: [
           {
@@ -46,11 +47,14 @@ describe('compactPagedToolResult', () => {
           }
         ],
         pagination: { page: 1, pageSize: 100, total: 1, totalPages: 1 }
-      }
+      },
+      traceId: 'trace-1',
+      timestamp: '2026-09-08T06:00:00.000Z'
     })
 
     assert.deepEqual(JSON.parse(compactPagedToolResult(raw, compactUserListItem)), {
-      success: true,
+      code: 200,
+      message: 'Success',
       data: {
         items: [
           {
@@ -65,12 +69,24 @@ describe('compactPagedToolResult', () => {
           }
         ],
         pagination: { page: 1, pageSize: 100, total: 1, totalPages: 1 }
-      }
+      },
+      traceId: 'trace-1',
+      timestamp: '2026-09-08T06:00:00.000Z'
     })
   })
 
   it('失败结果原样返回', () => {
-    const raw = JSON.stringify({ success: false, reason: 'VALIDATION_ERROR', message: 'x' })
+    const raw = JSON.stringify({
+      code: 400,
+      reason: 'VALIDATION_ERROR',
+      message: 'x',
+      path: '',
+      traceId: 'agent-local',
+      timestamp: '2026-09-08T06:00:00.000Z',
+      error: null,
+      fieldErrors: null,
+      formErrors: null
+    })
     assert.equal(compactPagedToolResult(raw, compactUserListItem), raw)
   })
 })
