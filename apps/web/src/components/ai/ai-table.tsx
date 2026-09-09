@@ -17,6 +17,7 @@ const DEFAULT_SKELETON_ROWS = 10
 export interface AITableProps<TData extends RowData> {
   data: TData[]
   columns: ColumnDef<TData, unknown>[]
+  className?: string
   emptyMessage?: string
   isLoading?: boolean
   isFetching?: boolean
@@ -75,6 +76,7 @@ function AITableRows<TData extends RowData>({
 export function AITable<TData extends RowData>({
   data,
   columns,
+  className,
   emptyMessage = '暂无数据',
   isLoading = false,
   isFetching = false,
@@ -92,11 +94,12 @@ export function AITable<TData extends RowData>({
     <div
       className={cn(
         'w-full overflow-hidden rounded-md border transition-opacity',
-        isFetching && !showSkeleton && 'opacity-70'
+        isFetching && !showSkeleton && 'opacity-70',
+        className
       )}
     >
-      <div className="max-h-80 w-full overflow-auto overscroll-contain">
-        <Table className="min-w-[680px]">
+      <div className="w-full overflow-auto overscroll-contain">
+        <Table>
           <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur-xs">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="hover:bg-transparent">

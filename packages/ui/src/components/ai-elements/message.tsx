@@ -61,11 +61,13 @@ export const MessageActions = ({ className, children, ...props }: MessageActions
 
 export type MessageActionProps = ComponentProps<typeof Button> & {
   tooltip?: string
+  tooltipSide?: 'top' | 'bottom' | 'left' | 'right'
   label?: string
 }
 
 export const MessageAction = ({
   tooltip,
+  tooltipSide = 'bottom',
   children,
   label,
   variant = 'ghost',
@@ -84,7 +86,7 @@ export const MessageAction = ({
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger render={button} />
-          <TooltipContent>
+          <TooltipContent side={tooltipSide}>
             <p>{tooltip}</p>
           </TooltipContent>
         </Tooltip>

@@ -80,7 +80,7 @@ export function DataTable<TData>({
       {toolbar}
       <div
         className={cn(
-          'overflow-auto rounded-md border transition-opacity max-h-[min(70vh,40rem)]',
+          'overflow-auto rounded-md border transition-opacity',
           isFetching && !showSkeleton && 'opacity-70'
         )}
       >

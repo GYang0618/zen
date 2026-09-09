@@ -6,6 +6,7 @@ import { Mic, Paperclip, Send, Square } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
+import { useAgentChatInputStore } from '../stores/agent-chat-input'
 import { CHAT_INPUT_PLACEHOLDERS, ChatInputDynamicTexts } from './chat-input-dynamic-texts'
 
 const TEXTAREA_MAX_HEIGHT_PX = 200
@@ -47,9 +48,28 @@ export function ChatInput({
   const [isMultiline, setIsMultiline] = useState(false)
   const [loadedDraftThreadId, setLoadedDraftThreadId] = useState<string>()
 
+  const editDraft = useAgentChatInputStore((state) => state.editDraft)
+  const clearEditDraft = useAgentChatInputStore((state) => state.clearEditDraft)
+
   const wrapperRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const singleLineHeightRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (!editDraft) return
+    setInputValue(editDraft.text)
+    setIsActive(true)
+    clearEditDraft()
+    requestAnimationFrame(() => {
+      const el = textareaRef.current
+      if (el) {
+        el.focus()
+        const length = el.value.length
+        el.setSelectionRange(length, length)
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }
+    })
+  }, [editDraft, clearEditDraft])
 
   const dynamicPlaceholderActive =
     showPlaceholder && !isActive && !inputValue && agent.messages.length === 0

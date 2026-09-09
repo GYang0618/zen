@@ -14,15 +14,18 @@ import {
   ReasoningTrigger
 } from '@zen/ui'
 import { AlertCircle, RefreshCw } from 'lucide-react'
-import { Fragment, useMemo, useRef } from 'react'
+import { Fragment, useEffect, useMemo, useRef } from 'react'
 
 import { DisplayMessageCache } from '../display-messages'
 import { useAgentRetry } from '../hooks/use-agent-retry'
 import { useLiveAgentMessages } from '../hooks/use-live-agent-messages'
 import { useSmoothStreamText } from '../hooks/use-smooth-stream-text'
 import { resolveAssistantToolCalls } from '../lib/group-tool-calls'
+import { useAgentGenerativePanelStore } from '../stores/agent-generative-panel'
+import { ChatAssistantActions } from './chat-assistant-actions'
 import { ChatPendingMessage } from './chat-pending-message'
-import { GroupedToolCallsView } from './grouped-tool-calls-view'
+import { ChatToolCallBadge } from './chat-tool-call-badge'
+import { ChatUserActions } from './chat-user-actions'
 
 import type { AssistantToolMessageLike } from '../lib/group-tool-calls'
 
@@ -99,6 +102,7 @@ function UserMessage({ message }: UserMessageProps) {
       <MessageContent>
         <MessageResponse>{text}</MessageResponse>
       </MessageContent>
+      <ChatUserActions text={text} />
     </Message>
   )
 }
@@ -109,6 +113,8 @@ interface AssistantMessageProps {
   messages: CopilotkitMessage[]
   toolGroupingMessages: AssistantToolMessageLike[]
   isRunning: boolean
+  isLastAssistant?: boolean
+  onRetry?: () => void
 }
 
 function AssistantMessage({
@@ -116,7 +122,9 @@ function AssistantMessage({
   content,
   messages,
   toolGroupingMessages,
-  isRunning
+  isRunning,
+  isLastAssistant = false,
+  onRetry
 }: AssistantMessageProps) {
   'use no memo'
   const isLatestAssistant = messages.at(-1)?.id === message.id
@@ -125,22 +133,23 @@ function AssistantMessage({
   const hasContent = Boolean(displayText.trim())
   const { hidden, toolCalls } = resolveAssistantToolCalls(toolGroupingMessages, message.id)
 
-  if (hidden && !hasContent) return null
-  if (!hasContent && toolCalls.length === 0) return null
+  const showToolBadge = !hidden && toolCalls.length > 0
+  const showActions = isLastAssistant && !isRunning && Boolean(onRetry)
 
   return (
-    <>
-      {hasContent && (
-        <Message from="assistant">
-          <MessageContent className="transition-all duration-300">
-            <MessageResponse isAnimating={isAnimating}>{displayText}</MessageResponse>
-          </MessageContent>
-        </Message>
+    <Message from="assistant">
+      <MessageContent className="transition-all duration-300">
+        {hasContent && <MessageResponse isAnimating={isAnimating}>{displayText}</MessageResponse>}
+        {showToolBadge && <ChatToolCallBadge toolCalls={toolCalls} messages={messages} />}
+      </MessageContent>
+      {showActions && onRetry && (
+        <ChatAssistantActions
+          content={displayText || content}
+          onRetry={onRetry}
+          isRunning={isRunning}
+        />
       )}
-      {!hidden && toolCalls.length > 0 && (
-        <GroupedToolCallsView toolCalls={toolCalls} messages={messages} />
-      )}
-    </>
+    </Message>
   )
 }
 
@@ -230,6 +239,12 @@ export function ChatMessages({ threadId }: { threadId: string }) {
   const canRetry = displayMessages.some((message) => message.role === 'user')
 
   const lastUserIndex = displayMessages.findLastIndex((message) => message.role === 'user')
+  const lastAssistantIndex = displayMessages.findLastIndex(
+    (message) => message.role === 'assistant'
+  )
+  const isLastAssistantTurn = lastAssistantIndex !== -1 && lastAssistantIndex > lastUserIndex
+  const lastAssistantId = isLastAssistantTurn ? displayMessages[lastAssistantIndex]?.id : undefined
+
   const messagesAfterUser = lastUserIndex >= 0 ? displayMessages.slice(lastUserIndex + 1) : []
   const hasActiveAssistantOutput = messagesAfterUser.some((message) => {
     if (message.role === 'assistant') {
@@ -248,6 +263,24 @@ export function ChatMessages({ threadId }: { threadId: string }) {
   const handleRetry = () => {
     void retryLastRun(displayMessages)
   }
+
+  const openToolCall = useAgentGenerativePanelStore((state) => state.openToolCall)
+  const lastAutoOpenedIdRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    const latestMessage = displayMessages.at(-1)
+    if (
+      latestMessage?.role === 'assistant' &&
+      Array.isArray(latestMessage.toolCalls) &&
+      latestMessage.toolCalls.length > 0
+    ) {
+      const latestToolCall = latestMessage.toolCalls.at(-1)
+      if (latestToolCall?.id && lastAutoOpenedIdRef.current !== latestToolCall.id) {
+        lastAutoOpenedIdRef.current = latestToolCall.id
+        openToolCall(latestToolCall.id)
+      }
+    }
+  }, [displayMessages, openToolCall])
 
   if (displayMessages.length === 0) {
     if (runError) {
@@ -280,6 +313,8 @@ export function ChatMessages({ threadId }: { threadId: string }) {
                 messages={displayMessages}
                 toolGroupingMessages={toolGroupingMessages}
                 isRunning={isRunning}
+                isLastAssistant={message.id === lastAssistantId}
+                onRetry={handleRetry}
               />
             )}
             {message.role === 'reasoning' && (
