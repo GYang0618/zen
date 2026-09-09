@@ -35,3 +35,20 @@ export function promoteThread(
   if (!current) return threads
   return [{ ...current, ...patch }, ...threads.filter((item) => item.id !== threadId)]
 }
+
+export const THREAD_TITLE_MAX_LENGTH = 80
+
+export function buildOptimisticThread(id: string, firstMessage: string): AgentThreadSummary {
+  const now = new Date().toISOString()
+  const title =
+    firstMessage.trim().replace(/\s+/g, ' ').slice(0, THREAD_TITLE_MAX_LENGTH) || '新对话'
+  return {
+    id,
+    title,
+    status: 'active',
+    lastMessageAt: now,
+    createdAt: now,
+    updatedAt: now,
+    _count: { messages: 1, runs: 1 }
+  }
+}

@@ -6,9 +6,8 @@ import { Mic, Paperclip, Send, Square } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
-import type { Variants } from 'motion/react'
+import { CHAT_INPUT_PLACEHOLDERS, ChatInputDynamicTexts } from './chat-input-dynamic-texts'
 
-const PLACEHOLDERS = ['设置主题颜色、字体、样式风格', '用户、组织、角色、权限管理']
 const TEXTAREA_MAX_HEIGHT_PX = 200
 /** 单行布局下两侧按钮占用的大致宽度，用于跨行检测时避免宽窄切换抖动 */
 const SIDE_ACTIONS_WIDTH_PX = 160
@@ -82,7 +81,7 @@ export function ChatInput({
     const interval = setInterval(() => {
       setShowPlaceholder(false)
       setTimeout(() => {
-        setPlaceholderIndex((prev) => (prev + 1) % PLACEHOLDERS.length)
+        setPlaceholderIndex((prev) => (prev + 1) % CHAT_INPUT_PLACEHOLDERS.length)
         setShowPlaceholder(true)
       }, 400)
     }, 3000)
@@ -282,7 +281,10 @@ export function ChatInput({
                 }}
               />
               <div className="col-start-1 row-start-1 pointer-events-none flex items-center min-w-0">
-                <DynamicTexts active={dynamicPlaceholderActive} activeIndex={placeholderIndex} />
+                <ChatInputDynamicTexts
+                  active={dynamicPlaceholderActive}
+                  activeIndex={placeholderIndex}
+                />
               </div>
             </div>
 
@@ -309,71 +311,5 @@ export function ChatInput({
         </div>
       </div>
     </div>
-  )
-}
-
-function DynamicTexts({ active, activeIndex }: { active: boolean; activeIndex: number }) {
-  const placeholderContainerVariants = {
-    initial: {},
-    animate: { transition: { staggerChildren: 0.025 } },
-    exit: { transition: { staggerChildren: 0.015, staggerDirection: -1 } }
-  }
-
-  const letterVariants: Variants = {
-    initial: {
-      opacity: 0,
-      filter: 'blur(12px)',
-      y: 10
-    },
-    animate: {
-      opacity: 1,
-      filter: 'blur(0px)',
-      y: 0,
-      transition: {
-        opacity: { duration: 0.25 },
-        filter: { duration: 0.4 },
-        y: { type: 'spring', stiffness: 80, damping: 20 }
-      }
-    },
-    exit: {
-      opacity: 0,
-      filter: 'blur(12px)',
-      y: -10,
-      transition: {
-        opacity: { duration: 0.2 },
-        filter: { duration: 0.3 },
-        y: { type: 'spring' as const, stiffness: 80, damping: 20 }
-      }
-    }
-  }
-  return (
-    <AnimatePresence mode="wait">
-      {active && (
-        <motion.span
-          key={activeIndex}
-          className="flex items-center text-base leading-none text-muted-foreground select-none pointer-events-none"
-          style={{
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            zIndex: 0
-          }}
-          variants={placeholderContainerVariants}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-        >
-          {PLACEHOLDERS[activeIndex].split('').map((char, i) => (
-            <motion.span
-              key={`${activeIndex}-${i}`}
-              variants={letterVariants}
-              className="inline-block leading-none"
-            >
-              {char === ' ' ? '\u00A0' : char}
-            </motion.span>
-          ))}
-        </motion.span>
-      )}
-    </AnimatePresence>
   )
 }

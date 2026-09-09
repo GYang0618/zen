@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest'
 
 import {
   appendThreadPage,
+  buildOptimisticThread,
   mergeThreadPage,
   promoteThread,
-  sortThreadsByRecent
+  sortThreadsByRecent,
+  THREAD_TITLE_MAX_LENGTH
 } from './thread-list'
 
 import type { AgentThreadSummary } from '../runtime-api'
@@ -72,5 +74,40 @@ describe('thread list paging helpers', () => {
     expect(
       sortThreadsByRecent([thread('a', sameTime), thread('c', sameTime)]).map((item) => item.id)
     ).toEqual(['c', 'a'])
+  })
+})
+
+describe('buildOptimisticThread', () => {
+  it('creates an active thread summary using the first message as title', () => {
+    const thread = buildOptimisticThread('test-id-1', '帮我创建一个新用户')
+
+    expect(thread.id).toBe('test-id-1')
+    expect(thread.title).toBe('帮我创建一个新用户')
+    expect(thread.status).toBe('active')
+    expect(thread._count).toEqual({ messages: 1, runs: 1 })
+    expect(thread.createdAt).toBeDefined()
+    expect(thread.updatedAt).toBe(thread.createdAt)
+  })
+
+  it('falls back to "新对话" when message is empty or only whitespace', () => {
+    const threadEmpty = buildOptimisticThread('test-id-2', '')
+    const threadSpaces = buildOptimisticThread('test-id-3', '   \n\t  ')
+
+    expect(threadEmpty.title).toBe('新对话')
+    expect(threadSpaces.title).toBe('新对话')
+  })
+
+  it('truncates titles that exceed THREAD_TITLE_MAX_LENGTH', () => {
+    const longMessage = 'A'.repeat(120)
+    const thread = buildOptimisticThread('test-id-4', longMessage)
+
+    expect(thread.title).toHaveLength(THREAD_TITLE_MAX_LENGTH)
+    expect(thread.title).toBe('A'.repeat(THREAD_TITLE_MAX_LENGTH))
+  })
+
+  it('normalizes multiple internal whitespace characters into single spaces', () => {
+    const thread = buildOptimisticThread('test-id-5', '你好   世界 \n  请帮我  \t 分析数据 ')
+
+    expect(thread.title).toBe('你好 世界 请帮我 分析数据')
   })
 })

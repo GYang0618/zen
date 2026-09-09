@@ -1,5 +1,5 @@
 import { useDefaultToolRender, useUsersTableRender } from '../generative-ui'
-import { useAppearanceTool } from '../tools'
+import { useAppearanceTool } from '../hooks/tools'
 
 /**`
  * agent共享的生成式UI和前端工具
