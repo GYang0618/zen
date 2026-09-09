@@ -4,7 +4,7 @@ import {
 } from '@zen/shared'
 
 import { configs } from '../configs/env'
-import { getToolExecutionPolicy } from '../tool-policy'
+import { getToolExecutionPolicy } from '../tools/policy'
 import { createAgentApiClient, runWithAgentApiClient } from './create-client'
 import { getAccessTokenFromConfig, runWithAccessToken } from './request-context'
 import { resolveToolCallIdentity, resolveToolExecutionContext } from './tool-execution-context'
@@ -16,14 +16,14 @@ import type { ToolExecutionContext } from '@zen/shared'
 import type { RecoverableHint } from './tool-failure'
 
 export {
+  type ApiErrorEnvelope,
+  type ApiSuccessEnvelope,
   isApiErrorEnvelope,
   isApiSuccessEnvelope,
   isToolFailurePayload,
   toErrorEnvelope,
   toSuccessEnvelope,
-  unwrapToolSuccessData,
-  type ApiErrorEnvelope,
-  type ApiSuccessEnvelope
+  unwrapToolSuccessData
 } from './tool-result'
 
 const ARTIFACT_THRESHOLD_CHARS = 32_000
@@ -163,13 +163,16 @@ export async function executeApiCall<T>(
         })
         if (artifact) {
           return JSON.stringify(
-            toSuccessEnvelope({
-              artifactId: artifact.id,
-              name: artifact.name,
-              size: artifact.size,
-              summary: artifact.summary,
-              message: '结果较大，已保存为 Artifact。'
-            }, envelope.traceId)
+            toSuccessEnvelope(
+              {
+                artifactId: artifact.id,
+                name: artifact.name,
+                size: artifact.size,
+                summary: artifact.summary,
+                message: '结果较大，已保存为 Artifact。'
+              },
+              envelope.traceId
+            )
           )
         }
       }

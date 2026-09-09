@@ -1,7 +1,8 @@
-import { useDefaultToolRender, useUsersTableRender } from '../generative-ui'
+import { useDefaultToolRender } from '../generative-ui'
+import { useUserRenderers } from '../hooks/renderers/user'
 import { useAppearanceTool } from '../hooks/tools'
 
-/**`
+/**
  * agent共享的生成式UI和前端工具
  */
 export function AgentSharedRegistrations() {
@@ -21,6 +22,6 @@ export function PopupChatRegistrations() {
  * Chat模式专属生成式UI和前端工具（智能体模式下）
  */
 export function ChatRegistrations() {
-  useUsersTableRender()
+  useUserRenderers()
   return null
 }

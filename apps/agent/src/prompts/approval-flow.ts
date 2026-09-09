@@ -1,4 +1,4 @@
-import { APPROVAL_REQUIRED_TOOLS } from '@/tool-policy'
+import { APPROVAL_REQUIRED_TOOLS } from '@/tools/policy'
 
 const approvalToolList = APPROVAL_REQUIRED_TOOLS.map((name) => `\`${name}\``).join('、')
 

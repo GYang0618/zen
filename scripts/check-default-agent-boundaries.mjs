@@ -41,7 +41,7 @@ expectIncludes(
   'default_agent 必须通过正式 Registry 注册 Tool'
 )
 expectIncludes(
-  'apps/agent/src/middleware.ts',
+  'apps/agent/src/middlewares/default-agent.ts',
   'toolErrorMiddleware',
   'default_agent 必须注册 Tool 错误 Middleware'
 )
@@ -84,12 +84,12 @@ if (fs.existsSync(path.join(root, 'apps/api/src/modules/chat'))) {
   failures.push('apps/api/src/modules/chat 必须删除，不得继续保留旧 Chat 执行链')
 }
 expectIncludes(
-  'apps/agent/src/middleware.ts',
+  'apps/agent/src/middlewares/default-agent.ts',
   'humanInTheLoopMiddleware',
   '高风险 Tool 必须经过 LangGraph 审批中断'
 )
 expectIncludes(
-  'apps/agent/src/middleware.ts',
+  'apps/agent/src/middlewares/default-agent.ts',
   'summarizationMiddleware',
   '长对话必须启用上下文压缩'
 )
@@ -109,7 +109,7 @@ expectIncludes(
   '只读 Tool 必须按 descriptor 执行有限重试'
 )
 expectIncludes(
-  'apps/agent/src/tool-policy.ts',
+  'apps/agent/src/tools/policy.ts',
   'retryableReasons',
   'Tool descriptor 必须声明可重试错误'
 )
@@ -119,7 +119,7 @@ expectIncludes(
   '插件 Tool 必须从生成注册表装载'
 )
 expectIncludes(
-  'apps/agent/src/middleware.ts',
+  'apps/agent/src/middlewares/plugin-visibility.ts',
   'pluginToolVisibilityMiddleware',
   '非 ACTIVE 插件 Tool 必须从模型请求中移除'
 )
@@ -129,12 +129,12 @@ expectIncludes(
   'API 必须传递租户 ACTIVE 插件'
 )
 expectIncludes(
-  'apps/agent/src/api/index.ts',
+  'apps/agent/src/api/create-client.ts',
   'x-agent-idempotency-key',
   'Agent Tool 必须向 API 传递幂等键'
 )
 expectIncludes(
-  'apps/api/src/common/interceptors/agent-idempotency.interceptor.ts',
+  'apps/api/src/common/auth/agent-idempotency.service.ts',
   'tenantId_userId_key',
   'API 幂等缓存必须按租户和用户隔离'
 )

@@ -49,17 +49,20 @@ describe('toToolFailureResult', () => {
   })
 
   it('透传原生 API 错误体字段', () => {
-    const raw = toToolFailureResult({
-      code: 400,
-      reason: 'VALIDATION_ERROR',
-      message: '部分角色不存在或已禁用',
-      path: '/api/user',
-      traceId: 'trace-api',
-      timestamp: '2026-09-08T06:00:00.000Z',
-      error: null,
-      fieldErrors: { roleIds: ['无效'] },
-      formErrors: null
-    }, HINTS)
+    const raw = toToolFailureResult(
+      {
+        code: 400,
+        reason: 'VALIDATION_ERROR',
+        message: '部分角色不存在或已禁用',
+        path: '/api/user',
+        traceId: 'trace-api',
+        timestamp: '2026-09-08T06:00:00.000Z',
+        error: null,
+        fieldErrors: { roleIds: ['无效'] },
+        formErrors: null
+      },
+      HINTS
+    )
     const parsed = JSON.parse(raw) as {
       code: number
       reason: string

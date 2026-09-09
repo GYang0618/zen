@@ -258,7 +258,14 @@ export const usersQuerySchema = pageQuerySchema.extend({
     .optional()
     .describe('按在职组织 ID 筛选，来自 query_organization_tree'),
   sortBy: usersSortBySchema.optional(),
-  sortOrder: usersSortOrderSchema.optional()
+  sortOrder: usersSortOrderSchema.optional(),
+  display: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe(
+      '是否在前端以表格卡片形式直接呈现给用户。仅当用户的核心目标是查看、列出、检索用户时设为 true；若当前调用仅作为中间步骤（如查询组织详情、核对负责人、检查权限等），必须设为 false 或省略。'
+    )
 })
 
 export const usersPageSchema = paged(userSchema)

@@ -20,7 +20,7 @@ describe('AgentChat architectural boundaries', () => {
   it('composes modular subcomponents ChatConversationView and ChatInputDock', () => {
     expect(chatSource).toContain("from './components/chat-conversation'")
     expect(chatSource).toContain("from './components/chat-input-dock'")
-    expect(chatSource).toContain('<ChatConversationView')
+    expect(chatSource).toContain('<ChatConversation')
     expect(chatSource).toContain('<ChatInputDock')
   })
 })

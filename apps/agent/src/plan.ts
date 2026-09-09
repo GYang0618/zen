@@ -1,8 +1,8 @@
 import { createAgent } from 'langchain'
 
+import { createFrontendToolsMiddleware } from '@/middlewares'
 import { createModel } from '@/models'
 
-import { createFrontendToolsMiddleware } from './frontend-tools.js'
 import {
   GENERATIVE_UI_REPLY_RULES,
   MODULE_NAVIGATION_RULES,

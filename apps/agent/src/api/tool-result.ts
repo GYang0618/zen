@@ -63,7 +63,10 @@ export function unwrapToolSuccessData(raw: string): unknown | undefined {
   }
 }
 
-export function toSuccessEnvelope<T>(body: unknown, fallbackTraceId = 'agent-local'): ApiSuccessEnvelope<T> {
+export function toSuccessEnvelope<T>(
+  body: unknown,
+  fallbackTraceId = 'agent-local'
+): ApiSuccessEnvelope<T> {
   if (isApiSuccessEnvelope<T>(body)) return body
   return {
     code: 200,

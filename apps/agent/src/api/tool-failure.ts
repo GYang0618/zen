@@ -1,4 +1,4 @@
-import { mergeErrorEnvelope, isToolFailurePayload } from './tool-result'
+import { isToolFailurePayload, mergeErrorEnvelope } from './tool-result'
 
 import type { ApiErrorResponseSwaggerDto } from '../api-client/types.gen'
 import type { ApiErrorEnvelope } from './tool-result'

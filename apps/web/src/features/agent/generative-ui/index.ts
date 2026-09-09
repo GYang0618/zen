@@ -1,2 +1,2 @@
-export { useDefaultToolRender } from './default-tool'
-export { useUsersTableRender } from './user-table'
+export { DefaultToolCard, useDefaultToolRender } from './default-tool'
+export { UserTableComponent, userTableColumns } from './user'

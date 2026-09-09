@@ -355,7 +355,9 @@ function updateRunBudget(
   }
   if (event.type === 'TOOL_CALL_RESULT') {
     const result = parseRecord(event.content ?? event.result)
-    if (result?.success === false) next.failures += 1
+    const isFailure =
+      result?.success === false || (typeof result?.code === 'number' && result.code >= 400)
+    if (isFailure) next.failures += 1
   }
   const exceeded = budgetExceededError(next)
   return {

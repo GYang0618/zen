@@ -26,7 +26,8 @@ describe('bindGeneratedClient', () => {
     let hitUrl = ''
     const originalFetch = globalThis.fetch
     globalThis.fetch = (async (input) => {
-      hitUrl = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input)
+      hitUrl =
+        typeof input === 'string' ? input : input instanceof Request ? input.url : String(input)
       return new Response(JSON.stringify({ items: [] }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }

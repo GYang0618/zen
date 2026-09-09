@@ -1,4 +1,5 @@
 export { organizationTools } from './organization'
+export * from './policy'
 export { postTools } from './post'
 // 兼容既有导入；新增代码应使用 defaultAgentTools 或 registry provider。
 export {

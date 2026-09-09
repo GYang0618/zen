@@ -8,7 +8,7 @@ import type { ToolState } from '@zen/ui'
 
 const AUTO_COLLAPSE_DELAY_MS = 1000
 
-interface DefaultToolCardProps {
+export interface DefaultToolCardProps {
   name: string
   parameters: unknown
   status: 'inProgress' | 'executing' | 'complete'
@@ -39,7 +39,7 @@ function checkIsError(result: string | undefined): boolean {
   return false
 }
 
-function DefaultToolCard({ name, parameters, status, result }: DefaultToolCardProps) {
+export function DefaultToolCard({ name, parameters, status, result }: DefaultToolCardProps) {
   const isError = useMemo(() => checkIsError(result), [result])
   const toolState = mapToToolState(status, isError)
   const isRunning = status === 'inProgress' || status === 'executing'
@@ -69,7 +69,9 @@ function DefaultToolCard({ name, parameters, status, result }: DefaultToolCardPr
       <ToolHeader title={title} state={toolState} />
       <ToolContent>
         {hasParams && <ToolInput input={parameters} />}
-        {result && <ToolOutput output={result} />}
+        {result && (
+          <ToolOutput className="[&_pre]:max-h-64 [&_pre]:overflow-auto" output={result} />
+        )}
       </ToolContent>
     </Tool>
   )

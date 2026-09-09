@@ -294,6 +294,9 @@ importers:
       '@ai-sdk/react':
         specifier: ^4.0.40
         version: 4.0.40(react@19.2.8)(zod@4.4.3)
+      '@copilotkit/a2ui-renderer':
+        specifier: ^1.70.1
+        version: 1.70.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@copilotkit/react-core':
         specifier: ^1.63.2
         version: 1.63.2(@types/mdast@4.0.4)(@types/react-dom@19.2.4(@types/react@19.2.17))(@types/react@19.2.17)(graphql@16.14.2)(micromark-util-types@2.0.2)(micromark@4.0.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@4.4.3)
@@ -915,6 +918,9 @@ packages:
     peerDependenciesMeta:
       graphql:
         optional: true
+
+  '@a2ui/web_core@0.10.4':
+    resolution: {integrity: sha512-sahOUSKZIGv9ZtnHjfzWR8o/F1XfSTp4sQAX5/auSenQYBYDRaY0+vrZIkddc/IEzpXJob6cFJT2r5/mLzAvqg==}
 
   '@a2ui/web_core@0.9.0':
     resolution: {integrity: sha512-TsMWuEeuVDsScGIGPy/fWIZu+EOBRfhx6KwjKh3VwY1AwysRenQM8zDr8VrSk14Wck/aBgVxk2zWVrMCK2/s6A==}
@@ -1620,6 +1626,17 @@ packages:
 
   '@copilotkit/a2ui-renderer@1.63.2':
     resolution: {integrity: sha512-JJTiajEKcj6fr8N2eAyJa/y9gCoSBzt/3fvOebYRpasXsqfxEAZ0GgkkpGlULW97VtrT/EhMQO8fx7tvKTn4xw==}
+    peerDependencies:
+      react: ^18 || ^19 || ^19.0.0-rc
+      react-dom: ^18 || ^19 || ^19.0.0-rc
+    peerDependenciesMeta:
+      react:
+        optional: true
+      react-dom:
+        optional: true
+
+  '@copilotkit/a2ui-renderer@1.70.1':
+    resolution: {integrity: sha512-YLNNst0ll2A5zjjZHgPSWqLxKOR2b8e5j4IZDnN0lwtJVgRV1NBd2Rzp7XGb+uU2+Kq1jOF9rCGfKBPuw9JtGQ==}
     peerDependencies:
       react: ^18 || ^19 || ^19.0.0-rc
       react-dom: ^18 || ^19 || ^19.0.0-rc
@@ -10813,6 +10830,13 @@ snapshots:
     optionalDependencies:
       graphql: 16.14.2
 
+  '@a2ui/web_core@0.10.4':
+    dependencies:
+      '@preact/signals-core': 1.14.4
+      date-fns: 4.4.0
+      zod: 3.25.76
+      zod-to-json-schema: 3.25.2(zod@3.25.76)
+
   '@a2ui/web_core@0.9.0':
     dependencies:
       '@preact/signals-core': 1.14.4
@@ -11803,6 +11827,17 @@ snapshots:
   '@copilotkit/a2ui-renderer@1.63.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@a2ui/web_core': 0.9.0
+      clsx: 2.1.1
+      lit: 3.3.3
+      zod: 3.25.76
+      zod-to-json-schema: 3.25.2(zod@3.25.76)
+    optionalDependencies:
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+
+  '@copilotkit/a2ui-renderer@1.70.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+    dependencies:
+      '@a2ui/web_core': 0.10.4
       clsx: 2.1.1
       lit: 3.3.3
       zod: 3.25.76
