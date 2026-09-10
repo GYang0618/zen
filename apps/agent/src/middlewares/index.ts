@@ -6,3 +6,4 @@ export {
   frontendStateSchema
 } from './frontend-tools'
 export { pluginToolVisibilityMiddleware } from './plugin-visibility'
+export { userStateSyncMiddleware } from './user-state-sync'

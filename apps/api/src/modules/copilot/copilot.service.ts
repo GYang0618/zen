@@ -69,7 +69,8 @@ export class CopilotService implements OnModuleInit {
           }),
           plan: planAgent({ deploymentUrl })
         }
-      }
+      },
+      a2ui: {}
     })
     this.handler = createCopilotExpressHandler({
       runtime,

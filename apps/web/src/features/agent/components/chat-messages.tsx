@@ -1,6 +1,11 @@
 'use client'
 
-import { UseAgentUpdate, useAgent, useRenderActivityMessage } from '@copilotkit/react-core/v2'
+import {
+  UseAgentUpdate,
+  useAgent,
+  useRenderActivityMessage,
+  useRenderToolCall
+} from '@copilotkit/react-core/v2'
 import {
   Alert,
   AlertDescription,
@@ -13,13 +18,14 @@ import {
   ReasoningContent,
   ReasoningTrigger
 } from '@zen/ui'
-import { AlertCircle, RefreshCw } from 'lucide-react'
+import { AlertCircle, ChevronRight, RefreshCw, Sparkles } from 'lucide-react'
 import { Fragment, useEffect, useMemo, useRef } from 'react'
 
 import { DisplayMessageCache } from '../display-messages'
 import { useAgentRetry } from '../hooks/use-agent-retry'
 import { useLiveAgentMessages } from '../hooks/use-live-agent-messages'
 import { useSmoothStreamText } from '../hooks/use-smooth-stream-text'
+import { isA2UIToolCall } from '../lib/a2ui-tools'
 import { resolveAssistantToolCalls } from '../lib/group-tool-calls'
 import { useAgentGenerativePanelStore } from '../stores/agent-generative-panel'
 import { ChatAssistantActions } from './chat-assistant-actions'
@@ -27,7 +33,7 @@ import { ChatPendingMessage } from './chat-pending-message'
 import { ChatToolCallBadge } from './chat-tool-call-badge'
 import { ChatUserActions } from './chat-user-actions'
 
-import type { AssistantToolMessageLike } from '../lib/group-tool-calls'
+import type { AssistantToolMessageLike, ToolCallLike } from '../lib/group-tool-calls'
 
 type UserMessageContentPart = { type: string; text?: string }
 
@@ -127,20 +133,49 @@ function AssistantMessage({
   onRetry
 }: AssistantMessageProps) {
   'use no memo'
+  const renderToolCall = useRenderToolCall()
   const isLatestAssistant = messages.at(-1)?.id === message.id
   const isStreaming = Boolean(isRunning && isLatestAssistant)
   const { displayText, isAnimating } = useSmoothStreamText(content, isStreaming)
   const hasContent = Boolean(displayText.trim())
   const { hidden, toolCalls } = resolveAssistantToolCalls(toolGroupingMessages, message.id)
 
-  const showToolBadge = !hidden && toolCalls.length > 0
+  const { a2uiToolCalls, inlineToolCalls } = useMemo(() => {
+    const a2ui: ToolCallLike[] = []
+    const inline: ToolCallLike[] = []
+    for (const tc of toolCalls) {
+      if (isA2UIToolCall(tc)) {
+        a2ui.push(tc)
+      } else {
+        inline.push(tc)
+      }
+    }
+    return { a2uiToolCalls: a2ui, inlineToolCalls: inline }
+  }, [toolCalls])
+
   const showActions = isLastAssistant && !isRunning && Boolean(onRetry)
 
   return (
     <Message from="assistant">
       <MessageContent className="transition-all duration-300">
         {hasContent && <MessageResponse isAnimating={isAnimating}>{displayText}</MessageResponse>}
-        {showToolBadge && <ChatToolCallBadge toolCalls={toolCalls} messages={messages} />}
+        {!hidden &&
+          inlineToolCalls.map((tc) => {
+            const toolMessage = messages.find(
+              (m) => m.role === 'tool' && (m as { toolCallId?: string }).toolCallId === tc.id
+            )
+            return (
+              <div key={tc.id} className="my-2 w-full">
+                {renderToolCall({
+                  toolCall: tc as never,
+                  toolMessage: toolMessage as never
+                })}
+              </div>
+            )
+          })}
+        {!hidden && a2uiToolCalls.length > 0 && (
+          <ChatToolCallBadge toolCalls={a2uiToolCalls} messages={messages} />
+        )}
       </MessageContent>
       {showActions && onRetry && (
         <ChatAssistantActions
@@ -175,6 +210,49 @@ function ReasoningMessage({ message, content, messages, isRunning }: ReasoningMe
       {hasContent && <ReasoningContent>{content}</ReasoningContent>}
     </Reasoning>
   )
+}
+
+function ActivityMessageItem({
+  message,
+  renderActivityMessage
+}: {
+  message: CopilotkitActivityMessage
+  renderActivityMessage: (msg: CopilotkitActivityMessage) => React.ReactNode
+}) {
+  const openSurface = useAgentGenerativePanelStore((state) => state.openSurface)
+  const isPanelOpen = useAgentGenerativePanelStore((state) => state.isOpen)
+  const activeSurfaceId = useAgentGenerativePanelStore((state) => state.activeSurfaceId)
+
+  if (message.activityType === 'a2ui-surface') {
+    const rawOps = (message.content as Record<string, unknown> | undefined)?.a2ui_operations as
+      | Array<Record<string, unknown>>
+      | undefined
+    const surfaceId = (rawOps?.[0]?.surfaceId as string) || `a2ui-${message.id}`
+    const isActive = isPanelOpen && activeSurfaceId === surfaceId
+
+    return (
+      <div className="my-1.5 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => openSurface(surfaceId)}
+          className={`group inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring ${
+            isActive
+              ? 'border-primary/50 bg-primary/10 text-primary'
+              : 'border-border bg-muted/50 text-foreground hover:bg-muted'
+          }`}
+        >
+          <Sparkles className="size-3 text-primary shrink-0" />
+          <span className="max-w-[160px] truncate">交互界面</span>
+          <span className="text-[11px] text-muted-foreground group-hover:text-foreground">
+            在右侧查看
+          </span>
+          <ChevronRight className="size-3 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+        </button>
+      </div>
+    )
+  }
+
+  return renderActivityMessage(message)
 }
 
 function deduplicateMessages(messages: CopilotkitMessage[]): CopilotkitMessage[] {
@@ -275,9 +353,22 @@ export function ChatMessages({ threadId }: { threadId: string }) {
       latestMessage.toolCalls.length > 0
     ) {
       const latestToolCall = latestMessage.toolCalls.at(-1)
-      if (latestToolCall?.id && lastAutoOpenedIdRef.current !== latestToolCall.id) {
+      if (
+        latestToolCall?.id &&
+        isA2UIToolCall(latestToolCall) &&
+        lastAutoOpenedIdRef.current !== latestToolCall.id
+      ) {
         lastAutoOpenedIdRef.current = latestToolCall.id
         openToolCall(latestToolCall.id)
+      }
+    } else if (
+      latestMessage?.role === 'activity' &&
+      (latestMessage as CopilotkitActivityMessage).activityType === 'a2ui-surface'
+    ) {
+      const surfaceId = `a2ui-${latestMessage.id}`
+      if (lastAutoOpenedIdRef.current !== surfaceId) {
+        lastAutoOpenedIdRef.current = surfaceId
+        openToolCall(latestMessage.id)
       }
     }
   }, [displayMessages, openToolCall])
@@ -325,7 +416,12 @@ export function ChatMessages({ threadId }: { threadId: string }) {
                 isRunning={isRunning}
               />
             )}
-            {message.role === 'activity' && renderActivityMessage(message)}
+            {message.role === 'activity' && (
+              <ActivityMessageItem
+                message={message as CopilotkitActivityMessage}
+                renderActivityMessage={renderActivityMessage}
+              />
+            )}
           </Fragment>
         )
       })}

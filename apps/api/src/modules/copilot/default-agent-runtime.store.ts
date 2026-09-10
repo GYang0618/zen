@@ -617,12 +617,18 @@ export class DefaultAgentRuntimeStore {
           auth.tenantId,
           displayMessages
         )
+        const latestCheckpoint = await tx.agentCheckpoint.findFirst({
+          where: { threadId: input.threadId, tenantId: auth.tenantId },
+          orderBy: { version: 'desc' },
+          select: { state: true }
+        })
+        const existingState = asRecord(latestCheckpoint?.state)
         await this.checkpointService.upsertInTransaction(tx, {
           threadId: input.threadId,
           runId: input.runId,
           tenantId: auth.tenantId,
           version: sequence,
-          state: { messages: modelMessages }
+          state: { ...existingState, messages: modelMessages }
         })
       })
     }

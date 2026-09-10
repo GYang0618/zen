@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 
 import { useEnv } from '@/config/env'
+import { catalog } from '@/features/agent/a2ui/catalog'
 import { AgentSharedRegistrations } from '@/features/agent/components/registrations'
 import { isSessionExpired } from '@/lib/request'
 import { refreshAuthSessionOnce } from '@/lib/request/refresh-session'
@@ -17,7 +18,12 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
   }, [accessToken])
 
   return (
-    <CopilotKit runtimeUrl={copilotKitApi} useSingleEndpoint={false} headers={headers}>
+    <CopilotKit
+      runtimeUrl={copilotKitApi}
+      useSingleEndpoint={false}
+      headers={headers}
+      a2ui={{ catalog }}
+    >
       <CopilotRuntimeRegistrations />
       <AgentSharedRegistrations />
       {children}

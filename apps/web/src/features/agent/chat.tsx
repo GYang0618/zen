@@ -63,7 +63,7 @@ function Chat() {
       <ResizablePanelGroup orientation="horizontal" className="h-full w-full">
         <ResizablePanel
           id="chat-conversation-panel"
-          defaultSize={isGenerativeOpen ? 50 : 100}
+          defaultSize={isGenerativeOpen ? 40 : 100}
           minSize="25%"
           className="relative flex h-full flex-col min-w-0"
         >
@@ -95,7 +95,7 @@ function Chat() {
             <ResizableHandle withHandle />
             <ResizablePanel
               id="chat-generative-panel"
-              defaultSize={50}
+              defaultSize={60}
               minSize="25%"
               className="relative flex h-full flex-col min-w-0"
             >

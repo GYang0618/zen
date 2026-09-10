@@ -5,7 +5,11 @@ import {
 } from '@zen/shared'
 import { createAgent, dynamicSystemPromptMiddleware } from 'langchain'
 
-import { createDefaultAgentMiddleware, createFrontendToolsMiddleware } from '@/middlewares'
+import {
+  createDefaultAgentMiddleware,
+  createFrontendToolsMiddleware,
+  userStateSyncMiddleware
+} from '@/middlewares'
 import { createModel } from '@/models'
 import {
   APPROVAL_FLOW_RULES,
@@ -17,6 +21,7 @@ import {
   TOOL_FAILURE_RULES
 } from '@/prompts'
 import { ContextSchema } from '@/schema/context'
+import { AgentStateSchema } from '@/schema/state'
 import { defaultAgentTools, getActivePluginAgentPrompts } from '@/tools'
 
 import type { z } from 'zod'
@@ -41,6 +46,7 @@ export function createDefaultAgent() {
   return createAgent({
     model,
     tools: defaultAgentTools,
+    stateSchema: AgentStateSchema,
     contextSchema: ContextSchema,
     middleware: [
       dynamicSystemPromptMiddleware<z.infer<typeof ContextSchema>>((_state, runtime) => {
@@ -57,6 +63,7 @@ export function createDefaultAgent() {
         ].join('\n\n')
       }),
       createFrontendToolsMiddleware(defaultAgentTools.map((tool) => tool.name)),
+      userStateSyncMiddleware,
       ...createDefaultAgentMiddleware(model)
     ]
   })
