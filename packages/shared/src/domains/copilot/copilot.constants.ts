@@ -58,6 +58,7 @@ export const DEFAULT_AGENT_GRAPH_ID = 'default_agent'
 
 /** 拥有前端专用渲染 UI（表格、3D/属性卡片等）的工具名单，提示词与展示层单源引用 */
 export const DEDICATED_RESULT_UI_TOOL_NAMES = [
+  'generate_dynamic_dashboard',
   'indoor_walkthrough',
   'query_job_profiles_list',
   'query_properties',
@@ -84,6 +85,7 @@ export const TOOL_TITLES: Record<string, string> = {
   delete_job_profile: '删除岗位',
   delete_roles: '删除角色',
   delete_users: '删除用户',
+  generate_dynamic_dashboard: '生成动态看板',
   hard_delete_users: '彻底删除用户',
   highlight_elements: '高亮构件',
   indoor_walkthrough: '室内漫游',

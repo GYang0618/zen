@@ -1,6 +1,5 @@
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 
-import { useAgentChatShellStore } from '@/features/agent/stores/agent-chat-shell'
 import { useShellModeStore } from '@/stores'
 
 import type { ShellMode } from '@/stores'
@@ -20,10 +19,7 @@ export function useSwitchShellMode() {
     if (next === 'agent') {
       setLastAdminPath(pathname)
       setMode('agent')
-      const threadId = useAgentChatShellStore.getState().currentThreadId
-      void (threadId
-        ? navigate({ to: '/chat/$threadId', params: { threadId } })
-        : navigate({ to: '/chat' }))
+      void navigate({ to: '/chat' })
       return
     }
 

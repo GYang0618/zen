@@ -134,4 +134,25 @@ describe('useAgentChatInputStore', () => {
     useAgentChatInputStore.getState().clearEditDraft()
     expect(useAgentChatInputStore.getState().editDraft).toBeNull()
   })
+
+  it('tracks running threads and increments newThreadNonce', () => {
+    const threadA = 'thread-a'
+    const threadB = 'thread-b'
+
+    // Mark running
+    useAgentChatInputStore.getState().markThreadRunning(threadA, true)
+    useAgentChatInputStore.getState().markThreadRunning(threadB, true)
+    expect(useAgentChatInputStore.getState().runningThreadIds.has(threadA)).toBe(true)
+    expect(useAgentChatInputStore.getState().runningThreadIds.has(threadB)).toBe(true)
+
+    // Mark finished
+    useAgentChatInputStore.getState().markThreadRunning(threadA, false)
+    expect(useAgentChatInputStore.getState().runningThreadIds.has(threadA)).toBe(false)
+    expect(useAgentChatInputStore.getState().runningThreadIds.has(threadB)).toBe(true)
+
+    // Increment nonce
+    const initialNonce = useAgentChatInputStore.getState().newThreadNonce
+    useAgentChatInputStore.getState().triggerNewThread()
+    expect(useAgentChatInputStore.getState().newThreadNonce).toBe(initialNonce + 1)
+  })
 })

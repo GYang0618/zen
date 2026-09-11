@@ -11,13 +11,10 @@ import {
 import { formatUnhandledToolError } from '@/api/tool-failure'
 import { createApprovalPolicy } from '@/tools/policy'
 
-import { pluginToolVisibilityMiddleware } from './plugin-visibility'
-
 import type { createModel } from '@/models'
 
 export function createDefaultAgentMiddleware(model: ReturnType<typeof createModel>) {
   return [
-    pluginToolVisibilityMiddleware,
     modelCallLimitMiddleware({
       runLimit: DEFAULT_AGENT_RUN_BUDGET.maxModelCalls,
       exitBehavior: 'error'

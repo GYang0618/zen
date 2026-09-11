@@ -4,31 +4,17 @@ import { ChatApprovalRegistration } from './chat-approval'
 import { ChatMessages } from './chat-messages'
 import { ChatThreadSkeleton } from './chat-thread-skeleton'
 
-import type { AgentApproval } from '../runtime-api'
-
-const DRAFT_ROUTE_THREAD_ID = 'draft'
-
 interface ChatConversationProps {
-  threadId?: string
-  threadLoading: boolean
+  threadLoading?: boolean
   inputDockHeight: number
-  persistedApproval: AgentApproval | null
-  onPendingApprovalChange: (pending: boolean) => void
-  onPersistedDecision: (decision: 'approve' | 'reject') => Promise<void>
-  onLiveInterrupt: () => void
+  onPendingApprovalChange?: (pending: boolean) => void
 }
 
 export function ChatConversation({
-  threadId,
-  threadLoading,
+  threadLoading = false,
   inputDockHeight,
-  persistedApproval,
-  onPendingApprovalChange,
-  onPersistedDecision,
-  onLiveInterrupt
+  onPendingApprovalChange
 }: ChatConversationProps) {
-  const activeThreadId = threadId ?? DRAFT_ROUTE_THREAD_ID
-
   return (
     <Conversation>
       <ConversationContent>
@@ -40,13 +26,8 @@ export function ChatConversation({
             <ChatThreadSkeleton />
           ) : (
             <>
-              <ChatMessages key={activeThreadId} threadId={activeThreadId} />
-              <ChatApprovalRegistration
-                persistedApproval={persistedApproval}
-                onPendingChange={onPendingApprovalChange}
-                onPersistedDecision={onPersistedDecision}
-                onLiveInterrupt={onLiveInterrupt}
-              />
+              <ChatMessages />
+              <ChatApprovalRegistration onPendingChange={onPendingApprovalChange} />
             </>
           )}
         </div>

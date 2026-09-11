@@ -4,6 +4,7 @@ import { tool } from 'langchain'
 import { z } from 'zod'
 
 import { asSdkOptions, executeApiCall, noteControllerList } from '../api'
+import { dashboardTools } from './dashboard'
 import { organizationTools } from './organization'
 import { getToolExecutionPolicy } from './policy'
 import { postTools } from './post'
@@ -27,6 +28,7 @@ const rawPluginProviders = PLUGIN_AGENT_TOOL_FACTORIES.map((entry) => ({
 }))
 
 type RegisteredTool =
+  | (typeof dashboardTools)[number]
   | (typeof userTools)[number]
   | (typeof roleTools)[number]
   | (typeof organizationTools)[number]
@@ -41,17 +43,16 @@ export interface AgentToolProvider {
 export type AgentToolDescriptor = ToolManifest
 
 const coreProviders: readonly AgentToolProvider[] = [
+  { id: 'core:dashboard', tools: dashboardTools },
   { id: 'core:user', tools: userTools },
   { id: 'core:role', tools: roleTools },
   { id: 'core:organization', tools: organizationTools },
   { id: 'core:post', tools: postTools }
 ]
 
-const pluginProviders: readonly AgentToolProvider[] = rawPluginProviders
-
-/** Default Agent 的唯一 Tool 聚合边界；插件通过编译期 provider 注入。 */
+/** Default Agent 的唯一 Tool 聚合边界；插件功能暂时剥离。 */
 export function createAgentToolRegistry(
-  providers: readonly AgentToolProvider[] = [...coreProviders, ...pluginProviders]
+  providers: readonly AgentToolProvider[] = coreProviders
 ): RegisteredTool[] {
   const tools = new Map<string, RegisteredTool>()
 

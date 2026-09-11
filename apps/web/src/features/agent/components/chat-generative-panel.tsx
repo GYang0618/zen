@@ -1,25 +1,27 @@
 'use client'
 
 import { A2UIProvider } from '@copilotkit/a2ui-renderer'
-import { UseAgentUpdate, useAgent } from '@copilotkit/react-core/v2'
+import { UseAgentUpdate } from '@copilotkit/react-core/v2'
 import { Badge, Button } from '@zen/ui'
 import { CheckCircle2, Loader2, PanelRightClose, Sparkles } from 'lucide-react'
 
 import { A2UISurfaceHost } from '../a2ui/a2ui-surface-host'
 import { catalog } from '../a2ui/catalog'
 import { useA2UISurfaces } from '../a2ui/use-a2ui-surfaces'
-import { useLiveAgentMessages } from '../hooks/use-live-agent-messages'
+import { useChatAgent } from '../context/chat-agent-context'
 import { useAgentGenerativePanelStore } from '../stores/agent-generative-panel'
 
 export function ChatGenerativePanel() {
-  const { agent } = useAgent({
+  const { agent } = useChatAgent({
     updates: [UseAgentUpdate.OnMessagesChanged, UseAgentUpdate.OnRunStatusChanged],
     throttleMs: 0
   })
-  const { messages, isRunning } = useLiveAgentMessages(agent)
   const close = useAgentGenerativePanelStore((state) => state.close)
 
-  const { surfaces, activeSurface, setActiveSurfaceId } = useA2UISurfaces(messages, isRunning)
+  const { surfaces, activeSurface, setActiveSurfaceId } = useA2UISurfaces(
+    agent.messages,
+    agent.isRunning
+  )
 
   return (
     <A2UIProvider catalog={catalog}>

@@ -31,6 +31,17 @@ function readAccessTokenFromRecord(record: unknown): string | undefined {
   return typeof token === 'string' && token.trim() !== '' ? token : undefined
 }
 
+export class UnauthorizedToolError extends Error {
+  readonly status = 401
+  readonly code = 401
+  readonly reason = 'UNAUTHORIZED' as const
+
+  constructor(message = '缺少用户 access token，无法调用后端用户 API') {
+    super(message)
+    this.name = 'UnauthorizedToolError'
+  }
+}
+
 /**
  * 从 LangGraph RunnableConfig 读取当前请求的 access token。
  * CopilotKit 通过 assistantConfig.configurable 注入；LangGraph 运行时常将其合并到 context。
@@ -45,7 +56,7 @@ export function getAccessTokenFromConfig(config?: RunnableConfig): string {
     readAccessTokenFromRecord(toolConfig?.config?.context)
 
   if (!token) {
-    throw new Error('缺少用户 access token，无法调用后端用户 API')
+    throw new UnauthorizedToolError()
   }
 
   return token
@@ -56,7 +67,7 @@ export function getCurrentAccessToken(): string {
   const token = requestContextStorage.getStore()?.accessToken
 
   if (typeof token !== 'string' || token.trim() === '') {
-    throw new Error('缺少用户 access token，无法调用后端用户 API')
+    throw new UnauthorizedToolError()
   }
 
   return token

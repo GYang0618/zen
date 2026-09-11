@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router'
 import {
   Button,
   cn,
@@ -9,7 +10,7 @@ import {
 } from '@zen/ui'
 import { ClockFading, Pencil } from 'lucide-react'
 
-import { useAgentChatShellStore } from '../stores/agent-chat-shell'
+import { useAgentChatInputStore } from '../stores/agent-chat-input'
 import { ChatHistory } from './chat-history'
 
 /**
@@ -17,12 +18,18 @@ import { ChatHistory } from './chat-history'
  * 由布局壳放入 `SidebarContent`；图标栏下仅保留新建按钮。
  */
 export function AgentSidebar() {
-  const createThread = useAgentChatShellStore((state) => state.handlers?.createThread)
+  const triggerNewThread = useAgentChatInputStore((state) => state.triggerNewThread)
+  const navigate = useNavigate()
+
+  const handleCreate = () => {
+    triggerNewThread()
+    void navigate({ to: '/chat' })
+  }
 
   return (
     <nav aria-label="对话" className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-hidden">
       <div className="shrink-0  group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-        <NewThreadButton disabled={!createThread} onCreate={() => void createThread?.()} />
+        <NewThreadButton onCreate={handleCreate} />
       </div>
 
       <ScrollArea className="pr-2.5 min-h-0 min-w-0 flex-1 group-data-[collapsible=icon]:hidden">

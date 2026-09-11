@@ -8,10 +8,10 @@ import {
   DropdownMenuTrigger,
   Input
 } from '@zen/ui'
-import { Activity, LoaderCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+import { LoaderCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
-import type { AgentThreadSummary } from '../runtime-api'
+import type { Thread } from '@copilotkit/react-core/v2'
 
 const THREAD_TITLE_MAX_LENGTH = 80
 const FALLBACK_TITLE = '新对话'
@@ -19,14 +19,13 @@ const MAX_RELATIVE_DAYS = 7
 const DAY_MS = 86_400_000
 
 type HistoryRowProps = {
-  thread: AgentThreadSummary
+  thread: Thread
   active: boolean
   running: boolean
   renaming: boolean
   onRename: () => void
   onRenameCommit: (title: string) => void
   onRenameCancel: () => void
-  onOpenRuns: () => void
   onDelete: () => void
 }
 
@@ -38,7 +37,6 @@ export function HistoryRow({
   onRename,
   onRenameCommit,
   onRenameCancel,
-  onOpenRuns,
   onDelete
 }: HistoryRowProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -48,7 +46,7 @@ export function HistoryRow({
   const scrollRafRef = useRef<number | null>(null)
   const ignoreBlurRef = useRef(false)
   const committedRef = useRef(false)
-  const title = thread.title || FALLBACK_TITLE
+  const title = thread.name || FALLBACK_TITLE
   const [draft, setDraft] = useState(title)
 
   useEffect(() => {
@@ -213,10 +211,6 @@ export function HistoryRow({
                 <DropdownMenuItem onClick={onRename}>
                   <Pencil />
                   重命名
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={onOpenRuns}>
-                  <Activity />
-                  运行记录
                 </DropdownMenuItem>
                 <DropdownMenuItem variant="destructive" onClick={onDelete}>
                   <Trash2 />

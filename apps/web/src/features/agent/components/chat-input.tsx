@@ -1,11 +1,13 @@
 'use client'
 
-import { randomUUID, useAgent, useCopilotKit } from '@copilotkit/react-core/v2'
+import { randomUUID, useCopilotKit } from '@copilotkit/react-core/v2'
+import { useNavigate, useParams } from '@tanstack/react-router'
 import { Button, cn } from '@zen/ui'
 import { Mic, Paperclip, Send, Square } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
+import { useChatAgent } from '../context/chat-agent-context'
 import { useAgentChatInputStore } from '../stores/agent-chat-input'
 import { CHAT_INPUT_PLACEHOLDERS, ChatInputDynamicTexts } from './chat-input-dynamic-texts'
 
@@ -19,27 +21,18 @@ export function ChatInput({
   online = true,
   awaitingApproval = false,
   loading = false,
-  threadId,
-  onEnsureThread,
-  onRunStart,
-  onRunSettled,
-  onStop
+  threadId
 }: {
   className?: string
   online?: boolean
-  /** 存在待处理的高风险操作审批时为 true：禁止发送新消息，避免绕过审批卡片继续对话 */
   awaitingApproval?: boolean
-  /** 正在切换历史对话时禁止输入，避免写入尚未加载完成的会话 */
   loading?: boolean
   threadId?: string
-  /** 发送前确保已有 threadId；新对话在首条消息时创建并写入历史 */
-  onEnsureThread?: (firstMessage: string) => Promise<string>
-  onRunStart?: (runId: string) => void
-  onRunSettled?: (runId: string) => void
-  onStop?: () => Promise<void>
 }) {
-  const { agent } = useAgent()
+  const { agent } = useChatAgent()
   const { copilotkit } = useCopilotKit()
+  const navigate = useNavigate()
+  const params = useParams({ strict: false }) as { threadId?: string }
 
   const [placeholderIndex, setPlaceholderIndex] = useState(0)
   const [showPlaceholder, setShowPlaceholder] = useState(true)
@@ -161,10 +154,12 @@ export function ChatInput({
   const canSend =
     inputValue.trim().length > 0 && !isRunning && !awaitingApproval && online && !loading
 
+  const markThreadRunning = useAgentChatInputStore((state) => state.markThreadRunning)
+
   const stopAgent = async () => {
-    if (onStop) {
-      await onStop()
-      return
+    const targetThreadId = threadId ?? agent.threadId
+    if (targetThreadId) {
+      markThreadRunning(targetThreadId, false)
     }
     try {
       copilotkit.stopAgent({ agent })
@@ -178,10 +173,21 @@ export function ChatInput({
     }
   }
 
+  const newThreadNonce = useAgentChatInputStore((state) => state.newThreadNonce)
+  const prevNonceRef = useRef(newThreadNonce)
+
+  useEffect(() => {
+    if (newThreadNonce > prevNonceRef.current) {
+      prevNonceRef.current = newThreadNonce
+      setInputValue('')
+      setIsActive(false)
+      localStorage.removeItem(NEW_THREAD_DRAFT_KEY)
+    }
+  }, [newThreadNonce])
+
   const sendMessage = async () => {
     if (!canSend) return
     const content = inputValue
-    if (onEnsureThread) await onEnsureThread(content)
     localStorage.removeItem(NEW_THREAD_DRAFT_KEY)
     const message = {
       id: randomUUID(),
@@ -190,20 +196,32 @@ export function ChatInput({
     } as const
     agent.addMessage(message)
     setInputValue('')
-    const runId = randomUUID()
-    onRunStart?.(runId)
+
+    const targetThreadId = threadId ?? agent.threadId
+    if (targetThreadId) {
+      markThreadRunning(targetThreadId, true)
+    }
+
+    // 如果当前处于新会话路径，发送首条消息时将路由锚定到当前 threadId
+    if (!params.threadId && threadId) {
+      void navigate({
+        to: '/chat/$threadId',
+        params: { threadId },
+        replace: true
+      })
+    }
+
     try {
-      await copilotkit.runAgent({ agent, runId })
+      await copilotkit.runAgent({ agent })
     } catch (error) {
-      // A failed run may emit an empty MESSAGES_SNAPSHOT and remove the
-      // optimistic user message. Restore it so the error can be retried.
+      if (targetThreadId) {
+        markThreadRunning(targetThreadId, false)
+      }
       if (!agent.messages.some((item) => item.id === message.id)) {
         agent.addMessage(message)
       }
       setInputValue(message.content)
       console.error('AgentChat: runAgent failed', error)
-    } finally {
-      onRunSettled?.(runId)
     }
   }
 

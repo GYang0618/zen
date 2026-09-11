@@ -80,7 +80,12 @@ export async function executeApiCall<T>(
     return MISSING_CONTEXT_RESULT
   }
 
-  const accessToken = getAccessTokenFromConfig(config)
+  let accessToken: string
+  try {
+    accessToken = getAccessTokenFromConfig(config)
+  } catch (error) {
+    return toToolFailureResult(error, hints)
+  }
   const toolContext: ToolExecutionContext =
     'context' in resolved
       ? resolved.context

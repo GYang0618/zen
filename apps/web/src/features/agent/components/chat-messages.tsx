@@ -2,7 +2,6 @@
 
 import {
   UseAgentUpdate,
-  useAgent,
   useRenderActivityMessage,
   useRenderToolCall
 } from '@copilotkit/react-core/v2'
@@ -18,35 +17,22 @@ import {
   ReasoningContent,
   ReasoningTrigger
 } from '@zen/ui'
-import { AlertCircle, ChevronRight, RefreshCw, Sparkles } from 'lucide-react'
-import { Fragment, useEffect, useMemo, useRef } from 'react'
+import { AlertCircle, RefreshCw } from 'lucide-react'
+import { Fragment, useMemo } from 'react'
 
-import { DisplayMessageCache } from '../display-messages'
+import { useChatAgent } from '../context/chat-agent-context'
 import { useAgentRetry } from '../hooks/use-agent-retry'
-import { useLiveAgentMessages } from '../hooks/use-live-agent-messages'
-import { useSmoothStreamText } from '../hooks/use-smooth-stream-text'
 import { isA2UIToolCall } from '../lib/a2ui-tools'
-import { resolveAssistantToolCalls } from '../lib/group-tool-calls'
-import { useAgentGenerativePanelStore } from '../stores/agent-generative-panel'
 import { ChatAssistantActions } from './chat-assistant-actions'
 import { ChatPendingMessage } from './chat-pending-message'
 import { ChatToolCallBadge } from './chat-tool-call-badge'
 import { ChatUserActions } from './chat-user-actions'
 
-import type { AssistantToolMessageLike, ToolCallLike } from '../lib/group-tool-calls'
+import type { Message as AGUIMessage } from '@copilotkit/react-core/v2'
 
 type UserMessageContentPart = { type: string; text?: string }
 
-type CopilotkitUserMessage = {
-  id: string
-  role: 'user'
-  content?: string | UserMessageContentPart[]
-}
-
-type CopilotkitAssistantMessage = {
-  id: string
-  role: 'assistant'
-  content?: string
+type ChatMessageLike = AGUIMessage & {
   toolCalls?: Array<{
     id?: string
     function?: {
@@ -54,58 +40,28 @@ type CopilotkitAssistantMessage = {
       arguments?: string
     }
   }>
+  activityType?: string
 }
 
-type CopilotkitReasoningMessage = {
-  id: string
-  role: 'reasoning'
-  content?: string
-}
-
-type CopilotkitActivityMessage = {
-  id: string
-  role: 'activity'
-  activityType: string
-  content: Record<string, unknown>
-}
-
-type CopilotkitToolMessage = {
-  id: string
-  role: 'tool'
-  toolCallId?: string
-  content?: unknown
-  toolCalls?: unknown
-}
-
-type CopilotkitMessage =
-  | CopilotkitUserMessage
-  | CopilotkitAssistantMessage
-  | CopilotkitReasoningMessage
-  | CopilotkitActivityMessage
-  | CopilotkitToolMessage
-
-function flattenUserMessageContent(content: CopilotkitUserMessage['content']): string {
+function flattenUserMessageContent(content: unknown): string {
   if (!content) return ''
   if (typeof content === 'string') return content
-
-  return content
-    .map((part: UserMessageContentPart) => (part.type === 'text' ? part.text : ''))
-    .filter((text): text is string => Boolean(text?.length))
-    .join('\n')
+  if (Array.isArray(content)) {
+    return content
+      .map((part: UserMessageContentPart) => (part.type === 'text' ? part.text : ''))
+      .filter((text): text is string => Boolean(text?.length))
+      .join('\n')
+  }
+  return String(content)
 }
 
-interface UserMessageProps {
-  message: CopilotkitUserMessage
-}
-
-function UserMessage({ message }: UserMessageProps) {
+function UserMessageItem({ message }: { message: ChatMessageLike }) {
   const text = useMemo(() => flattenUserMessageContent(message.content), [message.content])
-
   if (!text) return null
 
   return (
-    <Message from="user">
-      <MessageContent>
+    <Message from="user" className="max-w-full">
+      <MessageContent className="text-base group-[.is-user]:max-w-7/10 group-[.is-user]:rounded-2xl group-[.is-user]:rounded-tr-none group-[.is-user]:bg-primary/90 group-[.is-user]:px-3 group-[.is-user]:py-2 group-[.is-user]:text-primary-foreground/75">
         <MessageResponse>{text}</MessageResponse>
       </MessageContent>
       <ChatUserActions text={text} />
@@ -113,95 +69,81 @@ function UserMessage({ message }: UserMessageProps) {
   )
 }
 
-interface AssistantMessageProps {
-  message: CopilotkitAssistantMessage
-  content: string
-  messages: CopilotkitMessage[]
-  toolGroupingMessages: AssistantToolMessageLike[]
+interface AssistantMessageItemProps {
+  message: ChatMessageLike
+  messages: ChatMessageLike[]
   isRunning: boolean
-  isLastAssistant?: boolean
+  isLastAssistant: boolean
   onRetry?: () => void
 }
 
-function AssistantMessage({
+function AssistantMessageItem({
   message,
-  content,
   messages,
-  toolGroupingMessages,
   isRunning,
-  isLastAssistant = false,
+  isLastAssistant,
   onRetry
-}: AssistantMessageProps) {
-  'use no memo'
+}: AssistantMessageItemProps) {
   const renderToolCall = useRenderToolCall()
-  const isLatestAssistant = messages.at(-1)?.id === message.id
-  const isStreaming = Boolean(isRunning && isLatestAssistant)
-  const { displayText, isAnimating } = useSmoothStreamText(content, isStreaming)
-  const hasContent = Boolean(displayText.trim())
-  const { hidden, toolCalls } = resolveAssistantToolCalls(toolGroupingMessages, message.id)
-
-  const { a2uiToolCalls, inlineToolCalls } = useMemo(() => {
-    const a2ui: ToolCallLike[] = []
-    const inline: ToolCallLike[] = []
-    for (const tc of toolCalls) {
-      if (isA2UIToolCall(tc)) {
-        a2ui.push(tc)
-      } else {
-        inline.push(tc)
-      }
-    }
-    return { a2uiToolCalls: a2ui, inlineToolCalls: inline }
-  }, [toolCalls])
-
-  const showActions = isLastAssistant && !isRunning && Boolean(onRetry)
+  const content = typeof message.content === 'string' ? message.content : ''
+  const isStreaming = isRunning && isLastAssistant
+  const hasContent = Boolean(content.trim())
+  const toolCalls = Array.isArray(message.toolCalls) ? message.toolCalls : []
+  const a2uiToolCalls = useMemo(() => toolCalls.filter((tc) => isA2UIToolCall(tc)), [toolCalls])
+  const standardToolCalls = useMemo(
+    () => toolCalls.filter((tc) => !isA2UIToolCall(tc)),
+    [toolCalls]
+  )
 
   return (
-    <Message from="assistant">
-      <MessageContent className="transition-all duration-300">
-        {hasContent && <MessageResponse isAnimating={isAnimating}>{displayText}</MessageResponse>}
-        {!hidden &&
-          inlineToolCalls.map((tc) => {
-            const toolMessage = messages.find(
-              (m) => m.role === 'tool' && (m as { toolCallId?: string }).toolCallId === tc.id
-            )
-            return (
-              <div key={tc.id} className="my-2 w-full">
-                {renderToolCall({
-                  toolCall: tc as never,
-                  toolMessage: toolMessage as never
-                })}
-              </div>
-            )
-          })}
-        {!hidden && a2uiToolCalls.length > 0 && (
-          <ChatToolCallBadge toolCalls={a2uiToolCalls} messages={messages} />
+    <Message from="assistant" className="max-w-full">
+      <MessageContent className="w-full text-base transition-all duration-300 group-[.is-assistant]:w-full">
+        {hasContent && (
+          <MessageResponse
+            animated
+            isAnimating={isStreaming}
+            caret={isStreaming ? 'block' : undefined}
+          >
+            {content}
+          </MessageResponse>
         )}
+        {a2uiToolCalls.length > 0 && (
+          <ChatToolCallBadge toolCalls={a2uiToolCalls as never} messages={messages as never} />
+        )}
+        {standardToolCalls.map((tc) => {
+          const toolMessage = messages.find(
+            (m) => m.role === 'tool' && (m as { toolCallId?: string }).toolCallId === tc.id
+          )
+          return (
+            <div key={tc.id} className="my-2 w-full">
+              {renderToolCall({
+                toolCall: tc as never,
+                toolMessage: toolMessage as never
+              })}
+            </div>
+          )
+        })}
       </MessageContent>
-      {showActions && onRetry && (
-        <ChatAssistantActions
-          content={displayText || content}
-          onRetry={onRetry}
-          isRunning={isRunning}
-        />
+      {isLastAssistant && !isRunning && onRetry && (
+        <ChatAssistantActions content={content} onRetry={onRetry} isRunning={isRunning} />
       )}
     </Message>
   )
 }
 
-interface ReasoningMessageProps {
-  message: CopilotkitReasoningMessage
-  content: string
-  messages: CopilotkitMessage[]
+function ReasoningMessageItem({
+  message,
+  isRunning,
+  isLatest
+}: {
+  message: ChatMessageLike
   isRunning: boolean
-}
-
-function ReasoningMessage({ message, content, messages, isRunning }: ReasoningMessageProps) {
-  'use no memo'
-  const isLatest = messages.at(-1)?.id === message.id
+  isLatest: boolean
+}) {
+  const content = typeof message.content === 'string' ? message.content : ''
   const isStreaming = Boolean(isRunning && isLatest)
   const hasContent = Boolean(content.length)
 
-  // 既无内容又非当前流式活跃的空 reasoning 不展示
   if (!hasContent && !isStreaming) return null
 
   return (
@@ -212,118 +154,28 @@ function ReasoningMessage({ message, content, messages, isRunning }: ReasoningMe
   )
 }
 
-function ActivityMessageItem({
-  message,
-  renderActivityMessage
-}: {
-  message: CopilotkitActivityMessage
-  renderActivityMessage: (msg: CopilotkitActivityMessage) => React.ReactNode
-}) {
-  const openSurface = useAgentGenerativePanelStore((state) => state.openSurface)
-  const isPanelOpen = useAgentGenerativePanelStore((state) => state.isOpen)
-  const activeSurfaceId = useAgentGenerativePanelStore((state) => state.activeSurfaceId)
-
-  if (message.activityType === 'a2ui-surface') {
-    const rawOps = (message.content as Record<string, unknown> | undefined)?.a2ui_operations as
-      | Array<Record<string, unknown>>
-      | undefined
-    const surfaceId = (rawOps?.[0]?.surfaceId as string) || `a2ui-${message.id}`
-    const isActive = isPanelOpen && activeSurfaceId === surfaceId
-
-    return (
-      <div className="my-1.5 flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={() => openSurface(surfaceId)}
-          className={`group inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring ${
-            isActive
-              ? 'border-primary/50 bg-primary/10 text-primary'
-              : 'border-border bg-muted/50 text-foreground hover:bg-muted'
-          }`}
-        >
-          <Sparkles className="size-3 text-primary shrink-0" />
-          <span className="max-w-[160px] truncate">交互界面</span>
-          <span className="text-[11px] text-muted-foreground group-hover:text-foreground">
-            在右侧查看
-          </span>
-          <ChevronRight className="size-3 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-        </button>
-      </div>
-    )
-  }
-
-  return renderActivityMessage(message)
-}
-
-function deduplicateMessages(messages: CopilotkitMessage[]): CopilotkitMessage[] {
-  const merged = new Map<string, CopilotkitMessage>()
-
-  for (const message of messages) {
-    const existing = merged.get(message.id)
-    if (existing && message.role === 'assistant' && existing.role === 'assistant') {
-      merged.set(message.id, {
-        ...existing,
-        ...message,
-        content: message.content || existing.content,
-        toolCalls: message.toolCalls ?? existing.toolCalls
-      })
-    } else {
-      merged.set(message.id, message)
-    }
-  }
-
-  return [...merged.values()]
-}
-
-/**
- * Agent 在 RUN_ERROR / 空 MESSAGES_SNAPSHOT 时可能清掉乐观添加的用户消息；
- * 本地缓存已展示过的 user 消息，并在 agent 状态中缺失时合并回列表。
- */
-function useDisplayMessages(messages: CopilotkitMessage[], threadId: string): CopilotkitMessage[] {
-  const cacheRef = useRef(new DisplayMessageCache<CopilotkitMessage>())
-
-  return useMemo(() => {
-    const deduped = deduplicateMessages(messages)
-    return cacheRef.current.merge(threadId, deduped)
-  }, [messages, threadId])
-}
-
-export function ChatMessages({ threadId }: { threadId: string }) {
-  'use no memo'
-  const { agent } = useAgent({
+export function ChatMessages() {
+  const { agent } = useChatAgent({
     updates: [UseAgentUpdate.OnMessagesChanged, UseAgentUpdate.OnRunStatusChanged],
     throttleMs: 0
   })
   const { renderActivityMessage } = useRenderActivityMessage()
-  const { messages: liveMessages, isRunning } = useLiveAgentMessages(agent)
-  const messages = liveMessages as CopilotkitMessage[]
   const { runError, retryLastRun, failedUserMessage } = useAgentRetry()
 
-  const displayMessages = useDisplayMessages(
-    failedUserMessage ? [failedUserMessage as CopilotkitMessage, ...messages] : messages,
-    threadId
-  )
-  const toolGroupingMessages = useMemo(
-    () =>
-      displayMessages.map((message) => ({
-        id: message.id,
-        role: message.role,
-        ...(message.role === 'assistant'
-          ? { content: message.content, toolCalls: message.toolCalls }
-          : {})
-      })),
-    [displayMessages]
-  )
-  const canRetry = displayMessages.some((message) => message.role === 'user')
+  const rawMessages = agent.messages as ChatMessageLike[]
+  const messages = useMemo(() => {
+    if (failedUserMessage && !rawMessages.some((m) => m.id === failedUserMessage.id)) {
+      return [failedUserMessage as ChatMessageLike, ...rawMessages]
+    }
+    return rawMessages
+  }, [failedUserMessage, rawMessages])
 
-  const lastUserIndex = displayMessages.findLastIndex((message) => message.role === 'user')
-  const lastAssistantIndex = displayMessages.findLastIndex(
-    (message) => message.role === 'assistant'
-  )
+  const lastUserIndex = messages.findLastIndex((m) => m.role === 'user')
+  const lastAssistantIndex = messages.findLastIndex((m) => m.role === 'assistant')
   const isLastAssistantTurn = lastAssistantIndex !== -1 && lastAssistantIndex > lastUserIndex
-  const lastAssistantId = isLastAssistantTurn ? displayMessages[lastAssistantIndex]?.id : undefined
+  const lastAssistantId = isLastAssistantTurn ? messages[lastAssistantIndex]?.id : undefined
 
-  const messagesAfterUser = lastUserIndex >= 0 ? displayMessages.slice(lastUserIndex + 1) : []
+  const messagesAfterUser = lastUserIndex >= 0 ? messages.slice(lastUserIndex + 1) : []
   const hasActiveAssistantOutput = messagesAfterUser.some((message) => {
     if (message.role === 'assistant') {
       const hasText = typeof message.content === 'string' && message.content.trim().length > 0
@@ -336,98 +188,65 @@ export function ChatMessages({ threadId }: { threadId: string }) {
     return message.role === 'activity'
   })
 
-  const showPendingPlaceholder = isRunning && !hasActiveAssistantOutput
+  const showPendingPlaceholder = agent.isRunning && !hasActiveAssistantOutput
+  const canRetry = messages.some((m) => m.role === 'user')
 
   const handleRetry = () => {
-    void retryLastRun(displayMessages)
+    void retryLastRun(messages)
   }
 
-  const openToolCall = useAgentGenerativePanelStore((state) => state.openToolCall)
-  const lastAutoOpenedIdRef = useRef<string | null>(null)
-
-  useEffect(() => {
-    const latestMessage = displayMessages.at(-1)
-    if (
-      latestMessage?.role === 'assistant' &&
-      Array.isArray(latestMessage.toolCalls) &&
-      latestMessage.toolCalls.length > 0
-    ) {
-      const latestToolCall = latestMessage.toolCalls.at(-1)
-      if (
-        latestToolCall?.id &&
-        isA2UIToolCall(latestToolCall) &&
-        lastAutoOpenedIdRef.current !== latestToolCall.id
-      ) {
-        lastAutoOpenedIdRef.current = latestToolCall.id
-        openToolCall(latestToolCall.id)
-      }
-    } else if (
-      latestMessage?.role === 'activity' &&
-      (latestMessage as CopilotkitActivityMessage).activityType === 'a2ui-surface'
-    ) {
-      const surfaceId = `a2ui-${latestMessage.id}`
-      if (lastAutoOpenedIdRef.current !== surfaceId) {
-        lastAutoOpenedIdRef.current = surfaceId
-        openToolCall(latestMessage.id)
-      }
-    }
-  }, [displayMessages, openToolCall])
-
-  if (displayMessages.length === 0) {
+  if (messages.length === 0) {
     if (runError) {
       return (
         <div className="flex flex-col gap-4">
           <ChatRunError
             message={runError}
             onRetry={handleRetry}
-            disabled={isRunning || !canRetry}
+            disabled={agent.isRunning || !canRetry}
           />
         </div>
       )
     }
-
     return null
   }
 
   return (
     <div className="flex flex-col gap-4">
-      {displayMessages.map((message) => {
+      {messages.map((message, idx) => {
         if (message.role === 'tool') return null
 
         return (
-          <Fragment key={message.id}>
-            {message.role === 'user' && <UserMessage message={message as CopilotkitUserMessage} />}
+          <Fragment key={message.id ?? `msg-${idx}`}>
+            {message.role === 'user' && <UserMessageItem message={message} />}
             {message.role === 'assistant' && (
-              <AssistantMessage
-                message={message as CopilotkitAssistantMessage}
-                content={typeof message.content === 'string' ? message.content : ''}
-                messages={displayMessages}
-                toolGroupingMessages={toolGroupingMessages}
-                isRunning={isRunning}
+              <AssistantMessageItem
+                message={message}
+                messages={messages}
+                isRunning={agent.isRunning}
                 isLastAssistant={message.id === lastAssistantId}
                 onRetry={handleRetry}
               />
             )}
             {message.role === 'reasoning' && (
-              <ReasoningMessage
-                message={message as CopilotkitReasoningMessage}
-                content={typeof message.content === 'string' ? message.content : ''}
-                messages={displayMessages}
-                isRunning={isRunning}
+              <ReasoningMessageItem
+                message={message}
+                isRunning={agent.isRunning}
+                isLatest={idx === messages.length - 1}
               />
             )}
-            {message.role === 'activity' && (
-              <ActivityMessageItem
-                message={message as CopilotkitActivityMessage}
-                renderActivityMessage={renderActivityMessage}
-              />
-            )}
+            {message.role === 'activity' &&
+              (message as { activityType?: string }).activityType !== 'a2ui-surface' &&
+              renderActivityMessage(message as never)}
           </Fragment>
         )
       })}
       {showPendingPlaceholder && <ChatPendingMessage />}
       {runError && (
-        <ChatRunError message={runError} onRetry={handleRetry} disabled={isRunning || !canRetry} />
+        <ChatRunError
+          message={runError}
+          onRetry={handleRetry}
+          disabled={agent.isRunning || !canRetry}
+        />
       )}
     </div>
   )

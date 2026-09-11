@@ -4,9 +4,7 @@ import { useEffect } from 'react'
 
 import { AuthenticatedLayout } from '@/components/layouts'
 import { RoutePending } from '@/components/route-pending'
-import { CopilotProvider } from '@/context/copilot-provider'
 import { AgentPopup } from '@/features/agent'
-import { useAgentChatShellStore } from '@/features/agent/stores/agent-chat-shell'
 import { authApi } from '@/features/auth/api'
 import { GeneralError } from '@/features/errors/general-error'
 import { canAccess } from '@/lib/auth/permissions'
@@ -81,10 +79,7 @@ function AuthenticatedLayoutComponent() {
     }
 
     if (mode === 'agent') {
-      const threadId = useAgentChatShellStore.getState().currentThreadId
-      void (threadId
-        ? navigate({ to: '/chat/$threadId', params: { threadId }, replace: true })
-        : navigate({ to: '/chat', replace: true }))
+      void navigate({ to: '/chat', replace: true })
       return
     }
 
@@ -93,12 +88,10 @@ function AuthenticatedLayoutComponent() {
 
   return (
     <AuthenticatedLayout>
-      <CopilotProvider>
-        <Outlet />
-        <div className={cn(!shouldShowAgentPopup && 'hidden')}>
-          <AgentPopup />
-        </div>
-      </CopilotProvider>
+      <Outlet />
+      <div className={cn(!shouldShowAgentPopup && 'hidden')}>
+        <AgentPopup />
+      </div>
     </AuthenticatedLayout>
   )
 }

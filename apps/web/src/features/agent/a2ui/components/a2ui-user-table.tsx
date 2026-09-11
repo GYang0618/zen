@@ -1,6 +1,6 @@
 'use client'
 
-import { UseAgentUpdate, useAgent } from '@copilotkit/react-core/v2'
+import { UseAgentUpdate } from '@copilotkit/react-core/v2'
 import { useQueryClient } from '@tanstack/react-query'
 import { Badge } from '@zen/ui'
 import { Users, UserX } from 'lucide-react'
@@ -12,6 +12,8 @@ import {
   UsersDialogs,
   UsersProvider
 } from '@/features/system/users'
+
+import { useChatAgent } from '../../context/chat-agent-context'
 
 import type { RendererProps } from '@copilotkit/a2ui-renderer'
 import type { User, UserStatus } from '@zen/shared'
@@ -25,7 +27,7 @@ export interface A2UIUserTableProps {
 
 function A2UIUserTableContent({ props }: RendererProps<A2UIUserTableProps>) {
   const queryClient = useQueryClient()
-  const { agent } = useAgent({
+  const { agent } = useChatAgent({
     updates: [UseAgentUpdate.OnStateChanged, UseAgentUpdate.OnMessagesChanged]
   })
 
@@ -186,7 +188,6 @@ function A2UIUserTableContent({ props }: RendererProps<A2UIUserTableProps>) {
         columns={columns}
         isLoading={effectiveProps.isLoading}
         emptyMessage="当前列表中暂无用户"
-        className="[&_td]:py-2 [&_th]:py-2"
       />
 
       <UsersDialogs />

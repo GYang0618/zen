@@ -61,6 +61,7 @@ function destructive(permissionCode: string): ToolExecutionPolicy {
 }
 
 export const TOOL_EXECUTION_POLICIES = {
+  generate_dynamic_dashboard: read(PermissionCode.USER_LIST),
   query_users_list: read(PermissionCode.USER_LIST),
   query_user_detail: read(PermissionCode.USER_LIST),
   create_user: write(PermissionCode.USER_CREATE),

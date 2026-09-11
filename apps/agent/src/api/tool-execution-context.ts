@@ -67,8 +67,36 @@ export function resolveToolCallIdentity(config: AgentRunnableConfig | undefined)
   toolCallId?: string
   toolName?: string
 } {
-  const toolCallId =
-    config?.toolCallId ?? config?.toolCall?.id ?? config?.config?.toolCall?.id ?? undefined
+  const rec = config as Record<string, unknown> | undefined
+  const configurable = rec?.configurable as Record<string, unknown> | undefined
+  const metadata = rec?.metadata as Record<string, unknown> | undefined
+  const configObj = rec?.config as Record<string, unknown> | undefined
+
+  let toolCallId: string | undefined
+
+  const candidates = [
+    rec?.toolCallId,
+    rec?.tool_call_id,
+    config?.toolCallId,
+    config?.toolCall?.id,
+    config?.config?.toolCall?.id,
+    (rec?.toolCall as { id?: string } | undefined)?.id,
+    (configObj?.toolCall as { id?: string } | undefined)?.id,
+    configurable?.toolCallId,
+    configurable?.tool_call_id,
+    metadata?.tool_call_id,
+    metadata?.toolCallId,
+    readConfigString(config, 'toolCallId'),
+    readConfigString(config, 'tool_call_id')
+  ]
+
+  for (const c of candidates) {
+    if (typeof c === 'string' && c.length > 0) {
+      toolCallId = c
+      break
+    }
+  }
+
   const toolName =
     config?.toolCall?.name ??
     config?.config?.toolCall?.name ??

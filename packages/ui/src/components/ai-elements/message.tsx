@@ -27,7 +27,7 @@ export type MessageProps = HTMLAttributes<HTMLDivElement> & {
 export const Message = ({ className, from, ...props }: MessageProps) => (
   <div
     className={cn(
-      'group flex w-full  flex-col gap-2',
+      'group flex w-full max-w-[95%] flex-col gap-2',
       from === 'user' ? 'is-user ml-auto justify-end' : 'is-assistant',
       className
     )}
@@ -40,9 +40,9 @@ export type MessageContentProps = HTMLAttributes<HTMLDivElement>
 export const MessageContent = ({ children, className, ...props }: MessageContentProps) => (
   <div
     className={cn(
-      'is-user:dark flex w-fit min-w-0  flex-col gap-2 overflow-hidden ',
-      'group-[.is-user]:ml-auto group-[.is-user]:max-w-7/10 group-[.is-user]:rounded-2xl group-[.is-user]:rounded-tr-none group-[.is-user]:bg-primary/90 group-[.is-user]:px-3 group-[.is-user]:py-2 group-[.is-user]:text-primary-foreground/75',
-      'group-[.is-assistant]:text-foreground group-[.is-assistant]:w-full',
+      'is-user:dark flex w-fit min-w-0 max-w-full flex-col gap-2 overflow-hidden text-sm',
+      'group-[.is-user]:ml-auto group-[.is-user]:rounded-lg group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground',
+      'group-[.is-assistant]:text-foreground',
       className
     )}
     {...props}
@@ -61,13 +61,11 @@ export const MessageActions = ({ className, children, ...props }: MessageActions
 
 export type MessageActionProps = ComponentProps<typeof Button> & {
   tooltip?: string
-  tooltipSide?: 'top' | 'bottom' | 'left' | 'right'
   label?: string
 }
 
 export const MessageAction = ({
   tooltip,
-  tooltipSide = 'bottom',
   children,
   label,
   variant = 'ghost',
@@ -86,7 +84,7 @@ export const MessageAction = ({
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger render={button} />
-          <TooltipContent side={tooltipSide}>
+          <TooltipContent>
             <p>{tooltip}</p>
           </TooltipContent>
         </Tooltip>
@@ -275,8 +273,7 @@ export const MessageBranchPage = ({ className, ...props }: MessageBranchPageProp
 
 export type MessageResponseProps = ComponentProps<typeof Streamdown>
 
-/** unified v10/v11 在 monorepo 中并存时，@streamdown/* 与 streamdown 的 PluginConfig 类型会冲突 */
-const streamdownPlugins = { cjk, code, math, mermaid } as MessageResponseProps['plugins']
+const streamdownPlugins = { cjk, code, math, mermaid }
 
 export const MessageResponse = memo(
   ({ className, ...props }: MessageResponseProps) => (

@@ -117,6 +117,10 @@ describe('classifyToolError', () => {
   it('按 HTTP 状态和网络错误分类', () => {
     assert.equal(classifyToolError({ code: 404, message: '用户不存在' }), 'BUSINESS_ERROR')
     assert.equal(classifyToolError({ response: { status: 401 } }), 'UNAUTHORIZED')
+    assert.equal(
+      classifyToolError(new Error('缺少用户 access token，无法调用后端用户 API')),
+      'UNAUTHORIZED'
+    )
     assert.equal(classifyToolError({ response: { status: 403 } }), 'FORBIDDEN')
     assert.equal(classifyToolError({ code: 403, message: '需要二次确认' }), 'STEP_UP_REQUIRED')
     assert.equal(classifyToolError({ response: { status: 429 } }), 'RATE_LIMITED')
@@ -125,5 +129,14 @@ describe('classifyToolError', () => {
       'NETWORK_ERROR'
     )
     assert.equal(classifyToolError({ code: 'ETIMEDOUT', message: 'timeout' }), 'TIMEOUT')
+  })
+
+  it('认证失败返回 401 错误信封', () => {
+    const raw = toToolFailureResult(new Error('缺少用户 access token，无法调用后端用户 API'))
+    const parsed = JSON.parse(raw) as { code: number; reason: string; message: string }
+
+    assert.equal(parsed.code, 401)
+    assert.equal(parsed.reason, 'UNAUTHORIZED')
+    assert.match(parsed.message, /不要再次调用/)
   })
 })

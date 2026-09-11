@@ -25,5 +25,9 @@ export function isA2UIToolCall(toolCall: ToolCallLikeForA2UI | undefined | null)
     }
   }
 
+  if (name === 'generate_dynamic_dashboard' || name === 'render_a2ui') {
+    return true
+  }
+
   return false
 }

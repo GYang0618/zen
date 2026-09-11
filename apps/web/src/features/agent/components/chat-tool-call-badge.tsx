@@ -52,7 +52,7 @@ export function ChatToolCallBadge({ toolCalls, messages }: ChatToolCallBadgeProp
             ) : (
               <Loader2 className="size-3 animate-spin text-primary shrink-0" />
             )}
-            <span className="max-w-[160px] truncate">{title}</span>
+            <span className="max-w-40 truncate">{title}</span>
             <span className="text-[11px] text-muted-foreground group-hover:text-foreground">
               {hasResult ? '在右侧查看' : '生成中...'}
             </span>

@@ -4,190 +4,85 @@ import { useInterrupt } from '@copilotkit/react-core/v2'
 import { Confirmation, ConfirmationAction, ConfirmationActions, ConfirmationTitle } from '@zen/ui'
 import { useEffect, useState } from 'react'
 
-import { isApiClientError } from '@/lib/request/utils'
+import type { InterruptEvent } from '@copilotkit/react-core/v2'
 
-import { buildApprovalDecisions } from '../approval-decision'
-import { approvalToInterruptView, resolveApprovalInterrupt } from '../approval-interrupt'
-import { extractReadableTargets, resolveApprovalOperation } from '../approval-title'
-import { defaultAgentRuntimeApi } from '../runtime-api'
-
-import type { ApprovalInterruptView } from '../approval-interrupt'
-import type { AgentApproval } from '../runtime-api'
-
-type CopilotInterrupt = { id?: string; metadata?: Record<string, unknown> } | null
-type CopilotInterruptEvent = { value?: unknown } | null
-
-const MAX_INLINE_TARGETS = 3
+interface ChatApprovalRegistrationProps {
+  onPendingChange?: (pending: boolean) => void
+}
 
 /**
- * 高风险 Tool 的人工审批 UI。以内联 Confirmation 卡片渲染在消息流末尾（由 chat.tsx 挂载），
- * 而非模态弹框：既保留“阻塞输入、必须处理”的强制力，又不遮挡对话上下文。
+ * 高风险操作的人工审批 UI（HITL）。
+ * 使用 CopilotKit 官方 useInterrupt，以内联 Confirmation 卡片渲染在消息流末尾。
  */
-export function ChatApprovalRegistration({
-  onPendingChange,
-  persistedApproval,
-  onPersistedDecision,
-  onLiveInterrupt
-}: {
-  onPendingChange?: (pending: boolean) => void
-  persistedApproval?: AgentApproval | null
-  onPersistedDecision?: (decision: 'approve' | 'reject') => Promise<void>
-  onLiveInterrupt?: () => void
-}) {
+export function ChatApprovalRegistration({ onPendingChange }: ChatApprovalRegistrationProps) {
   const interruptElement = useInterrupt({
     renderInChat: false,
-    render: ({ interrupt, event, resolve }) => (
-      <ApprovalCard interrupt={interrupt} event={event} onDecide={resolve} />
+    render: ({ event, interrupt, resolve, cancel }) => (
+      <ApprovalCard
+        event={event}
+        interruptId={interrupt?.id ?? event.name}
+        onApprove={() => resolve({ approved: true })}
+        onReject={() => {
+          resolve({ approved: false })
+          cancel()
+        }}
+      />
     )
   })
 
-  const pending = Boolean(interruptElement) || Boolean(persistedApproval)
+  const pending = Boolean(interruptElement)
 
   useEffect(() => {
     onPendingChange?.(pending)
   }, [pending, onPendingChange])
 
-  useEffect(() => {
-    if (interruptElement) onLiveInterrupt?.()
-  }, [interruptElement, onLiveInterrupt])
+  if (!interruptElement) return null
 
-  if (interruptElement) return interruptElement
-  if (!persistedApproval || !onPersistedDecision) return null
-
-  return (
-    <ApprovalCard
-      view={approvalToInterruptView(persistedApproval)}
-      onDecide={async (payload) => {
-        const decision = readDecision(payload)
-        await onPersistedDecision(decision)
-      }}
-    />
-  )
+  return interruptElement
 }
 
-function ApprovalCard({
-  interrupt,
-  event,
-  view,
-  onDecide
-}: {
-  interrupt?: CopilotInterrupt
-  event?: CopilotInterruptEvent
-  view?: ApprovalInterruptView
-  onDecide: (payload?: unknown, interruptId?: string) => Promise<unknown>
-}) {
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string>()
-  const resolved = view ?? resolveApprovalInterrupt(interrupt, event)
-  const toolNames = uniqueToolNames(resolved)
-  const operation = resolveApprovalOperation(toolNames)
-  const args =
-    resolved.actions.length === 1
-      ? resolved.actions[0]?.args
-      : resolved.actions.length
-        ? resolved.actions.map((action) => action.args)
-        : resolved.args
-  const targets = extractReadableTargets(args)
-  const interruptId = resolved.id
-  const approvalId = interruptId ?? 'pending'
+interface ApprovalCardProps {
+  event: InterruptEvent<unknown>
+  interruptId: string
+  onApprove: () => void
+  onReject: () => void
+}
 
-  const submit = async (decision: 'approve' | 'reject') => {
+function ApprovalCard({ event, interruptId, onApprove, onReject }: ApprovalCardProps) {
+  const [submitting, setSubmitting] = useState(false)
+
+  const value = event?.value as Record<string, unknown> | undefined
+  const title =
+    (typeof value?.message === 'string' && value.message) ||
+    (typeof value?.title === 'string' && value.title) ||
+    (typeof value?.action === 'string' && `确定要执行 ${value.action} 操作吗？`) ||
+    '该操作需要您的授权与审批，是否确认执行？'
+
+  const handleApprove = () => {
     setSubmitting(true)
-    setError(undefined)
-    try {
-      if (interruptId) {
-        try {
-          await defaultAgentRuntimeApi.decideApprovalByInterrupt(interruptId, { decision })
-        } catch (approvalError) {
-          if (!isApiClientError(approvalError) || approvalError.code !== 404) throw approvalError
-        }
-      }
-      const decisions = buildApprovalDecisions(resolved.actions.length, decision)
-      await onDecide({ decisions }, interruptId)
-    } catch (approvalError) {
-      setError(
-        approvalError instanceof Error
-          ? approvalError.message
-          : decision === 'approve'
-            ? '审批提交失败'
-            : '拒绝提交失败'
-      )
-    } finally {
-      setSubmitting(false)
-    }
+    onApprove()
+  }
+
+  const handleReject = () => {
+    setSubmitting(true)
+    onReject()
   }
 
   return (
     <Confirmation
-      approval={{ id: approvalId }}
+      approval={{ id: interruptId }}
       state={submitting ? 'approval-responded' : 'approval-requested'}
       className="gap-3 p-3"
     >
-      <ConfirmationTitle>
-        <ConfirmationSentence operation={operation} targets={targets} />
-      </ConfirmationTitle>
-      {error && (
-        <p role="alert" className="text-destructive text-sm">
-          {error}
-        </p>
-      )}
+      <ConfirmationTitle>{title}</ConfirmationTitle>
       <ConfirmationActions>
-        <ConfirmationAction
-          variant="outline"
-          disabled={submitting}
-          onClick={() => void submit('reject')}
-        >
+        <ConfirmationAction variant="outline" disabled={submitting} onClick={handleReject}>
           拒绝
         </ConfirmationAction>
-        <ConfirmationAction disabled={submitting} onClick={() => void submit('approve')}>
+        <ConfirmationAction disabled={submitting} onClick={handleApprove}>
           确认执行
         </ConfirmationAction>
       </ConfirmationActions>
     </Confirmation>
   )
-}
-
-function ConfirmationSentence({ operation, targets }: { operation: string; targets: string[] }) {
-  if (targets.length === 0 || targets.length > MAX_INLINE_TARGETS) {
-    const suffix = targets.length > MAX_INLINE_TARGETS ? `（共 ${targets.length} 项）` : ''
-    return `确定要${operation}${suffix}吗？`
-  }
-
-  return (
-    <>
-      确定要{operation}{' '}
-      {targets.map((target) => (
-        <code
-          key={target}
-          className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground"
-        >
-          {target}
-        </code>
-      ))}{' '}
-      吗？
-    </>
-  )
-}
-
-function uniqueToolNames(view: ApprovalInterruptView): string[] {
-  return [
-    ...new Set(
-      [...view.actions.map((action) => action.name), view.toolName].filter((name): name is string =>
-        Boolean(name)
-      )
-    )
-  ]
-}
-
-function readDecision(payload: unknown): 'approve' | 'reject' {
-  const record =
-    payload !== null && typeof payload === 'object'
-      ? (payload as Record<string, unknown>)
-      : undefined
-  const decisions = Array.isArray(record?.decisions) ? record.decisions : []
-  const first = decisions[0]
-  if (first && typeof first === 'object' && 'type' in first && first.type === 'reject') {
-    return 'reject'
-  }
-  return 'approve'
 }

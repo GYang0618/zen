@@ -1,15 +1,7 @@
-import {
-  ACTIVE_AGENT_PLUGINS_CONFIGURABLE_KEY,
-  AGENT_MEMORY_CONFIGURABLE_KEY,
-  DEFAULT_AGENT_RUN_BUDGET
-} from '@zen/shared'
+import { AGENT_MEMORY_CONFIGURABLE_KEY, DEFAULT_AGENT_RUN_BUDGET } from '@zen/shared'
 import { createAgent, dynamicSystemPromptMiddleware } from 'langchain'
 
-import {
-  createDefaultAgentMiddleware,
-  createFrontendToolsMiddleware,
-  userStateSyncMiddleware
-} from '@/middlewares'
+import { createDefaultAgentMiddleware } from '@/middlewares'
 import { createModel } from '@/models'
 import {
   APPROVAL_FLOW_RULES,
@@ -22,7 +14,7 @@ import {
 } from '@/prompts'
 import { ContextSchema } from '@/schema/context'
 import { AgentStateSchema } from '@/schema/state'
-import { defaultAgentTools, getActivePluginAgentPrompts } from '@/tools'
+import { defaultAgentTools } from '@/tools'
 
 import type { z } from 'zod'
 
@@ -51,19 +43,14 @@ export function createDefaultAgent() {
     middleware: [
       dynamicSystemPromptMiddleware<z.infer<typeof ContextSchema>>((_state, runtime) => {
         const memory = runtime.context?.[AGENT_MEMORY_CONFIGURABLE_KEY]
-        const activePluginIds = runtime.context?.[ACTIVE_AGENT_PLUGINS_CONFIGURABLE_KEY] ?? []
-        const pluginPrompts = getActivePluginAgentPrompts(activePluginIds)
         const now = new Date()
         const timePrompt = `当前系统时间：${now.toISOString()}（北京时间：${now.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}）`
         return [
           BASE_SYSTEM_PROMPT,
           timePrompt,
-          ...(pluginPrompts.length ? [`当前启用的插件指令：\n${pluginPrompts.join('\n')}`] : []),
           ...(memory ? [`用户明确授权给 Qwen 的非敏感记忆：\n${memory}`] : [])
         ].join('\n\n')
       }),
-      createFrontendToolsMiddleware(defaultAgentTools.map((tool) => tool.name)),
-      userStateSyncMiddleware,
       ...createDefaultAgentMiddleware(model)
     ]
   })

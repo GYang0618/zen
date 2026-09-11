@@ -1,10 +1,29 @@
 'use client'
 
-import { useAgent, useCopilotKit } from '@copilotkit/react-core/v2'
+import { useCopilotKit } from '@copilotkit/react-core/v2'
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 
+import { useChatAgent } from '../context/chat-agent-context'
 import { buildRetryMessages } from '../lib/messages'
-import { isRunCancellation, isRunInterrupt } from '../run-state'
+
+function readErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message
+  if (typeof error === 'string') return error
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    return String((error as { message: unknown }).message)
+  }
+  return ''
+}
+
+function isRunCancellation(error: unknown): boolean {
+  const message = readErrorMessage(error).toLowerCase()
+  return message.includes('cancel') || message.includes('abort')
+}
+
+function isRunInterrupt(error: unknown): boolean {
+  const message = readErrorMessage(error).toLowerCase()
+  return message.includes('interrupt')
+}
 
 export function classifyRunError(error: unknown): { title: string; detail?: string } {
   const raw =
@@ -65,20 +84,24 @@ function formatRunError(error: unknown): string {
 }
 
 export function useAgentRetry() {
-  const { agent } = useAgent()
+  const { agent } = useChatAgent()
   const { copilotkit } = useCopilotKit()
   const [runError, setRunError] = useState<string | null>(null)
   type UserMessage = Extract<(typeof agent.messages)[number], { role: 'user' }>
-  const lastUserMessageRef = useRef<UserMessage | undefined>(undefined)
+  const lastUserMessageRef = useRef<{ threadId?: string; message: UserMessage } | undefined>(
+    undefined
+  )
   const [failedUserMessage, setFailedUserMessage] = useState<UserMessage | null>(null)
 
   const restoreFailedUserMessage = useEffectEvent(() => {
-    const message = lastUserMessageRef.current
-    if (!message) return
+    const record = lastUserMessageRef.current
+    if (!record || record.threadId !== agent.threadId) return
+    const message = record.message
     // Run error events can be delivered before the corresponding empty
     // MESSAGES_SNAPSHOT is applied. Defer the restore until that state update
     // has settled, then avoid duplicating a message that survived it.
     setTimeout(() => {
+      if (agent.threadId !== record.threadId) return
       if (!agent.messages.some((item) => item.id === message.id)) {
         agent.addMessage(message)
       }
@@ -89,7 +112,10 @@ export function useAgentRetry() {
     const subscription = agent.subscribe({
       onNewMessage: ({ message }) => {
         if (message.role === 'user') {
-          lastUserMessageRef.current = message as UserMessage
+          lastUserMessageRef.current = {
+            threadId: agent.threadId,
+            message: message as UserMessage
+          }
         }
       },
       onRunInitialized: () => setRunError(null),
@@ -99,7 +125,11 @@ export function useAgentRetry() {
           setRunError(null)
           return
         }
-        setFailedUserMessage(lastUserMessageRef.current ?? null)
+        if (lastUserMessageRef.current?.threadId === agent.threadId) {
+          setFailedUserMessage(lastUserMessageRef.current.message)
+        } else {
+          setFailedUserMessage(null)
+        }
         restoreFailedUserMessage()
         setRunError(formatRunError(error))
       },
@@ -109,7 +139,11 @@ export function useAgentRetry() {
           setRunError(null)
           return
         }
-        setFailedUserMessage(lastUserMessageRef.current ?? null)
+        if (lastUserMessageRef.current?.threadId === agent.threadId) {
+          setFailedUserMessage(lastUserMessageRef.current.message)
+        } else {
+          setFailedUserMessage(null)
+        }
         restoreFailedUserMessage()
         setRunError(formatRunError(new Error(event.message)))
       }

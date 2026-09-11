@@ -1,5 +1,14 @@
 import { z } from 'zod'
 
+const booleanEnv = z.preprocess((val) => {
+  if (typeof val === 'string') {
+    const trimmed = val.trim().toLowerCase()
+    if (trimmed === 'true' || trimmed === '1') return true
+    if (trimmed === 'false' || trimmed === '0') return false
+  }
+  return val
+}, z.boolean())
+
 export const envSchema = z
   .object({
     // ==================== 应用配置 ====================
@@ -60,41 +69,29 @@ export const envSchema = z
       .describe('CORS 允许的源（生产环境应明确指定）'),
 
     // ==================== 限流配置 ====================
-    /** 限流窗口期（毫秒） */
-    THROTTLE_TTL: z.coerce
-      .number()
-      .int()
-      .positive()
-      .default(60000)
-      .describe('限流时间窗口（毫秒）'),
+    /** 默认接口限流紧凑表达式（如 "100/m", "10/s", "off"；开发环境默认 "off"，生产环境默认 "100/m"） */
+    THROTTLE: z
+      .string()
+      .regex(
+        /^(off|none|0|false|disabled|\d+\/\d*[smhd])$/i,
+        '限流表达式格式应如 "100/m", "10/s", "50/10s", "1000/h" 或 "off"'
+      )
+      .default(() => (process.env.NODE_ENV === 'development' ? 'off' : '100/m'))
+      .describe('默认接口限流紧凑表达式（如 "100/m", "off"）'),
 
-    /** 限流请求数 */
-    THROTTLE_LIMIT: z.coerce
-      .number()
-      .int()
-      .positive()
-      .default(10)
-      .describe('限流时间窗口内最大请求数'),
-
-    /** Copilot 路由限流窗口期（毫秒） */
-    COPILOT_THROTTLE_TTL: z.coerce
-      .number()
-      .int()
-      .positive()
-      .default(60000)
-      .describe('Copilot 路由限流时间窗口（毫秒）'),
-
-    /** Copilot 路由限流请求数 */
-    COPILOT_THROTTLE_LIMIT: z.coerce
-      .number()
-      .int()
-      .positive()
-      .default(60)
-      .describe('Copilot 路由限流时间窗口内最大请求数'),
+    /** Copilot 路由限流紧凑表达式（如 "60/m", "off"；开发环境默认 "off"，生产环境默认 "60/m"） */
+    COPILOT_THROTTLE: z
+      .string()
+      .regex(
+        /^(off|none|0|false|disabled|\d+\/\d*[smhd])$/i,
+        'Copilot 限流表达式格式应如 "60/m", "off"'
+      )
+      .default(() => (process.env.NODE_ENV === 'development' ? 'off' : '60/m'))
+      .describe('Copilot 路由限流紧凑表达式（如 "60/m", "off"）'),
 
     // ==================== Swagger 配置 ====================
     /** 是否启用 Swagger */
-    SWAGGER_ENABLED: z.coerce.boolean().default(true).describe('是否启用 Swagger API 文档'),
+    SWAGGER_ENABLED: booleanEnv.default(true).describe('是否启用 Swagger API 文档'),
     /** Swagger 访问路径 */
     SWAGGER_PATH: z.string().default('docs').describe('Swagger 文档访问路径'),
     /** 启动时导出的 OpenAPI JSON 文件路径（相对路径基于进程 cwd，通常为 apps/api） */
@@ -110,6 +107,26 @@ export const envSchema = z
       .default('http://127.0.0.1:3600')
       .describe('LangGraph Agent 服务地址'),
 
+    /** CopilotKit Intelligence API Key */
+    COPILOTKIT_INTELLIGENCE_API_KEY: z
+      .string()
+      .min(1)
+      .default('cpk-4081_gigCBXJB_LkdJRNre3kFm8x71ZQjmYPhx')
+      .describe('CopilotKit Intelligence API Key'),
+
+    /** CopilotKit Intelligence API 服务地址 */
+    COPILOTKIT_INTELLIGENCE_API_URL: z
+      .url()
+      .default('https://api.intelligence.copilotkit.ai')
+      .describe('CopilotKit Intelligence API 服务地址'),
+
+    /** CopilotKit Intelligence WebSocket 服务地址 */
+    COPILOTKIT_INTELLIGENCE_WS_URL: z
+      .string()
+      .min(1)
+      .default('wss://realtime.intelligence.copilotkit.ai')
+      .describe('CopilotKit Intelligence WebSocket 服务地址'),
+
     // ==================== 对象存储（MinIO / S3 兼容） ====================
     STORAGE_DRIVER: z.enum(['s3']).default('s3').describe('对象存储驱动'),
     STORAGE_ENDPOINT: z
@@ -124,7 +141,7 @@ export const envSchema = z
     STORAGE_BUCKET: z.string().min(1).default('zen-files').describe('对象存储桶名'),
     STORAGE_ACCESS_KEY: z.string().min(1).default('zen').describe('对象存储访问键'),
     STORAGE_SECRET_KEY: z.string().min(1).default('zenminio_secret').describe('对象存储密钥'),
-    STORAGE_FORCE_PATH_STYLE: z.coerce.boolean().default(true).describe('是否使用 path-style 访问'),
+    STORAGE_FORCE_PATH_STYLE: booleanEnv.default(true).describe('是否使用 path-style 访问'),
     STORAGE_UPLOAD_URL_TTL: z.coerce
       .number()
       .int()

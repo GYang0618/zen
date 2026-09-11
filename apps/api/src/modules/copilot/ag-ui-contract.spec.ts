@@ -2,12 +2,11 @@ import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { LangGraphAgent as CopilotkitLangGraphAgent } from '@copilotkit/runtime/langgraph'
+import { LangGraphAgent } from '@copilotkit/runtime/langgraph'
 import { DEFAULT_AGENT_GRAPH_ID } from '@zen/shared'
 import { Observable } from 'rxjs'
 
 import { defaultAgent } from './agents.js'
-import { LangGraphAgent } from './langgraph-runtime-agent.js'
 
 const { jest } = import.meta
 
@@ -32,10 +31,7 @@ describe('AG-UI CopilotKit v2 contract', () => {
     const agent = defaultAgent({
       deploymentUrl: 'http://langgraph.test',
       accessToken: 'token',
-      auth: { tenantId: 'tenant-1', userId: 'user-1', permissions: ['system:user:list'] },
-      threadId: 'thread-1',
-      runId: 'run-1',
-      traceId: 'trace-1'
+      auth: { tenantId: 'tenant-1', userId: 'user-1', permissions: ['system:user:list'] }
     })
 
     expect(agent.graphId).toBe(DEFAULT_AGENT_GRAPH_ID)
@@ -43,9 +39,6 @@ describe('AG-UI CopilotKit v2 contract', () => {
       accessToken: 'token',
       tenantId: 'tenant-1',
       userId: 'user-1',
-      threadId: 'thread-1',
-      agentRunId: 'run-1',
-      traceId: 'trace-1',
       permissions: ['system:user:list']
     })
   })
@@ -82,7 +75,7 @@ describe('AG-UI CopilotKit v2 contract', () => {
       }
       subscriber.complete()
     })
-    jest.spyOn(CopilotkitLangGraphAgent.prototype, 'run').mockReturnValue(source as never)
+    jest.spyOn(LangGraphAgent.prototype, 'run').mockReturnValue(source as never)
     const agent = new LangGraphAgent({
       deploymentUrl: 'http://langgraph.test',
       graphId: DEFAULT_AGENT_GRAPH_ID

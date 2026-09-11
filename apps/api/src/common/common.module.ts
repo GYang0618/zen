@@ -33,18 +33,21 @@ import type { AuthConfig, SecurityConfig } from '../config/index.js'
     ThrottlerModule.forRootAsync({
       imports: [],
       inject: [securityConfig.KEY],
-      useFactory: (security: SecurityConfig) => [
-        {
-          name: 'default',
-          ttl: security.throttle.ttl,
-          limit: security.throttle.limit
-        },
-        {
-          name: 'copilot',
-          ttl: security.copilotThrottle.ttl,
-          limit: security.copilotThrottle.limit
-        }
-      ]
+      useFactory: (security: SecurityConfig) => ({
+        skipIf: () => !security.throttle.enabled,
+        throttlers: [
+          {
+            name: 'default',
+            ttl: security.throttle.ttl,
+            limit: security.throttle.limit
+          },
+          {
+            name: 'copilot',
+            ttl: security.copilotThrottle.ttl,
+            limit: security.copilotThrottle.limit
+          }
+        ]
+      })
     }),
     JwtModule.registerAsync({
       inject: [authConfig.KEY],

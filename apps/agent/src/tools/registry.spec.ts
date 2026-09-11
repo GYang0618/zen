@@ -27,13 +27,13 @@ describe('Default Agent tool registry', () => {
     }
   })
 
-  it('装载生成的插件 Tool 并保留插件身份', () => {
+  it('装载核心业务 Tool', () => {
     assert.ok(
-      registry.defaultAgentTools.some((registeredTool) => registeredTool.name === 'list_demo_notes')
+      registry.defaultAgentTools.some(
+        (registeredTool) => registeredTool.name === 'query_users_list'
+      )
     )
-    assert.equal(registry.getAgentToolPluginId('list_demo_notes'), 'demo-notes')
-    assert.deepEqual(registry.getActivePluginAgentPrompts([]), [])
-    assert.equal(registry.getActivePluginAgentPrompts(['demo-notes']).length, 1)
+    assert.ok(registry.defaultAgentTools.length > 0)
   })
 
   it('拒绝不同 provider 注册同名 Tool', () => {

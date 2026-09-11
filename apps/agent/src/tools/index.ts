@@ -1,3 +1,4 @@
+export { dashboardTools, generateDashboardTool } from './dashboard'
 export { organizationTools } from './organization'
 export * from './policy'
 export { postTools } from './post'

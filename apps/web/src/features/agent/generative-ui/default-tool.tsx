@@ -2,9 +2,10 @@ import { useDefaultRenderTool } from '@copilotkit/react-core/v2'
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from '@zen/ui'
 import { useEffect, useMemo, useState } from 'react'
 
+import { isA2UIToolCall } from '../lib/a2ui-tools'
 import { formatToolTitle } from '../lib/tool-title'
 
-import type { ToolState } from '@zen/ui'
+import type { ToolPart } from '@zen/ui'
 
 const AUTO_COLLAPSE_DELAY_MS = 1000
 
@@ -14,6 +15,8 @@ export interface DefaultToolCardProps {
   status: 'inProgress' | 'executing' | 'complete'
   result: string | undefined
 }
+
+type ToolState = ToolPart['state']
 
 function mapToToolState(
   status: 'inProgress' | 'executing' | 'complete',
@@ -40,6 +43,15 @@ function checkIsError(result: string | undefined): boolean {
 }
 
 export function DefaultToolCard({ name, parameters, status, result }: DefaultToolCardProps) {
+  const isA2UI = useMemo(() => {
+    return isA2UIToolCall({
+      function: {
+        name,
+        arguments: typeof parameters === 'string' ? parameters : JSON.stringify(parameters)
+      }
+    })
+  }, [name, parameters])
+
   const isError = useMemo(() => checkIsError(result), [result])
   const toolState = mapToToolState(status, isError)
   const isRunning = status === 'inProgress' || status === 'executing'
@@ -58,6 +70,10 @@ export function DefaultToolCard({ name, parameters, status, result }: DefaultToo
     }
   }, [isRunning, isError])
 
+  if (isA2UI) {
+    return null
+  }
+
   const title = formatToolTitle(name)
   const hasParams =
     parameters !== undefined &&
@@ -66,11 +82,15 @@ export function DefaultToolCard({ name, parameters, status, result }: DefaultToo
 
   return (
     <Tool open={open} onOpenChange={setOpen}>
-      <ToolHeader title={title} state={toolState} />
+      <ToolHeader type="dynamic-tool" toolName={name} title={title} state={toolState} />
       <ToolContent>
         {hasParams && <ToolInput input={parameters} />}
         {result && (
-          <ToolOutput className="[&_pre]:max-h-64 [&_pre]:overflow-auto" output={result} />
+          <ToolOutput
+            className="[&_pre]:max-h-64 [&_pre]:overflow-auto"
+            output={isError ? undefined : result}
+            errorText={isError ? result : undefined}
+          />
         )}
       </ToolContent>
     </Tool>

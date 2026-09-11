@@ -5,11 +5,23 @@ import { NotificationRepository } from './notification.repository.js'
 import { NotificationService } from './notification.service.js'
 import { NOTIFICATIONS_PRISMA } from './tokens.js'
 
-import type { DynamicModule, FactoryProvider } from '@nestjs/common'
+import type {
+  DynamicModule,
+  FactoryProvider,
+  InjectionToken,
+  OptionalFactoryDependency
+} from '@nestjs/common'
 import type { PrismaClient } from '@prisma/client'
 
 export interface NotificationsModuleOptions {
   prisma: PrismaClient
+}
+
+export interface NotificationsModuleAsyncOptions {
+  inject: Array<InjectionToken | OptionalFactoryDependency>
+  useFactory: (
+    ...args: Parameters<FactoryProvider['useFactory']>
+  ) => NotificationsModuleOptions | Promise<NotificationsModuleOptions>
 }
 
 const sharedProviders = [NotificationRepository, NotificationService]
@@ -25,13 +37,7 @@ export class NotificationsModule {
     }
   }
 
-  static forRootAsync(options: {
-    // Nest DI 令牌
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    inject: any[]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    useFactory: (...args: any[]) => NotificationsModuleOptions | Promise<NotificationsModuleOptions>
-  }): DynamicModule {
+  static forRootAsync(options: NotificationsModuleAsyncOptions): DynamicModule {
     const prismaProvider: FactoryProvider = {
       provide: NOTIFICATIONS_PRISMA,
       inject: options.inject,

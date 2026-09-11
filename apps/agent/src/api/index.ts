@@ -9,8 +9,12 @@ export {
   getActiveAgentApiClient,
   runWithAgentApiClient
 } from './create-client'
-export { getAccessTokenFromConfig, getCurrentAccessToken } from './request-context'
-export { resolveToolExecutionContext } from './tool-execution-context'
+export {
+  getAccessTokenFromConfig,
+  getCurrentAccessToken,
+  UnauthorizedToolError
+} from './request-context'
+export { resolveToolCallIdentity, resolveToolExecutionContext } from './tool-execution-context'
 export {
   formatUnhandledToolError,
   isToolFailureResult,

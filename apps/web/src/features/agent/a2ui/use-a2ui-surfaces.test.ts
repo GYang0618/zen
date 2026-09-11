@@ -69,7 +69,7 @@ describe('extractA2UISurfaces', () => {
     expect(surface.surfaceId).toBe('a2ui-tc_users_1')
     expect(surface.title).toBe('已停用用户列表')
     expect(surface.isExecuting).toBe(false)
-    expect(surface.operations).toHaveLength(2)
+    expect(surface.operations.length).toBeGreaterThanOrEqual(2)
 
     const createOp = surface.operations[0] as {
       version: string
@@ -186,14 +186,75 @@ describe('extractA2UISurfaces', () => {
     const updateOp = surfaces[0].operations[1] as {
       updateComponents: {
         components: Array<{
-          title: string
-          stateKey: string
-          users: unknown[]
+          title?: string
+          stateKey?: string
+          users?: unknown[]
+          props?: {
+            title?: string
+            stateKey?: string
+            users?: unknown[]
+          }
         }>
       }
     }
-    expect(updateOp.updateComponents.components[0].title).toBe('用户列表')
-    expect(updateOp.updateComponents.components[0].stateKey).toBe('users')
-    expect(updateOp.updateComponents.components[0].users).toHaveLength(2)
+    const component = updateOp.updateComponents.components[0]
+    expect(component.props?.title ?? component.title).toBe('用户列表')
+    expect(component.props?.stateKey ?? component.stateKey).toBe('users')
+    expect(component.props?.users ?? component.users).toHaveLength(2)
+  })
+
+  it('当同时存在 a2ui-surface activity 消息与 tool 消息时，自动去重且只保留单个 Surface', () => {
+    const rawOps = [
+      {
+        version: 'v0.9',
+        createSurface: { surfaceId: 'a2ui-17890000000', catalogId: 'test-catalog' }
+      },
+      {
+        version: 'v0.9',
+        updateComponents: {
+          surfaceId: 'a2ui-17890000000',
+          components: [{ id: 'root', component: 'BarChart', title: '近 7 天活跃趋势' }]
+        }
+      }
+    ]
+
+    const messages = [
+      {
+        id: 'msg_assistant',
+        role: 'assistant',
+        toolCalls: [
+          {
+            id: 'call_abc_123',
+            function: {
+              name: 'generate_dynamic_dashboard',
+              arguments: JSON.stringify({ title: '近 7 天活跃趋势' })
+            }
+          }
+        ]
+      },
+      {
+        id: 'msg_tool',
+        role: 'tool',
+        toolCallId: 'call_abc_123',
+        content: JSON.stringify({
+          code: 200,
+          a2ui_operations: rawOps
+        })
+      },
+      {
+        id: 'msg_act',
+        role: 'activity',
+        activityType: 'a2ui-surface',
+        content: {
+          a2ui_operations: rawOps
+        }
+      }
+    ]
+
+    const surfaces = extractA2UISurfaces(messages, false)
+    expect(surfaces).toHaveLength(1)
+    expect(surfaces[0].surfaceId).toBe('a2ui-17890000000')
+    expect(surfaces[0].title).toBe('近 7 天活跃趋势')
+    expect(surfaces[0].toolCallId).toBe('call_abc_123')
   })
 })

@@ -108,4 +108,25 @@ describe('executeApiCall fail-closed writes', () => {
     assert.equal(parsed.reason, 'MISSING_EXECUTION_CONTEXT')
     assert.match(parsed.message, /写操作缺少 run\/tool\/tenant\/user 标识/)
   })
+
+  it('缺少 accessToken 时返回 401 UNAUTHORIZED 错误信封', async () => {
+    const result = await executeApiCall(
+      {
+        configurable: {},
+        toolCallId: 'tool-call-1',
+        toolCall: { name: 'query_users_list' }
+      } as never,
+      async () => {
+        throw new Error('should not run')
+      }
+    )
+    const parsed = JSON.parse(result) as {
+      code: number
+      reason: string
+      message: string
+    }
+    assert.equal(parsed.code, 401)
+    assert.equal(parsed.reason, 'UNAUTHORIZED')
+    assert.match(parsed.message, /缺少用户 access token/)
+  })
 })

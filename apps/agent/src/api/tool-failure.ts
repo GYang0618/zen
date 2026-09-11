@@ -70,6 +70,14 @@ export function classifyToolError(error: unknown): ToolErrorReason {
   ) {
     return 'NETWORK_ERROR'
   }
+  if (
+    message.includes('access token') ||
+    message.includes('unauthorized') ||
+    message.includes('未登录') ||
+    message.includes('未授权')
+  ) {
+    return 'UNAUTHORIZED'
+  }
   return 'UNKNOWN_ERROR'
 }
 
@@ -142,11 +150,12 @@ export function toToolFailureResult(error: unknown, hints: RecoverableHint[] = [
       ? ((error as Record<string, unknown>).reason as string)
       : undefined
   const reason = matched?.reason ?? existingReason ?? classified
-  const message = `${apiMessage}。${matched?.hint ?? hintForReason(classified)}`
+  const statusReason = reason === 'UNAUTHORIZED' ? 'UNAUTHORIZED' : classified
+  const message = `${apiMessage}。${matched?.hint ?? hintForReason(reason)}`
 
   return JSON.stringify(
     mergeErrorEnvelope(error, {
-      code: statusForReason(classified, error),
+      code: statusForReason(statusReason, error),
       reason,
       message
     })

@@ -1,8 +1,9 @@
+import { commonRenderers } from './common-renderers'
 import { userRenderers } from './user-renderers'
 
-import type { CatalogRenderers } from '@copilotkit/a2ui-renderer'
-import type { Definitions } from '../definitions'
-
-export const renderers: CatalogRenderers<Definitions> = {
+export const renderers = {
+  ...commonRenderers,
   ...userRenderers
 }
+
+export type Renderers = typeof renderers

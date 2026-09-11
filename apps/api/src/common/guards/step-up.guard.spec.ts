@@ -101,7 +101,10 @@ describe('StepUpGuard', () => {
     await expect(
       guard.canActivate(context({ 'x-step-up-token': 'token-1' }))
     ).rejects.toBeInstanceOf(ForbiddenException)
-    expect((prisma as any).agentStepUpGrant.updateMany).not.toHaveBeenCalled()
+    expect(
+      (prisma as unknown as { agentStepUpGrant: { updateMany: jest.Mock } }).agentStepUpGrant
+        .updateMany
+    ).not.toHaveBeenCalled()
   })
 
   it('按完整绑定原子消费 Agent HITL token', async () => {
@@ -116,7 +119,10 @@ describe('StepUpGuard', () => {
       approvalId: 'approval-1',
       nonce: 'nonce-1'
     })
-    ;((prisma as any).agentStepUpGrant.updateMany as jest.Mock).mockResolvedValue({ count: 1 })
+    ;(
+      (prisma as unknown as { agentStepUpGrant: { updateMany: jest.Mock } }).agentStepUpGrant
+        .updateMany as jest.Mock
+    ).mockResolvedValue({ count: 1 })
     await expect(
       guard.canActivate(
         context({
@@ -127,7 +133,10 @@ describe('StepUpGuard', () => {
         })
       )
     ).resolves.toBe(true)
-    expect((prisma as any).agentStepUpGrant.updateMany).toHaveBeenCalledWith(
+    expect(
+      (prisma as unknown as { agentStepUpGrant: { updateMany: jest.Mock } }).agentStepUpGrant
+        .updateMany
+    ).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           tenantId: 'tenant-1',

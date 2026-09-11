@@ -12,9 +12,11 @@ import {
 import { tool } from 'langchain'
 import { z } from 'zod'
 
+import { buildUserTableSurface } from '../a2ui'
 import {
   asSdkOptions,
   executeApiCall,
+  resolveToolCallIdentity,
   toQueryArray,
   userControllerAdminResetPassword,
   userControllerAssignRoles,
@@ -124,11 +126,51 @@ const USER_WRITE_HINTS: RecoverableHint[] = [
 
 export const getUsersTool = tool(
   async (input, config) => {
-    return executeApiCall(config, async (_context) =>
+    const rawResult = await executeApiCall(config, async (_context) =>
       userControllerFindAll({
         query: normalizeUsersQuery(input)
       })
     )
+
+    if (input.display === false) {
+      return rawResult
+    }
+
+    try {
+      const parsed = JSON.parse(rawResult)
+      if (parsed && typeof parsed === 'object' && parsed.code === 200 && parsed.data) {
+        const items = Array.isArray(parsed.data.items) ? parsed.data.items : []
+        const isSuspended =
+          input.status === 'suspended' ||
+          (Array.isArray(input.status) && input.status.includes('suspended'))
+        const stateKey = isSuspended ? 'inactive_users' : 'users'
+        let title = '用户列表'
+        if (isSuspended) {
+          title = '已停用用户列表'
+        } else if (input.keyword) {
+          title = `用户列表（搜索: ${input.keyword}）`
+        }
+
+        const { toolCallId: resolvedToolCallId } = resolveToolCallIdentity(config as never)
+        const toolCallId = resolvedToolCallId || String(Date.now())
+        const surfaceId = `a2ui-${toolCallId}`
+        const a2ui_operations = buildUserTableSurface({
+          surfaceId,
+          users: items,
+          title,
+          stateKey
+        })
+
+        return JSON.stringify({
+          ...parsed,
+          a2ui_operations
+        })
+      }
+    } catch {
+      // 容错保持原样
+    }
+
+    return rawResult
   },
   {
     name: 'query_users_list',
@@ -136,7 +178,7 @@ export const getUsersTool = tool(
       '查询用户列表。keyword 为子串匹配（谷歌邮箱用 gmail.com / @gmail.com，不要用 google.com）。' +
       '按状态筛选注意：已停用/禁用账号必须使用 status="suspended"（inactive 仅表示尚未完成激活流程）。' +
       'page 与 pageSize 可只传其一。返回精简字段；完整资料用 query_user_detail。' +
-      '若用户核心意图是查看/筛选/展示用户列表，将 display 设为 true 直接在前端展示表格；若仅为查组织或鉴权等中间步骤，保持 display 为 false 或省略。',
+      '若用户核心意图是查看/筛选/展示用户列表，将 display 设为 true 在前端以 A2UI 呈现；若仅为查组织或鉴权等内部中间步骤，设为 false。',
     schema: usersQuerySchema
   }
 )

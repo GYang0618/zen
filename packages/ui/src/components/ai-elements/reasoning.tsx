@@ -1,5 +1,6 @@
 'use client'
 
+import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import { cjk } from '@streamdown/cjk'
 import { code } from '@streamdown/code'
 import { math } from '@streamdown/math'
@@ -66,18 +67,15 @@ export const Reasoning = memo(
     // Track if defaultOpen was explicitly set to false (to prevent auto-open)
     const isExplicitlyClosed = defaultOpen === false
 
-    const [internalOpen, setInternalOpen] = useState(resolvedDefaultOpen)
-    const isOpen = open ?? internalOpen
-    const setIsOpen = useCallback(
-      (nextOpen: boolean) => {
-        if (nextOpen === isOpen) return
-        if (open === undefined) setInternalOpen(nextOpen)
-        onOpenChange?.(nextOpen)
-      },
-      [isOpen, open, onOpenChange]
-    )
-    const [measuredDuration, setDuration] = useState<number>()
-    const duration = durationProp ?? measuredDuration
+    const [isOpen, setIsOpen] = useControllableState<boolean>({
+      defaultProp: resolvedDefaultOpen,
+      onChange: onOpenChange,
+      prop: open
+    })
+    const [duration, setDuration] = useControllableState<number | undefined>({
+      defaultProp: undefined,
+      prop: durationProp
+    })
 
     const hasEverStreamedRef = useRef(isStreaming)
     const [hasAutoClosed, setHasAutoClosed] = useState(false)
@@ -94,7 +92,7 @@ export const Reasoning = memo(
         setDuration(Math.ceil((Date.now() - startTimeRef.current) / MS_IN_S))
         startTimeRef.current = null
       }
-    }, [isStreaming])
+    }, [isStreaming, setDuration])
 
     // Auto-open when streaming starts (unless explicitly closed)
     useEffect(() => {
@@ -189,25 +187,44 @@ export const ReasoningTrigger = memo(
 
 export type ReasoningContentProps = ComponentProps<typeof CollapsibleContent> & {
   children: string
+  animated?: boolean | ComponentProps<typeof Streamdown>['animated']
+  isAnimating?: boolean
 }
 
-/** unified v10/v11 在 monorepo 中并存时，@streamdown/* 与 streamdown 的 PluginConfig 类型会冲突 */
-const streamdownPlugins = { cjk, code, math, mermaid } as ComponentProps<
-  typeof Streamdown
->['plugins']
+const streamdownPlugins = { cjk, code, math, mermaid }
 
-export const ReasoningContent = memo(({ className, children, ...props }: ReasoningContentProps) => (
-  <CollapsibleContent
-    className={cn(
-      'mt-4 text-sm',
-      'data-closed:fade-out-0 data-closed:slide-out-to-top-2 data-open:slide-in-from-top-2 text-muted-foreground outline-none data-closed:animate-out data-open:animate-in',
-      className
-    )}
-    {...props}
-  >
-    <Streamdown plugins={streamdownPlugins}>{children}</Streamdown>
-  </CollapsibleContent>
-))
+export const ReasoningContent = memo(
+  ({
+    className,
+    children,
+    animated = true,
+    isAnimating: isAnimatingProp,
+    ...props
+  }: ReasoningContentProps) => {
+    const { isStreaming } = useReasoning()
+    const isAnimating = isAnimatingProp ?? isStreaming
+
+    return (
+      <CollapsibleContent
+        className={cn(
+          'mt-4 text-sm',
+          'data-closed:fade-out-0 data-closed:slide-out-to-top-2 data-open:slide-in-from-top-2 data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-muted-foreground outline-none data-closed:animate-out data-open:animate-in data-[state=closed]:animate-out data-[state=open]:animate-in',
+          className
+        )}
+        {...props}
+      >
+        <Streamdown
+          animated={animated}
+          isAnimating={isAnimating}
+          caret={isAnimating ? 'block' : undefined}
+          plugins={streamdownPlugins}
+        >
+          {children}
+        </Streamdown>
+      </CollapsibleContent>
+    )
+  }
+)
 
 Reasoning.displayName = 'Reasoning'
 ReasoningTrigger.displayName = 'ReasoningTrigger'

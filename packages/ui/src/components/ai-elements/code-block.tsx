@@ -25,10 +25,14 @@ import { createHighlighter } from 'shiki'
 import type { ComponentProps, CSSProperties, HTMLAttributes } from 'react'
 import type { BundledLanguage, BundledTheme, HighlighterGeneric, ThemedToken } from 'shiki'
 
+// Shiki uses bitflags for font styles: 1=italic, 2=bold, 4=underline
+// oxlint-disable-next-line eslint(no-bitwise)
 const isItalic = (fontStyle: number | undefined) => fontStyle && fontStyle & 1
-
+// oxlint-disable-next-line eslint(no-bitwise)
 const isBold = (fontStyle: number | undefined) => fontStyle && fontStyle & 2
-const isUnderline = (fontStyle: number | undefined) => fontStyle && fontStyle & 4
+const isUnderline = (fontStyle: number | undefined) =>
+  // oxlint-disable-next-line eslint(no-bitwise)
+  fontStyle && fontStyle & 4
 
 // Transform tokens to include pre-computed keys to avoid noArrayIndexKey lint
 interface KeyedToken {
@@ -52,7 +56,7 @@ const addKeysToTokens = (lines: ThemedToken[][]): KeyedLine[] =>
 // Token rendering component
 const TokenSpan = ({ token }: { token: ThemedToken }) => (
   <span
-    className="dark:bg-(--shiki-dark-bg)! dark:text-(--shiki-dark)!]"
+    className="dark:bg-(--shiki-dark-bg)! dark:text-(--shiki-dark)!"
     style={
       {
         backgroundColor: token.bgColor,
@@ -258,7 +262,7 @@ const CodeBlockBody = memo(
     return (
       <pre
         className={cn(
-          'dark:bg-(--shiki-dark-bg)! dark:text-(--shiki-dark)!] m-0 p-4 text-sm',
+          'dark:bg-(--shiki-dark-bg)! dark:text-(--shiki-dark)! m-0 p-4 text-sm',
           className
         )}
         style={preStyle}

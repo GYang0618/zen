@@ -12,6 +12,16 @@ allowBuilds:
   prisma: true
   protobufjs: true
   unrs-resolver: true
+minimumReleaseAgeExclude:
+  - '@copilotkit/a2ui-renderer@1.71.0'
+  - '@copilotkit/core@1.71.0'
+  - '@copilotkit/react-core@1.71.0'
+  - '@copilotkit/react-ui@1.71.0'
+  - '@copilotkit/runtime-client-gql@1.71.0'
+  - '@copilotkit/runtime@1.71.0'
+  - '@copilotkit/shared@1.71.0'
+  - '@copilotkit/web-components@1.71.0'
+  - '@copilotkit/web-inspector@1.71.0'
 overrides:
   fastify: 5.10.0
   hono: ^4.12.32

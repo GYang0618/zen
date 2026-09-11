@@ -2,17 +2,4 @@
 @import "@xyflow/react/dist/style.css" layer(base);
 @import "@zen/ui/globals.css";
 
-@layer components {
-  .react-flow__node-organization {
-    padding: 0;
-    border: none;
-    background: transparent;
-    box-shadow: none;
-    font-size: inherit;
-  }
-
-  .organization-graph-minimap .react-flow__minimap {
-    position: static;
-    margin: 0;
-  }
-}
+@import "./react-flow.css";

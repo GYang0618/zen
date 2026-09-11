@@ -6,27 +6,19 @@ import { ChatInput } from './chat-input'
 interface ChatInputDockProps {
   ref?: React.Ref<HTMLDivElement>
   showEmptyGreeting: boolean
-  online: boolean
-  awaitingApproval: boolean
-  loading: boolean
+  online?: boolean
+  awaitingApproval?: boolean
+  loading?: boolean
   threadId?: string
-  onEnsureThread: (firstMessage: string) => Promise<string>
-  onRunStart: (runId: string) => void
-  onRunSettled: (runId: string) => void
-  onStop: () => Promise<void>
 }
 
 export function ChatInputDock({
   ref,
   showEmptyGreeting,
-  online,
-  awaitingApproval,
-  loading,
-  threadId,
-  onEnsureThread,
-  onRunStart,
-  onRunSettled,
-  onStop
+  online = true,
+  awaitingApproval = false,
+  loading = false,
+  threadId
 }: ChatInputDockProps) {
   return (
     <div
@@ -44,10 +36,6 @@ export function ChatInputDock({
           awaitingApproval={awaitingApproval}
           loading={loading}
           threadId={threadId}
-          onEnsureThread={onEnsureThread}
-          onRunStart={onRunStart}
-          onRunSettled={onRunSettled}
-          onStop={onStop}
         />
         <div className="pointer-events-none absolute inset-0 z-0 w-full">
           <div className="h-full w-full bg-background backdrop-blur-xl mask-[linear-gradient(to_top,black_50%,transparent_85%)] [-webkit-mask-image:linear-gradient(to_top,black_50%,transparent_85%)] [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none" />
