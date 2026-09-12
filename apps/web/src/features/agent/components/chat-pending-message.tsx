@@ -1,7 +1,7 @@
 import { Message, MessageContent, Shimmer } from '@zen/ui'
 import { Sparkles } from 'lucide-react'
 
-export function ChatPendingMessage() {
+export function ChatPendingMessage({ label = '工作中...' }: { label?: string }) {
   return (
     <Message
       from="assistant"
@@ -15,7 +15,7 @@ export function ChatPendingMessage() {
             <Sparkles className="size-3.5 animate-pulse" />
           </div>
           <Shimmer duration={1.6} className="font-normal">
-            工作中...
+            {label}
           </Shimmer>
         </div>
       </MessageContent>

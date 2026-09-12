@@ -12,11 +12,9 @@ import {
 import { tool } from 'langchain'
 import { z } from 'zod'
 
-import { buildUserTableSurface } from '../a2ui'
 import {
   asSdkOptions,
   executeApiCall,
-  resolveToolCallIdentity,
   toQueryArray,
   userControllerAdminResetPassword,
   userControllerAssignRoles,
@@ -32,6 +30,7 @@ import {
   userControllerUpdate,
   userControllerUpdateStatus
 } from '../api'
+import { compactPagedToolResult, compactUserListItem } from './compact-result'
 import { executeApiCallOrRecover } from './recoverable-error'
 
 import type { UserControllerAdminResetPasswordData, UserControllerFindAllData } from '../api'
@@ -125,53 +124,15 @@ const USER_WRITE_HINTS: RecoverableHint[] = [
 ]
 
 export const getUsersTool = tool(
-  async (input, config) => {
-    const rawResult = await executeApiCall(config, async (_context) =>
-      userControllerFindAll({
-        query: normalizeUsersQuery(input)
-      })
-    )
-
-    if (input.display === false) {
-      return rawResult
-    }
-
-    try {
-      const parsed = JSON.parse(rawResult)
-      if (parsed && typeof parsed === 'object' && parsed.code === 200 && parsed.data) {
-        const items = Array.isArray(parsed.data.items) ? parsed.data.items : []
-        const isSuspended =
-          input.status === 'suspended' ||
-          (Array.isArray(input.status) && input.status.includes('suspended'))
-        const stateKey = isSuspended ? 'inactive_users' : 'users'
-        let title = '用户列表'
-        if (isSuspended) {
-          title = '已停用用户列表'
-        } else if (input.keyword) {
-          title = `用户列表（搜索: ${input.keyword}）`
-        }
-
-        const { toolCallId: resolvedToolCallId } = resolveToolCallIdentity(config as never)
-        const toolCallId = resolvedToolCallId || String(Date.now())
-        const surfaceId = `a2ui-${toolCallId}`
-        const a2ui_operations = buildUserTableSurface({
-          surfaceId,
-          users: items,
-          title,
-          stateKey
+  async (input, config) =>
+    compactPagedToolResult(
+      await executeApiCall(config, async (_context) =>
+        userControllerFindAll({
+          query: normalizeUsersQuery(input)
         })
-
-        return JSON.stringify({
-          ...parsed,
-          a2ui_operations
-        })
-      }
-    } catch {
-      // 容错保持原样
-    }
-
-    return rawResult
-  },
+      ),
+      compactUserListItem
+    ),
   {
     name: 'query_users_list',
     description:

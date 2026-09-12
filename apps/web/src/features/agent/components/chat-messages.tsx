@@ -188,7 +188,13 @@ export function ChatMessages() {
     return message.role === 'activity'
   })
 
-  const showPendingPlaceholder = agent.isRunning && !hasActiveAssistantOutput
+  const lastMessage = messages.at(-1)
+  const isWaitingForPostToolAssistant =
+    agent.isRunning && lastMessage !== undefined && lastMessage.role === 'tool'
+
+  const showPendingPlaceholder =
+    agent.isRunning && (!hasActiveAssistantOutput || isWaitingForPostToolAssistant)
+  const pendingLabel = isWaitingForPostToolAssistant ? '正在分析数据并生成摘要...' : '工作中...'
   const canRetry = messages.some((m) => m.role === 'user')
 
   const handleRetry = () => {
@@ -240,7 +246,7 @@ export function ChatMessages() {
           </Fragment>
         )
       })}
-      {showPendingPlaceholder && <ChatPendingMessage />}
+      {showPendingPlaceholder && <ChatPendingMessage label={pendingLabel} />}
       {runError && (
         <ChatRunError
           message={runError}
