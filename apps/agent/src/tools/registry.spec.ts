@@ -33,6 +33,21 @@ describe('Default Agent tool registry', () => {
         (registeredTool) => registeredTool.name === 'query_users_list'
       )
     )
+    const orgToolNames = [
+      'query_organization_tree',
+      'query_organizations_list',
+      'delete_organization',
+      'dissolve_organization',
+      'merge_organization',
+      'batch_transfer_organization_members',
+      'update_organization_position_roles'
+    ]
+    for (const name of orgToolNames) {
+      assert.ok(
+        registry.defaultAgentTools.some((registeredTool) => registeredTool.name === name),
+        `应包含组织工具: ${name}`
+      )
+    }
     assert.ok(registry.defaultAgentTools.length > 0)
   })
 

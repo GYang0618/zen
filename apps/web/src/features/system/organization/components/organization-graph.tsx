@@ -30,6 +30,7 @@ import {
   ArrowRightFromLine,
   ChevronsDownUp,
   ChevronsUpDown,
+  Download,
   Network
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -44,9 +45,12 @@ import {
   collectExpandedIdsToDepth,
   DEFAULT_ORGANIZATION_TREE_EXPAND_DEPTH
 } from '../utils'
+import { exportOrganizationGraphToPng } from './export-organization-graph'
+import { OrganizationDeleteDialog } from './organization-delete-dialog'
 import { OrganizationGraphActionsProvider } from './organization-graph-context'
 import { OrganizationGraphMiniMap } from './organization-graph-minimap'
 import { OrganizationGraphNode as OrganizationGraphNodeCard } from './organization-graph-node'
+import { OrganizationMergeDialog } from './organization-merge-dialog'
 
 import type { Edge, NodeMouseHandler } from '@xyflow/react'
 import type { OrganizationGraphNode, OrganizationGraphRankdir } from '../build-organization-graph'
@@ -85,6 +89,8 @@ function OrganizationGraphCanvas({
   layoutKey,
   rankdir,
   onToggleExpand,
+  onDelete,
+  onMerge,
   onSelect,
   onClear
 }: {
@@ -93,12 +99,17 @@ function OrganizationGraphCanvas({
   layoutKey: string
   rankdir: OrganizationGraphRankdir
   onToggleExpand: (id: string) => void
+  onDelete?: (org: Organization) => void
+  onMerge?: (org: Organization) => void
   onSelect: NodeMouseHandler<OrganizationGraphNode>
   onClear: () => void
 }) {
   const { fitView } = useReactFlow()
   const { resolvedTheme } = useTheme()
-  const actions = useMemo(() => ({ onToggleExpand, rankdir }), [onToggleExpand, rankdir])
+  const actions = useMemo(
+    () => ({ onToggleExpand, rankdir, onDelete, onMerge }),
+    [onToggleExpand, rankdir, onDelete, onMerge]
+  )
   const [flowNodes, setFlowNodes, onNodesChange] = useNodesState(nodes)
 
   useEffect(() => {
@@ -149,13 +160,21 @@ function OrganizationGraphCanvas({
 }
 
 export function OrganizationGraph() {
-  const { organizations, currentNode, setCurrentNode, isLoading } = useOrganizations()
+  const { organizations, currentNode, setCurrentNode, isLoading, keyword } = useOrganizations()
   const expandableIds = useMemo(() => collectExpandableIds(organizations), [organizations])
   const [rankdir, setRankdir] = useState<OrganizationGraphRankdir>('TB')
   const [expandedIds, setExpandedIds] = useState(() =>
     createInitialExpandedIds(organizations, currentNode?.id)
   )
+  const [deleteTarget, setDeleteTarget] = useState<Organization | null>(null)
+  const [mergeTarget, setMergeTarget] = useState<Organization | null>(null)
   const didInitExpandedRef = useRef(organizations.length > 0)
+
+  useEffect(() => {
+    if (keyword?.trim()) {
+      setExpandedIds(new Set(expandableIds))
+    }
+  }, [keyword, expandableIds])
 
   useEffect(() => {
     if (didInitExpandedRef.current || organizations.length === 0) return
@@ -204,59 +223,95 @@ export function OrganizationGraph() {
         <CardTitle>组织图谱</CardTitle>
         <CardAction className="flex items-center gap-1">
           <ButtonGroup>
-            <Button
-              type="button"
-              size="icon-sm"
-              variant={rankdir === 'TB' ? 'default' : 'outline'}
-              aria-label="自上而下布局"
-              aria-pressed={rankdir === 'TB'}
-              onClick={() => setRankdir('TB')}
-            >
-              <ArrowDownFromLine />
-            </Button>
-            <Button
-              type="button"
-              size="icon-sm"
-              variant={rankdir === 'LR' ? 'default' : 'outline'}
-              aria-label="自左向右布局"
-              aria-pressed={rankdir === 'LR'}
-              onClick={() => setRankdir('LR')}
-            >
-              <ArrowRightFromLine />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    size="icon-sm"
+                    variant={rankdir === 'TB' ? 'default' : 'outline'}
+                    aria-label="自上而下布局"
+                    aria-pressed={rankdir === 'TB'}
+                    onClick={() => setRankdir('TB')}
+                  >
+                    <ArrowDownFromLine className="size-4" />
+                  </Button>
+                }
+              />
+              <TooltipContent>纵向布局</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    size="icon-sm"
+                    variant={rankdir === 'LR' ? 'default' : 'outline'}
+                    aria-label="自左向右布局"
+                    aria-pressed={rankdir === 'LR'}
+                    onClick={() => setRankdir('LR')}
+                  >
+                    <ArrowRightFromLine className="size-4" />
+                  </Button>
+                }
+              />
+              <TooltipContent>横向布局</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    size="icon-sm"
+                    variant="outline"
+                    aria-label="全部展开"
+                    onClick={() => setExpandedIds(new Set(expandableIds))}
+                  >
+                    <ChevronsUpDown className="size-4" />
+                  </Button>
+                }
+              />
+              <TooltipContent>全部展开</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    size="icon-sm"
+                    variant="outline"
+                    aria-label="全部收起"
+                    onClick={() => setExpandedIds(new Set())}
+                  >
+                    <ChevronsDownUp className="size-4" />
+                  </Button>
+                }
+              />
+              <TooltipContent>全部收起</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    size="icon-sm"
+                    variant="outline"
+                    aria-label="导出架构图图片"
+                    onClick={() =>
+                      exportOrganizationGraphToPng(layout.nodes, layout.edges, rankdir)
+                    }
+                  >
+                    <Download className="size-4" />
+                  </Button>
+                }
+              />
+              <TooltipContent>导出高清架构图 (PNG)</TooltipContent>
+            </Tooltip>
           </ButtonGroup>
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="全部展开"
-                  onClick={() => setExpandedIds(new Set(expandableIds))}
-                />
-              }
-            >
-              <ChevronsUpDown />
-            </TooltipTrigger>
-            <TooltipContent>全部展开</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="全部收起"
-                  onClick={() => setExpandedIds(new Set())}
-                />
-              }
-            >
-              <ChevronsDownUp />
-            </TooltipTrigger>
-            <TooltipContent>全部收起</TooltipContent>
-          </Tooltip>
         </CardAction>
       </CardHeader>
       <CardContent className="min-h-0 flex-1 px-0">
@@ -270,8 +325,10 @@ export function OrganizationGraph() {
               <EmptyMedia variant="icon">
                 <Network />
               </EmptyMedia>
-              <EmptyTitle>暂无组织</EmptyTitle>
-              <EmptyDescription>请先创建根组织后再查看图谱</EmptyDescription>
+              <EmptyTitle>{keyword ? '未找到匹配组织' : '暂无组织'}</EmptyTitle>
+              <EmptyDescription>
+                {keyword ? `未找到与「${keyword}」匹配的组织` : '请先创建根组织后再查看图谱'}
+              </EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : (
@@ -283,6 +340,8 @@ export function OrganizationGraph() {
                 layoutKey={`${rankdir}:${layout.nodes.map((node) => node.id).join(',')}`}
                 rankdir={rankdir}
                 onToggleExpand={handleToggleExpand}
+                onDelete={setDeleteTarget}
+                onMerge={setMergeTarget}
                 onSelect={handleSelect}
                 onClear={() => setCurrentNode(null)}
               />
@@ -290,6 +349,32 @@ export function OrganizationGraph() {
           </div>
         )}
       </CardContent>
+
+      <OrganizationDeleteDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null)
+        }}
+        target={deleteTarget}
+        tree={organizations}
+        onSuccess={() => {
+          if (currentNode?.id === deleteTarget?.id) {
+            setCurrentNode(null)
+          }
+        }}
+      />
+      <OrganizationMergeDialog
+        open={Boolean(mergeTarget)}
+        onOpenChange={(open) => {
+          if (!open) setMergeTarget(null)
+        }}
+        sourceOrganization={mergeTarget}
+        onSuccess={() => {
+          if (currentNode?.id === mergeTarget?.id) {
+            setCurrentNode(null)
+          }
+        }}
+      />
     </Card>
   )
 }

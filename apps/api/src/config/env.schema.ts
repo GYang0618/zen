@@ -110,8 +110,7 @@ export const envSchema = z
     /** CopilotKit Intelligence API Key */
     COPILOTKIT_INTELLIGENCE_API_KEY: z
       .string()
-      .min(1)
-      .default('cpk-4081_gigCBXJB_LkdJRNre3kFm8x71ZQjmYPhx')
+      .optional()
       .describe('CopilotKit Intelligence API Key'),
 
     /** CopilotKit Intelligence API 服务地址 */

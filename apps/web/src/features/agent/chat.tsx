@@ -1,5 +1,5 @@
 import { CopilotChatConfigurationProvider, UseAgentUpdate } from '@copilotkit/react-core/v2'
-import { Outlet, useParams } from '@tanstack/react-router'
+import { Outlet, useLocation } from '@tanstack/react-router'
 import { Button, ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@zen/ui'
 import { Sparkles } from 'lucide-react'
 import { useState } from 'react'
@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { ProfileDropdown, ThemeSwitch } from '@/components'
 import { Header, Main } from '@/components/layouts'
 import { useElementHeight } from '@/hooks'
+import { isAgentChatPath, parseThreadIdFromPath, useShellModeStore } from '@/stores'
 
 import { AgentBackgroundRunner } from './components/agent-background-runner'
 import { ChatConversation } from './components/chat-conversation'
@@ -17,17 +18,25 @@ import { ChatAgentProvider, useChatAgent } from './context/chat-agent-context'
 import { useAgentThreadSync } from './hooks/use-agent-thread-sync'
 import { useAgentGenerativePanelStore } from './stores/agent-generative-panel'
 
-export function AgentChat() {
+export function AgentChat({ threadId: propThreadId }: { threadId?: string } = {}) {
   const { isOpen, setOpen } = useAgentGenerativePanelStore()
-  const params = useParams({ strict: false }) as { threadId?: string }
+  const { pathname } = useLocation()
+  const lastAgentPath = useShellModeStore((state) => state.lastAgentPath)
+
+  // 处于智能体路由时从当前路径解析 threadId，切到管理后台时锁定 lastAgentPath 中的 threadId
+  const isAgentRoute = isAgentChatPath(pathname)
+  const currentPathThreadId = parseThreadIdFromPath(pathname)
+  const lastPathThreadId = parseThreadIdFromPath(lastAgentPath)
+  const effectiveThreadId = propThreadId ?? (isAgentRoute ? currentPathThreadId : lastPathThreadId)
+
   const { activeThreadId, hasExplicitThreadId, isConnecting, agent, isReady } = useAgentThreadSync({
     agentId: 'default',
-    threadId: params.threadId
+    threadId: effectiveThreadId
   })
 
   return (
     <CopilotChatConfigurationProvider
-      agentId="default"
+      agentId={agent.agentId}
       threadId={activeThreadId}
       hasExplicitThreadId={hasExplicitThreadId}
     >

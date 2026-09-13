@@ -40,16 +40,14 @@ export interface UseChatAgentOptions {
   throttleMs?: number
 }
 
-export function useChatAgent(options?: UseChatAgentOptions) {
+export function useOptionalChatAgent(options?: UseChatAgentOptions) {
   const ctx = useContext(ChatAgentContext)
-  const { copilotkit } = useCopilotKit()
   const [, setTick] = useState(0)
 
-  if (!ctx) {
-    throw new Error('useChatAgent must be used within a ChatAgentProvider')
-  }
+  const agent = ctx?.agent
+  const isReady = ctx?.isReady ?? false
+  const activeThreadId = ctx?.activeThreadId ?? ''
 
-  const { agent, isReady, activeThreadId } = ctx
   const updatesKey = options?.updates ? JSON.stringify(options.updates) : ''
   const updateFlags = useMemo(() => {
     if (!updatesKey) return ALL_UPDATES
@@ -69,34 +67,70 @@ export function useChatAgent(options?: UseChatAgentOptions) {
         batchScheduled = true
         queueMicrotask(() => {
           batchScheduled = false
-          if (active) {
-            setTick((t) => t + 1)
-          }
+          if (active) setTick((t) => (t + 1) % 1_000_000)
         })
       }
     }
 
-    const handlers: Record<string, () => void> = {}
+    const forceUpdate =
+      throttleMs > 0
+        ? (() => {
+            let lastCall = 0
+            let timer: ReturnType<typeof setTimeout> | undefined
+            return () => {
+              const now = Date.now()
+              const remaining = throttleMs - (now - lastCall)
+              if (remaining <= 0) {
+                lastCall = now
+                batchedForceUpdate()
+              } else if (!timer) {
+                timer = setTimeout(() => {
+                  timer = undefined
+                  lastCall = Date.now()
+                  batchedForceUpdate()
+                }, remaining)
+              }
+            }
+          })()
+        : batchedForceUpdate
 
-    if (updateFlags.includes(UseAgentUpdate.OnMessagesChanged)) {
-      handlers.onMessagesChanged = batchedForceUpdate
-    }
-    if (updateFlags.includes(UseAgentUpdate.OnStateChanged)) {
-      handlers.onStateChanged = batchedForceUpdate
-    }
-    if (updateFlags.includes(UseAgentUpdate.OnRunStatusChanged)) {
-      handlers.onRunInitialized = batchedForceUpdate
-      handlers.onRunFinalized = batchedForceUpdate
-      handlers.onRunFailed = batchedForceUpdate
-      handlers.onRunErrorEvent = batchedForceUpdate
-    }
+    const subscription = agent.subscribe({
+      onMessagesChanged: updateFlags.includes(UseAgentUpdate.OnMessagesChanged)
+        ? forceUpdate
+        : undefined,
+      onStateChanged: updateFlags.includes(UseAgentUpdate.OnStateChanged) ? forceUpdate : undefined,
+      ...(updateFlags.includes(UseAgentUpdate.OnRunStatusChanged)
+        ? {
+            onRunInitialized: forceUpdate,
+            onRunFinalized: forceUpdate,
+            onRunFailed: forceUpdate,
+            onRunErrorEvent: forceUpdate
+          }
+        : {})
+    })
 
-    const sub = copilotkit.subscribeToAgentWithOptions(agent, handlers, { throttleMs })
     return () => {
       active = false
-      sub.unsubscribe()
+      subscription.unsubscribe()
     }
-  }, [agent, copilotkit, throttleMs, updateFlags])
+  }, [agent, updateFlags, throttleMs])
 
   return { agent, isReady, activeThreadId }
+}
+
+export function useChatAgent(options?: UseChatAgentOptions) {
+  const ctx = useContext(ChatAgentContext)
+
+  if (!ctx) {
+    throw new Error('useChatAgent must be used within a ChatAgentProvider')
+  }
+
+  const { copilotkit } = useCopilotKit()
+  const result = useOptionalChatAgent(options)
+  return {
+    agent: ctx.agent,
+    isReady: result.isReady,
+    activeThreadId: result.activeThreadId,
+    copilotkit
+  }
 }

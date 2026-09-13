@@ -10,6 +10,8 @@ import {
 } from '@zen/ui'
 import { ClockFading, Pencil } from 'lucide-react'
 
+import { useShellModeStore } from '@/stores'
+
 import { useAgentChatInputStore } from '../stores/agent-chat-input'
 import { ChatHistory } from './chat-history'
 
@@ -19,10 +21,12 @@ import { ChatHistory } from './chat-history'
  */
 export function AgentSidebar() {
   const triggerNewThread = useAgentChatInputStore((state) => state.triggerNewThread)
+  const setLastAgentPath = useShellModeStore((state) => state.setLastAgentPath)
   const navigate = useNavigate()
 
   const handleCreate = () => {
     triggerNewThread()
+    setLastAgentPath('/chat')
     void navigate({ to: '/chat' })
   }
 

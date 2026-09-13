@@ -42,13 +42,15 @@ export class CopilotService implements OnModuleInit {
     const { deploymentUrl, intelligenceApiKey, intelligenceApiUrl, intelligenceWsUrl } =
       this.langgraphCfg
 
-    const intelligence = new CopilotKitIntelligence({
-      apiKey: intelligenceApiKey,
-      apiUrl: intelligenceApiUrl,
-      wsUrl: intelligenceWsUrl
-    })
+    const intelligence = intelligenceApiKey
+      ? new CopilotKitIntelligence({
+          apiKey: intelligenceApiKey,
+          apiUrl: intelligenceApiUrl,
+          wsUrl: intelligenceWsUrl
+        })
+      : undefined
 
-    const runtime = new CopilotRuntime({
+    const baseOptions = {
       agents: async ({ request }: AgentFactoryContext) => {
         const token = extractBearerToken(request.headers)
         let auth: Pick<AuthContext, 'tenantId' | 'userId' | 'permissions'> | undefined
@@ -80,25 +82,31 @@ export class CopilotService implements OnModuleInit {
           })
         }
       },
-      intelligence,
       a2ui: {
         defaultCatalogId: 'copilotkit://zen-catalog'
-      },
-      identifyUser: async (request) => {
-        const token = extractBearerToken(request.headers)
-        if (!token) return { id: 'anonymous', name: 'Anonymous' }
-        try {
-          const payload = this.jwtService.verify<JwtPayload>(token)
-          return {
-            id: payload.sub,
-            name: payload.email
-          }
-        } catch {
-          return { id: 'anonymous', name: 'Anonymous' }
-        }
-      },
-      generateThreadNames: true
-    })
+      }
+    }
+
+    const runtime = intelligence
+      ? new CopilotRuntime({
+          ...baseOptions,
+          intelligence,
+          identifyUser: async (request: Request) => {
+            const token = extractBearerToken(request.headers)
+            if (!token) return { id: 'anonymous', name: 'Anonymous' }
+            try {
+              const payload = this.jwtService.verify<JwtPayload>(token)
+              return {
+                id: payload.sub,
+                name: payload.email
+              }
+            } catch {
+              return { id: 'anonymous', name: 'Anonymous' }
+            }
+          },
+          generateThreadNames: true
+        })
+      : new CopilotRuntime(baseOptions)
 
     this.handler = createCopilotExpressHandler({
       runtime,

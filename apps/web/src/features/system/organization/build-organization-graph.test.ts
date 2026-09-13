@@ -25,6 +25,7 @@ function organization(
     leader: null,
     memberCount: 0,
     positionCount: 0,
+    sortOrder: 0,
     parentId,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-08-19T00:00:00.000Z',

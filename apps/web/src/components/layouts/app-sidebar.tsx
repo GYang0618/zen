@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from '@zen/ui'
+import { cn, Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from '@zen/ui'
 import { useMemo } from 'react'
 
 import { useLayout } from '@/context/layout-provider'
@@ -52,7 +52,16 @@ export function AppSidebar() {
         <ModeSwitcher />
       </SidebarHeader>
       <SidebarContent>
-        {isAgentMode ? <AgentSidebar /> : <AppNav items={navGroups} />}
+        <div
+          className={cn('flex flex-col flex-1 min-h-0 overflow-hidden', !isAgentMode && 'hidden')}
+        >
+          <AgentSidebar />
+        </div>
+        <div
+          className={cn('flex flex-col flex-1 min-h-0 overflow-hidden', isAgentMode && 'hidden')}
+        >
+          <AppNav items={navGroups} />
+        </div>
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />

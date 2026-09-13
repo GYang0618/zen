@@ -74,7 +74,6 @@ export const TOOL_EXECUTION_POLICIES = {
   assign_user_roles: write(PermissionCode.ROLE_ASSIGN, true),
   replace_user_organizations: write(PermissionCode.ORG_UPDATE, true),
   delete_users: destructive(PermissionCode.USER_DELETE),
-  hard_delete_users: destructive(PermissionCode.USER_DELETE),
 
   query_roles_list: read(PermissionCode.ROLE_LIST),
   query_role_detail: read(PermissionCode.ROLE_LIST),
@@ -90,6 +89,7 @@ export const TOOL_EXECUTION_POLICIES = {
   delete_roles: destructive(PermissionCode.ROLE_DELETE),
 
   query_organization_tree: read(PermissionCode.ORG_LIST),
+  query_organizations_list: read(PermissionCode.ORG_LIST),
   query_organization_type_catalog: read(),
   query_organization_detail: read(PermissionCode.ORG_LIST),
   query_organization_members: read(PermissionCode.ORG_LIST),
@@ -98,12 +98,17 @@ export const TOOL_EXECUTION_POLICIES = {
   update_organization_type_catalog: write(PermissionCode.ORG_UPDATE),
   create_organization: write(PermissionCode.ORG_CREATE),
   update_organization_info: write(PermissionCode.ORG_UPDATE),
+  delete_organization: destructive(PermissionCode.ORG_DELETE),
+  dissolve_organization: destructive(PermissionCode.ORG_DELETE),
+  merge_organization: destructive(PermissionCode.ORG_DELETE),
   update_organization_leader: write(PermissionCode.ORG_UPDATE),
   change_organization_parent: write(PermissionCode.ORG_UPDATE, true),
   add_organization_member: write(PermissionCode.ORG_UPDATE),
   remove_organization_member: write(PermissionCode.ORG_UPDATE, true),
+  batch_transfer_organization_members: write(PermissionCode.ORG_UPDATE, true),
   create_organization_position: write(PermissionCode.POST_MANAGE),
   update_organization_position: write(PermissionCode.POST_MANAGE),
+  update_organization_position_roles: write(PermissionCode.POST_MANAGE, true),
   remove_organization_position: destructive(PermissionCode.POST_MANAGE),
 
   query_job_profiles_list: read(PermissionCode.POST_LIST),

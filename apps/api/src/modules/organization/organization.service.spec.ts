@@ -80,9 +80,17 @@ describe('OrganizationService', () => {
     findUsersDisplayByIds: jest.fn(),
     findOrganizationsDisplayByIds: jest.fn(),
     addMember: jest.fn(),
-    removeMember: jest.fn()
+    removeMember: jest.fn(),
+    dissolve: jest.fn(),
+    merge: jest.fn(),
+    batchTransferMembers: jest.fn(),
+    findById: jest.fn(),
+    findPaged: jest.fn(),
+    count: jest.fn()
   } as unknown as jest.Mocked<OrganizationRepository>
-  const postService = {} as unknown as PostService
+  const postService = {
+    findOrganizationPosition: jest.fn()
+  } as unknown as jest.Mocked<PostService>
   const auditService = { write: jest.fn() } as unknown as AuditService
   const authContextService = {
     bumpPermVer: jest.fn(),
@@ -99,6 +107,48 @@ describe('OrganizationService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+  })
+
+  it('filters tree by keyword, keeping matching nodes and ancestor paths', async () => {
+    repository.findMany.mockResolvedValue([
+      organization({ id: 'company', name: '总公司', type: 'COMPANY' }),
+      organization({ id: 'rd', name: '研发中心', parentId: 'company', type: 'CENTER' }),
+      organization({ id: 'frontend', name: '前端组', parentId: 'rd', type: 'TEAM' }),
+      organization({ id: 'market', name: '市场部', parentId: 'company', type: 'DEPARTMENT' })
+    ])
+
+    const tree = await service.getTree(auth, { keyword: '前端' })
+
+    expect(tree.length).toBe(1)
+    expect(tree[0]?.id).toBe('company')
+    expect(tree[0]?.children.length).toBe(1)
+    expect(tree[0]?.children[0]?.id).toBe('rd')
+    expect(tree[0]?.children[0]?.children.length).toBe(1)
+    expect(tree[0]?.children[0]?.children[0]?.id).toBe('frontend')
+  })
+
+  it('finds paged organizations matching keyword or type', async () => {
+    const list = [organization({ id: 'frontend', name: '前端组', type: 'TEAM' })]
+    repository.count.mockResolvedValue(1)
+    repository.findPaged.mockResolvedValue(list)
+
+    const result = await service.findAll({ keyword: '前端', page: 1, pageSize: 20 }, auth)
+
+    expect(result.pagination.total).toBe(1)
+    expect(result.items[0]?.name).toBe('前端组')
+    expect(repository.findPaged).toHaveBeenCalledWith(
+      expect.objectContaining({
+        AND: expect.arrayContaining([
+          expect.objectContaining({
+            OR: [
+              { name: { contains: '前端', mode: 'insensitive' } },
+              { code: { contains: '前端', mode: 'insensitive' } }
+            ]
+          })
+        ])
+      }),
+      { skip: 0, take: 20 }
+    )
   })
 
   it('sorts every tree level by zh-CN name with numeric comparison', async () => {
@@ -269,5 +319,202 @@ describe('OrganizationService', () => {
     ).rejects.toMatchObject({
       response: expect.objectContaining({ reason: 'ORG_MOVE_OUT_OF_SCOPE' })
     })
+  })
+
+  it('dissolves organization, transfers children, and invalidates cache', async () => {
+    repository.findByIdInScope.mockResolvedValue(
+      organization({ id: 'dept-1', name: '测试部门', memberCount: 5, parentId: 'parent-1' })
+    )
+    repository.findById.mockResolvedValue(organization({ id: 'parent-1', name: '总经办' }))
+    repository.findUsersDisplayByIds.mockResolvedValue([
+      { id: 'user-1', username: 'user1', nickname: '张三', profile: null }
+    ] as never)
+    repository.dissolve.mockResolvedValue({
+      deletedDescendants: [],
+      affectedUserIds: ['user-1'],
+      directChildren: [{ id: 'child-1', code: 'C1', name: '子部门1' }]
+    })
+
+    await service.dissolve('dept-1', { targetOrganizationId: null, transferChildren: true }, auth)
+
+    expect(repository.dissolve).toHaveBeenCalledWith('dept-1', null, true, undefined)
+    expect(authContextService.invalidateCache).toHaveBeenCalled()
+    expect(auditService.write).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'system.organization.dissolved',
+        resourceId: 'dept-1'
+      })
+    )
+    expect(auditService.write).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'system.organization.parent_changed',
+        resourceId: 'child-1'
+      })
+    )
+  })
+
+  it('dissolves organization with cascade deletion of children and writes audit for each descendant', async () => {
+    repository.findByIdInScope.mockImplementation((id: string) => {
+      if (id === 'dept-root')
+        return Promise.resolve(organization({ id: 'dept-root', name: '根研发中心' }))
+      if (id === 'dept-dest')
+        return Promise.resolve(organization({ id: 'dept-dest', name: '目的地部门' }))
+      return Promise.resolve(null)
+    })
+    repository.findUsersDisplayByIds.mockResolvedValue([
+      { id: 'u1', username: 'u1', nickname: '李四', profile: null }
+    ] as never)
+    repository.dissolve.mockResolvedValue({
+      deletedDescendants: [
+        { id: 'sub-1', code: 'S1', name: '子团队A', parentId: 'dept-root' },
+        { id: 'sub-2', code: 'S2', name: '孙团队B', parentId: 'sub-1' }
+      ],
+      affectedUserIds: ['u1'],
+      directChildren: [{ id: 'sub-1', code: 'S1', name: '子团队A' }]
+    })
+
+    await service.dissolve(
+      'dept-root',
+      { targetOrganizationId: 'dept-dest', transferChildren: false },
+      auth
+    )
+
+    // 每个子孙部门都记录了独立删除审计
+    expect(auditService.write).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'system.organization.deleted',
+        resourceId: 'sub-1'
+      })
+    )
+    expect(auditService.write).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'system.organization.deleted',
+        resourceId: 'sub-2'
+      })
+    )
+    // 根组织记录了 dissolved 审计
+    expect(auditService.write).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'system.organization.dissolved',
+        resourceId: 'dept-root'
+      })
+    )
+    // 目标组织记录了调入审计
+    expect(auditService.write).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'system.organization.member_transferred_in',
+        resourceId: 'dept-dest'
+      })
+    )
+  })
+
+  it('dissolves organization with targetChildrenOrganizationId', async () => {
+    repository.findByIdInScope.mockImplementation((id: string) => {
+      if (id === 'dept-1') {
+        return Promise.resolve(organization({ id: 'dept-1', path: '/group/dept-1/' }))
+      }
+      if (id === 'dept-2') {
+        return Promise.resolve(organization({ id: 'dept-2', path: '/group/dept-2/' }))
+      }
+      return Promise.resolve(null)
+    })
+    repository.findUsersDisplayByIds.mockResolvedValue([])
+    repository.dissolve.mockResolvedValue({
+      deletedDescendants: [],
+      affectedUserIds: [],
+      directChildren: []
+    })
+
+    await service.dissolve(
+      'dept-1',
+      {
+        targetOrganizationId: 'dept-2',
+        transferChildren: true,
+        targetChildrenOrganizationId: 'dept-2'
+      },
+      auth
+    )
+
+    expect(repository.dissolve).toHaveBeenCalledWith('dept-1', 'dept-2', true, 'dept-2')
+  })
+
+  it('merges organization into target, recording dual-side audit and parent changes', async () => {
+    repository.findByIdInScope
+      .mockResolvedValueOnce(organization({ id: 'dept-source', name: '源部门' }))
+      .mockResolvedValueOnce(organization({ id: 'dept-target', name: '目标部门' }))
+    repository.findUsersDisplayByIds.mockResolvedValue([
+      { id: 'user-a', username: 'usera', nickname: '王五', profile: null }
+    ] as never)
+    repository.merge.mockResolvedValue({
+      directChildren: [{ id: 'child-x', code: 'CX', name: '下属子组' }],
+      transferredUserIds: ['user-a']
+    })
+
+    await service.merge('dept-source', { targetOrganizationId: 'dept-target' }, auth)
+
+    expect(repository.merge).toHaveBeenCalledWith('dept-source', 'dept-target')
+    expect(authContextService.invalidateCache).toHaveBeenCalled()
+    // 源组织审计
+    expect(auditService.write).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'system.organization.merged',
+        resourceId: 'dept-source'
+      })
+    )
+    // 目标组织审计
+    expect(auditService.write).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'system.organization.merged_in',
+        resourceId: 'dept-target'
+      })
+    )
+    // 直属子部门父级变更审计
+    expect(auditService.write).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'system.organization.parent_changed',
+        resourceId: 'child-x'
+      })
+    )
+  })
+
+  it('batch transfers members between organizations and records dual audit logs', async () => {
+    repository.findByIdInScope
+      .mockResolvedValueOnce(organization({ id: 'org-src', name: '源部门' }))
+      .mockResolvedValueOnce(organization({ id: 'org-dst', name: '目标部门' }))
+    postService.findOrganizationPosition.mockResolvedValue({
+      id: 'pos-1',
+      jobProfile: { name: '资深前端工程师' }
+    } as never)
+    repository.findUsersDisplayByIds.mockResolvedValue([
+      { id: 'u1', username: 'u1', nickname: '人员1', profile: null },
+      { id: 'u2', username: 'u2', nickname: '人员2', profile: null }
+    ] as never)
+    repository.batchTransferMembers.mockResolvedValue([] as never)
+
+    await service.batchTransferMembers(
+      'org-src',
+      {
+        userIds: ['u1', 'u2'],
+        targetOrganizationId: 'org-dst',
+        targetPostId: 'pos-1'
+      },
+      auth
+    )
+
+    expect(repository.batchTransferMembers).toHaveBeenCalledWith(['u1', 'u2'], 'org-dst', 'pos-1')
+    // 源组织审计：调出
+    expect(auditService.write).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'system.organization.member_transferred_out',
+        resourceId: 'org-src'
+      })
+    )
+    // 目标组织审计：调入
+    expect(auditService.write).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'system.organization.member_transferred_in',
+        resourceId: 'org-dst'
+      })
+    )
   })
 })

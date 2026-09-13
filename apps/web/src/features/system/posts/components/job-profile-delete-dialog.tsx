@@ -1,10 +1,11 @@
-import { Alert, AlertDescription, AlertTitle, Input, Label } from '@zen/ui'
-import { AlertTriangle } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle, Button, Input, Label } from '@zen/ui'
+import { AlertTriangle, ShieldAlert } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 
-import { useDeleteJobProfileMutation } from '../queries'
+import { useDeleteJobProfileMutation, useUpdateJobProfileMutation } from '../queries'
 
 import type { JobProfile } from '@zen/shared'
 
@@ -19,10 +20,12 @@ export function JobProfileDeleteDialog({
   onOpenChange,
   currentRow
 }: JobProfileDeleteDialogProps) {
-  const { mutate: deleteJobProfile, isPending } = useDeleteJobProfileMutation()
+  const { mutate: deleteJobProfile, isPending: isDeleting } = useDeleteJobProfileMutation()
+  const { mutate: updateJobProfile, isPending: isUpdating } = useUpdateJobProfileMutation()
   const [value, setValue] = useState('')
   const hasOrganizations = currentRow.organizationCount > 0
   const canDelete = value.trim() === currentRow.code && !hasOrganizations
+  const isPending = isDeleting || isUpdating
 
   useEffect(() => {
     if (!open) return
@@ -38,6 +41,18 @@ export function JobProfileDeleteDialog({
         onOpenChange(false)
       }
     })
+  }
+
+  const handleDeactivate = () => {
+    updateJobProfile(
+      { id: currentRow.id, data: { status: 'disabled' } },
+      {
+        onSuccess: () => {
+          toast.success('岗位已停用，存量编制履历完好保留')
+          onOpenChange(false)
+        }
+      }
+    )
   }
 
   return (
@@ -72,12 +87,29 @@ export function JobProfileDeleteDialog({
           </Label>
 
           {hasOrganizations ? (
-            <Alert variant="destructive">
-              <AlertTitle>已关联组织</AlertTitle>
-              <AlertDescription>
-                该岗位已关联 {currentRow.organizationCount}{' '}
-                个组织编制，请先在组织中解除关联后再删除；或改为停用。
-              </AlertDescription>
+            <Alert variant="destructive" className="space-y-3">
+              <div>
+                <AlertTitle className="flex items-center gap-1.5 font-semibold">
+                  <ShieldAlert className="size-4" /> 已关联组织编制，无法物理删除
+                </AlertTitle>
+                <AlertDescription className="mt-1 text-xs">
+                  该岗位已在 {currentRow.organizationCount}{' '}
+                  个组织中设立编制。根据企业主数据规范，禁止物理删除以确保任职履历完整。
+                  建议您直接将其设为停用，停用后不可新建编制。
+                </AlertDescription>
+              </div>
+              {currentRow.status === 'active' ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="bg-background text-foreground hover:bg-muted"
+                  disabled={isPending}
+                  onClick={handleDeactivate}
+                >
+                  一键设为停用
+                </Button>
+              ) : null}
             </Alert>
           ) : (
             <Alert variant="destructive">

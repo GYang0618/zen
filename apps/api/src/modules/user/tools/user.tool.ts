@@ -61,18 +61,9 @@ export class UserTool {
 
   deleteUsersTool = tool(async ({ ids }) => JSON.stringify(await this.userService.remove(ids)), {
     name: 'delete_users',
-    description: '软删除用户。该操作需要管理员审批通过后才能执行。',
+    description: '删除用户。该操作需要管理员审批通过后才能执行。',
     schema: deleteUsersSchema
   })
-
-  hardDeleteUsersTool = tool(
-    async ({ ids }) => JSON.stringify(await this.userService.hardRemove(ids)),
-    {
-      name: 'hard_delete_users',
-      description: '彻底删除用户，并从数据库中永久删除。该高危操作需要管理员审批通过后才能执行。',
-      schema: deleteUsersSchema
-    }
-  )
 
   getTools() {
     return [
@@ -82,8 +73,7 @@ export class UserTool {
       this.updateUserTool,
       this.restoreUsersTool,
       this.updateUsersStatusTool,
-      this.deleteUsersTool,
-      this.hardDeleteUsersTool
+      this.deleteUsersTool
     ]
   }
 }

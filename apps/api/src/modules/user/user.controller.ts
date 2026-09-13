@@ -281,10 +281,9 @@ export class UserController {
 
   @Delete()
   @RequirePermission(PermissionCode.USER_DELETE)
-  @RequireStepUp()
   @ApiOperation({
-    summary: '批量软删除用户',
-    description: '逻辑删除指定用户，禁止删除当前登录用户自身。需要二次确认令牌。'
+    summary: '批量删除用户',
+    description: '删除指定用户，禁止删除当前登录用户自身。'
   })
   @ApiBody({ type: DeleteUsersSwaggerDto })
   @ApiOkResponse({ description: '删除成功', type: UserListItemArraySuccessSwaggerDto })

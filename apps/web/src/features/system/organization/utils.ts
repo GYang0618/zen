@@ -103,6 +103,13 @@ export function collectAncestorIds(nodes: Organization[], id: string): string[] 
   return ids
 }
 
+/** 收集目标节点的全部子孙 id */
+export function collectDescendantIds(nodes: Organization[], id: string): string[] {
+  const target = findOrganization(nodes, id)
+  if (!target?.children?.length) return []
+  return target.children.flatMap((child) => [child.id, ...collectDescendantIds(nodes, child.id)])
+}
+
 export function mapOrganizationTree(
   nodes: Organization[],
   mapper: (node: Organization) => Organization

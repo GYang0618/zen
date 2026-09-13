@@ -1,13 +1,19 @@
 import {
   addOrganizationMemberSchema,
+  batchTransferMembersSchema,
   changeOrganizationParentSchema,
   createOrganizationSchema,
+  dissolveOrganizationSchema,
+  findOrganizationsQuerySchema,
   linkOrganizationPositionSchema,
+  mergeOrganizationSchema,
   organizationActivitiesQuerySchema,
+  organizationTreeQuerySchema,
   updateOrganizationLeaderSchema,
   updateOrganizationPositionSchema,
   updateOrganizationSchema,
-  updateOrganizationTypeCatalogSchema
+  updateOrganizationTypeCatalogSchema,
+  updatePositionRolesSchema
 } from '@zen/shared'
 import { tool } from 'langchain'
 import { z } from 'zod'
@@ -16,20 +22,26 @@ import {
   asSdkOptions,
   executeApiCall,
   organizationControllerAddMember,
+  organizationControllerBatchTransfer,
   organizationControllerChangeParent,
   organizationControllerCreate,
   organizationControllerCreatePosition,
+  organizationControllerDissolve,
+  organizationControllerFindAll,
   organizationControllerFindOne,
   organizationControllerGetTree,
   organizationControllerGetTypeCatalog,
   organizationControllerListActivities,
   organizationControllerListMembers,
   organizationControllerListPositions,
+  organizationControllerMerge,
+  organizationControllerRemove,
   organizationControllerRemoveMember,
   organizationControllerRemovePosition,
   organizationControllerUpdate,
   organizationControllerUpdateLeader,
   organizationControllerUpdatePosition,
+  organizationControllerUpdatePositionRoles,
   organizationControllerUpdateTypeCatalog
 } from '../api'
 import {
@@ -53,6 +65,9 @@ const updateOrganizationLeaderToolSchema = organizationIdSchema.extend(
 const changeOrganizationParentToolSchema = organizationIdSchema.extend(
   changeOrganizationParentSchema.shape
 )
+const dissolveOrganizationToolSchema = organizationIdSchema.extend(dissolveOrganizationSchema.shape)
+const mergeOrganizationToolSchema = organizationIdSchema.extend(mergeOrganizationSchema.shape)
+const batchTransferMembersToolSchema = organizationIdSchema.extend(batchTransferMembersSchema.shape)
 const addOrganizationMemberToolSchema = organizationIdSchema.extend(
   addOrganizationMemberSchema.shape
 )
@@ -65,6 +80,11 @@ const updatePositionToolSchema = organizationIdSchema
     positionId: z.string().min(1, '岗位编制 ID 不能为空').describe('组织岗位编制 ID')
   })
   .extend(updateOrganizationPositionSchema.shape)
+const updatePositionRolesToolSchema = organizationIdSchema
+  .extend({
+    positionId: z.string().min(1, '岗位编制 ID 不能为空').describe('组织岗位编制 ID')
+  })
+  .extend(updatePositionRolesSchema.shape)
 const removePositionToolSchema = organizationIdSchema.extend({
   positionId: z.string().min(1, '岗位编制 ID 不能为空').describe('组织岗位编制 ID')
 })
@@ -130,13 +150,41 @@ async function createOrUpdateOrganization(
 }
 
 export const getOrganizationTreeTool = tool(
-  async (_input, config) =>
-    executeApiCall(config, async (_context) => organizationControllerGetTree()),
+  async (input, config) =>
+    executeApiCall(config, async (_context) =>
+      organizationControllerGetTree(
+        asSdkOptions({
+          query: input?.keyword ? { keyword: input.keyword } : undefined
+        })
+      )
+    ),
   {
     name: 'query_organization_tree',
     description:
-      '获取按名称排序的组织树。节点类型以本企业已启用目录为准，创建前请先 query_organization_type_catalog。',
-    schema: z.object({})
+      '获取按名称排序的组织树，支持按关键字过滤组织树并保留匹配节点的祖先链路。' +
+      '节点类型以本企业已启用目录为准，创建前请先 query_organization_type_catalog。',
+    schema: organizationTreeQuerySchema
+  }
+)
+
+export const queryOrganizationsListTool = tool(
+  async (input, config) =>
+    executeApiCall(config, async (_context) =>
+      organizationControllerFindAll(
+        asSdkOptions({
+          query: {
+            page: input?.page,
+            pageSize: input?.pageSize,
+            keyword: input?.keyword,
+            type: input?.type
+          }
+        })
+      )
+    ),
+  {
+    name: 'query_organizations_list',
+    description: '根据关键字（组织名称或编码）、组织类型分页查询组织列表。',
+    schema: findOrganizationsQuerySchema
   }
 )
 
@@ -219,6 +267,55 @@ export const updateOrganizationTool = tool(
   }
 )
 
+export const deleteOrganizationTool = tool(
+  async ({ id }, config) =>
+    executeApiCall(config, async (_context) =>
+      organizationControllerRemove({
+        path: { id }
+      })
+    ),
+  {
+    name: 'delete_organization',
+    description: '删除指定组织。仅允许删除没有下级组织、成员和岗位编制的组织。',
+    schema: organizationIdSchema
+  }
+)
+
+export const dissolveOrganizationTool = tool(
+  async ({ id, ...data }, config) =>
+    executeApiCall(config, async (_context) =>
+      organizationControllerDissolve(
+        asSdkOptions({
+          path: { id },
+          body: data
+        })
+      )
+    ),
+  {
+    name: 'dissolve_organization',
+    description:
+      '解散组织与分流安置向导。支持将下级组织提升或并入指定组织，并将成员平移至指定目标组织后安全删除。',
+    schema: dissolveOrganizationToolSchema
+  }
+)
+
+export const mergeOrganizationTool = tool(
+  async ({ id, ...data }, config) =>
+    executeApiCall(config, async (_context) =>
+      organizationControllerMerge(
+        asSdkOptions({
+          path: { id },
+          body: data
+        })
+      )
+    ),
+  {
+    name: 'merge_organization',
+    description: '组织合并向导。将当前组织及其下级和成员并入目标组织，并删除当前组织。',
+    schema: mergeOrganizationToolSchema
+  }
+)
+
 export const updateOrganizationLeaderTool = tool(
   async ({ id, leaderId }, config) =>
     executeApiCall(config, async (_context) =>
@@ -295,6 +392,24 @@ export const removeOrganizationMemberTool = tool(
   }
 )
 
+export const batchTransferOrganizationMembersTool = tool(
+  async ({ id, ...data }, config) =>
+    executeApiCall(config, async (_context) =>
+      organizationControllerBatchTransfer(
+        asSdkOptions({
+          path: { id },
+          body: data
+        })
+      )
+    ),
+  {
+    name: 'batch_transfer_organization_members',
+    description:
+      '批量跨部门调动组织成员。将当前组织中的指定成员批量转移至目标组织，并可选指定目标组织下的岗位编制。',
+    schema: batchTransferMembersToolSchema
+  }
+)
+
 export const listPositionsTool = tool(
   async ({ id }, config) =>
     executeApiCall(config, async (_context) =>
@@ -350,6 +465,26 @@ export const updatePositionTool = tool(
   }
 )
 
+export const updatePositionRolesTool = tool(
+  async ({ id, positionId, ...data }, config) =>
+    executeApiCallOrRecover(
+      config,
+      () =>
+        organizationControllerUpdatePositionRoles(
+          asSdkOptions({
+            path: { id, positionId },
+            body: data
+          })
+        ),
+      POSITION_WRITE_HINTS
+    ),
+  {
+    name: 'update_organization_position_roles',
+    description: '配置组织岗位编制的基准角色（PBAC 基于岗位的权限控制）',
+    schema: updatePositionRolesToolSchema
+  }
+)
+
 export const removePositionTool = tool(
   async ({ id, positionId }, config) =>
     executeApiCallOrRecover(
@@ -386,19 +521,25 @@ export const listOrganizationActivitiesTool = tool(
 
 export const organizationTools = [
   getOrganizationTreeTool,
+  queryOrganizationsListTool,
   getOrganizationTypeCatalogTool,
   updateOrganizationTypeCatalogTool,
   createOrganizationTool,
   getOrganizationTool,
   updateOrganizationTool,
+  deleteOrganizationTool,
+  dissolveOrganizationTool,
+  mergeOrganizationTool,
   updateOrganizationLeaderTool,
   changeOrganizationParentTool,
   listOrganizationMembersTool,
   addOrganizationMemberTool,
   removeOrganizationMemberTool,
+  batchTransferOrganizationMembersTool,
   listPositionsTool,
   createPositionTool,
   updatePositionTool,
+  updatePositionRolesTool,
   removePositionTool,
   listOrganizationActivitiesTool
 ] as const

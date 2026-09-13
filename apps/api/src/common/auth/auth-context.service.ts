@@ -124,6 +124,25 @@ export class AuthContextService {
       }
     })
 
+    const postRoles = await this.prisma.postRole.findMany({
+      where: {
+        post: {
+          users: {
+            some: { userId, leftAt: null }
+          }
+        }
+      },
+      include: {
+        role: {
+          include: {
+            permissions: {
+              include: { permission: true }
+            }
+          }
+        }
+      }
+    })
+
     const primaryMembership = await this.prisma.userOrganization.findFirst({
       where: { userId, isPrimary: true, leftAt: null },
       include: { organization: true }
@@ -134,9 +153,17 @@ export class AuthContextService {
       select: { organizationId: true }
     })
 
-    const effectiveRoles = userRoles
-      .map((item) => item.role)
-      .filter((role) => isRoleEffective(role))
+    const allRolesMap = new Map<string, (typeof userRoles)[number]['role']>()
+    for (const item of userRoles) {
+      allRolesMap.set(item.role.id, item.role)
+    }
+    for (const item of postRoles) {
+      if (!allRolesMap.has(item.role.id)) {
+        allRolesMap.set(item.role.id, item.role)
+      }
+    }
+
+    const effectiveRoles = Array.from(allRolesMap.values()).filter((role) => isRoleEffective(role))
 
     const isAdmin = effectiveRoles.some((role) => role.code === SUPER_ADMIN_ROLE_CODE)
     const roles = effectiveRoles.map((role) => role.code)

@@ -37,4 +37,17 @@ export const ORGANIZATION_TYPE_CATALOG_RULES = `
 
 父子规则（类型仍须已启用）：
 ${hierarchyLines}
+
+## 组织查询与管理准则
+
+组织查询：
+- 架构树查询：使用 query_organization_tree；支持传入 keyword（匹配组织名称或编码），返回保留完整祖先链路的组织树。
+- 列表查询：使用 query_organizations_list，按名称/编码关键字或组织类型快速分页检索平铺列表。
+
+组织运维与生命周期：
+- 单独删除：delete_organization 仅用于无下级、无成员、无岗位的叶子组织。
+- 解散向导：当组织包含下级或在职成员时，使用 dissolve_organization，可配置将下级提升/合并到指定部门，并将成员平移至目标组织。
+- 合并向导：使用 merge_organization 将源组织及其所有下级、成员整体并入目标组织。
+- 跨部门调动：使用 batch_transfer_organization_members 将组织内成员批量划转到目标组织及指定岗位。
+- 岗位基准角色（PBAC）：使用 update_organization_position_roles 为组织岗位编制配置基准角色。
 `.trim()

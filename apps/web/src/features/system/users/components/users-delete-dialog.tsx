@@ -2,12 +2,10 @@
 
 import { Alert, AlertDescription, AlertTitle, Input, Label } from '@zen/ui'
 import { AlertTriangle } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
-import { PasswordInput } from '@/components'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { authApi } from '@/features/auth/api'
 
 import { useDeleteUsersMutation } from '../mutations'
 
@@ -21,27 +19,29 @@ type UserDeleteDialogProps = {
 
 export function UsersDeleteDialog({ open, onOpenChange, currentRow }: UserDeleteDialogProps) {
   const [value, setValue] = useState('')
-  const [password, setPassword] = useState('')
   const { mutate: deleteUsers, isPending } = useDeleteUsersMutation()
 
-  const handleDelete = async () => {
-    if (value.trim() !== currentRow.username) return
-    try {
-      const { stepUpToken } = await authApi.stepUp({ password })
-      deleteUsers(
-        { ids: [currentRow.id], stepUpToken },
-        {
-          onSuccess: () => {
-            toast.success('用户删除成功')
-            setValue('')
-            setPassword('')
-            onOpenChange(false)
-          }
-        }
-      )
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : '二次确认失败')
+  useEffect(() => {
+    if (!open) {
+      setValue('')
     }
+  }, [open])
+
+  const handleDelete = () => {
+    if (value.trim() !== currentRow.username) return
+    deleteUsers(
+      { ids: [currentRow.id] },
+      {
+        onSuccess: () => {
+          toast.success('用户删除成功')
+          setValue('')
+          onOpenChange(false)
+        },
+        onError: (error) => {
+          toast.error(error instanceof Error ? error.message : '删除失败')
+        }
+      }
+    )
   }
 
   return (
@@ -49,9 +49,9 @@ export function UsersDeleteDialog({ open, onOpenChange, currentRow }: UserDelete
       open={open}
       onOpenChange={onOpenChange}
       handleConfirm={() => {
-        void handleDelete()
+        handleDelete()
       }}
-      disabled={value.trim() !== currentRow.username || !password}
+      disabled={value.trim() !== currentRow.username}
       isLoading={isPending}
       title={
         <span className="text-destructive">
@@ -71,17 +71,9 @@ export function UsersDeleteDialog({ open, onOpenChange, currentRow }: UserDelete
               placeholder="输入用户名以确认删除"
             />
           </Label>
-          <Label className="my-2 text-nowrap">
-            登录密码（二次确认）：
-            <PasswordInput
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="输入当前登录密码"
-            />
-          </Label>
           <Alert variant="destructive">
             <AlertTitle>警告！</AlertTitle>
-            <AlertDescription>删除属于敏感操作，需二次确认。</AlertDescription>
+            <AlertDescription>此操作将删除该用户账号，请确认。</AlertDescription>
           </Alert>
         </div>
       }

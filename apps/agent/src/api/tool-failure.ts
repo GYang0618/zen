@@ -25,11 +25,20 @@ export type ToolErrorReason =
 
 const GENERIC_RETRY_HINT = '请根据错误修正参数后重试；若缺少用户提供的信息，向用户询问后再调用。'
 const NO_RETRY_HINT = '请向用户说明原因，不要再次调用同一工具或任何等效写操作。'
+const SYSTEM_ERROR_HINT =
+  '底层服务异常或网络不可用，请直接用中文向用户说明服务暂不可用并提示稍后重试，禁止在本轮再次调用同一工具。'
 
 const NON_RETRYABLE_REASONS = new Set<ToolErrorReason>([
   'UNAUTHORIZED',
   'FORBIDDEN',
   'STEP_UP_REQUIRED'
+])
+
+const SYSTEM_FATAL_REASONS = new Set<ToolErrorReason>([
+  'TOOL_UNAVAILABLE',
+  'NETWORK_ERROR',
+  'TIMEOUT',
+  'UNKNOWN_ERROR'
 ])
 
 function errorStatus(error: unknown): number | undefined {
@@ -62,11 +71,24 @@ export function classifyToolError(error: unknown): ToolErrorReason {
     typeof error === 'object' && error !== null ? (error as Record<string, unknown>) : undefined
   const code = typeof record?.code === 'string' ? record.code : ''
   const message = formatApiError(error).toLowerCase()
-  if (code === 'ABORT_ERR' || code === 'ETIMEDOUT' || message.includes('timeout')) return 'TIMEOUT'
   if (
-    ['ECONNRESET', 'ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN'].includes(code) ||
+    code === 'ABORT_ERR' ||
+    code === 'ETIMEDOUT' ||
+    message.includes('timeout') ||
+    message.includes('超时') ||
+    message.includes('timed out')
+  ) {
+    return 'TIMEOUT'
+  }
+  if (
+    ['ECONNRESET', 'ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'UND_ERR_CONNECT_TIMEOUT'].includes(
+      code
+    ) ||
     message.includes('fetch failed') ||
-    message.includes('network')
+    message.includes('network') ||
+    message.includes('连接失败') ||
+    message.includes('连接拒绝') ||
+    message.includes('网络')
   ) {
     return 'NETWORK_ERROR'
   }
@@ -114,6 +136,9 @@ function matchHint(message: string, hints: RecoverableHint[]): RecoverableHint |
 }
 
 function hintForReason(reason: string): string {
+  if (SYSTEM_FATAL_REASONS.has(reason as ToolErrorReason)) {
+    return SYSTEM_ERROR_HINT
+  }
   return NON_RETRYABLE_REASONS.has(reason as ToolErrorReason) ? NO_RETRY_HINT : GENERIC_RETRY_HINT
 }
 

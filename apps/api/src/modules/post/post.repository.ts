@@ -74,6 +74,17 @@ export const POST_WITH_PROFILE_INCLUDE = {
       }
     }
   },
+  roles: {
+    include: {
+      role: {
+        select: {
+          id: true,
+          code: true,
+          name: true
+        }
+      }
+    }
+  },
   _count: { select: { users: { where: { leftAt: null } } } }
 } satisfies Prisma.PostInclude
 
@@ -207,5 +218,20 @@ export class PostRepository {
       ]
     }
     return where
+  }
+
+  async updatePostRoles(postId: string, roleIds: string[]) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.postRole.deleteMany({ where: { postId } })
+      if (roleIds.length > 0) {
+        await tx.postRole.createMany({
+          data: roleIds.map((roleId) => ({ postId, roleId }))
+        })
+      }
+      return tx.post.findUnique({
+        where: { id: postId },
+        include: POST_WITH_PROFILE_INCLUDE
+      })
+    })
   }
 }

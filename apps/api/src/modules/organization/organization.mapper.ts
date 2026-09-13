@@ -62,6 +62,7 @@ export function toOrganizationResponse(org: OrganizationWithRelations): Organiza
       : null,
     memberCount: org._count.users,
     positionCount: org._count.posts,
+    sortOrder: org.sortOrder ?? 0,
     createdAt: org.createdAt.toISOString(),
     updatedAt: org.updatedAt.toISOString()
   }

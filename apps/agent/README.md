@@ -33,8 +33,7 @@ pnpm run openapi:generate
 | `update_user` | 更新用户 |
 | `restore_users` | 批量恢复 |
 | `update_users_status` | 批量改状态 |
-| `delete_users` | 软删除 |
-| `hard_delete_users` | 物理删除 |
+| `delete_users` | 删除用户 |
 
 已在 `src/default.ts` 的 `createAgent({ tools })` 中注册。
 

@@ -21,7 +21,6 @@ import {
   userControllerCreate,
   userControllerFindAll,
   userControllerFindOne,
-  userControllerHardRemoveMany,
   userControllerRemoveMany,
   userControllerReplaceOrganizations,
   userControllerRestoreMany,
@@ -114,7 +113,7 @@ const USER_WRITE_HINTS: RecoverableHint[] = [
   {
     match: '未找到可恢复的已删除用户',
     reason: 'USER_NOT_DELETED',
-    hint: 'restore_deleted_users 只能恢复已软删除的用户。'
+    hint: 'restore_deleted_users 只能恢复已删除的用户。'
   },
   {
     match: '需要二次确认',
@@ -199,7 +198,7 @@ export const restoreUsersTool = tool(
     ),
   {
     name: 'restore_deleted_users',
-    description: '批量恢复已软删除的用户',
+    description: '批量恢复已删除的用户',
     schema: deleteUsersSchema
   }
 )
@@ -311,22 +310,7 @@ export const deleteUsersTool = tool(
     ),
   {
     name: 'delete_users',
-    description: '批量软删除用户（可恢复），禁止删除当前登录用户自身。该操作需要用户确认后才能执行',
-    schema: deleteUsersSchema
-  }
-)
-
-export const hardDeleteUsersTool = tool(
-  async ({ ids }, config) =>
-    executeApiCallOrRecover(
-      config,
-      () => userControllerHardRemoveMany({ body: { ids } }),
-      USER_WRITE_HINTS
-    ),
-  {
-    name: 'hard_delete_users',
-    description:
-      '批量物理删除用户（不可恢复，高危操作），禁止删除当前登录用户自身。该操作需要管理员审批通过后才能执行',
+    description: '批量删除用户，禁止删除当前登录用户自身。该操作需要用户确认后才能执行',
     schema: deleteUsersSchema
   }
 )
@@ -343,6 +327,5 @@ export const userTools = [
   revokeUserSessionsTool,
   assignUserRolesTool,
   replaceUserOrganizationsTool,
-  deleteUsersTool,
-  hardDeleteUsersTool
+  deleteUsersTool
 ] as const

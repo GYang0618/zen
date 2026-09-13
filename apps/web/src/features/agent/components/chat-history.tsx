@@ -1,7 +1,7 @@
 'use client'
 
 import { useThreads } from '@copilotkit/react-core/v2'
-import { useNavigate, useParams } from '@tanstack/react-router'
+import { useLocation, useNavigate } from '@tanstack/react-router'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,6 +15,7 @@ import {
 import { useState } from 'react'
 
 import { InfiniteScrollSentinel } from '@/components/infinite-scroll-sentinel'
+import { parseThreadIdFromPath, useShellModeStore } from '@/stores'
 
 import { useAgentChatInputStore } from '../stores/agent-chat-input'
 import { HistoryRow } from './chat-history-row'
@@ -33,8 +34,9 @@ export function ChatHistory() {
     renameThread,
     deleteThread
   } = useThreads({ agentId: 'default' })
-  const params = useParams({ strict: false }) as { threadId?: string }
-  const currentThreadId = params.threadId
+  const { pathname } = useLocation()
+  const lastAgentPath = useShellModeStore((state) => state.lastAgentPath)
+  const currentThreadId = parseThreadIdFromPath(pathname) ?? parseThreadIdFromPath(lastAgentPath)
   const triggerNewThread = useAgentChatInputStore((state) => state.triggerNewThread)
   const runningThreadIds = useAgentChatInputStore((state) => state.runningThreadIds)
   const markThreadRunning = useAgentChatInputStore((state) => state.markThreadRunning)

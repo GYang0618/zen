@@ -1,8 +1,10 @@
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
+import { PermissionCode } from '@zen/shared'
 import {
   Badge,
   Button,
   PageHeader,
+  PageHeaderActions,
   PageHeaderContent,
   PageHeaderDescription,
   PageHeaderMedia,
@@ -12,14 +14,16 @@ import {
   TabsList,
   TabsTrigger
 } from '@zen/ui'
-import { ArrowLeft, Briefcase, Building2, History, Users } from 'lucide-react'
+import { ArrowLeft, Briefcase, Building2, GitMerge, History, Users } from 'lucide-react'
 import { useState } from 'react'
 
+import { Can } from '@/components/auth/can'
 import { AppHeader, Main } from '@/components/layouts'
 
 import { OrganizationActivity } from './components/organization-activity'
 import { OrganizationDetailSideOverview } from './components/organization-detail-side-overview'
 import { OrganizationMembers } from './components/organization-members'
+import { OrganizationMergeDialog } from './components/organization-merge-dialog'
 import { OrganizationPositions } from './components/organization-positions'
 import { useOrganizationDetail, useOrganizationTypeCatalog } from './queries'
 
@@ -30,9 +34,11 @@ type OrganizationDetailProps = {
 type OrganizationDetailTab = 'members' | 'positions' | 'changes'
 
 export function OrganizationDetail({ organizationId }: OrganizationDetailProps) {
+  const navigate = useNavigate()
   const { data: organization, isLoading, isError } = useOrganizationDetail(organizationId)
   const { getLabel } = useOrganizationTypeCatalog()
   const [activeTab, setActiveTab] = useState<OrganizationDetailTab>('members')
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false)
 
   const handleTabChange = (value: string) => {
     if (value === 'members' || value === 'positions' || value === 'changes') {
@@ -103,6 +109,19 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
               ) : null}
             </PageHeaderDescription>
           </PageHeaderContent>
+          <PageHeaderActions>
+            <Can permission={PermissionCode.ORG_UPDATE}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setMergeDialogOpen(true)}
+              >
+                <GitMerge className="size-4" />
+                合并部门
+              </Button>
+            </Can>
+          </PageHeaderActions>
         </PageHeader>
 
         <Tabs value={activeTab} onValueChange={handleTabChange}>
@@ -144,6 +163,13 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
           </div>
         </Tabs>
       </Main>
+
+      <OrganizationMergeDialog
+        open={mergeDialogOpen}
+        onOpenChange={setMergeDialogOpen}
+        sourceOrganization={organization}
+        onSuccess={() => void navigate({ to: '/system/organization' })}
+      />
     </>
   )
 }

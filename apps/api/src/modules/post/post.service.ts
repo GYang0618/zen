@@ -177,4 +177,21 @@ export class PostService {
 
     await this.postRepo.deleteOrganizationPosition(positionId)
   }
+
+  async findOrganizationPosition(organizationId: string, positionId: string) {
+    return this.postRepo.findOrganizationPosition(organizationId, positionId)
+  }
+
+  async updatePostRoles(
+    organizationId: string,
+    positionId: string,
+    roleIds: string[]
+  ): Promise<OrganizationPositionResponse> {
+    const existing = await this.postRepo.findOrganizationPosition(organizationId, positionId)
+    if (!existing) throw new NotFoundException('组织岗位编制不存在')
+
+    const updated = await this.postRepo.updatePostRoles(positionId, roleIds)
+    if (!updated) throw new NotFoundException('组织岗位编制不存在')
+    return toOrganizationPositionResponse(updated)
+  }
 }

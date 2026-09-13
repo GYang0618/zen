@@ -1,11 +1,13 @@
 'use client'
 
 import { randomUUID, useCopilotKit } from '@copilotkit/react-core/v2'
-import { useNavigate, useParams } from '@tanstack/react-router'
+import { useLocation, useNavigate } from '@tanstack/react-router'
 import { Button, cn } from '@zen/ui'
 import { Mic, Paperclip, Send, Square } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+
+import { parseThreadIdFromPath } from '@/stores'
 
 import { useChatAgent } from '../context/chat-agent-context'
 import { useAgentChatInputStore } from '../stores/agent-chat-input'
@@ -32,7 +34,8 @@ export function ChatInput({
   const { agent } = useChatAgent()
   const { copilotkit } = useCopilotKit()
   const navigate = useNavigate()
-  const params = useParams({ strict: false }) as { threadId?: string }
+  const { pathname } = useLocation()
+  const urlThreadId = parseThreadIdFromPath(pathname)
 
   const [placeholderIndex, setPlaceholderIndex] = useState(0)
   const [showPlaceholder, setShowPlaceholder] = useState(true)
@@ -155,11 +158,16 @@ export function ChatInput({
     inputValue.trim().length > 0 && !isRunning && !awaitingApproval && online && !loading
 
   const markThreadRunning = useAgentChatInputStore((state) => state.markThreadRunning)
+  const markMessageStopped = useAgentChatInputStore((state) => state.markMessageStopped)
 
   const stopAgent = async () => {
     const targetThreadId = threadId ?? agent.threadId
     if (targetThreadId) {
       markThreadRunning(targetThreadId, false)
+    }
+    const lastAssistantMessage = agent.messages.findLast((m) => m.role === 'assistant')
+    if (lastAssistantMessage?.id) {
+      markMessageStopped(lastAssistantMessage.id)
     }
     try {
       copilotkit.stopAgent({ agent })
@@ -203,7 +211,7 @@ export function ChatInput({
     }
 
     // 如果当前处于新会话路径，发送首条消息时将路由锚定到当前 threadId
-    if (!params.threadId && threadId) {
+    if (!urlThreadId && threadId) {
       void navigate({
         to: '/chat/$threadId',
         params: { threadId },

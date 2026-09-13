@@ -35,6 +35,7 @@ type OrganizationsContextType = {
   organizations: Organization[]
   rootOrganization: Organization | undefined
   isLoading: boolean
+  keyword?: string
   addOrganization: (input: OrganizationBasicInput) => Promise<SharedOrganization>
   updateOrganization: (
     id: string,
@@ -49,11 +50,17 @@ type OrganizationsContextType = {
 
 const OrganizationsContext = createContext<OrganizationsContextType | null>(null)
 
-export function OrganizationsProvider({ children }: { children: React.ReactNode }) {
+export function OrganizationsProvider({
+  children,
+  keyword
+}: {
+  children: React.ReactNode
+  keyword?: string
+}) {
   const [open, setOpen] = useDialogState<OrganizationsDialogType>(null)
   const [currentNode, setCurrentNode] = useState<Organization | null>(null)
 
-  const { data: organizations = [], isLoading } = useOrganizationTree()
+  const { data: organizations = [], isLoading } = useOrganizationTree({ keyword })
   const createOrganization = useCreateOrganization()
   const updateOrganizationMutation = useUpdateOrganization()
   const deleteOrganizationMutation = useDeleteOrganization()
@@ -159,6 +166,7 @@ export function OrganizationsProvider({ children }: { children: React.ReactNode 
         organizations,
         rootOrganization,
         isLoading,
+        keyword,
         addOrganization,
         updateOrganization,
         deleteOrganization,

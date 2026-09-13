@@ -1,10 +1,13 @@
 import { createContext, useContext } from 'react'
 
 import type { OrganizationGraphRankdir } from '../build-organization-graph'
+import type { Organization } from '../type'
 
 export type OrganizationGraphActions = {
   onToggleExpand: (id: string) => void
   rankdir: OrganizationGraphRankdir
+  onDelete?: (org: Organization) => void
+  onMerge?: (org: Organization) => void
 }
 
 const OrganizationGraphActionsContext = createContext<OrganizationGraphActions | null>(null)

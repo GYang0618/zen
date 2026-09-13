@@ -882,6 +882,8 @@ model Role {
   users         UserRole[]
   /// 角色下的权限关联
   permissions   RolePermission[]
+  /// 绑定的岗位编制
+  posts         PostRole[]
   /// 字段权限策略（预留）
   fieldPolicies RoleFieldPolicy[]
 
@@ -913,6 +915,8 @@ model Organization {
   path          String?
   /// 层级深度
   level         Int              @default(1)
+  /// 同级排序权重（越小越靠前）
+  sortOrder     Int              @default(0) @map("sort_order")
   /// 创建时间
   createdAt     DateTime         @default(now()) @map("created_at")
   /// 更新时间
@@ -937,6 +941,7 @@ model Organization {
   @@index([leaderId])
   @@index([type])
   @@index([path])
+  @@index([sortOrder])
   @@map("organizations")
 }
 
@@ -1000,12 +1005,33 @@ model Post {
   organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   /// 岗位任职用户
   users        UserOrganization[]
+  /// 绑定的基准角色（PBAC）
+  roles        PostRole[]
 
   @@unique([organizationId, jobProfileId])
   @@index([organizationId])
   @@index([jobProfileId])
   @@index([status])
   @@map("posts")
+}
+
+/// 组织岗位与角色关联表（PBAC 基准角色包）
+model PostRole {
+  /// 岗位编制 ID
+  postId    String   @map("post_id")
+  /// 角色 ID
+  roleId    String   @map("role_id")
+  /// 创建时间
+  createdAt DateTime @default(now()) @map("created_at")
+
+  /// 关联岗位编制
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  /// 关联角色
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([postId, roleId])
+  @@index([roleId])
+  @@map("post_roles")
 }
 
 /// 用户组织岗位关联表

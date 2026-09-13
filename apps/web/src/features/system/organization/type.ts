@@ -25,6 +25,7 @@ export type ActivityItem = {
   avatar: string
   description: string
   timestamp: string
+  changes?: Array<{ label: string; from: string | null; to: string | null }>
 }
 
 export type ActivityGroup = {

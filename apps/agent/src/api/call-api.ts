@@ -131,8 +131,9 @@ export async function executeApiCall<T>(
   const maxRetries = mutating ? 0 : (policy?.retryPolicy.maxRetries ?? 0)
   const apiClient = createAgentApiClient()
 
+  const defaultTimeout = mutating ? 15_000 : 10_000
   for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
-    const timeoutSignal = AbortSignal.timeout(policy?.timeoutMs ?? 30_000)
+    const timeoutSignal = AbortSignal.timeout(policy?.timeoutMs ?? defaultTimeout)
     const signal = config?.signal ? AbortSignal.any([config.signal, timeoutSignal]) : timeoutSignal
     try {
       const body = await runWithAgentApiClient(apiClient, () =>

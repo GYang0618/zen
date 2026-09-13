@@ -17,15 +17,21 @@ import { organizationApi } from './api'
 import type { QueryClient } from '@tanstack/react-query'
 import type {
   AddOrganizationMember,
+  BatchTransferMembers,
   ChangeOrganizationParent,
   CreateOrganization,
+  DissolveOrganization,
+  FindOrganizationsQuery,
   LinkOrganizationPosition,
+  MergeOrganization,
   Organization,
   OrganizationActivitiesQuery,
   OrganizationMember,
+  OrganizationTreeQuery,
   UpdateOrganization,
   UpdateOrganizationLeader,
   UpdateOrganizationTypeCatalog,
+  UpdatePositionRoles,
   User
 } from '@zen/shared'
 import type { PaginationResponse } from '@/lib/request'
@@ -33,7 +39,8 @@ import type { OrganizationUserOption } from './type'
 
 export const organizationKeys = {
   all: ['organization'] as const,
-  tree: () => [...organizationKeys.all, 'tree'] as const,
+  tree: (keyword?: string) =>
+    [...organizationKeys.all, 'tree', ...(keyword ? [keyword] : [])] as const,
   detail: (id: string) => [...organizationKeys.all, 'detail', id] as const,
   members: (id: string) => [...organizationKeys.all, 'members', id] as const,
   positions: (id: string) => [...organizationKeys.all, 'positions', id] as const,
@@ -116,10 +123,26 @@ async function invalidateOrganizationPositionQueries(
   ])
 }
 
-export function useOrganizationTree(enabled = true) {
+export type UseOrganizationTreeOptions = OrganizationTreeQuery & {
+  enabled?: boolean
+}
+
+export function useOrganizationTree(optionsOrEnabled: boolean | UseOrganizationTreeOptions = true) {
+  const options =
+    typeof optionsOrEnabled === 'boolean' ? { enabled: optionsOrEnabled } : optionsOrEnabled
+  const { keyword, enabled = true } = options
+
   return useQuery({
-    queryKey: organizationKeys.tree(),
-    queryFn: () => organizationApi.getTree(),
+    queryKey: organizationKeys.tree(keyword),
+    queryFn: () => organizationApi.getTree(keyword ? { keyword } : undefined),
+    enabled
+  })
+}
+
+export function useOrganizationsQuery(params?: FindOrganizationsQuery, enabled = true) {
+  return useQuery({
+    queryKey: [...organizationKeys.all, 'list', params],
+    queryFn: () => organizationApi.list(params),
     enabled
   })
 }
@@ -247,6 +270,32 @@ export function useDeleteOrganization() {
   })
 }
 
+export function useDissolveOrganization() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: DissolveOrganization }) =>
+      organizationApi.dissolve(id, data),
+    onSuccess: async () => {
+      await invalidateOrganizationQueries(queryClient)
+      toast.success('组织已解散')
+    },
+    onError: (error: Error) => toast.error(error.message || '解散失败')
+  })
+}
+
+export function useMergeOrganization() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: MergeOrganization }) =>
+      organizationApi.merge(id, data),
+    onSuccess: async () => {
+      await invalidateOrganizationQueries(queryClient)
+      toast.success('组织已合并')
+    },
+    onError: (error: Error) => toast.error(error.message || '合并失败')
+  })
+}
+
 export function useUpdateOrganizationLeader() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -336,5 +385,34 @@ export function useRemoveOrganizationPosition(organizationId: string) {
       toast.success('已取消岗位关联')
     },
     onError: (error: Error) => toast.error(error.message || '取消关联失败')
+  })
+}
+
+export function useBatchTransferMembers(organizationId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: BatchTransferMembers) =>
+      organizationApi.batchTransferMembers(organizationId, data),
+    onSuccess: async (_data, variables) => {
+      await invalidateOrganizationQueries(queryClient, organizationId)
+      if (variables.targetOrganizationId !== organizationId) {
+        await invalidateOrganizationQueries(queryClient, variables.targetOrganizationId)
+      }
+      toast.success('成员已批量调动')
+    },
+    onError: (error: Error) => toast.error(error.message || '调动失败')
+  })
+}
+
+export function useUpdatePositionRoles(organizationId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ positionId, data }: { positionId: string; data: UpdatePositionRoles }) =>
+      organizationApi.updatePositionRoles(organizationId, positionId, data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: organizationKeys.positions(organizationId) })
+      toast.success('岗位基准角色已更新')
+    },
+    onError: (error: Error) => toast.error(error.message || '更新角色失败')
   })
 }

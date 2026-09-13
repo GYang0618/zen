@@ -3,10 +3,12 @@ import {
   AvatarBadge,
   AvatarFallback,
   AvatarImage,
+  Badge,
   Button,
   Card,
   CardContent,
   CardFooter,
+  Checkbox,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
@@ -24,27 +26,35 @@ import {
   Separator
 } from '@zen/ui'
 import {
+  ArrowRightLeft,
   CheckCircle,
+  Download,
   Ellipsis,
   Mail,
   Phone,
   Search,
   UserPlus,
   UserRoundArrowLeft,
-  UserRoundMinus
+  UserRoundMinus,
+  X
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
-import { useOrganizationMembers } from '../queries'
+import { useOrganizationDetail, useOrganizationMembers } from '../queries'
 import { OrganizationAddMemberDialog } from './organization-add-member-dialog'
+import { OrganizationBatchTransferDialog } from './organization-batch-transfer-dialog'
 import { OrganizationRemoveMemberDialog } from './organization-remove-member-dialog'
 
 import type { OrganizationMember } from '../type'
 
 const EMPTY_MEMBERS: OrganizationMember[] = []
 
-type MemberDialog = { type: 'add' } | { type: 'remove'; member: OrganizationMember } | null
+type MemberDialog =
+  | { type: 'add' }
+  | { type: 'remove'; member: OrganizationMember }
+  | { type: 'batchTransfer' }
+  | null
 
 function displayName(member: OrganizationMember): string {
   return member.nickname ?? member.username
@@ -92,11 +102,46 @@ function accountStatusLabel(status: OrganizationMember['accountStatus']): string
   return '未激活'
 }
 
+function exportMembersToCsv(members: OrganizationMember[], orgName?: string) {
+  if (members.length === 0) {
+    toast.info('当前没有可导出的成员数据')
+    return
+  }
+
+  const headers = ['姓名', '账号', '岗位', '职级', '账号状态', '邮箱', '手机号']
+  const rows = members.map((m) => [
+    m.nickname ?? m.username,
+    m.username,
+    m.post ?? '未分配',
+    m.level ?? '未定级',
+    accountStatusLabel(m.accountStatus),
+    m.email ?? '',
+    m.phoneNumber ?? ''
+  ])
+
+  const csvContent = [headers, ...rows]
+    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    .join('\n')
+
+  const blob = new Blob([`\ufeff${csvContent}`], {
+    type: 'text/csv;charset=utf-8;'
+  })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `${orgName ?? '组织'}成员花名册_${new Date().toISOString().slice(0, 10)}.csv`
+  link.click()
+  URL.revokeObjectURL(url)
+  toast.success(`已成功导出 ${members.length} 条成员记录`)
+}
+
 export function OrganizationMembers({ organizationId }: { organizationId: string }) {
+  const { data: orgDetail } = useOrganizationDetail(organizationId)
   const { data: membersData, isLoading } = useOrganizationMembers(organizationId)
   const members = membersData ?? EMPTY_MEMBERS
 
   const [keyword, setKeyword] = useState('')
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [dialog, setDialog] = useState<MemberDialog>(null)
 
   const memberIds = useMemo(
@@ -109,33 +154,119 @@ export function OrganizationMembers({ organizationId }: { organizationId: string
     [keyword, members]
   )
 
+  const selectedMembers = useMemo(() => {
+    const idSet = new Set(selectedIds)
+    return members.filter((m) => idSet.has(m.id))
+  }, [members, selectedIds])
+
+  const handleToggleSelect = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => (checked ? [...prev, id] : prev.filter((item) => item !== id)))
+  }
+
+  const handleSelectAllFiltered = () => {
+    if (selectedIds.length === filteredMembers.length) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds(filteredMembers.map((m) => m.id))
+    }
+  }
+
   return (
     <div className="@container flex flex-col gap-4">
-      <section className="flex flex-wrap items-center gap-3">
-        <InputGroup className="max-w-sm min-w-56 flex-1">
-          <InputGroupInput
-            placeholder="搜索成员姓名、岗位或邮箱"
-            value={keyword}
-            onChange={(event) => setKeyword(event.target.value)}
-          />
-          <InputGroupAddon>
-            <Search />
-          </InputGroupAddon>
-        </InputGroup>
-        <Button type="button" onClick={() => setDialog({ type: 'add' })}>
-          <UserPlus />
-          添加成员
-        </Button>
+      {/* 顶部搜索与操作栏 */}
+      <section className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-56 max-w-sm flex-1 items-center gap-2">
+          <InputGroup className="w-full">
+            <InputGroupInput
+              placeholder="搜索成员姓名、岗位或邮箱"
+              value={keyword}
+              onChange={(event) => setKeyword(event.target.value)}
+            />
+            <InputGroupAddon>
+              <Search />
+            </InputGroupAddon>
+          </InputGroup>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => exportMembersToCsv(filteredMembers, orgDetail?.name)}
+            title="导出当前筛选成员花名册为 CSV 表格"
+          >
+            <Download className="size-4" />
+            导出花名册
+          </Button>
+          <Button type="button" onClick={() => setDialog({ type: 'add' })}>
+            <UserPlus />
+            添加成员
+          </Button>
+        </div>
       </section>
 
+      {/* 批量操作工具条 */}
+      {selectedIds.length > 0 ? (
+        <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-2.5">
+          <div className="flex items-center gap-3">
+            <Checkbox
+              checked={filteredMembers.length > 0 && selectedIds.length === filteredMembers.length}
+              onCheckedChange={handleSelectAllFiltered}
+              aria-label="全选当前筛选成员"
+            />
+            <span className="text-sm font-medium">
+              已选中 <span className="font-bold text-primary">{selectedIds.length}</span> 名成员
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="default"
+              onClick={() => setDialog({ type: 'batchTransfer' })}
+            >
+              <ArrowRightLeft className="size-4" />
+              批量调动部门
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setSelectedIds([])}
+              aria-label="取消选择"
+            >
+              <X className="size-4" />
+              清空选择
+            </Button>
+          </div>
+        </section>
+      ) : null}
+
+      {/* 成员网格 */}
       {isLoading ? (
         <p className="py-8 text-center text-sm text-muted-foreground">加载成员…</p>
       ) : filteredMembers.length ? (
         <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2 @2xl:grid-cols-3 @4xl:grid-cols-4">
           {filteredMembers.map((item) => {
             const name = displayName(item)
+            const isSelected = selectedIds.includes(item.id)
             return (
-              <Card key={item.id} className="relative rounded-2xl bg-background/80">
+              <Card
+                key={item.id}
+                className={`relative rounded-2xl bg-background/80 transition-all ${
+                  isSelected ? 'ring-2 ring-primary ring-offset-1' : ''
+                }`}
+              >
+                {/* 选择复选框 */}
+                <div className="absolute top-3 left-3 z-10">
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={(checked) => handleToggleSelect(item.id, !!checked)}
+                    aria-label={`选择${name}`}
+                  />
+                </div>
+
+                {/* 菜单 */}
                 <div className="absolute top-2 right-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger
@@ -164,7 +295,7 @@ export function OrganizationMembers({ organizationId }: { organizationId: string
                   </DropdownMenu>
                 </div>
 
-                <CardContent>
+                <CardContent className="pt-7">
                   <div className="flex flex-col items-center justify-center gap-3">
                     <Avatar className="size-14">
                       <AvatarImage src={item.avatar ?? undefined} />
@@ -182,9 +313,9 @@ export function OrganizationMembers({ organizationId }: { organizationId: string
                     </div>
 
                     <div className="flex flex-wrap items-center justify-center gap-2">
-                      <div className="inline-flex items-center rounded-full border border-transparent bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground transition-colors hover:bg-secondary/80 focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2">
-                        成员
-                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        主职
+                      </Badge>
                       <span className="inline-flex items-center gap-1 text-xs text-muted-foreground dark:text-zinc-400">
                         <CheckCircle className="size-3.5 text-green-500" />
                         {accountStatusLabel(item.accountStatus)}
@@ -262,6 +393,19 @@ export function OrganizationMembers({ organizationId }: { organizationId: string
         open={dialog?.type === 'remove'}
         onOpenChange={(open) => {
           if (!open) setDialog(null)
+        }}
+      />
+
+      <OrganizationBatchTransferDialog
+        open={dialog?.type === 'batchTransfer'}
+        onOpenChange={(open) => {
+          if (!open) setDialog(null)
+        }}
+        organizationId={organizationId}
+        selectedMembers={selectedMembers}
+        onSuccess={() => {
+          setSelectedIds([])
+          setDialog(null)
         }}
       />
     </div>

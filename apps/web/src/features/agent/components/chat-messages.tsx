@@ -23,6 +23,7 @@ import { Fragment, useMemo } from 'react'
 import { useChatAgent } from '../context/chat-agent-context'
 import { useAgentRetry } from '../hooks/use-agent-retry'
 import { isA2UIToolCall } from '../lib/a2ui-tools'
+import { useAgentChatInputStore } from '../stores/agent-chat-input'
 import { ChatAssistantActions } from './chat-assistant-actions'
 import { ChatPendingMessage } from './chat-pending-message'
 import { ChatToolCallBadge } from './chat-tool-call-badge'
@@ -85,6 +86,9 @@ function AssistantMessageItem({
   onRetry
 }: AssistantMessageItemProps) {
   const renderToolCall = useRenderToolCall()
+  const isStopped = useAgentChatInputStore((state) =>
+    message.id ? state.stoppedMessageIds.has(message.id) : false
+  )
   const content = typeof message.content === 'string' ? message.content : ''
   const isStreaming = isRunning && isLastAssistant
   const hasContent = Boolean(content.trim())
@@ -123,6 +127,19 @@ function AssistantMessageItem({
             </div>
           )
         })}
+        {!hasContent && isStreaming && (
+          <div className="my-1.5 flex items-center gap-1.5 py-0.5 text-muted-foreground">
+            <span className="inline-block size-1.5 rounded-full bg-primary/70 animate-pulse" />
+            <span className="inline-block size-1.5 rounded-full bg-primary/40 animate-pulse [animation-delay:200ms]" />
+            <span className="inline-block size-1.5 rounded-full bg-primary/20 animate-pulse [animation-delay:400ms]" />
+          </div>
+        )}
+        {isStopped && !isRunning && (
+          <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground/75">
+            <span className="inline-block size-1.5 rounded-full bg-muted-foreground/50" />
+            <span>已停止生成</span>
+          </div>
+        )}
       </MessageContent>
       {isLastAssistant && !isRunning && onRetry && (
         <ChatAssistantActions content={content} onRetry={onRetry} isRunning={isRunning} />
@@ -188,13 +205,8 @@ export function ChatMessages() {
     return message.role === 'activity'
   })
 
-  const lastMessage = messages.at(-1)
-  const isWaitingForPostToolAssistant =
-    agent.isRunning && lastMessage !== undefined && lastMessage.role === 'tool'
-
-  const showPendingPlaceholder =
-    agent.isRunning && (!hasActiveAssistantOutput || isWaitingForPostToolAssistant)
-  const pendingLabel = isWaitingForPostToolAssistant ? '正在分析数据并生成摘要...' : '工作中...'
+  // 仅在用户发送消息后、尚未产生任何输出（首字/思考流/工具调用）前展示极简微脉冲占位态
+  const showPendingPlaceholder = agent.isRunning && !hasActiveAssistantOutput
   const canRetry = messages.some((m) => m.role === 'user')
 
   const handleRetry = () => {
@@ -246,7 +258,7 @@ export function ChatMessages() {
           </Fragment>
         )
       })}
-      {showPendingPlaceholder && <ChatPendingMessage label={pendingLabel} />}
+      {showPendingPlaceholder && <ChatPendingMessage />}
       {runError && (
         <ChatRunError
           message={runError}

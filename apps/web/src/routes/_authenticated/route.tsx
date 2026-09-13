@@ -1,10 +1,10 @@
 import { createFileRoute, Outlet, redirect, useLocation, useNavigate } from '@tanstack/react-router'
 import { cn } from '@zen/ui'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 import { AuthenticatedLayout } from '@/components/layouts'
 import { RoutePending } from '@/components/route-pending'
-import { AgentPopup } from '@/features/agent'
+import { AgentChat, AgentPopup } from '@/features/agent'
 import { authApi } from '@/features/auth/api'
 import { GeneralError } from '@/features/errors/general-error'
 import { canAccess } from '@/lib/auth/permissions'
@@ -70,25 +70,50 @@ function AuthenticatedLayoutComponent() {
   const mode = useShellModeStore((state) => state.mode)
   const setMode = useShellModeStore((state) => state.setMode)
   const setLastAdminPath = useShellModeStore((state) => state.setLastAdminPath)
+  const lastAgentPath = useShellModeStore((state) => state.lastAgentPath)
+  const setLastAgentPath = useShellModeStore((state) => state.setLastAgentPath)
   const shouldShowAgentPopup = mode !== 'agent' && !shouldHideAgentPopup(pathname)
+
+  const isAgentMode = mode === 'agent'
+  const [hasVisitedAgent, setHasVisitedAgent] = useState(
+    () => isAgentMode || isAgentChatPath(pathname)
+  )
+
+  useEffect(() => {
+    if (isAgentMode || isAgentChatPath(pathname)) {
+      setHasVisitedAgent(true)
+    }
+  }, [isAgentMode, pathname])
 
   useEffect(() => {
     if (isAgentChatPath(pathname)) {
       if (mode !== 'agent') setMode('agent')
+      setLastAgentPath(pathname)
       return
     }
 
     if (mode === 'agent') {
-      void navigate({ to: '/chat', replace: true })
+      void navigate({ to: (lastAgentPath || '/chat') as never, replace: true })
       return
     }
 
     setLastAdminPath(pathname)
-  }, [mode, navigate, pathname, setLastAdminPath, setMode])
+  }, [mode, navigate, pathname, setLastAdminPath, setLastAgentPath, lastAgentPath, setMode])
 
   return (
     <AuthenticatedLayout>
-      <Outlet />
+      {hasVisitedAgent && (
+        <div
+          className={cn('flex h-full w-full flex-col overflow-hidden', !isAgentMode && 'hidden')}
+        >
+          <AgentChat />
+        </div>
+      )}
+
+      <div className={cn('flex h-full w-full flex-col overflow-hidden', isAgentMode && 'hidden')}>
+        <Outlet />
+      </div>
+
       <div className={cn(!shouldShowAgentPopup && 'hidden')}>
         <AgentPopup />
       </div>

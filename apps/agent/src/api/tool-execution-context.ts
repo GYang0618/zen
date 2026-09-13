@@ -113,8 +113,21 @@ export function resolveToolExecutionContext(
   const parsed = toolExecutionContextSchema.safeParse({
     tenantId: readConfigString(toolConfig, AGENT_TENANT_ID_CONFIGURABLE_KEY),
     userId: readConfigString(toolConfig, AGENT_USER_ID_CONFIGURABLE_KEY),
-    threadId: readConfigString(toolConfig, AGENT_THREAD_ID_CONFIGURABLE_KEY),
-    runId: readConfigString(toolConfig, AGENT_RUN_ID_CONFIGURABLE_KEY),
+    threadId:
+      readConfigString(toolConfig, AGENT_THREAD_ID_CONFIGURABLE_KEY) ??
+      readConfigString(toolConfig, 'thread_id') ??
+      readConfigString(toolConfig, 'threadId'),
+    runId:
+      readConfigString(toolConfig, AGENT_RUN_ID_CONFIGURABLE_KEY) ??
+      toolConfig?.runId ??
+      ((toolConfig?.metadata as Record<string, unknown> | undefined)?.run_id as
+        | string
+        | undefined) ??
+      ((toolConfig?.metadata as Record<string, unknown> | undefined)?.runId as
+        | string
+        | undefined) ??
+      readConfigString(toolConfig, 'run_id') ??
+      readConfigString(toolConfig, 'runId'),
     traceId: readConfigString(toolConfig, AGENT_TRACE_ID_CONFIGURABLE_KEY),
     accessToken: readConfigString(toolConfig, ACCESS_TOKEN_CONFIGURABLE_KEY),
     locale: readConfigString(toolConfig, AGENT_LOCALE_CONFIGURABLE_KEY) ?? 'zh-CN',

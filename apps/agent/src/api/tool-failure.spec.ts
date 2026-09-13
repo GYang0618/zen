@@ -28,14 +28,25 @@ describe('toToolFailureResult', () => {
     assert.match(parsed.message, /query_roles_list/)
   })
 
-  it('未匹配 hint 时仍返回工具结果，而不是抛错', () => {
+  it('未匹配 hint 时仍返回工具结果，系统级错误提示服务暂不可用且禁止重试', () => {
     const raw = toToolFailureResult(new Error('网络超时'), HINTS)
     const parsed = JSON.parse(raw) as { code: number; reason: string; message: string }
 
     assert.equal(parsed.code, 500)
-    assert.equal(parsed.reason, 'UNKNOWN_ERROR')
+    assert.equal(parsed.reason, 'TIMEOUT')
     assert.match(parsed.message, /网络超时/)
-    assert.match(parsed.message, /向用户询问/)
+    assert.match(parsed.message, /服务暂不可用/)
+    assert.match(parsed.message, /禁止在本轮再次调用/)
+  })
+
+  it('未知业务参数异常返回工具结果并引导修正参数', () => {
+    const raw = toToolFailureResult(new Error('参数格式不合法'), HINTS)
+    const parsed = JSON.parse(raw) as { code: number; reason: string; message: string }
+
+    assert.equal(parsed.code, 500)
+    assert.equal(parsed.reason, 'UNKNOWN_ERROR')
+    assert.match(parsed.message, /参数格式不合法/)
+    assert.match(parsed.message, /服务暂不可用/)
   })
 
   it('权限类错误禁止引导模型再次调用同一工具', () => {

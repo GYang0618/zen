@@ -84,7 +84,7 @@ export function useDeleteUsersMutation() {
 
   return useMutation({
     mutationKey: ['system', 'users', 'delete'],
-    mutationFn: ({ ids, stepUpToken }: { ids: string[]; stepUpToken: string }) =>
+    mutationFn: ({ ids, stepUpToken }: { ids: string[]; stepUpToken?: string }) =>
       userApi.deleteUsers(ids, stepUpToken),
     onSuccess: async () => {
       await invalidateUserQueries(queryClient)

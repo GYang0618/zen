@@ -189,3 +189,146 @@ export function buildOrganizationPositionCreatedDiff(
     }
   })
 }
+
+export function buildOrganizationMergedDiff(
+  source: { id: string; code: string; name: string },
+  target: { id: string; code: string; name: string },
+  childrenCount: number,
+  membersCount: number
+): AuditDiff {
+  return createAuditDiff({
+    summary: `组织「${source.name}」已合并入「${target.name}」并注销（划转 ${childrenCount} 个下级部门，${membersCount} 名在岗成员）`,
+    target: { id: source.id, code: source.code, name: source.name },
+    changes: [
+      {
+        field: 'targetOrganizationId',
+        label: '合并目标组织',
+        from: null,
+        to: target.name
+      }
+    ],
+    meta: {
+      targetOrgId: target.id,
+      targetOrgName: target.name,
+      targetOrgCode: target.code,
+      transferredChildrenCount: childrenCount,
+      transferredMembersCount: membersCount
+    }
+  })
+}
+
+export function buildOrganizationMergedInDiff(
+  target: { id: string; code: string; name: string },
+  source: { id: string; code: string; name: string },
+  children: Array<{ id: string; name: string }>,
+  members: Array<{ id: string; name: string }>
+): AuditDiff {
+  return createAuditDiff({
+    summary: `合并并入了组织「${source.name}」（划转 ${children.length} 个下级部门，${members.length} 名在岗成员）`,
+    target: { id: target.id, code: target.code, name: target.name },
+    members: members.length > 0 ? { added: members } : undefined,
+    meta: {
+      sourceOrgId: source.id,
+      sourceOrgName: source.name,
+      sourceOrgCode: source.code,
+      children
+    }
+  })
+}
+
+export function buildOrganizationDissolvedDiff(
+  source: { id: string; code: string; name: string },
+  options: {
+    transferChildren: boolean
+    targetOrg?: { id: string; name: string } | null
+    targetChildrenOrg?: { id: string; name: string } | null
+    parentOrg?: { id: string; name: string } | null
+    childrenCount: number
+    membersCount: number
+    cascadeDeletedCount?: number
+  }
+): AuditDiff {
+  let childrenDesc = ''
+  if (!options.transferChildren) {
+    childrenDesc = `连同 ${options.cascadeDeletedCount ?? options.childrenCount} 个下级部门一并彻底删除`
+  } else if (options.targetChildrenOrg) {
+    childrenDesc = `${options.childrenCount} 个下级部门合并划转至「${options.targetChildrenOrg.name}」`
+  } else if (options.parentOrg) {
+    childrenDesc = `${options.childrenCount} 个下级部门自动提升一级挂靠至「${options.parentOrg.name}」`
+  } else {
+    childrenDesc = `${options.childrenCount} 个下级部门自动提升为根组织`
+  }
+
+  let membersDesc = ''
+  if (options.targetOrg) {
+    membersDesc = `${options.membersCount} 名在岗成员平移安置至「${options.targetOrg.name}」`
+  } else {
+    membersDesc = `直接清理解除了 ${options.membersCount} 名成员的部门任职`
+  }
+
+  return createAuditDiff({
+    summary: `解散并注销了组织「${source.name}」（${childrenDesc}；${membersDesc}）`,
+    target: { id: source.id, code: source.code, name: source.name },
+    meta: {
+      transferChildren: options.transferChildren,
+      targetOrgId: options.targetOrg?.id ?? null,
+      targetOrgName: options.targetOrg?.name ?? null,
+      targetChildrenOrgId: options.targetChildrenOrg?.id ?? null,
+      targetChildrenOrgName: options.targetChildrenOrg?.name ?? null,
+      childrenCount: options.childrenCount,
+      membersCount: options.membersCount,
+      cascadeDeletedCount: options.cascadeDeletedCount ?? 0
+    }
+  })
+}
+
+export function buildOrganizationCascadeDeletedDiff(
+  child: { id: string; code: string; name: string },
+  rootOrg: { id: string; name: string }
+): AuditDiff {
+  return createAuditDiff({
+    summary: `因上级组织「${rootOrg.name}」解散，级联删除了组织「${child.name}」`,
+    target: { id: child.id, code: child.code, name: child.name },
+    meta: {
+      cascadeFromOrgId: rootOrg.id,
+      cascadeFromOrgName: rootOrg.name
+    }
+  })
+}
+
+export function buildOrganizationMemberTransferDiff(
+  kind: 'transfer_out' | 'transfer_in',
+  sourceOrg: { id: string; code: string; name: string },
+  targetOrg: { id: string; code: string; name: string },
+  members: Array<{ id: string; name: string }>,
+  post?: { id: string; name: string } | null
+): AuditDiff {
+  if (kind === 'transfer_out') {
+    return createAuditDiff({
+      summary: `调出 ${members.length} 名成员至「${targetOrg.name}」`,
+      target: { id: sourceOrg.id, code: sourceOrg.code, name: sourceOrg.name },
+      members: { removed: members },
+      meta: {
+        direction: 'out',
+        targetOrgId: targetOrg.id,
+        targetOrgName: targetOrg.name,
+        targetOrgCode: targetOrg.code
+      }
+    })
+  }
+
+  const postDesc = post?.name ? `，并分配岗位「${post.name}」` : ''
+  return createAuditDiff({
+    summary: `从「${sourceOrg.name}」调入 ${members.length} 名成员${postDesc}`,
+    target: { id: targetOrg.id, code: targetOrg.code, name: targetOrg.name },
+    members: { added: members },
+    meta: {
+      direction: 'in',
+      sourceOrgId: sourceOrg.id,
+      sourceOrgName: sourceOrg.name,
+      sourceOrgCode: sourceOrg.code,
+      postId: post?.id ?? null,
+      postName: post?.name ?? null
+    }
+  })
+}

@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { Handle, Position } from '@xyflow/react'
+import { PermissionCode } from '@zen/shared'
 import {
   Avatar,
   AvatarFallback,
@@ -7,11 +8,17 @@ import {
   Badge,
   Button,
   cn,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
 } from '@zen/ui'
-import { ChevronRight, Settings, Users } from 'lucide-react'
+import { ChevronRight, GitMerge, MoreHorizontal, Settings, Trash2, Users } from 'lucide-react'
+import { useState } from 'react'
+
+import { Can } from '@/components/auth/can'
 
 import { useOrganizationTypeCatalog } from '../queries'
 import { useOrganizationGraphActions } from './organization-graph-context'
@@ -22,7 +29,8 @@ import type { OrganizationGraphNode as OrganizationGraphFlowNode } from '../buil
 
 export function OrganizationGraphNode({ data, selected }: NodeProps<OrganizationGraphFlowNode>) {
   const { getLabel } = useOrganizationTypeCatalog()
-  const { onToggleExpand, rankdir } = useOrganizationGraphActions()
+  const { onToggleExpand, rankdir, onDelete, onMerge } = useOrganizationGraphActions()
+  const [menuOpen, setMenuOpen] = useState(false)
   const { organization, hasChildren, isExpanded, hiddenChildCount } = data
   const { id, name, type, memberCount, leader } = organization
   const isHorizontal = rankdir === 'LR'
@@ -57,21 +65,46 @@ export function OrganizationGraphNode({ data, selected }: NodeProps<Organization
           <p className="truncate text-sm font-medium tracking-tight" title={name}>
             {name}
           </p>
-          <p className="truncate text-xs text-muted-foreground">{typeLabel}</p>
+          <div className="flex items-center gap-1">
+            <span className="truncate text-xs text-muted-foreground">{typeLabel}</span>
+            {type === 'project' ? (
+              <Badge
+                variant="outline"
+                className="h-4 px-1 py-0 text-[10px] border-purple-300 text-purple-700 dark:border-purple-800 dark:text-purple-300"
+              >
+                项目组
+              </Badge>
+            ) : null}
+            {organization.sortOrder && organization.sortOrder !== 0 ? (
+              <span className="text-[10px] text-muted-foreground/80">
+                #{organization.sortOrder}
+              </span>
+            ) : null}
+          </div>
         </div>
-        <Tooltip>
-          <TooltipTrigger
+        <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+          <DropdownMenuTrigger
             render={
               <Button
                 variant="ghost"
                 size="icon-xs"
-                aria-label={`配置${name}`}
+                aria-label={`${name}更多操作`}
                 className={cn(
-                  'nodrag nopan absolute top-2 right-2 pointer-events-none opacity-0 transition-opacity duration-200',
-                  'group-hover/org-node:pointer-events-auto group-hover/org-node:opacity-100',
-                  'focus-visible:pointer-events-auto focus-visible:opacity-100'
+                  'nodrag nopan absolute top-2 right-2 transition-opacity duration-200',
+                  menuOpen
+                    ? 'pointer-events-auto opacity-100'
+                    : 'pointer-events-none opacity-0 group-hover/org-node:pointer-events-auto group-hover/org-node:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100'
                 )}
-                nativeButton={false}
+                onClick={(event) => event.stopPropagation()}
+                onMouseDown={(event) => event.stopPropagation()}
+              >
+                <MoreHorizontal />
+              </Button>
+            }
+          />
+          <DropdownMenuContent align="end" className="w-36">
+            <DropdownMenuGroup>
+              <DropdownMenuItem
                 render={
                   <Link
                     to="/system/organization/$id"
@@ -79,13 +112,38 @@ export function OrganizationGraphNode({ data, selected }: NodeProps<Organization
                     onClick={(event) => event.stopPropagation()}
                   />
                 }
-              />
-            }
-          >
-            <Settings />
-          </TooltipTrigger>
-          <TooltipContent>配置</TooltipContent>
-        </Tooltip>
+                nativeButton={false}
+              >
+                <Settings className="size-4" />
+                <span>配置</span>
+              </DropdownMenuItem>
+              <Can permission={PermissionCode.ORG_UPDATE}>
+                <DropdownMenuItem
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    onMerge?.(organization)
+                  }}
+                >
+                  <GitMerge className="size-4" />
+                  <span>合并组织</span>
+                </DropdownMenuItem>
+              </Can>
+            </DropdownMenuGroup>
+            <Can permission={PermissionCode.ORG_DELETE}>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onDelete?.(organization)
+                }}
+              >
+                <Trash2 className="size-4" />
+                <span>删除</span>
+              </DropdownMenuItem>
+            </Can>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <div className="mt-auto flex min-w-0 items-center gap-2">

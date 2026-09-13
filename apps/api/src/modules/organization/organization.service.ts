@@ -30,10 +30,15 @@ import {
 import { OrganizationRepository } from './organization.repository.js'
 import { assertValidParentType, canBeChildOf, throwMoveRejection } from './organization.rules.js'
 import {
+  buildOrganizationCascadeDeletedDiff,
   buildOrganizationCreatedDiff,
   buildOrganizationDeletedDiff,
+  buildOrganizationDissolvedDiff,
   buildOrganizationLeaderDiff,
   buildOrganizationMembersDiff,
+  buildOrganizationMemberTransferDiff,
+  buildOrganizationMergedDiff,
+  buildOrganizationMergedInDiff,
   buildOrganizationParentDiff,
   buildOrganizationPositionCreatedDiff,
   buildOrganizationUpdatedDiff,
@@ -53,17 +58,24 @@ import type {
 } from '@zen/shared'
 import type {
   AddOrganizationMemberDto,
+  BatchTransferMembersDto,
   ChangeOrganizationParentDto,
   CreateOrganizationDto,
   CreatePositionDto,
+  DissolveOrganizationDto,
+  FindOrganizationsQueryDto,
+  MergeOrganizationDto,
   OrganizationActivitiesQueryDto,
+  OrganizationTreeQueryDto,
   UpdateOrganizationDto,
   UpdateOrganizationLeaderDto,
-  UpdateOrganizationPositionDto
+  UpdateOrganizationPositionDto,
+  UpdatePositionRolesDto
 } from './dto/index.js'
 import type { OrganizationWithRelations } from './organization.repository.js'
 import type {
   OrganizationActivitiesResponse,
+  OrganizationListResponse,
   OrganizationMemberResponse,
   OrganizationResponse,
   OrganizationTreeResponse,
@@ -83,7 +95,12 @@ const ORGANIZATION_ACTION_TITLES: Record<string, string> = {
   'system.organization.parent_changed': '调整了上级',
   'system.organization.member_added': '添加了成员',
   'system.organization.member_removed': '移除了成员',
-  'system.organization.position_created': '创建了岗位'
+  'system.organization.position_created': '创建了岗位',
+  'system.organization.merged': '合并了组织',
+  'system.organization.merged_in': '并入了组织',
+  'system.organization.dissolved': '解散了组织',
+  'system.organization.member_transferred_out': '调出了成员',
+  'system.organization.member_transferred_in': '调入了成员'
 }
 
 function buildPath(parentPath: string | null | undefined, id: string): string {
@@ -99,7 +116,10 @@ function displayText(value: string | null | undefined): string {
   return value
 }
 
-function formatMembersLine(names: string[], verb: '添加了' | '移除了'): string {
+function formatMembersLine(
+  names: string[],
+  verb: '添加了' | '移除了' | '调出了' | '调入了'
+): string {
   if (names.length === 0) return `${verb} 0 人`
   return `${verb}${names.join('、')} 共 ${names.length} 人`
 }
@@ -123,7 +143,11 @@ function formatActivityDescription(action: string, diff: AuditDiff | null): stri
 
   if (
     action === 'system.organization.created' ||
-    action === 'system.organization.position_created'
+    action === 'system.organization.position_created' ||
+    action === 'system.organization.merged' ||
+    action === 'system.organization.merged_in' ||
+    action === 'system.organization.dissolved' ||
+    action === 'system.organization.deleted'
   ) {
     return diff.summary ?? ORGANIZATION_ACTION_TITLES[action] ?? '更新了组织'
   }
@@ -150,6 +174,26 @@ function formatActivityDescription(action: string, diff: AuditDiff | null): stri
     )
   }
 
+  if (action === 'system.organization.member_transferred_out') {
+    return (
+      diff.summary ??
+      formatMembersLine(
+        (diff.members?.removed ?? []).map((item) => item.name),
+        '调出了'
+      )
+    )
+  }
+
+  if (action === 'system.organization.member_transferred_in') {
+    return (
+      diff.summary ??
+      formatMembersLine(
+        (diff.members?.added ?? []).map((item) => item.name),
+        '调入了'
+      )
+    )
+  }
+
   return diff.summary ?? ORGANIZATION_ACTION_TITLES[action] ?? '更新了组织'
 }
 
@@ -163,7 +207,44 @@ export class OrganizationService {
     @Inject(SessionService) private readonly sessionService: SessionService
   ) {}
 
-  async getTree(auth: AuthContext): Promise<OrganizationTreeResponse> {
+  async findAll(
+    query: FindOrganizationsQueryDto | undefined,
+    auth: AuthContext
+  ): Promise<OrganizationListResponse> {
+    const where: Prisma.OrganizationWhereInput = {
+      AND: [
+        this.scope(auth),
+        ...(query?.type ? [{ type: fromApiOrganizationType(query.type) }] : []),
+        ...(query?.keyword?.trim()
+          ? [
+              {
+                OR: [
+                  { name: { contains: query.keyword.trim(), mode: 'insensitive' as const } },
+                  { code: { contains: query.keyword.trim(), mode: 'insensitive' as const } }
+                ]
+              }
+            ]
+          : [])
+      ]
+    }
+
+    const page = await paginate({
+      page: query?.page ?? 1,
+      pageSize: query?.pageSize ?? 20,
+      count: () => this.orgRepo.count(where),
+      findMany: (pagination) => this.orgRepo.findPaged(where, pagination)
+    })
+
+    return {
+      pagination: page.pagination,
+      items: page.items.map(toOrganizationResponse)
+    }
+  }
+
+  async getTree(
+    auth: AuthContext,
+    query?: OrganizationTreeQueryDto
+  ): Promise<OrganizationTreeResponse> {
     const rows = await this.orgRepo.findMany(this.scope(auth))
     const nodes = new Map<string, OrganizationTreeNode>()
     for (const row of rows) {
@@ -178,7 +259,30 @@ export class OrganizationService {
       if (parent) parent.children.push(node)
       else roots.push(node)
     }
-    return this.sortTree(roots)
+    const sorted = this.sortTree(roots)
+    if (!query?.keyword?.trim()) {
+      return sorted
+    }
+    return this.filterTreeByKeyword(sorted, query.keyword.trim())
+  }
+
+  private filterTreeByKeyword(
+    nodes: OrganizationTreeNode[],
+    keyword: string
+  ): OrganizationTreeNode[] {
+    const normalized = keyword.toLowerCase()
+
+    const filterNode = (node: OrganizationTreeNode): OrganizationTreeNode | null => {
+      const children = (node.children ?? [])
+        .map(filterNode)
+        .filter((child): child is OrganizationTreeNode => child !== null)
+      const selfMatch =
+        node.name.toLowerCase().includes(normalized) || node.code.toLowerCase().includes(normalized)
+      if (!selfMatch && children.length === 0) return null
+      return { ...node, children }
+    }
+
+    return nodes.map(filterNode).filter((node): node is OrganizationTreeNode => node !== null)
   }
 
   async getTypeCatalog(auth: AuthContext): Promise<OrganizationTypeCatalogResponse> {
@@ -233,6 +337,7 @@ export class OrganizationService {
       type: fromApiOrganizationType(data.type),
       description: data.description,
       effectiveDate: toDate(data.effectiveDate),
+      sortOrder: data.sortOrder ?? 0,
       level: parent ? parent.level + 1 : 1,
       parent: parent ? { connect: { id: parent.id } } : undefined,
       leader: data.leaderId ? { connect: { id: data.leaderId } } : undefined
@@ -261,7 +366,8 @@ export class OrganizationService {
       name: data.name,
       type: data.type ? fromApiOrganizationType(data.type) : undefined,
       description: data.description,
-      effectiveDate: data.effectiveDate ? toDate(data.effectiveDate) : undefined
+      effectiveDate: data.effectiveDate ? toDate(data.effectiveDate) : undefined,
+      ...(data.sortOrder !== undefined ? { sortOrder: data.sortOrder } : {})
     })
     await this.writeAudit(
       auth,
@@ -294,6 +400,269 @@ export class OrganizationService {
       buildOrganizationDeletedDiff(existing)
     )
     this.authContextService.invalidateCache()
+  }
+
+  async dissolve(id: string, data: DissolveOrganizationDto, auth: AuthContext): Promise<void> {
+    const existing = await this.requireVisible(id, auth)
+    let targetOrg: OrganizationWithRelations | null = null
+    if (data.targetOrganizationId) {
+      if (data.targetOrganizationId === id) {
+        throw new BadRequestException('接收部门不能为被解散的组织自身')
+      }
+      targetOrg = await this.requireVisible(data.targetOrganizationId, auth)
+    }
+
+    let targetChildrenOrg: OrganizationWithRelations | null = null
+    if (data.targetChildrenOrganizationId) {
+      if (data.targetChildrenOrganizationId === id) {
+        throw new BadRequestException('子部门合并目标不能为被解散的组织自身')
+      }
+      targetChildrenOrg = await this.requireVisible(data.targetChildrenOrganizationId, auth)
+      const currentPath = existing.path ?? `/${existing.id}/`
+      if (targetChildrenOrg.path?.startsWith(currentPath)) {
+        throw new BadRequestException('子部门合并目标不能为该组织的下级组织')
+      }
+    }
+
+    const parentOrg = existing.parentId ? await this.orgRepo.findById(existing.parentId) : null
+
+    const transferChildren = data.transferChildren ?? true
+    const result = await this.orgRepo.dissolve(
+      id,
+      data.targetOrganizationId,
+      transferChildren,
+      data.targetChildrenOrganizationId
+    )
+    if (!result) return
+
+    const affectedUsers = await this.orgRepo.findUsersDisplayByIds(result.affectedUserIds)
+    const membersList = affectedUsers.map((u) => ({
+      id: u.id,
+      name: toUserDisplayName(u)
+    }))
+
+    if (!transferChildren) {
+      // 1. 连同子部门一起彻底删除：为所有被级联删除的子孙部门逐一写入审计
+      for (const desc of result.deletedDescendants) {
+        await this.writeAudit(
+          auth,
+          desc.id,
+          'system.organization.deleted',
+          buildOrganizationCascadeDeletedDiff(desc, existing)
+        )
+      }
+
+      // 源组织解散审计
+      await this.writeAudit(
+        auth,
+        id,
+        'system.organization.dissolved',
+        buildOrganizationDissolvedDiff(existing, {
+          transferChildren: false,
+          targetOrg: targetOrg ? { id: targetOrg.id, name: targetOrg.name } : null,
+          childrenCount: result.directChildren.length,
+          membersCount: result.affectedUserIds.length,
+          cascadeDeletedCount: result.deletedDescendants.length
+        })
+      )
+
+      // 若平移安置成员，为目标组织写入调入审计
+      if (targetOrg && membersList.length > 0) {
+        await this.writeAudit(
+          auth,
+          targetOrg.id,
+          'system.organization.member_transferred_in',
+          buildOrganizationMemberTransferDiff('transfer_in', existing, targetOrg, membersList)
+        )
+      }
+    } else {
+      // 2. 保留子部门：源组织解散审计
+      await this.writeAudit(
+        auth,
+        id,
+        'system.organization.dissolved',
+        buildOrganizationDissolvedDiff(existing, {
+          transferChildren: true,
+          targetOrg: targetOrg ? { id: targetOrg.id, name: targetOrg.name } : null,
+          targetChildrenOrg: targetChildrenOrg
+            ? { id: targetChildrenOrg.id, name: targetChildrenOrg.name }
+            : null,
+          parentOrg: parentOrg ? { id: parentOrg.id, name: parentOrg.name } : null,
+          childrenCount: result.directChildren.length,
+          membersCount: result.affectedUserIds.length
+        })
+      )
+
+      // 若指定接收组织，为目标组织写入调入审计
+      if (targetOrg && membersList.length > 0) {
+        await this.writeAudit(
+          auth,
+          targetOrg.id,
+          'system.organization.member_transferred_in',
+          buildOrganizationMemberTransferDiff('transfer_in', existing, targetOrg, membersList)
+        )
+      }
+
+      // 直属子部门上级调整审计
+      const newParent = targetChildrenOrg ?? parentOrg
+      for (const child of result.directChildren) {
+        await this.writeAudit(
+          auth,
+          child.id,
+          'system.organization.parent_changed',
+          buildOrganizationParentDiff(
+            child,
+            { id: existing.id, name: existing.name },
+            newParent ? { id: newParent.id, name: newParent.name } : null
+          )
+        )
+      }
+    }
+
+    for (const userId of result.affectedUserIds) {
+      await this.refreshUserAccess(userId)
+    }
+    this.authContextService.invalidateCache()
+  }
+
+  async merge(id: string, data: MergeOrganizationDto, auth: AuthContext): Promise<void> {
+    const existing = await this.requireVisible(id, auth)
+    if (data.targetOrganizationId === id) {
+      throw new BadRequestException('不能将组织合并入自身')
+    }
+    const targetOrg = await this.requireVisible(data.targetOrganizationId, auth)
+
+    const result = await this.orgRepo.merge(id, data.targetOrganizationId)
+    if (!result) return
+
+    const transferredUsers = await this.orgRepo.findUsersDisplayByIds(result.transferredUserIds)
+    const membersList = transferredUsers.map((u) => ({
+      id: u.id,
+      name: toUserDisplayName(u)
+    }))
+    const childrenList = result.directChildren.map((c) => ({
+      id: c.id,
+      name: c.name
+    }))
+
+    // 1. 源组织审计：合并并注销
+    await this.writeAudit(
+      auth,
+      id,
+      'system.organization.merged',
+      buildOrganizationMergedDiff(
+        existing,
+        targetOrg,
+        result.directChildren.length,
+        result.transferredUserIds.length
+      )
+    )
+
+    // 2. 目标组织审计：合并并入
+    await this.writeAudit(
+      auth,
+      targetOrg.id,
+      'system.organization.merged_in',
+      buildOrganizationMergedInDiff(targetOrg, existing, childrenList, membersList)
+    )
+
+    // 3. 直属子部门上级变更审计
+    for (const child of result.directChildren) {
+      await this.writeAudit(
+        auth,
+        child.id,
+        'system.organization.parent_changed',
+        buildOrganizationParentDiff(
+          child,
+          { id: existing.id, name: existing.name },
+          { id: targetOrg.id, name: targetOrg.name }
+        )
+      )
+    }
+
+    for (const userId of result.transferredUserIds) {
+      await this.refreshUserAccess(userId)
+    }
+    this.authContextService.invalidateCache()
+  }
+
+  async batchTransferMembers(
+    id: string,
+    data: BatchTransferMembersDto,
+    auth: AuthContext
+  ): Promise<void> {
+    const sourceOrg = await this.requireVisible(id, auth)
+    const targetOrg = await this.requireVisible(data.targetOrganizationId, auth)
+    let targetPost: { id: string; name: string } | null = null
+    if (data.targetPostId) {
+      const position = await this.postService.findOrganizationPosition(
+        data.targetOrganizationId,
+        data.targetPostId
+      )
+      if (!position) {
+        throw new NotFoundException('目标岗位编制不存在')
+      }
+      targetPost = { id: position.id, name: position.jobProfile.name }
+    }
+
+    const displayUsers = await this.orgRepo.findUsersDisplayByIds(data.userIds)
+    const displayById = new Map(
+      displayUsers.map((user) => [user.id, toUserDisplayName(user)] as const)
+    )
+    const membersList = data.userIds.map((userId) => ({
+      id: userId,
+      name: displayById.get(userId) ?? userId
+    }))
+
+    await this.orgRepo.batchTransferMembers(
+      data.userIds,
+      data.targetOrganizationId,
+      data.targetPostId
+    )
+
+    // 源组织审计：调出成员
+    await this.writeAudit(
+      auth,
+      id,
+      'system.organization.member_transferred_out',
+      buildOrganizationMemberTransferDiff(
+        'transfer_out',
+        sourceOrg,
+        targetOrg,
+        membersList,
+        targetPost
+      )
+    )
+
+    // 目标组织审计：调入成员
+    await this.writeAudit(
+      auth,
+      data.targetOrganizationId,
+      'system.organization.member_transferred_in',
+      buildOrganizationMemberTransferDiff(
+        'transfer_in',
+        sourceOrg,
+        targetOrg,
+        membersList,
+        targetPost
+      )
+    )
+
+    for (const userId of data.userIds) {
+      await this.refreshUserAccess(userId)
+    }
+  }
+
+  async updatePositionRoles(
+    organizationId: string,
+    positionId: string,
+    data: UpdatePositionRolesDto,
+    auth: AuthContext
+  ): Promise<PositionResponse> {
+    await this.requireVisible(organizationId, auth)
+    const result = await this.postService.updatePostRoles(organizationId, positionId, data.roleIds)
+    this.authContextService.invalidateCache()
+    return result
   }
 
   async updateLeader(
@@ -612,7 +981,9 @@ export class OrganizationService {
       .map((node) => ({ ...node, children: this.sortTree(node.children) }))
       .sort(
         (left, right) =>
-          NAME_COLLATOR.compare(left.name, right.name) || left.id.localeCompare(right.id)
+          (left.sortOrder ?? 0) - (right.sortOrder ?? 0) ||
+          NAME_COLLATOR.compare(left.name, right.name) ||
+          left.id.localeCompare(right.id)
       )
   }
 

@@ -29,15 +29,15 @@ import {
   ChevronRightIcon,
   ChevronsDownUp,
   ChevronsUpDown,
+  GitMerge,
   GripVertical,
   Settings,
   Trash2
 } from 'lucide-react'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { Can } from '@/components/auth/can'
-import { ConfirmDialog } from '@/components/confirm-dialog'
 
 import { useOrganizations } from '../organizations-provider'
 import { useOrganizationTypeCatalog } from '../queries'
@@ -49,7 +49,9 @@ import {
   getOrganizationDropRejectionMessage,
   validateOrganizationDrop
 } from '../utils'
+import { OrganizationDeleteDialog } from './organization-delete-dialog'
 import { OrganizationTypeIcon } from './organization-icon'
+import { OrganizationMergeDialog } from './organization-merge-dialog'
 
 import type { DragEndEvent, DragOverEvent } from '@dnd-kit/react'
 import type { Organization } from '../type'
@@ -103,6 +105,7 @@ interface TreeNodeProps {
   onExpandedChange: (id: string, open: boolean) => void
   onSelect?: (node: Organization) => void
   onDelete: (node: Organization) => void
+  onMerge: (node: Organization) => void
   isDragging: boolean
   dragOverId: string | null
   /** 校验某个正在拖拽的组织是否允许放置到当前节点，用于在碰撞检测阶段直接拒绝非法目标 */
@@ -115,6 +118,7 @@ function TreeNode({
   onExpandedChange,
   onSelect,
   onDelete,
+  onMerge,
   isDragging,
   dragOverId,
   canAcceptDraggable
@@ -143,13 +147,6 @@ function TreeNode({
   )
 
   const canAcceptDrop = isDragging && isDropTarget && dragOverId === id
-  const deleteBlockReason = hasChildren
-    ? '请先删除或迁移下级组织'
-    : memberCount > 0
-      ? '请先移除当前组织成员'
-      : data.positionCount > 0
-        ? '请先解除当前组织岗位'
-        : null
 
   return (
     <Collapsible
@@ -198,6 +195,7 @@ function TreeNode({
                 <ChevronRightIcon className="transition-transform in-data-panel-open:rotate-90" />
               </CollapsibleTrigger>
             ) : null}
+
             <div className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
               <OrganizationTypeIcon type={type} />
             </div>
@@ -237,6 +235,27 @@ function TreeNode({
                 </TooltipTrigger>
                 <TooltipContent>配置</TooltipContent>
               </Tooltip>
+              <Can permission={PermissionCode.ORG_UPDATE}>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`合并${name}`}
+                        className="pointer-events-none opacity-0 transition-opacity duration-200 group-hover/item:pointer-events-auto group-hover/item:opacity-100"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          onMerge(data)
+                        }}
+                      >
+                        <GitMerge />
+                      </Button>
+                    }
+                  />
+                  <TooltipContent>合并组织</TooltipContent>
+                </Tooltip>
+              </Can>
               <Can permission={PermissionCode.ORG_DELETE}>
                 <Tooltip>
                   <TooltipTrigger
@@ -245,18 +264,17 @@ function TreeNode({
                         variant="ghost"
                         size="icon"
                         aria-label={`删除${name}`}
-                        disabled={Boolean(deleteBlockReason)}
                         className="pointer-events-none text-destructive opacity-0 transition-opacity duration-200 hover:text-destructive group-hover/item:pointer-events-auto group-hover/item:opacity-100"
                         onClick={(event) => {
                           event.stopPropagation()
                           onDelete(data)
                         }}
-                      />
+                      >
+                        <Trash2 data-icon="inline-start" />
+                      </Button>
                     }
-                  >
-                    <Trash2 data-icon="inline-start" />
-                  </TooltipTrigger>
-                  <TooltipContent>{deleteBlockReason ?? '删除组织'}</TooltipContent>
+                  />
+                  <TooltipContent>删除 / 解散组织</TooltipContent>
                 </Tooltip>
               </Can>
             </div>
@@ -275,6 +293,7 @@ function TreeNode({
                 onExpandedChange={onExpandedChange}
                 onSelect={onSelect}
                 onDelete={onDelete}
+                onMerge={onMerge}
                 isDragging={isDragging}
                 dragOverId={dragOverId}
                 canAcceptDraggable={canAcceptDraggable}
@@ -288,23 +307,24 @@ function TreeNode({
 }
 
 export function OrganizationTree() {
-  const {
-    currentNode,
-    setCurrentNode,
-    organizations,
-    deleteOrganization,
-    moveOrganization,
-    isLoading
-  } = useOrganizations()
+  const { currentNode, setCurrentNode, organizations, moveOrganization, isLoading, keyword } =
+    useOrganizations()
   const { catalog } = useOrganizationTypeCatalog()
   const expandableIds = useMemo(() => collectExpandableIds(organizations), [organizations])
   const [expandedIds, setExpandedIds] = useState(
     () => new Set(collectExpandedIdsToDepth(organizations, DEFAULT_ORGANIZATION_TREE_EXPAND_DEPTH))
   )
+
+  useEffect(() => {
+    if (keyword?.trim()) {
+      setExpandedIds(new Set(expandableIds))
+    }
+  }, [keyword, expandableIds])
+
   const [isDragging, setIsDragging] = useState(false)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Organization | null>(null)
-  const [isDeleting, setIsDeleting] = useState(false)
+  const [mergeTarget, setMergeTarget] = useState<Organization | null>(null)
   const organizationsSnapshotRef = useRef(organizations)
   // 拖拽结束后浏览器可能仍会触发一次 click，从而误选中。
   // 用“时间窗”来吞掉这类误触发，避免依赖 setTimeout(0) 的不稳定时序。
@@ -387,24 +407,6 @@ export function OrganizationTree() {
     setDragOverId(validation.isValid ? overId : null)
   }
 
-  const handleDelete = async () => {
-    const target = deleteTarget
-    if (!target || isDeleting) return
-
-    setIsDeleting(true)
-    try {
-      await deleteOrganization(target.id)
-      if (currentNode?.id === target.id) {
-        setCurrentNode(null)
-      }
-      setDeleteTarget(null)
-    } catch {
-      // 删除失败已由 mutation 提示，保持确认框打开以便用户查看并处理阻塞条件。
-    } finally {
-      setIsDeleting(false)
-    }
-  }
-
   return (
     <Card className="flex h-full min-h-0 flex-col py-3">
       <CardHeader>
@@ -449,7 +451,7 @@ export function OrganizationTree() {
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">加载组织树…</p>
         ) : organizations.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-            暂无组织，请先创建根组织
+            {keyword ? `未找到与「${keyword}」匹配的组织` : '暂无组织，请先创建根组织'}
           </p>
         ) : (
           <DragDropProvider
@@ -472,6 +474,7 @@ export function OrganizationTree() {
                 expandedIds={expandedIds}
                 onExpandedChange={handleExpandedChange}
                 onDelete={setDeleteTarget}
+                onMerge={setMergeTarget}
                 isDragging={isDragging}
                 dragOverId={dragOverId}
                 canAcceptDraggable={canAcceptOrganizationDrop}
@@ -497,31 +500,30 @@ export function OrganizationTree() {
           </DragDropProvider>
         )}
       </CardContent>
-      <ConfirmDialog
+      <OrganizationDeleteDialog
         open={Boolean(deleteTarget)}
         onOpenChange={(open) => {
-          if (!open && !isDeleting) setDeleteTarget(null)
+          if (!open) setDeleteTarget(null)
         }}
-        handleConfirm={() => {
-          void handleDelete()
+        target={deleteTarget}
+        tree={organizations}
+        onSuccess={() => {
+          if (currentNode?.id === deleteTarget?.id) {
+            setCurrentNode(null)
+          }
         }}
-        isLoading={isDeleting}
-        title="删除组织"
-        desc={
-          <div className="flex flex-col gap-3">
-            <p>
-              确定要删除组织{' '}
-              <span className="font-medium text-foreground">{deleteTarget?.name}</span>{' '}
-              吗？此操作无法撤销。
-            </p>
-            <p className="text-sm text-muted-foreground">
-              仅可删除没有下级组织、成员和岗位的组织。
-            </p>
-          </div>
-        }
-        confirmText="删除"
-        cancelBtnText="取消"
-        destructive
+      />
+      <OrganizationMergeDialog
+        open={Boolean(mergeTarget)}
+        onOpenChange={(open) => {
+          if (!open) setMergeTarget(null)
+        }}
+        sourceOrganization={mergeTarget}
+        onSuccess={() => {
+          if (currentNode?.id === mergeTarget?.id) {
+            setCurrentNode(null)
+          }
+        }}
       />
     </Card>
   )

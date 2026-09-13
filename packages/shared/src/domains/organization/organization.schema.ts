@@ -61,7 +61,8 @@ export const createOrganizationSchema = z
       .optional()
       .describe('负责人用户 ID，来自 query_users_list；省略或 null 表示不指定'),
     effectiveDate: dateSchema.describe('生效日期（YYYY-MM-DD）'),
-    description: z.string().trim().max(500).optional().describe('组织描述')
+    description: z.string().trim().max(500).optional().describe('组织描述'),
+    sortOrder: z.number().int().default(0).optional().describe('同级排序权重（升序，越小越靠前）')
   })
   .strict()
   .superRefine((data, ctx) => {
@@ -85,7 +86,8 @@ export const updateOrganizationSchema = z
       .max(500)
       .nullable()
       .optional()
-      .describe('组织描述；null 表示清空')
+      .describe('组织描述；null 表示清空'),
+    sortOrder: z.number().int().optional().describe('同级排序权重（升序，越小越靠前）')
   })
   .strict()
 
@@ -97,14 +99,45 @@ export const updateOrganizationLeaderSchema = z
   })
   .strict()
 
-/** 拖拽仅变更父级，不接受任何排序位置。 */
 export const changeOrganizationParentSchema = z
   .object({
     parentId: idSchema
       .nullable()
       .describe(
         '新的父组织 ID，来自 query_organization_tree；null 表示设为根组织（仅已启用的 group/company）'
-      )
+      ),
+    sortOrder: z.number().int().optional().describe('排序权重（可选）')
+  })
+  .strict()
+
+export const dissolveOrganizationSchema = z
+  .object({
+    targetOrganizationId: idSchema
+      .nullable()
+      .optional()
+      .describe('接收成员的目标组织 ID，若为空则直接解除组织任职关联'),
+    transferChildren: z
+      .boolean()
+      .default(true)
+      .describe('是否保留子部门（true 保留并转移/提升，false 连同子部门一起删除）'),
+    targetChildrenOrganizationId: idSchema
+      .nullable()
+      .optional()
+      .describe('子部门合并到的目标组织 ID，若未指定则自动提升一级')
+  })
+  .strict()
+
+export const mergeOrganizationSchema = z
+  .object({
+    targetOrganizationId: idSchema.describe('合并的目标组织 ID')
+  })
+  .strict()
+
+export const batchTransferMembersSchema = z
+  .object({
+    userIds: z.array(idSchema).min(1, '至少选择一名成员').describe('要调动的成员 ID 列表'),
+    targetOrganizationId: idSchema.describe('目标组织 ID'),
+    targetPostId: idSchema.nullable().optional().describe('目标组织下的岗位编制 ID')
   })
   .strict()
 
@@ -117,15 +150,19 @@ export const addOrganizationMemberSchema = z
 export {
   createPositionSchema,
   linkOrganizationPositionSchema,
+  positionRoleSummarySchema,
   positionSchema,
-  updateOrganizationPositionSchema
+  updateOrganizationPositionSchema,
+  updatePositionRolesSchema
 } from '../post/post.schema.js'
 
 export type {
   CreatePosition,
   LinkOrganizationPosition,
   Position,
-  UpdateOrganizationPosition
+  PositionRoleSummary,
+  UpdateOrganizationPosition,
+  UpdatePositionRoles
 } from '../post/post.schema.js'
 
 export const organizationMemberSchema = z.object({
@@ -179,6 +216,7 @@ export const organizationSchema = z.object({
   leader: organizationLeaderSchema.nullable(),
   memberCount: z.number().int().min(0),
   positionCount: z.number().int().min(0),
+  sortOrder: z.number().int().default(0),
   createdAt: dateTimeSchema,
   updatedAt: dateTimeSchema
 })
@@ -190,6 +228,9 @@ export type CreateOrganization = z.infer<typeof createOrganizationSchema>
 export type UpdateOrganization = z.infer<typeof updateOrganizationSchema>
 export type UpdateOrganizationLeader = z.infer<typeof updateOrganizationLeaderSchema>
 export type ChangeOrganizationParent = z.infer<typeof changeOrganizationParentSchema>
+export type DissolveOrganization = z.infer<typeof dissolveOrganizationSchema>
+export type MergeOrganization = z.infer<typeof mergeOrganizationSchema>
+export type BatchTransferMembers = z.infer<typeof batchTransferMembersSchema>
 export type AddOrganizationMember = z.infer<typeof addOrganizationMemberSchema>
 export type OrganizationMember = z.infer<typeof organizationMemberSchema>
 export type OrganizationActivity = z.infer<typeof organizationActivitySchema>
@@ -280,7 +321,24 @@ export const organizationFocusSchema = z.object({
   keyword: z.string().trim().optional()
 })
 
+export const organizationTreeQuerySchema = z
+  .object({
+    keyword: z.string().trim().min(1).optional().describe('关键字筛选（匹配组织名称或编码）')
+  })
+  .strict()
+
+export const findOrganizationsQuerySchema = pageQuerySchema
+  .extend({
+    keyword: z.string().trim().min(1).optional().describe('关键字筛选（匹配组织名称或编码）'),
+    type: organizationTypeSchema.optional().describe('组织类型筛选')
+  })
+  .strict()
+
+export const organizationPageSchema = paged(organizationSchema)
+
 export type OrganizationFocus = z.input<typeof organizationFocusSchema>
+export type OrganizationTreeQuery = z.infer<typeof organizationTreeQuerySchema>
+export type FindOrganizationsQuery = z.infer<typeof findOrganizationsQuerySchema>
 export type OrganizationTypeCatalogResponse = z.infer<typeof organizationTypeCatalogResponseSchema>
 export type UpdateOrganizationTypeCatalog = z.infer<typeof updateOrganizationTypeCatalogSchema>
 export type ApplyOrganizationTypeTemplate = z.infer<typeof applyOrganizationTypeTemplateSchema>

@@ -198,6 +198,18 @@ export const updateOrganizationPositionSchema = z
   })
   .strict()
 
+export const positionRoleSummarySchema = z.object({
+  id: z.string(),
+  code: z.string(),
+  name: z.string()
+})
+
+export const updatePositionRolesSchema = z
+  .object({
+    roleIds: z.array(idSchema).describe('要绑定的角色 ID 列表')
+  })
+  .strict()
+
 export const positionSchema = z.object({
   id: z.string(),
   jobProfileId: z.string(),
@@ -214,6 +226,7 @@ export const positionSchema = z.object({
     .max(POSITION_MEMBER_PREVIEW_LIMIT)
     .describe(`最近添加的在岗人员，最多 ${POSITION_MEMBER_PREVIEW_LIMIT} 人`),
   status: organizationPositionStatusSchema,
+  roles: z.array(positionRoleSummarySchema).default([]),
   createdAt: dateTimeSchema,
   updatedAt: dateTimeSchema
 })
@@ -233,6 +246,8 @@ export type LinkOrganizationPosition = z.infer<typeof linkOrganizationPositionSc
 /** @deprecated 使用 LinkOrganizationPosition */
 export type CreatePosition = LinkOrganizationPosition
 export type UpdateOrganizationPosition = z.infer<typeof updateOrganizationPositionSchema>
+export type UpdatePositionRoles = z.infer<typeof updatePositionRolesSchema>
+export type PositionRoleSummary = z.infer<typeof positionRoleSummarySchema>
 export type PositionMemberPreview = z.infer<typeof positionMemberPreviewSchema>
 export type Position = z.infer<typeof positionSchema>
 

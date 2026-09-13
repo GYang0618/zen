@@ -117,6 +117,17 @@ export type PostWithProfile = Prisma.PostGetPayload<{
         }
       }
     }
+    roles: {
+      include: {
+        role: {
+          select: {
+            id: true
+            code: true
+            name: true
+          }
+        }
+      }
+    }
     _count: { select: { users: { where: { leftAt: null } } } }
   }
 }>
@@ -226,6 +237,12 @@ export function toOrganizationPositionResponse(row: PostWithProfile): Position {
       avatar: user.profile?.avatar ?? null
     })),
     status: toApiOrganizationPositionStatus(row.status),
+    roles:
+      row.roles?.map(({ role }) => ({
+        id: role.id,
+        code: role.code,
+        name: role.name
+      })) ?? [],
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString()
   }

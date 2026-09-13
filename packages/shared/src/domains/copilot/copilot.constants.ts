@@ -86,7 +86,6 @@ export const TOOL_TITLES: Record<string, string> = {
   delete_roles: '删除角色',
   delete_users: '删除用户',
   generate_dynamic_dashboard: '生成动态看板',
-  hard_delete_users: '彻底删除用户',
   highlight_elements: '高亮构件',
   indoor_walkthrough: '室内漫游',
   load_model: '加载模型',

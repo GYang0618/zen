@@ -2,25 +2,35 @@ import { request } from '@/lib/request'
 
 import type {
   AddOrganizationMember,
+  BatchTransferMembers,
   ChangeOrganizationParent,
   CreateOrganization,
+  DissolveOrganization,
+  FindOrganizationsQuery,
   LinkOrganizationPosition,
+  MergeOrganization,
   Organization,
   OrganizationActivitiesQuery,
   OrganizationActivity,
   OrganizationMember,
   OrganizationTreeNode,
+  OrganizationTreeQuery,
   OrganizationTypeCatalogResponse,
   Paged,
   Position,
   UpdateOrganization,
   UpdateOrganizationLeader,
   UpdateOrganizationPosition,
-  UpdateOrganizationTypeCatalog
+  UpdateOrganizationTypeCatalog,
+  UpdatePositionRoles
 } from '@zen/shared'
 
 export const organizationApi = {
-  getTree: () => request.get<OrganizationTreeNode[]>('/organizations/tree'),
+  getTree: (params?: OrganizationTreeQuery) =>
+    request.get<OrganizationTreeNode[]>('/organizations/tree', { params }),
+
+  list: (params?: FindOrganizationsQuery) =>
+    request.get<Paged<Organization>>('/organizations', { params }),
 
   getById: (id: string) => request.get<Organization>(`/organizations/${id}`),
 
@@ -31,6 +41,12 @@ export const organizationApi = {
     request.patch<Organization, UpdateOrganization>(`/organizations/${id}`, data),
 
   remove: (id: string) => request.delete<void>(`/organizations/${id}`),
+
+  dissolve: (id: string, data: DissolveOrganization) =>
+    request.post<void, DissolveOrganization>(`/organizations/${id}/dissolve`, data),
+
+  merge: (id: string, data: MergeOrganization) =>
+    request.post<void, MergeOrganization>(`/organizations/${id}/merge`, data),
 
   updateLeader: (id: string, data: UpdateOrganizationLeader) =>
     request.patch<Organization, UpdateOrganizationLeader>(`/organizations/${id}/leader`, data),
@@ -43,6 +59,9 @@ export const organizationApi = {
   addMember: (id: string, data: AddOrganizationMember) =>
     request.post<OrganizationMember[], AddOrganizationMember>(`/organizations/${id}/members`, data),
 
+  batchTransferMembers: (id: string, data: BatchTransferMembers) =>
+    request.post<void, BatchTransferMembers>(`/organizations/${id}/members/batch-transfer`, data),
+
   removeMember: (id: string, userId: string) =>
     request.delete<void>(`/organizations/${id}/members/${userId}`),
 
@@ -54,6 +73,12 @@ export const organizationApi = {
   updatePosition: (id: string, positionId: string, data: UpdateOrganizationPosition) =>
     request.patch<Position, UpdateOrganizationPosition>(
       `/organizations/${id}/positions/${positionId}`,
+      data
+    ),
+
+  updatePositionRoles: (id: string, positionId: string, data: UpdatePositionRoles) =>
+    request.patch<Position, UpdatePositionRoles>(
+      `/organizations/${id}/positions/${positionId}/roles`,
       data
     ),
 
