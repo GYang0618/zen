@@ -1,4 +1,4 @@
-/** 对话中以表格等专属结果 UI 展示的查询工具。 */
+/** 对话中以表格等专属结果 UI 展示的查询工具（分组时不与同名写工具合并）。 */
 export const GENERATIVE_UI_TOOL_NAMES = ['query_users_list', 'query_job_profiles_list'] as const
 
 export const GENERATIVE_UI_TOOL_NAME_SET: ReadonlySet<string> = new Set(GENERATIVE_UI_TOOL_NAMES)
@@ -11,18 +11,65 @@ export interface ToolCallLike {
   }
 }
 
+/** 与 AG-UI Message 对齐：content 可能是文本、多模态 parts 或 activity payload。 */
 export interface AssistantToolMessageLike {
   id: string
   role: string
-  content?: string
+  content?: unknown
   toolCalls?: ToolCallLike[]
 }
 
 const TRANSPARENT_ROLES = new Set(['reasoning', 'activity', 'tool'])
 
+function hasNonEmptyTextContent(content: unknown): boolean {
+  return typeof content === 'string' && content.trim().length > 0
+}
+
 export function getToolCallName(toolCall: ToolCallLike | undefined): string | undefined {
   const name = toolCall?.function?.name
   return name && name.length > 0 ? name : undefined
+}
+
+/** 解析 tool call arguments；流式未完成或非法 JSON 时返回 undefined。 */
+export function parseToolCallArguments(
+  toolCall: ToolCallLike | undefined
+): Record<string, unknown> | undefined {
+  const raw = toolCall?.function?.arguments
+  if (!raw || raw.trim().length === 0) return undefined
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined
+    return parsed as Record<string, unknown>
+  } catch {
+    return undefined
+  }
+}
+
+function readDisplayFlag(args: Record<string, unknown>): boolean | undefined {
+  const meta = args.meta
+  if (meta && typeof meta === 'object' && !Array.isArray(meta)) {
+    const display = (meta as { display?: unknown }).display
+    if (typeof display === 'boolean') return display
+  }
+  if (typeof args.display === 'boolean') return args.display
+  return undefined
+}
+
+/**
+ * Agent 通过 meta.display（或顶层 display）声明是否面向用户呈现专属结果 UI。
+ * 仅当显式为 true 时挂到本轮最后一条助手消息与工具栏之间。
+ */
+export function isTurnFinalDisplayToolCall(toolCall: ToolCallLike | undefined): boolean {
+  const args = parseToolCallArguments(toolCall)
+  if (!args) return false
+  return readDisplayFlag(args) === true
+}
+
+/** A2UI 等：未声明或 true 则展示；显式 false 则隐藏。 */
+export function isToolCallDisplayEnabled(toolCall: ToolCallLike | undefined): boolean {
+  const args = parseToolCallArguments(toolCall)
+  if (!args) return true
+  return readDisplayFlag(args) !== false
 }
 
 export function groupConsecutiveToolCalls<T extends ToolCallLike>(
@@ -79,7 +126,7 @@ export function collectAbsorbedAssistantIds<T extends AssistantToolMessageLike>(
       const next = messages[cursor]
       if (TRANSPARENT_ROLES.has(next.role)) continue
       if (next.role !== 'assistant') break
-      if (next.content?.trim()) break
+      if (hasNonEmptyTextContent(next.content)) break
       if (absorbed.has(next.id)) continue
 
       const nextName = exclusiveGroupableToolName(next, ungroupedNames)
@@ -131,4 +178,73 @@ export function resolveAssistantToolCalls<T extends AssistantToolMessageLike>(
     hidden: false,
     toolCalls: collectAssistantToolCalls(messages, startIndex, absorbedIds)
   }
+}
+
+function findTurnBounds<T extends { role: string }>(
+  messages: T[],
+  messageIndex: number
+): { start: number; end: number } {
+  let start = 0
+  for (let index = messageIndex; index >= 0; index -= 1) {
+    if (messages[index]?.role === 'user') {
+      start = index + 1
+      break
+    }
+  }
+
+  let end = messages.length
+  for (let index = messageIndex + 1; index < messages.length; index += 1) {
+    if (messages[index]?.role === 'user') {
+      end = index
+      break
+    }
+  }
+
+  return { start, end }
+}
+
+/**
+ * 将本轮（相邻两条 user 之间）匹配到的工具统一挂到该轮最后一条 assistant。
+ * 非末条返回 shouldRender=false；末条返回本轮全部匹配的 toolCalls。
+ */
+export function resolveTurnToolCalls<T extends AssistantToolMessageLike>(
+  messages: T[],
+  messageId: string,
+  match: (toolCall: ToolCallLike) => boolean
+): { shouldRender: boolean; toolCalls: ToolCallLike[] } {
+  const messageIndex = messages.findIndex((message) => message.id === messageId)
+  if (messageIndex === -1) {
+    return { shouldRender: false, toolCalls: [] }
+  }
+
+  const { start, end } = findTurnBounds(messages, messageIndex)
+  const turnAssistants = messages
+    .slice(start, end)
+    .filter((message) => message.role === 'assistant')
+  const lastAssistant = turnAssistants.at(-1)
+
+  if (!lastAssistant || lastAssistant.id !== messageId) {
+    return { shouldRender: false, toolCalls: [] }
+  }
+
+  const toolCalls: ToolCallLike[] = []
+  for (const assistant of turnAssistants) {
+    for (const toolCall of assistant.toolCalls ?? []) {
+      if (match(toolCall)) {
+        toolCalls.push(toolCall)
+      }
+    }
+  }
+
+  return { shouldRender: true, toolCalls }
+}
+
+/**
+ * 将本轮 meta.display === true 的工具统一挂到该轮最后一条 assistant。
+ */
+export function resolveTurnGenerativeToolCalls<T extends AssistantToolMessageLike>(
+  messages: T[],
+  messageId: string
+): { shouldRender: boolean; toolCalls: ToolCallLike[] } {
+  return resolveTurnToolCalls(messages, messageId, isTurnFinalDisplayToolCall)
 }

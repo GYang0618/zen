@@ -24,11 +24,18 @@ import { Fragment, useMemo } from 'react'
 import { useChatAgent } from '../context/chat-agent-context'
 import { useAgentRetry } from '../hooks/use-agent-retry'
 import { isA2UIToolCall } from '../lib/a2ui-tools'
+import {
+  isToolCallDisplayEnabled,
+  isTurnFinalDisplayToolCall,
+  resolveTurnGenerativeToolCalls,
+  resolveTurnToolCalls
+} from '../lib/group-tool-calls'
 import { useAgentChatInputStore } from '../stores/agent-chat-input'
 import { ChatAssistantActions } from './chat-assistant-actions'
 import { ChatPendingMessage } from './chat-pending-message'
 import { ChatToolCallBadge } from './chat-tool-call-badge'
 import { ChatUserActions } from './chat-user-actions'
+import { GroupedToolCallsView } from './grouped-tool-calls-view'
 
 import type { Message as AGUIMessage } from '@copilotkit/react-core/v2'
 
@@ -94,11 +101,48 @@ function AssistantMessageItem({
   const isStreaming = isRunning && isLastAssistant
   const hasContent = Boolean(content.trim())
   const toolCalls = Array.isArray(message.toolCalls) ? message.toolCalls : []
-  const a2uiToolCalls = useMemo(() => toolCalls.filter((tc) => isA2UIToolCall(tc)), [toolCalls])
-  const standardToolCalls = useMemo(
-    () => toolCalls.filter((tc) => !isA2UIToolCall(tc)),
+  // meta.display === true → 末尾槽；display === false → 不展示；其余内联默认卡片
+  const inlineStandardToolCalls = useMemo(
+    () =>
+      toolCalls.filter(
+        (tc) =>
+          !isA2UIToolCall(tc) &&
+          !isTurnFinalDisplayToolCall(tc) &&
+          isToolCallDisplayEnabled(tc)
+      ),
     [toolCalls]
   )
+  const turnA2uiTools = useMemo(
+    () =>
+      message.id
+        ? resolveTurnToolCalls(
+            messages,
+            message.id,
+            (tc) => isA2UIToolCall(tc) && isToolCallDisplayEnabled(tc)
+          )
+        : null,
+    [message.id, messages]
+  )
+  const turnGenerativeTools = useMemo(
+    () => (message.id ? resolveTurnGenerativeToolCalls(messages, message.id) : null),
+    [message.id, messages]
+  )
+  const showA2uiSlot = Boolean(turnA2uiTools?.shouldRender && turnA2uiTools.toolCalls.length > 0)
+  const showGenerativeSlot = Boolean(
+    turnGenerativeTools?.shouldRender && turnGenerativeTools.toolCalls.length > 0
+  )
+
+  const hasInlineTools = inlineStandardToolCalls.length > 0
+  if (
+    !hasContent &&
+    !hasInlineTools &&
+    !showA2uiSlot &&
+    !showGenerativeSlot &&
+    !isStreaming &&
+    !isStopped
+  ) {
+    return null
+  }
 
   return (
     <Message from="assistant" className="max-w-full">
@@ -112,10 +156,7 @@ function AssistantMessageItem({
             {content}
           </MessageResponse>
         )}
-        {a2uiToolCalls.length > 0 && (
-          <ChatToolCallBadge toolCalls={a2uiToolCalls as never} messages={messages as never} />
-        )}
-        {standardToolCalls.map((tc) => {
+        {inlineStandardToolCalls.map((tc) => {
           const toolMessage = messages.find((m) => {
             if (m.role !== 'tool') return false
             const candidate = m as { toolCallId?: string; tool_call_id?: string }
@@ -145,6 +186,20 @@ function AssistantMessageItem({
           </div>
         )}
       </MessageContent>
+      {showA2uiSlot && turnA2uiTools && (
+        <ChatToolCallBadge
+          toolCalls={turnA2uiTools.toolCalls}
+          messages={messages as never}
+        />
+      )}
+      {showGenerativeSlot && turnGenerativeTools && (
+        <div className="w-full">
+          <GroupedToolCallsView
+            toolCalls={turnGenerativeTools.toolCalls}
+            messages={messages as never}
+          />
+        </div>
+      )}
       {isLastAssistant && !isRunning && onRetry && (
         <ChatAssistantActions content={content} onRetry={onRetry} isRunning={isRunning} />
       )}

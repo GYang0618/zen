@@ -56,9 +56,21 @@ export const DEFAULT_AGENT_VERSIONS = {
 /** 供运行时识别默认 Chat，避免误把 Popup 的 plan Agent 套用默认策略。 */
 export const DEFAULT_AGENT_GRAPH_ID = 'default_agent'
 
+/** 动态 A2UI Surface 工具名（当前） */
+export const A2UI_SURFACE_TOOL_NAME = 'render_a2ui' as const
+
+/** 历史会话中可能出现的旧 A2UI 工具名，仅用于识别，不再注册 */
+export const LEGACY_A2UI_SURFACE_TOOL_NAMES = ['generate_dynamic_dashboard'] as const
+
+/** 所有应走 A2UI 生成式工作区的工具名（含历史兼容） */
+export const A2UI_SURFACE_TOOL_NAMES = [
+  A2UI_SURFACE_TOOL_NAME,
+  ...LEGACY_A2UI_SURFACE_TOOL_NAMES
+] as const
+
 /** 拥有前端专用渲染 UI（表格、3D/属性卡片等）的工具名单，提示词与展示层单源引用 */
 export const DEDICATED_RESULT_UI_TOOL_NAMES = [
-  'generate_dynamic_dashboard',
+  A2UI_SURFACE_TOOL_NAME,
   'indoor_walkthrough',
   'query_job_profiles_list',
   'query_properties',
@@ -85,7 +97,8 @@ export const TOOL_TITLES: Record<string, string> = {
   delete_job_profile: '删除岗位',
   delete_roles: '删除角色',
   delete_users: '删除用户',
-  generate_dynamic_dashboard: '生成动态看板',
+  generate_dynamic_dashboard: '生成式界面',
+  render_a2ui: '生成式界面',
   highlight_elements: '高亮构件',
   indoor_walkthrough: '室内漫游',
   load_model: '加载模型',

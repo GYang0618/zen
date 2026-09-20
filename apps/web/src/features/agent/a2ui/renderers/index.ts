@@ -1,9 +1,7 @@
 import { commonRenderers } from './common-renderers'
-import { userRenderers } from './user-renderers'
 
 export const renderers = {
-  ...commonRenderers,
-  ...userRenderers
+  ...commonRenderers
 }
 
 export type Renderers = typeof renderers

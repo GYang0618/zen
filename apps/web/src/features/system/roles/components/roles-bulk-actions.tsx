@@ -37,16 +37,16 @@ export function RolesBulkActions({
     const targets = status === 'active' ? activateTargets : freezeTargets
     if (targets.length === 0) return
 
-    const actionText = status === 'active' ? '激�? : '冻结'
+    const actionText = status === 'active' ? '激活' : '冻结'
     updateStatus(
       { ids: targets.map((role) => role.id), status },
       {
         onSuccess: (result) => {
           if (result.failedCount === 0) {
-            toast.success(`�?{actionText} ${result.successCount} 个角色`)
+            toast.success(`已${actionText} ${result.successCount} 个角色`)
           } else {
             toast.warning(
-              `�?{actionText} ${result.successCount} 个角色，${result.failedCount} 个失败`
+              `已${actionText} ${result.successCount} 个角色，${result.failedCount} 个失败`
             )
           }
           onClearSelection()
@@ -75,16 +75,16 @@ export function RolesBulkActions({
                   size="icon"
                   onClick={() => handleBulkStatusChange('active')}
                   className="size-8"
-                  aria-label="激活已选择的角�?
+                  aria-label="激活已选择的角色"
                   disabled={!hasSelection || activateTargets.length === 0 || isUpdatingStatus}
                 />
               }
             >
               <ShieldCheck />
-              <span className="sr-only">激活已选择的角�?/span>
+              <span className="sr-only">激活已选择的角色</span>
             </TooltipTrigger>
             <TooltipContent>
-              <p>激活已选择的角�?/p>
+              <p>激活已选择的角色</p>
             </TooltipContent>
           </Tooltip>
 
@@ -96,16 +96,16 @@ export function RolesBulkActions({
                   size="icon"
                   onClick={() => handleBulkStatusChange('disabled')}
                   className="size-8"
-                  aria-label="冻结已选择的角�?
+                  aria-label="冻结已选择的角色"
                   disabled={!hasSelection || freezeTargets.length === 0 || isUpdatingStatus}
                 />
               }
             >
               <Ban />
-              <span className="sr-only">冻结已选择的角�?/span>
+              <span className="sr-only">冻结已选择的角色</span>
             </TooltipTrigger>
             <TooltipContent>
-              <p>冻结已选择的角�?/p>
+              <p>冻结已选择的角色</p>
             </TooltipContent>
           </Tooltip>
         </Can>
@@ -119,13 +119,13 @@ export function RolesBulkActions({
                   size="icon"
                   onClick={() => setShowDeleteConfirm(true)}
                   className="size-8"
-                  aria-label="删除已选择的角�?
+                  aria-label="删除已选择的角色"
                   disabled={!hasSelection || deletableItems.length === 0}
                 />
               }
             >
               <Trash2 />
-              <span className="sr-only">删除已选择的角�?/span>
+              <span className="sr-only">删除已选择的角色</span>
             </TooltipTrigger>
             <TooltipContent>
               <p>
@@ -133,7 +133,7 @@ export function RolesBulkActions({
                   ? '请先选择角色'
                   : deletableItems.length === 0
                     ? '系统角色或仍有成员的角色无法删除'
-                    : '删除已选择的角�?}
+                    : '删除已选择的角色'}
               </p>
             </TooltipContent>
           </Tooltip>

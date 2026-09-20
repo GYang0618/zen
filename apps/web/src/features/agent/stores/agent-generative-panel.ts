@@ -12,25 +12,14 @@ export interface AgentGenerativePanelState {
   close: () => void
 }
 
-function normalizeIds(id: string | null): {
-  activeToolCallId: string | null
-  activeSurfaceId: string | null
-} {
-  if (!id) return { activeToolCallId: null, activeSurfaceId: null }
-  if (id.startsWith('a2ui-')) {
-    return { activeToolCallId: id.slice(5), activeSurfaceId: id }
-  }
-  return { activeToolCallId: id, activeSurfaceId: `a2ui-${id}` }
-}
-
 export const useAgentGenerativePanelStore = create<AgentGenerativePanelState>((set) => ({
   isOpen: false,
   activeToolCallId: null,
   activeSurfaceId: null,
   setOpen: (isOpen) => set({ isOpen }),
-  setActiveToolCallId: (id) => set(normalizeIds(id)),
-  setActiveSurfaceId: (id) => set(normalizeIds(id)),
-  openToolCall: (id) => set({ ...normalizeIds(id), isOpen: true }),
-  openSurface: (id) => set({ ...normalizeIds(id), isOpen: true }),
+  setActiveToolCallId: (id) => set({ activeToolCallId: id }),
+  setActiveSurfaceId: (id) => set({ activeSurfaceId: id }),
+  openToolCall: (id) => set({ activeToolCallId: id, isOpen: true }),
+  openSurface: (id) => set({ activeSurfaceId: id, isOpen: true }),
   close: () => set({ isOpen: false })
 }))

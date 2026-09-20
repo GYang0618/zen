@@ -1,8 +1,12 @@
 'use client'
 
+import { A2UI_SURFACE_TOOL_NAMES } from '@zen/shared'
 import { useEffect, useMemo, useRef } from 'react'
 
+import { parseToolCallArguments } from '../lib/group-tool-calls'
 import { useAgentGenerativePanelStore } from '../stores/agent-generative-panel'
+import { assembleRenderA2uiOperations } from './assemble-operations'
+import { readA2uiArgsTitle } from './resolve-a2ui-title'
 
 export interface A2UISurfaceDescriptor {
   surfaceId: string
@@ -17,7 +21,7 @@ interface ActivityMessageLike {
   id?: string
   role?: string
   activityType?: string
-  content?: Record<string, unknown>
+  content?: unknown
 }
 
 interface AssistantMessageLike {
@@ -52,6 +56,31 @@ function getOperationSurfaceId(op: unknown): string | null {
   return null
 }
 
+function readRecord(value: unknown): Record<string, unknown> | undefined {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>
+  }
+  if (typeof value === 'string' && value.trim().length > 0) {
+    try {
+      const parsed: unknown = JSON.parse(value)
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>
+      }
+    } catch {
+      return undefined
+    }
+  }
+  return undefined
+}
+
+function readOperations(value: unknown): Array<Record<string, unknown>> | null {
+  if (!Array.isArray(value) || value.length === 0) return null
+  return value.filter(
+    (item): item is Record<string, unknown> =>
+      Boolean(item) && typeof item === 'object' && !Array.isArray(item)
+  )
+}
+
 function inferSurfaceTitle(operations: Array<Record<string, unknown>>): string {
   for (const op of operations) {
     const ud = op.updateDataModel as { value?: { title?: string } } | undefined
@@ -71,7 +100,6 @@ function inferSurfaceTitle(operations: Array<Record<string, unknown>>): string {
       for (const comp of uc.components) {
         if (typeof comp?.title === 'string' && comp.title) return comp.title
         if (typeof comp?.props?.title === 'string' && comp.props.title) return comp.props.title
-        if (comp?.component === 'UserTable') return '用户列表'
       }
     }
   }
@@ -90,8 +118,9 @@ export function extractA2UISurfaces(
     if (!message || typeof message !== 'object') continue
     const activityMsg = message as ActivityMessageLike
     if (activityMsg.role === 'activity' && activityMsg.activityType === 'a2ui-surface') {
-      const rawOps = activityMsg.content?.a2ui_operations
-      if (Array.isArray(rawOps) && rawOps.length > 0) {
+      const content = readRecord(activityMsg.content)
+      const rawOps = readOperations(content?.a2ui_operations)
+      if (rawOps && rawOps.length > 0) {
         const opSurfaceId = getOperationSurfaceId(rawOps[0]) || `a2ui-${activityMsg.id}`
         if (!seenSurfaceIds.has(opSurfaceId)) {
           seenSurfaceIds.add(opSurfaceId)
@@ -115,6 +144,17 @@ export function extractA2UISurfaces(
                 // 忽略解析错误
               }
             }
+            const assistantMsg = m as AssistantMessageLike
+            if (assistantMsg.role === 'assistant' && Array.isArray(assistantMsg.toolCalls)) {
+              for (const toolCall of assistantMsg.toolCalls) {
+                if (!toolCall.id) continue
+                if (toolCall.function?.arguments?.includes(opSurfaceId)) {
+                  matchedToolCallId = toolCall.id
+                  break
+                }
+              }
+              if (matchedToolCallId) break
+            }
           }
 
           if (matchedToolCallId) {
@@ -123,11 +163,11 @@ export function extractA2UISurfaces(
 
           surfaces.push({
             surfaceId: opSurfaceId,
-            title: inferSurfaceTitle(rawOps as Array<Record<string, unknown>>),
+            title: inferSurfaceTitle(rawOps),
             toolCallId: matchedToolCallId,
             activityId: activityMsg.id,
-            isExecuting: Boolean(isRunning && activityMsg.content?.status === 'building'),
-            operations: rawOps as Array<Record<string, unknown>>
+            isExecuting: Boolean(isRunning && content?.status === 'building'),
+            operations: rawOps
           })
         }
       }
@@ -145,25 +185,17 @@ export function extractA2UISurfaces(
       const toolCallId = toolCall.id
       if (!toolCallId) continue
 
-      if (name === 'generate_dynamic_dashboard' || name === 'render_a2ui') {
+      if (name && (A2UI_SURFACE_TOOL_NAMES as readonly string[]).includes(name)) {
         const fallbackSurfaceId = `a2ui-${toolCallId}`
         if (seenSurfaceIds.has(fallbackSurfaceId)) continue
 
-        let args: {
-          display?: boolean
-          title?: string
-        } = {}
-        try {
-          args = JSON.parse(toolCall.function?.arguments || '{}')
-        } catch {
-          // 忽略解析错误
-        }
-
+        const args = parseToolCallArguments(toolCall) ?? {}
         if (args.display === false) continue
 
-        let title = args.title || '数据看板'
+        const explicitTitle = readA2uiArgsTitle(args)
+        let title = explicitTitle ?? '生成式界面'
+        let operations: Array<Record<string, unknown>> | null = null
 
-        // 查找对应的工具结果
         const toolResultMsg = messages.find(
           (m) =>
             m &&
@@ -173,51 +205,44 @@ export function extractA2UISurfaces(
         ) as ToolMessageLike | undefined
 
         if (toolResultMsg?.content) {
-          let operations: Array<Record<string, unknown>> | null = null
-
-          try {
-            const rawContent =
-              typeof toolResultMsg.content === 'string'
-                ? toolResultMsg.content
-                : JSON.stringify(toolResultMsg.content)
-            const parsed = JSON.parse(rawContent)
-
-            // 优先读取显式返回的 a2ui_operations
-            if (Array.isArray(parsed.a2ui_operations) && parsed.a2ui_operations.length > 0) {
-              operations = parsed.a2ui_operations as Array<Record<string, unknown>>
-              title = inferSurfaceTitle(operations)
-            }
-          } catch {
-            // 保持容错
-          }
-
-          if (!operations || operations.length === 0) continue
-
-          const actualOpSurfaceId = getOperationSurfaceId(operations[0])
-
-          // 如果操作里的 surfaceId 已经被通道 1 提取过，关联 toolCallId 并跳过，彻底杜绝重复
-          if (actualOpSurfaceId && seenSurfaceIds.has(actualOpSurfaceId)) {
-            seenSurfaceIds.add(fallbackSurfaceId)
-            const existing = surfaces.find((s) => s.surfaceId === actualOpSurfaceId)
-            if (existing && !existing.toolCallId) {
-              existing.toolCallId = toolCallId
-            }
-            continue
-          }
-
-          const finalSurfaceId = actualOpSurfaceId || fallbackSurfaceId
-          if (seenSurfaceIds.has(finalSurfaceId)) continue
-
-          seenSurfaceIds.add(finalSurfaceId)
-          seenSurfaceIds.add(fallbackSurfaceId)
-          surfaces.push({
-            surfaceId: finalSurfaceId,
-            title,
-            toolCallId,
-            isExecuting: false,
-            operations
-          })
+          const parsed = readRecord(toolResultMsg.content)
+          operations = readOperations(parsed?.a2ui_operations)
         }
+
+        if (!operations) {
+          operations = assembleRenderA2uiOperations(args, fallbackSurfaceId)
+        }
+
+        if (!operations || operations.length === 0) continue
+
+        if (!explicitTitle) {
+          title = inferSurfaceTitle(operations)
+        }
+
+        const actualOpSurfaceId = getOperationSurfaceId(operations[0])
+
+        // 如果操作里的 surfaceId 已经被通道 1 提取过，关联 toolCallId 并跳过，彻底杜绝重复
+        if (actualOpSurfaceId && seenSurfaceIds.has(actualOpSurfaceId)) {
+          seenSurfaceIds.add(fallbackSurfaceId)
+          const existing = surfaces.find((s) => s.surfaceId === actualOpSurfaceId)
+          if (existing && !existing.toolCallId) {
+            existing.toolCallId = toolCallId
+          }
+          continue
+        }
+
+        const finalSurfaceId = actualOpSurfaceId || fallbackSurfaceId
+        if (seenSurfaceIds.has(finalSurfaceId)) continue
+
+        seenSurfaceIds.add(finalSurfaceId)
+        seenSurfaceIds.add(fallbackSurfaceId)
+        surfaces.push({
+          surfaceId: finalSurfaceId,
+          title,
+          toolCallId,
+          isExecuting: false,
+          operations
+        })
       }
     }
   }
@@ -237,14 +262,15 @@ export function useA2UISurfaces(messages: unknown[], isRunning: boolean) {
   }, [messages, isRunning])
 
   const activeSurface = useMemo(() => {
-    if (activeSurfaceId || activeToolCallId) {
-      const found = surfaces.find(
-        (s) =>
-          (activeSurfaceId &&
-            (s.surfaceId === activeSurfaceId || s.toolCallId === activeSurfaceId)) ||
-          (activeToolCallId && s.toolCallId === activeToolCallId)
+    if (activeToolCallId) {
+      const byToolCall = surfaces.find((s) => s.toolCallId === activeToolCallId)
+      if (byToolCall) return byToolCall
+    }
+    if (activeSurfaceId) {
+      const bySurface = surfaces.find(
+        (s) => s.surfaceId === activeSurfaceId || s.toolCallId === activeSurfaceId
       )
-      if (found) return found
+      if (bySurface) return bySurface
     }
     return surfaces.at(-1)
   }, [surfaces, activeSurfaceId, activeToolCallId])

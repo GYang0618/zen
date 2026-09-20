@@ -1,5 +1,4 @@
 import { useRenderToolCall } from '@copilotkit/react-core/v2'
-import { Fragment } from 'react'
 
 import type { ToolCallLike } from '../lib/group-tool-calls'
 
@@ -35,16 +34,18 @@ export function GroupedToolCallsView({ toolCalls, messages }: GroupedToolCallsVi
   return (
     <>
       {validToolCalls.map((toolCall) => {
-        const toolMessage = messages.find(
-          (message) => message.role === 'tool' && message.toolCallId === toolCall.id
-        )
+        const toolMessage = messages.find((message) => {
+          if (message.role !== 'tool') return false
+          const candidate = message as { toolCallId?: string; tool_call_id?: string }
+          return candidate.toolCallId === toolCall.id || candidate.tool_call_id === toolCall.id
+        })
         return (
-          <Fragment key={toolCall.id}>
+          <div key={toolCall.id} className="my-2 w-full">
             {renderToolCall({
               toolCall: toolCall as never,
               toolMessage: toolMessage as never
             })}
-          </Fragment>
+          </div>
         )
       })}
     </>

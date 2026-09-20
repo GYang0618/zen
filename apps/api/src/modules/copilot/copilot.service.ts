@@ -8,6 +8,7 @@ import {
 } from '@copilotkit/runtime/v2'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
+import { A2UI_SURFACE_TOOL_NAME, getZenA2uiInlineCatalog, ZEN_A2UI_CATALOG_ID } from '@zen/shared'
 
 import { AuthContextService } from '../../common/auth/auth-context.service.js'
 import { CONFIG_NAMESPACES } from '../../config/index.js'
@@ -88,7 +89,10 @@ export class CopilotService implements OnModuleInit {
         }
       },
       a2ui: {
-        defaultCatalogId: 'copilotkit://zen-catalog'
+        injectA2UITool: true,
+        a2uiToolNames: [A2UI_SURFACE_TOOL_NAME],
+        defaultCatalogId: ZEN_A2UI_CATALOG_ID,
+        schema: getZenA2uiInlineCatalog()
       },
       afterRequestMiddleware: async ({
         messages,

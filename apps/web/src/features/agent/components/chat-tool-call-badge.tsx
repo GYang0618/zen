@@ -1,6 +1,19 @@
+import {
+  Avatar,
+  AvatarFallback,
+  cn,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle
+} from '@zen/ui'
 import { ChevronRight, Loader2, Sparkles } from 'lucide-react'
 
-import { formatToolTitle } from '../lib/tool-title'
+import { resolveA2uiToolCallTitle } from '../a2ui/resolve-a2ui-title'
+import { parseToolCallArguments } from '../lib/group-tool-calls'
 import { useAgentGenerativePanelStore } from '../stores/agent-generative-panel'
 
 import type { ToolCallLike } from '../lib/group-tool-calls'
@@ -24,44 +37,64 @@ export function ChatToolCallBadge({ toolCalls, messages }: ChatToolCallBadgeProp
   if (toolCalls.length === 0) return null
 
   return (
-    <div className="my-1.5 flex flex-wrap items-center gap-2">
+    <ItemGroup className="my-1.5 gap-2">
       {toolCalls.map((toolCall) => {
         const id = toolCall.id
         if (!id) return null
 
-        const name = toolCall.function?.name ?? ''
-        const title = formatToolTitle(name)
-        const hasResult = messages.some((msg) => {
-          if (msg.role !== 'tool' || msg.content === undefined) return false
-          const anyMsg = msg as { toolCallId?: string; tool_call_id?: string }
-          return anyMsg.toolCallId === id || anyMsg.tool_call_id === id
-        })
+        const title = resolveA2uiToolCallTitle(toolCall)
+        const args = parseToolCallArguments(toolCall)
+        const hasCompleteArgs = Array.isArray(args?.components) && args.components.length > 0
+        const hasResult =
+          hasCompleteArgs ||
+          messages.some((msg) => {
+            if (msg.role !== 'tool' || msg.content === undefined) return false
+            const anyMsg = msg as { toolCallId?: string; tool_call_id?: string }
+            return anyMsg.toolCallId === id || anyMsg.tool_call_id === id
+          })
         const isActive = isPanelOpen && activeToolCallId === id
+        const description = hasResult ? '结果已生成，可在右侧面板查看' : '正在生成中，请稍候...'
 
         return (
-          <button
+          <Item
             key={id}
-            type="button"
-            onClick={() => openToolCall(id)}
-            className={`group inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring ${
-              isActive
-                ? 'border-primary/50 bg-primary/10 text-primary'
-                : 'border-border bg-muted/50 text-foreground hover:bg-muted'
-            }`}
-          >
-            {hasResult ? (
-              <Sparkles className="size-3 text-primary shrink-0" />
-            ) : (
-              <Loader2 className="size-3 animate-spin text-primary shrink-0" />
+            render={<button type="button" disabled={!hasResult} />}
+            variant={isActive ? 'muted' : 'outline'}
+            onClick={() => {
+              if (!hasResult) return
+              openToolCall(id)
+            }}
+            className={cn(
+              'text-left hover:bg-muted/60 disabled:pointer-events-none disabled:opacity-60',
+              isActive && 'border-primary/40'
             )}
-            <span className="max-w-40 truncate">{title}</span>
-            <span className="text-[11px] text-muted-foreground group-hover:text-foreground">
-              {hasResult ? '在右侧查看' : '生成中...'}
-            </span>
-            <ChevronRight className="size-3 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-          </button>
+          >
+            <ItemMedia variant="icon">
+              <Avatar className="size-10">
+                <AvatarFallback>
+                  {hasResult ? (
+                    <Sparkles className="size-4.5 text-primary" aria-hidden />
+                  ) : (
+                    <Loader2 className="size-4.5 animate-spin text-primary" aria-hidden />
+                  )}
+                </AvatarFallback>
+              </Avatar>
+            </ItemMedia>
+            <ItemContent className="min-w-0">
+              <ItemTitle className="min-w-0">
+                <span className="truncate">{title}</span>
+              </ItemTitle>
+              <ItemDescription>
+                <span className={cn(!hasResult && 'shimmer')}>{description}</span>
+              </ItemDescription>
+            </ItemContent>
+
+            <ItemActions>
+              <ChevronRight className="size-4" />
+            </ItemActions>
+          </Item>
         )
       })}
-    </div>
+    </ItemGroup>
   )
 }

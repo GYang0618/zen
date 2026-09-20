@@ -18,8 +18,7 @@ export function deriveProvisionalThreadTitle(
   if (!normalized) return FALLBACK_THREAD_TITLE
 
   const sentenceEnd = normalized.search(/[。！？.!?\n]/)
-  const firstSentence =
-    sentenceEnd >= 0 ? normalized.slice(0, sentenceEnd + 1).trim() : normalized
+  const firstSentence = sentenceEnd >= 0 ? normalized.slice(0, sentenceEnd + 1).trim() : normalized
   const withoutTrailingPunctuation = firstSentence.replace(/[。！？.!?,，、;；:：]+$/u, '').trim()
   const source = withoutTrailingPunctuation || firstSentence
 

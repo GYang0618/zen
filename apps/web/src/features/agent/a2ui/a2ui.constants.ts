@@ -1,1 +1,1 @@
-export const ZEN_A2UI_CATALOG_ID = 'copilotkit://zen-catalog'
+export { ZEN_A2UI_CATALOG_ID } from '@zen/shared'

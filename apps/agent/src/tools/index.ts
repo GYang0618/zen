@@ -1,4 +1,3 @@
-export { dashboardTools, generateDashboardTool } from './modules/dashboard'
 export { organizationTools } from './modules/organization'
 export { postTools } from './modules/post'
 export { roleTools } from './modules/role'

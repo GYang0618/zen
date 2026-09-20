@@ -1,3 +1,4 @@
+export * from './a2ui-catalog.js'
 export * from './copilot.constants.js'
 export * from './copilot.schema.js'
 export * from './copilot.type.js'

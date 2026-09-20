@@ -1,3 +1,5 @@
+import { A2UI_SURFACE_TOOL_NAMES } from '@zen/shared'
+
 export interface ToolCallLikeForA2UI {
   id?: string
   function?: {
@@ -15,10 +17,5 @@ export function isA2UIToolCall(toolCall: ToolCallLikeForA2UI | undefined | null)
   if (!toolCall) return false
   const name = toolCall.function?.name
   if (!name) return false
-
-  if (name === 'generate_dynamic_dashboard' || name === 'render_a2ui') {
-    return true
-  }
-
-  return false
+  return (A2UI_SURFACE_TOOL_NAMES as readonly string[]).includes(name)
 }
