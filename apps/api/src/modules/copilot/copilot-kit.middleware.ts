@@ -57,6 +57,12 @@ export class CopilotKitMiddleware implements NestMiddleware {
       }
     }
 
+    // 拦截 /copilot/threads 路径，交给 NestJS CopilotThreadController 处理
+    const url = req.originalUrl || req.url
+    if (url.includes('/copilot/threads')) {
+      return next()
+    }
+
     ;(this.copilotService.getHandler() as (req: unknown, res: unknown, next: unknown) => void)(
       req,
       res,

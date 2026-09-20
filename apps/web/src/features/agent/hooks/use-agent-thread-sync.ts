@@ -8,6 +8,32 @@ interface UseAgentThreadSyncOptions {
   threadId?: string
 }
 
+interface InterruptHolder {
+  pendingInterrupts?: unknown[]
+  delegate?: {
+    pendingInterrupts?: unknown[]
+  }
+}
+
+/**
+ * 安全清理 Agent 及其代理 delegate 身上的残留未决中断，
+ * 防止在 connectAgent 建立连接/回放历史时误触底层的 resume 校验错误。
+ */
+export function resetAgentPendingInterrupts(target: unknown): void {
+  if (!target || typeof target !== 'object') return
+  const holder = target as InterruptHolder
+  if (Array.isArray(holder.pendingInterrupts) && holder.pendingInterrupts.length > 0) {
+    holder.pendingInterrupts = []
+  }
+  if (
+    holder.delegate &&
+    Array.isArray(holder.delegate.pendingInterrupts) &&
+    holder.delegate.pendingInterrupts.length > 0
+  ) {
+    holder.delegate.pendingInterrupts = []
+  }
+}
+
 export function useAgentThreadSync({
   agentId = 'default',
   threadId
@@ -21,7 +47,7 @@ export function useAgentThreadSync({
 
   const hasExplicitThreadId = Boolean(threadId)
   const activeThreadId = threadId ?? freshThreadId
-  const localAgentId = 'chat-active'
+  const localAgentId = `chat-active-${activeThreadId}`
 
   const { agent, isReady } = useAgent({
     agentId: localAgentId,
@@ -77,6 +103,7 @@ export function useAgentThreadSync({
     if (!hasExplicitThreadId) {
       if (previousThreadIdRef.current !== activeThreadId) {
         previousThreadIdRef.current = activeThreadId
+        resetAgentPendingInterrupts(agent)
         if (agent.messages.length > 0) {
           agent.setMessages([])
         }
@@ -100,6 +127,7 @@ export function useAgentThreadSync({
 
     const connect = async () => {
       try {
+        resetAgentPendingInterrupts(agent)
         await copilotkit.connectAgent({ agent })
       } catch (error) {
         if (detached) return

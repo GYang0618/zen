@@ -2,7 +2,7 @@
 
 import { useInterrupt } from '@copilotkit/react-core/v2'
 import { Confirmation, ConfirmationAction, ConfirmationActions, ConfirmationTitle } from '@zen/ui'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { useChatAgent } from '../context/chat-agent-context'
 import { formatToolTitle } from '../lib/tool-title'
@@ -15,6 +15,28 @@ export interface ParsedInterruptValue {
   message?: string
   title?: string
   action?: string
+}
+
+/**
+ * 提取中断原始负载（兼容标准 AG-UI 与遗留自定义事件模式）
+ */
+export function extractInterruptRawValue(
+  interrupt: unknown,
+  event: { value?: unknown } | null | undefined
+): unknown {
+  if (interrupt && typeof interrupt === 'object') {
+    const obj = interrupt as {
+      metadata?: { langgraph?: { raw?: unknown } }
+      value?: unknown
+    }
+    if (obj.metadata?.langgraph?.raw !== undefined) {
+      return obj.metadata.langgraph.raw
+    }
+    if (obj.value !== undefined) {
+      return obj.value
+    }
+  }
+  return event?.value
 }
 
 export function parseInterruptValue(rawValue: unknown): ParsedInterruptValue {
@@ -88,21 +110,42 @@ export function ChatApprovalRegistration({ onPendingChange }: ChatApprovalRegist
 }
 
 function ChatApprovalRegistrationInner({ onPendingChange }: ChatApprovalRegistrationProps) {
-  const { agent } = useChatAgent()
+  const { agent, activeThreadId } = useChatAgent()
   const clearPendingApprovalTools = useAgentChatInputStore(
     (state) => state.clearPendingApprovalTools
   )
+  const clearResolvingApprovalTools = useAgentChatInputStore(
+    (state) => state.clearResolvingApprovalTools
+  )
+  const resolvedInterruptIdsRef = useRef<Set<string>>(new Set())
+  const prevThreadIdRef = useRef(activeThreadId)
+
+  if (prevThreadIdRef.current !== activeThreadId) {
+    prevThreadIdRef.current = activeThreadId
+    resolvedInterruptIdsRef.current.clear()
+    clearResolvingApprovalTools()
+  }
 
   const interruptElement = useInterrupt({
     agentId: agent.agentId,
     renderInChat: false,
     render: ({ event, interrupt, resolve }) => {
-      const rawValue = (interrupt as { value?: unknown } | null | undefined)?.value ?? event?.value
+      const interruptId = interrupt?.id ?? event?.name ?? 'unknown-interrupt'
+      if (resolvedInterruptIdsRef.current.has(interruptId)) {
+        return null as unknown as React.ReactElement
+      }
+
+      const rawValue = extractInterruptRawValue(interrupt, event)
       return (
         <ApprovalCardWrapper
+          key={interruptId}
           rawValue={rawValue}
-          interruptId={interrupt?.id ?? event.name}
-          onResolve={(payload) => resolve(payload)}
+          interruptId={interruptId}
+          isAgentRunning={Boolean(agent.isRunning)}
+          onResolve={(payload) => {
+            resolvedInterruptIdsRef.current.add(interruptId)
+            resolve(payload)
+          }}
         />
       )
     }
@@ -131,14 +174,24 @@ function ChatApprovalRegistrationInner({ onPendingChange }: ChatApprovalRegistra
 interface ApprovalCardWrapperProps {
   rawValue: unknown
   interruptId: string
+  isAgentRunning: boolean
   onResolve: (payload: unknown) => void
 }
 
-function ApprovalCardWrapper({ rawValue, interruptId, onResolve }: ApprovalCardWrapperProps) {
+function ApprovalCardWrapper({
+  rawValue,
+  interruptId,
+  isAgentRunning,
+  onResolve
+}: ApprovalCardWrapperProps) {
   const setPendingApprovalTools = useAgentChatInputStore((state) => state.setPendingApprovalTools)
   const clearPendingApprovalTools = useAgentChatInputStore(
     (state) => state.clearPendingApprovalTools
   )
+  const markApprovalToolsResolving = useAgentChatInputStore(
+    (state) => state.markApprovalToolsResolving
+  )
+  const [submitting, setSubmitting] = useState(false)
   const parsed = useMemo(() => parseInterruptValue(rawValue), [rawValue])
 
   useEffect(() => {
@@ -151,6 +204,13 @@ function ApprovalCardWrapper({ rawValue, interruptId, onResolve }: ApprovalCardW
   }, [parsed.actionRequests, setPendingApprovalTools, clearPendingApprovalTools])
 
   const handleApprove = () => {
+    if (submitting || isAgentRunning) return
+    setSubmitting(true)
+    const approvedNames = parsed.actionRequests.map((ar) => ar.name).filter(Boolean)
+    if (approvedNames.length > 0) {
+      markApprovalToolsResolving(approvedNames)
+    }
+
     const decisions =
       parsed.actionRequests.length > 0
         ? parsed.actionRequests.map(() => ({ type: 'approve' as const }))
@@ -163,6 +223,8 @@ function ApprovalCardWrapper({ rawValue, interruptId, onResolve }: ApprovalCardW
   }
 
   const handleReject = () => {
+    if (submitting || isAgentRunning) return
+    setSubmitting(true)
     const decisions =
       parsed.actionRequests.length > 0
         ? parsed.actionRequests.map(() => ({
@@ -181,6 +243,8 @@ function ApprovalCardWrapper({ rawValue, interruptId, onResolve }: ApprovalCardW
     <ApprovalCard
       parsed={parsed}
       interruptId={interruptId}
+      submitting={submitting}
+      isAgentRunning={isAgentRunning}
       onApprove={handleApprove}
       onReject={handleReject}
     />
@@ -190,6 +254,8 @@ function ApprovalCardWrapper({ rawValue, interruptId, onResolve }: ApprovalCardW
 interface ApprovalCardProps {
   parsed: ParsedInterruptValue
   interruptId: string
+  submitting: boolean
+  isAgentRunning: boolean
   onApprove: () => void
   onReject: () => void
 }
@@ -212,19 +278,16 @@ function getApprovalTitle(parsed: ParsedInterruptValue): string {
   return '该操作需要您的授权与审批，是否确认执行？'
 }
 
-function ApprovalCard({ parsed, interruptId, onApprove, onReject }: ApprovalCardProps) {
-  const [submitting, setSubmitting] = useState(false)
+function ApprovalCard({
+  parsed,
+  interruptId,
+  submitting,
+  isAgentRunning,
+  onApprove,
+  onReject
+}: ApprovalCardProps) {
   const title = useMemo(() => getApprovalTitle(parsed), [parsed])
-
-  const handleApprove = () => {
-    setSubmitting(true)
-    onApprove()
-  }
-
-  const handleReject = () => {
-    setSubmitting(true)
-    onReject()
-  }
+  const disabled = submitting || isAgentRunning
 
   return (
     <Confirmation
@@ -241,10 +304,10 @@ function ApprovalCard({ parsed, interruptId, onApprove, onReject }: ApprovalCard
         </div>
       </ConfirmationTitle>
       <ConfirmationActions>
-        <ConfirmationAction variant="outline" disabled={submitting} onClick={handleReject}>
+        <ConfirmationAction variant="outline" disabled={disabled} onClick={onReject}>
           拒绝
         </ConfirmationAction>
-        <ConfirmationAction disabled={submitting} onClick={handleApprove}>
+        <ConfirmationAction disabled={disabled} onClick={onApprove}>
           确认执行
         </ConfirmationAction>
       </ConfirmationActions>

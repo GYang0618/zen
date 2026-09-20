@@ -1,4 +1,5 @@
 import { useDefaultToolRender } from '../generative-ui'
+import { useUsersRenderers } from '../hooks/renderers'
 import { useAppearanceTool } from '../hooks/tools'
 
 /**
@@ -21,5 +22,6 @@ export function PopupChatRegistrations() {
  * Chat模式专属生成式UI和前端工具（智能体模式下）
  */
 export function ChatRegistrations() {
+  useUsersRenderers()
   return null
 }

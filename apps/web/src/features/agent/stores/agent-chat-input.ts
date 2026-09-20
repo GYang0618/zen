@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 
+import type { Thread } from '@copilotkit/react-core/v2'
+
 export interface AgentChatInputDraft {
   text: string
   timestamp: number
@@ -17,6 +19,10 @@ export interface AgentChatInputState {
   runningThreadIds: Set<string>
   stoppedMessageIds: Set<string>
   pendingApprovalTools: PendingApprovalTool[]
+  resolvingApprovalToolNames: Set<string>
+  /** 首条消息发出后、服务端列表尚未返回前的乐观会话项 */
+  provisionalThreads: Thread[]
+  historyRefreshNonce: number
   setEditDraft: (text: string) => void
   clearEditDraft: () => void
   triggerNewThread: () => void
@@ -25,6 +31,11 @@ export interface AgentChatInputState {
   clearMessageStopped: (messageId?: string) => void
   setPendingApprovalTools: (tools: PendingApprovalTool[]) => void
   clearPendingApprovalTools: () => void
+  markApprovalToolsResolving: (toolNames: string[]) => void
+  clearResolvingApprovalTools: (toolName?: string) => void
+  upsertProvisionalThread: (thread: Thread) => void
+  removeProvisionalThread: (threadId: string) => void
+  requestHistoryRefresh: () => void
 }
 
 export const useAgentChatInputStore = create<AgentChatInputState>((set) => ({
@@ -33,6 +44,9 @@ export const useAgentChatInputStore = create<AgentChatInputState>((set) => ({
   runningThreadIds: new Set<string>(),
   stoppedMessageIds: new Set<string>(),
   pendingApprovalTools: [],
+  resolvingApprovalToolNames: new Set<string>(),
+  provisionalThreads: [],
+  historyRefreshNonce: 0,
   setEditDraft: (text: string) =>
     set({
       editDraft: {
@@ -73,5 +87,43 @@ export const useAgentChatInputStore = create<AgentChatInputState>((set) => ({
       return { stoppedMessageIds: next }
     }),
   setPendingApprovalTools: (tools: PendingApprovalTool[]) => set({ pendingApprovalTools: tools }),
-  clearPendingApprovalTools: () => set({ pendingApprovalTools: [] })
+  clearPendingApprovalTools: () => set({ pendingApprovalTools: [] }),
+  markApprovalToolsResolving: (toolNames: string[]) =>
+    set((state) => {
+      const next = new Set(state.resolvingApprovalToolNames)
+      for (const name of toolNames) {
+        next.add(name)
+      }
+      return { resolvingApprovalToolNames: next }
+    }),
+  clearResolvingApprovalTools: (toolName?: string) =>
+    set((state) => {
+      if (!toolName) {
+        if (state.resolvingApprovalToolNames.size === 0) return state
+        return { resolvingApprovalToolNames: new Set() }
+      }
+      if (!state.resolvingApprovalToolNames.has(toolName)) return state
+      const next = new Set(state.resolvingApprovalToolNames)
+      next.delete(toolName)
+      return { resolvingApprovalToolNames: next }
+    }),
+  upsertProvisionalThread: (thread) =>
+    set((state) => {
+      const index = state.provisionalThreads.findIndex((item) => item.id === thread.id)
+      if (index === -1) {
+        return { provisionalThreads: [thread, ...state.provisionalThreads] }
+      }
+      const next = [...state.provisionalThreads]
+      next[index] = { ...next[index], ...thread, updatedAt: thread.updatedAt }
+      return { provisionalThreads: next }
+    }),
+  removeProvisionalThread: (threadId) =>
+    set((state) => {
+      if (!state.provisionalThreads.some((item) => item.id === threadId)) return state
+      return {
+        provisionalThreads: state.provisionalThreads.filter((item) => item.id !== threadId)
+      }
+    }),
+  requestHistoryRefresh: () =>
+    set((state) => ({ historyRefreshNonce: state.historyRefreshNonce + 1 }))
 }))

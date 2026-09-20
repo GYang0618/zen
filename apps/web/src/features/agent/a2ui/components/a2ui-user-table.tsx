@@ -6,7 +6,7 @@ import { Badge } from '@zen/ui'
 import { Users, UserX } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
 
-import { AITable } from '@/components/ai'
+import { DataTable } from '@/features/agent/generative-ui'
 import {
   columns as defaultUsersColumns,
   UsersDialogs,
@@ -183,7 +183,7 @@ function A2UIUserTableContent({ props }: RendererProps<A2UIUserTableProps>) {
         </Badge>
       </div>
 
-      <AITable
+      <DataTable
         data={usersList}
         columns={columns}
         isLoading={effectiveProps.isLoading}

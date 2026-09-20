@@ -18,7 +18,14 @@ import { ChatAgentProvider, useChatAgent } from './context/chat-agent-context'
 import { useAgentThreadSync } from './hooks/use-agent-thread-sync'
 import { useAgentGenerativePanelStore } from './stores/agent-generative-panel'
 
-export function AgentChat({ threadId: propThreadId }: { threadId?: string } = {}) {
+export function AgentChat({
+  threadId: propThreadId,
+  /** 是否处于可见的智能体模式；隐藏时需关闭 fixed，避免污染 SidebarInset 的 :has([data-layout=fixed]) */
+  active = true
+}: {
+  threadId?: string
+  active?: boolean
+} = {}) {
   const { isOpen, setOpen } = useAgentGenerativePanelStore()
   const { pathname } = useLocation()
   const lastAgentPath = useShellModeStore((state) => state.lastAgentPath)
@@ -58,7 +65,7 @@ export function AgentChat({ threadId: propThreadId }: { threadId?: string } = {}
             <ProfileDropdown />
           </div>
         </Header>
-        <Main fixed fluid className="p-0">
+        <Main fixed={active} fluid className="p-0">
           <ChatRegistrations />
           <AgentBackgroundRunner activeThreadId={activeThreadId} />
           <Chat key={activeThreadId} isConnecting={isConnecting} activeThreadId={activeThreadId} />

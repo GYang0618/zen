@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 
 import { useAgentGenerativePanelStore } from '../stores/agent-generative-panel'
-import { ZEN_A2UI_CATALOG_ID } from './a2ui.constants'
 
 export interface A2UISurfaceDescriptor {
   surfaceId: string
@@ -79,57 +78,6 @@ function inferSurfaceTitle(operations: Array<Record<string, unknown>>): string {
   return '动态生成界面'
 }
 
-function createFallbackUserTableOperations(
-  surfaceId: string,
-  title: string,
-  stateKey: string,
-  users: unknown[],
-  isLoading: boolean
-): Array<Record<string, unknown>> {
-  const componentProps = {
-    title,
-    stateKey,
-    users,
-    isLoading
-  }
-
-  return [
-    {
-      version: 'v0.9',
-      createSurface: {
-        surfaceId,
-        catalogId: ZEN_A2UI_CATALOG_ID
-      }
-    },
-    {
-      version: 'v0.9',
-      updateComponents: {
-        surfaceId,
-        components: [
-          {
-            id: 'root',
-            component: 'UserTable',
-            ...componentProps,
-            props: componentProps
-          }
-        ]
-      }
-    },
-    {
-      version: 'v0.9',
-      updateDataModel: {
-        surfaceId,
-        path: '/',
-        value: {
-          title,
-          users,
-          [stateKey]: users
-        }
-      }
-    }
-  ]
-}
-
 export function extractA2UISurfaces(
   messages: unknown[],
   isRunning: boolean
@@ -197,17 +145,11 @@ export function extractA2UISurfaces(
       const toolCallId = toolCall.id
       if (!toolCallId) continue
 
-      if (
-        name === 'query_users_list' ||
-        name === 'generate_dynamic_dashboard' ||
-        name === 'render_a2ui'
-      ) {
+      if (name === 'generate_dynamic_dashboard' || name === 'render_a2ui') {
         const fallbackSurfaceId = `a2ui-${toolCallId}`
         if (seenSurfaceIds.has(fallbackSurfaceId)) continue
 
         let args: {
-          status?: string | string[]
-          keyword?: string
           display?: boolean
           title?: string
         } = {}
@@ -219,18 +161,7 @@ export function extractA2UISurfaces(
 
         if (args.display === false) continue
 
-        const isSuspended =
-          args.status === 'suspended' ||
-          (Array.isArray(args.status) && args.status.includes('suspended'))
-        const stateKey = isSuspended ? 'inactive_users' : 'users'
-        let title = args.title || (name === 'generate_dynamic_dashboard' ? '数据看板' : '用户列表')
-        if (name === 'query_users_list') {
-          if (isSuspended) {
-            title = '已停用用户列表'
-          } else if (args.keyword && args.keyword !== '@qq.com' && args.keyword !== 'qq.com') {
-            title = `用户列表（搜索: ${args.keyword}）`
-          }
-        }
+        let title = args.title || '数据看板'
 
         // 查找对应的工具结果
         const toolResultMsg = messages.find(
@@ -243,7 +174,6 @@ export function extractA2UISurfaces(
 
         if (toolResultMsg?.content) {
           let operations: Array<Record<string, unknown>> | null = null
-          let users: unknown[] = []
 
           try {
             const rawContent =
@@ -257,20 +187,13 @@ export function extractA2UISurfaces(
               operations = parsed.a2ui_operations as Array<Record<string, unknown>>
               title = inferSurfaceTitle(operations)
             }
-
-            // 读取 items
-            const dataObj = parsed.data ?? parsed
-            if (Array.isArray(dataObj.items)) {
-              users = dataObj.items
-            } else if (Array.isArray(dataObj)) {
-              users = dataObj
-            }
           } catch {
             // 保持容错
           }
 
-          const actualOpSurfaceId =
-            operations && operations.length > 0 ? getOperationSurfaceId(operations[0]) : null
+          if (!operations || operations.length === 0) continue
+
+          const actualOpSurfaceId = getOperationSurfaceId(operations[0])
 
           // 如果操作里的 surfaceId 已经被通道 1 提取过，关联 toolCallId 并跳过，彻底杜绝重复
           if (actualOpSurfaceId && seenSurfaceIds.has(actualOpSurfaceId)) {
@@ -285,16 +208,6 @@ export function extractA2UISurfaces(
           const finalSurfaceId = actualOpSurfaceId || fallbackSurfaceId
           if (seenSurfaceIds.has(finalSurfaceId)) continue
 
-          if (!operations) {
-            operations = createFallbackUserTableOperations(
-              finalSurfaceId,
-              title,
-              stateKey,
-              users,
-              false
-            )
-          }
-
           seenSurfaceIds.add(finalSurfaceId)
           seenSurfaceIds.add(fallbackSurfaceId)
           surfaces.push({
@@ -302,24 +215,6 @@ export function extractA2UISurfaces(
             title,
             toolCallId,
             isExecuting: false,
-            operations
-          })
-        } else if (isRunning) {
-          if (seenSurfaceIds.has(fallbackSurfaceId)) continue
-          // 工具仍在执行中
-          const operations = createFallbackUserTableOperations(
-            fallbackSurfaceId,
-            title,
-            stateKey,
-            [],
-            true
-          )
-          seenSurfaceIds.add(fallbackSurfaceId)
-          surfaces.push({
-            surfaceId: fallbackSurfaceId,
-            title,
-            toolCallId,
-            isExecuting: true,
             operations
           })
         }

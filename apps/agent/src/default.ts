@@ -1,7 +1,7 @@
 import { AGENT_MEMORY_CONFIGURABLE_KEY, DEFAULT_AGENT_RUN_BUDGET } from '@zen/shared'
 import { createAgent, dynamicSystemPromptMiddleware } from 'langchain'
 
-import { createDefaultAgentMiddleware } from '@/middlewares'
+import { createDefaultAgentMiddleware, createFrontendToolsMiddleware } from '@/middlewares'
 import { createModel } from '@/models'
 import {
   APPROVAL_FLOW_RULES,
@@ -41,14 +41,22 @@ export function createDefaultAgent() {
     stateSchema: AgentStateSchema,
     contextSchema: ContextSchema,
     middleware: [
+      createFrontendToolsMiddleware(defaultAgentTools.map((tool) => tool.name)),
       dynamicSystemPromptMiddleware<z.infer<typeof ContextSchema>>((_state, runtime) => {
         const memory = runtime.context?.[AGENT_MEMORY_CONFIGURABLE_KEY]
         const now = new Date()
-        const timePrompt = `当前系统时间：${now.toISOString()}（北京时间：${now.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}）`
+        const dateStr = now.toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' })
+        const timeStr = now.toLocaleTimeString('zh-CN', {
+          timeZone: 'Asia/Shanghai',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        })
+        const timePrompt = `当前系统时间：${dateStr} ${timeStr}（北京时间）`
         return [
           BASE_SYSTEM_PROMPT,
-          timePrompt,
-          ...(memory ? [`用户明确授权给 Qwen 的非敏感记忆：\n${memory}`] : [])
+          ...(memory ? [`用户明确授权给 Qwen 的非敏感记忆：\n${memory}`] : []),
+          timePrompt
         ].join('\n\n')
       }),
       ...createDefaultAgentMiddleware(model)

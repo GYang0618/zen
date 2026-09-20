@@ -1,5 +1,6 @@
 import { createAgent } from 'langchain'
 
+import { createFrontendToolsMiddleware } from '@/middlewares'
 import { createModel } from '@/models'
 
 import {
@@ -18,7 +19,8 @@ export function createPlanAgent() {
       MODULE_NAVIGATION_RULES,
       GENERATIVE_UI_REPLY_RULES,
       REASONING_STYLE_RULES
-    ].join('\n')
+    ].join('\n'),
+    middleware: [createFrontendToolsMiddleware([])]
   })
 }
 

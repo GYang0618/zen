@@ -1,1 +1,1 @@
-export { useUserRenderers } from './user'
+export { useUsersRenderers } from './users'

@@ -54,6 +54,7 @@ export const defaultAgent = ({
   return new LangGraphAgent({
     deploymentUrl,
     graphId: agents.default.graphId,
+    emitInterruptOutcome: true,
     ...(accessToken ? { propertyHeaders: { Authorization: `Bearer ${accessToken}` } } : {}),
     assistantConfig: {
       recursion_limit: DEFAULT_AGENT_RUN_BUDGET.recursionLimit,
@@ -72,5 +73,6 @@ export const planAgent = ({
   new LangGraphAgent({
     deploymentUrl,
     graphId: agents.plan.graphId,
+    emitInterruptOutcome: true,
     ...(accessToken ? { propertyHeaders: { Authorization: `Bearer ${accessToken}` } } : {})
   })

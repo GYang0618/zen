@@ -106,11 +106,13 @@ function AuthenticatedLayoutComponent() {
         <div
           className={cn('flex h-full w-full flex-col overflow-hidden', !isAgentMode && 'hidden')}
         >
-          <AgentChat />
+          {/* 隐藏时关闭 Main fixed，避免 data-layout=fixed 仍触发 SidebarInset 的 h-svh 锁死滚动 */}
+          <AgentChat active={isAgentMode} />
         </div>
       )}
 
-      <div className={cn('flex h-full w-full flex-col overflow-hidden', isAgentMode && 'hidden')}>
+      {/* 管理后台依赖文档流滚动；保留 h-full 以支撑 fixed 页面，但勿用 overflow-hidden 锁死滚动 */}
+      <div className={cn('flex h-full w-full flex-col', isAgentMode && 'hidden')}>
         <Outlet />
       </div>
 

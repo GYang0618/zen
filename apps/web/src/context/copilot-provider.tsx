@@ -22,7 +22,7 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
       runtimeUrl={copilotKitApi}
       useSingleEndpoint={false}
       headers={headers}
-      a2ui={{ catalog }}
+      a2ui={{ catalog, includeSchema: false }}
     >
       <CopilotRuntimeRegistrations />
       <AgentSharedRegistrations />

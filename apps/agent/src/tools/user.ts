@@ -7,7 +7,7 @@ import {
   replaceUserOrganizationsSchema,
   updateUserSchema,
   updateUsersStatusSchema,
-  usersQuerySchema
+  usersQueryToolSchema
 } from '@zen/shared'
 import { tool } from 'langchain'
 import { z } from 'zod'
@@ -46,27 +46,24 @@ const replaceUserOrganizationsToolSchema = userIdSchema.extend(replaceUserOrgani
 
 type FindAllQuery = NonNullable<UserControllerFindAllData['query']>
 
-function normalizeUsersQuery(input: z.input<typeof usersQuerySchema>): FindAllQuery {
-  const pagination = completePageQuery({
-    page: input.page !== undefined ? Number(input.page) : undefined,
-    pageSize: input.pageSize !== undefined ? Number(input.pageSize) : undefined
-  })
-  const query: FindAllQuery = {}
+function normalizeUsersQuery(input: z.infer<typeof usersQueryToolSchema>): FindAllQuery {
+  const {
+    title: _t,
+    description: _d,
+    display: _disp,
+    page,
+    pageSize,
+    status,
+    role,
+    ...rest
+  } = input
 
-  if (pagination.page !== undefined) query.page = pagination.page
-  if (pagination.pageSize !== undefined) query.pageSize = pagination.pageSize
-  if (input.keyword !== undefined) query.keyword = input.keyword
-  if (input.sortBy !== undefined) query.sortBy = input.sortBy
-  if (input.sortOrder !== undefined) query.sortOrder = input.sortOrder
-  if (input.organizationId !== undefined) query.organizationId = input.organizationId
-
-  const status = toQueryArray(input.status)
-  if (status) query.status = status
-
-  const role = toQueryArray(input.role)
-  if (role) query.role = role
-
-  return query
+  return {
+    ...rest,
+    ...completePageQuery({ page, pageSize }),
+    ...(status !== undefined ? { status: toQueryArray(status) } : {}),
+    ...(role !== undefined ? { role: toQueryArray(role) } : {})
+  }
 }
 
 const USER_WRITE_HINTS: RecoverableHint[] = [
@@ -139,7 +136,7 @@ export const getUsersTool = tool(
       '按状态筛选注意：已停用/禁用账号必须使用 status="suspended"（inactive 仅表示尚未完成激活流程）。' +
       'page 与 pageSize 可只传其一。返回精简字段；完整资料用 query_user_detail。' +
       '若用户核心意图是查看/筛选/展示用户列表，将 display 设为 true 在前端以 A2UI 呈现；若仅为查组织或鉴权等内部中间步骤，设为 false。',
-    schema: usersQuerySchema
+    schema: usersQueryToolSchema
   }
 )
 

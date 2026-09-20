@@ -14,6 +14,7 @@ const TOOL_EXECUTION_TIMEOUT_MS = 25_000
 
 export interface DefaultToolCardProps {
   name: string
+  toolCallId?: string
   parameters: unknown
   status: 'inProgress' | 'executing' | 'complete'
   result: string | undefined
@@ -149,6 +150,7 @@ function extractToolResultSummary(
 
 export function DefaultToolCard({
   name,
+  toolCallId,
   parameters,
   status,
   result,
@@ -169,15 +171,36 @@ export function DefaultToolCard({
   })
   const isAgentRunning = propIsAgentRunning ?? (agent ? agent.isRunning : true)
 
+  // 自愈支持：只要结果已返回且非空，则状态视为已完成
+  const effectiveStatus: 'inProgress' | 'executing' | 'complete' =
+    status === 'complete' || (result !== undefined && result !== '') ? 'complete' : status
+
   const pendingApprovalTools = useAgentChatInputStore((state) => state.pendingApprovalTools)
+  const resolvingApprovalToolNames = useAgentChatInputStore(
+    (state) => state.resolvingApprovalToolNames
+  )
+  const clearResolvingApprovalTools = useAgentChatInputStore(
+    (state) => state.clearResolvingApprovalTools
+  )
+
   const isAwaitingApproval = useMemo(() => {
-    return status !== 'complete' && pendingApprovalTools.some((t) => t.name === name)
-  }, [status, pendingApprovalTools, name])
+    return effectiveStatus !== 'complete' && pendingApprovalTools.some((t) => t.name === name)
+  }, [effectiveStatus, pendingApprovalTools, name])
+
+  const isResolvingApproval = useMemo(() => {
+    return effectiveStatus !== 'complete' && resolvingApprovalToolNames.has(name)
+  }, [effectiveStatus, resolvingApprovalToolNames, name])
+
+  useEffect(() => {
+    if (effectiveStatus === 'complete' && resolvingApprovalToolNames.has(name)) {
+      clearResolvingApprovalTools(name)
+    }
+  }, [effectiveStatus, resolvingApprovalToolNames, name, clearResolvingApprovalTools])
 
   // 超时自愈检测：若未完成且超过阈值，标记为超时
   const [isTimedOut, setIsTimedOut] = useState(false)
   useEffect(() => {
-    if (status === 'complete' || isAwaitingApproval) {
+    if (effectiveStatus === 'complete' || isAwaitingApproval) {
       setIsTimedOut(false)
       return
     }
@@ -187,22 +210,30 @@ export function DefaultToolCard({
     }, TOOL_EXECUTION_TIMEOUT_MS)
 
     return () => window.clearTimeout(timer)
-  }, [status, isAwaitingApproval])
+  }, [effectiveStatus, isAwaitingApproval])
 
   const parsedError = useMemo(() => parseToolResultError(result), [result])
-  // 若智能体已停止运行或等待超时，但工具未收到完成消息，视作中断/失败
+  // 若智能体已停止运行或等待超时，但工具未完成，且既不在待审批也不在审批恢复执行中，视作中断/失败
   const isInterrupted =
-    (!isAgentRunning || isTimedOut) && status !== 'complete' && !isAwaitingApproval
+    (!isAgentRunning || isTimedOut) &&
+    effectiveStatus !== 'complete' &&
+    !isAwaitingApproval &&
+    !isResolvingApproval
   const isError = Boolean(parsedError) || isInterrupted
 
   const toolState = isAwaitingApproval
     ? 'approval-requested'
-    : isInterrupted
-      ? 'output-error'
-      : mapToToolState(status, isError)
+    : isResolvingApproval
+      ? 'input-available'
+      : isInterrupted
+        ? 'output-error'
+        : mapToToolState(effectiveStatus, isError)
 
   const isRunning =
-    (status === 'inProgress' || status === 'executing') && !isAwaitingApproval && !isInterrupted
+    ((effectiveStatus === 'inProgress' || effectiveStatus === 'executing') &&
+      !isAwaitingApproval &&
+      !isInterrupted) ||
+    isResolvingApproval
   const [open, setOpen] = useState(isRunning || isAwaitingApproval || isError)
 
   useEffect(() => {
@@ -218,10 +249,10 @@ export function DefaultToolCard({
 
   const resultSummary = useMemo(
     () =>
-      status === 'complete' || isInterrupted
+      effectiveStatus === 'complete' || isInterrupted
         ? extractToolResultSummary(result, parsedError, isInterrupted)
         : null,
-    [status, result, parsedError, isInterrupted]
+    [effectiveStatus, result, parsedError, isInterrupted]
   )
 
   if (isA2UI) {
@@ -244,7 +275,7 @@ export function DefaultToolCard({
         : undefined)
 
   return (
-    <Tool open={open} onOpenChange={setOpen}>
+    <Tool data-tool-call-id={toolCallId} open={open} onOpenChange={setOpen}>
       <ToolHeader type="dynamic-tool" toolName={name} title={displayTitle} state={toolState} />
       <ToolContent>
         {hasParams && <ToolInput input={parameters} />}
@@ -277,8 +308,14 @@ export function DefaultToolCard({
 
 export function useDefaultToolRender() {
   useDefaultRenderTool({
-    render: ({ name, parameters, status, result }) => (
-      <DefaultToolCard name={name} parameters={parameters} status={status} result={result} />
+    render: ({ name, parameters, status, result, toolCallId }) => (
+      <DefaultToolCard
+        name={name}
+        toolCallId={toolCallId}
+        parameters={parameters}
+        status={status}
+        result={result}
+      />
     )
   })
 }

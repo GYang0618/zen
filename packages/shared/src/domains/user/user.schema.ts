@@ -258,7 +258,12 @@ export const usersQuerySchema = pageQuerySchema.extend({
     .optional()
     .describe('按在职组织 ID 筛选，来自 query_organization_tree'),
   sortBy: usersSortBySchema.optional(),
-  sortOrder: usersSortOrderSchema.optional(),
+  sortOrder: usersSortOrderSchema.optional()
+})
+
+export const usersQueryToolSchema = usersQuerySchema.extend({
+  title: z.string().optional().describe('用户查询'),
+  description: z.string().optional(),
   display: z
     .boolean()
     .optional()

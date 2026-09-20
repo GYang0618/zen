@@ -10,6 +10,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { parseThreadIdFromPath } from '@/stores'
 
 import { useChatAgent } from '../context/chat-agent-context'
+import { deriveThreadTitle } from '../lib/derive-thread-title'
+import { generateThreadTitle } from '../lib/generate-thread-title'
 import { useAgentChatInputStore } from '../stores/agent-chat-input'
 import { CHAT_INPUT_PLACEHOLDERS, ChatInputDynamicTexts } from './chat-input-dynamic-texts'
 
@@ -159,6 +161,8 @@ export function ChatInput({
 
   const markThreadRunning = useAgentChatInputStore((state) => state.markThreadRunning)
   const markMessageStopped = useAgentChatInputStore((state) => state.markMessageStopped)
+  const upsertProvisionalThread = useAgentChatInputStore((state) => state.upsertProvisionalThread)
+  const requestHistoryRefresh = useAgentChatInputStore((state) => state.requestHistoryRefresh)
 
   const stopAgent = async () => {
     const targetThreadId = threadId ?? agent.threadId
@@ -206,8 +210,40 @@ export function ChatInput({
     setInputValue('')
 
     const targetThreadId = threadId ?? agent.threadId
+    const isFirstUserTurn = agent.messages.filter((item) => item.role === 'user').length <= 1
     if (targetThreadId) {
       markThreadRunning(targetThreadId, true)
+      if (isFirstUserTurn) {
+        const now = new Date().toISOString()
+        upsertProvisionalThread({
+          id: targetThreadId,
+          agentId: 'default',
+          name: deriveThreadTitle(content),
+          archived: false,
+          createdAt: now,
+          updatedAt: now,
+          lastRunAt: now
+        })
+        // 首条消息发出后主动请求精炼标题，就绪后静默替换临时标题
+        void generateThreadTitle(targetThreadId, content)
+          .then((name) => {
+            if (!name) return
+            const stamped = new Date().toISOString()
+            upsertProvisionalThread({
+              id: targetThreadId,
+              agentId: 'default',
+              name,
+              archived: false,
+              createdAt: stamped,
+              updatedAt: stamped,
+              lastRunAt: stamped
+            })
+            requestHistoryRefresh()
+          })
+          .catch((error) => {
+            console.error('AgentChat: generateThreadTitle failed', error)
+          })
+      }
     }
 
     // 如果当前处于新会话路径，发送首条消息时将路由锚定到当前 threadId
@@ -221,6 +257,7 @@ export function ChatInput({
 
     try {
       await copilotkit.runAgent({ agent })
+      requestHistoryRefresh()
     } catch (error) {
       if (targetThreadId) {
         markThreadRunning(targetThreadId, false)

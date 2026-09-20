@@ -18,11 +18,13 @@ import { DefaultToolCard } from './default-tool'
 describe('DefaultToolCard 状态与待审批联动', () => {
   beforeEach(() => {
     useAgentChatInputStore.getState().clearPendingApprovalTools()
+    useAgentChatInputStore.getState().clearResolvingApprovalTools()
   })
 
   afterEach(() => {
     cleanup()
     useAgentChatInputStore.getState().clearPendingApprovalTools()
+    useAgentChatInputStore.getState().clearResolvingApprovalTools()
   })
 
   it('普通工具执行中展示准备中状态', () => {
@@ -128,5 +130,40 @@ describe('DefaultToolCard 状态与待审批联动', () => {
     expect(screen.getByText('失败')).toBeDefined()
     expect(screen.getByText('删除岗位 · 执行中断')).toBeDefined()
     expect(screen.getByText(/智能体运行已结束，该工具未收到后端响应/)).toBeDefined()
+  })
+
+  it('当工具已点击审批并处于恢复执行中时，即使 agent.isRunning 暂为 false 也不应被误判为执行中断', () => {
+    useAgentChatInputStore.getState().markApprovalToolsResolving(['delete_users'])
+
+    render(
+      <DefaultToolCard
+        name="delete_users"
+        parameters={{ ids: ['user-1'] }}
+        status="inProgress"
+        result={undefined}
+        isAgentRunning={false}
+      />
+    )
+
+    // 不应展示中断/失败错误
+    expect(screen.queryByText('失败')).toBeNull()
+    expect(screen.queryByText(/智能体运行已结束，该工具未收到后端响应/)).toBeNull()
+    expect(screen.getByText('执行中')).toBeDefined()
+  })
+
+  it('当工具虽然 status 仍为 inProgress 但 result 已携带有效返回结果时，能自愈展示已完成', () => {
+    render(
+      <DefaultToolCard
+        name="delete_users"
+        parameters={{ ids: ['user-1'] }}
+        status="inProgress"
+        result={JSON.stringify({ success: true })}
+        isAgentRunning={false}
+      />
+    )
+
+    expect(screen.queryByText('失败')).toBeNull()
+    expect(screen.getByText('已完成')).toBeDefined()
+    expect(screen.getByText('删除用户 · 执行成功')).toBeDefined()
   })
 })

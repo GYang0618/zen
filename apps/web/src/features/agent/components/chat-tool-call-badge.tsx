@@ -31,9 +31,11 @@ export function ChatToolCallBadge({ toolCalls, messages }: ChatToolCallBadgeProp
 
         const name = toolCall.function?.name ?? ''
         const title = formatToolTitle(name)
-        const hasResult = messages.some(
-          (msg) => msg.role === 'tool' && msg.toolCallId === id && msg.content !== undefined
-        )
+        const hasResult = messages.some((msg) => {
+          if (msg.role !== 'tool' || msg.content === undefined) return false
+          const anyMsg = msg as { toolCallId?: string; tool_call_id?: string }
+          return anyMsg.toolCallId === id || anyMsg.tool_call_id === id
+        })
         const isActive = isPanelOpen && activeToolCallId === id
 
         return (

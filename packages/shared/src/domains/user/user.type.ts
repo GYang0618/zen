@@ -19,6 +19,7 @@ import type {
   userStatusSchema,
   usersPageSchema,
   usersQuerySchema,
+  usersQueryToolSchema,
   usersSortBySchema,
   usersSortOrderSchema
 } from './user.schema.js'
@@ -44,3 +45,4 @@ export type UsersQuery = z.input<typeof usersQuerySchema>
 export type UsersPage = z.infer<typeof usersPageSchema>
 export type UsersSortBy = z.infer<typeof usersSortBySchema>
 export type UsersSortOrder = z.infer<typeof usersSortOrderSchema>
+export type UsersQueryTool = z.input<typeof usersQueryToolSchema>

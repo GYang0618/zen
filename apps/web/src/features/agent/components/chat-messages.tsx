@@ -15,9 +15,10 @@ import {
   MessageResponse,
   Reasoning,
   ReasoningContent,
-  ReasoningTrigger
+  ReasoningTrigger,
+  Shimmer
 } from '@zen/ui'
-import { AlertCircle, RefreshCw } from 'lucide-react'
+import { AlertCircle, RefreshCw, Sparkles } from 'lucide-react'
 import { Fragment, useMemo } from 'react'
 
 import { useChatAgent } from '../context/chat-agent-context'
@@ -115,9 +116,11 @@ function AssistantMessageItem({
           <ChatToolCallBadge toolCalls={a2uiToolCalls as never} messages={messages as never} />
         )}
         {standardToolCalls.map((tc) => {
-          const toolMessage = messages.find(
-            (m) => m.role === 'tool' && (m as { toolCallId?: string }).toolCallId === tc.id
-          )
+          const toolMessage = messages.find((m) => {
+            if (m.role !== 'tool') return false
+            const candidate = m as { toolCallId?: string; tool_call_id?: string }
+            return candidate.toolCallId === tc.id || candidate.tool_call_id === tc.id
+          })
           return (
             <div key={tc.id} className="my-2 w-full">
               {renderToolCall({
@@ -128,10 +131,11 @@ function AssistantMessageItem({
           )
         })}
         {!hasContent && isStreaming && (
-          <div className="my-1.5 flex items-center gap-1.5 py-0.5 text-muted-foreground">
-            <span className="inline-block size-1.5 rounded-full bg-primary/70 animate-pulse" />
-            <span className="inline-block size-1.5 rounded-full bg-primary/40 animate-pulse [animation-delay:200ms]" />
-            <span className="inline-block size-1.5 rounded-full bg-primary/20 animate-pulse [animation-delay:400ms]" />
+          <div className="my-1.5 flex items-center gap-2 py-0.5 text-muted-foreground">
+            <Sparkles className="size-3.5 animate-pulse text-primary/70" />
+            <Shimmer duration={1.5} className="text-xs font-normal text-muted-foreground">
+              正在组织回答...
+            </Shimmer>
           </div>
         )}
         {isStopped && !isRunning && (

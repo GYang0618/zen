@@ -16,15 +16,6 @@ export function isA2UIToolCall(toolCall: ToolCallLikeForA2UI | undefined | null)
   const name = toolCall.function?.name
   if (!name) return false
 
-  if (name === 'query_users_list') {
-    try {
-      const args = JSON.parse(toolCall.function?.arguments || '{}') as { display?: boolean }
-      return args.display !== false
-    } catch {
-      return true
-    }
-  }
-
   if (name === 'generate_dynamic_dashboard' || name === 'render_a2ui') {
     return true
   }
