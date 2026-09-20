@@ -38,7 +38,8 @@ const statCardPropsSchema = z.object({
  */
 export const zenA2uiCatalogDefinitions = {
   Row: {
-    description: '横向弹性布局容器，用于并排排布多个子组件（如多个指标卡）。',
+    description:
+      '横向弹性布局容器，适合并排 KPI（StatCard）。多图等高网格请优先用 Grid；本组件子项已 stretch，卡片需 h-full 才视觉等高。',
     props: z.object({
       children: z.array(z.string()).describe('子组件 ID 列表'),
       gap: z.number().optional().describe('子项间距（像素），默认 12'),
@@ -50,6 +51,21 @@ export const zenA2uiCatalogDefinitions = {
     props: z.object({
       children: z.array(z.string()).describe('子组件 ID 列表'),
       gap: z.number().optional().describe('子项间距（像素），默认 16')
+    })
+  },
+  Grid: {
+    description:
+      'CSS Grid 多列布局：同一行内子卡片默认等高。多图仪表盘（如 2×2 图表）请优先用本组件，勿用多层 Row 拼网格。',
+    props: z.object({
+      children: z.array(z.string()).describe('子组件 ID 列表，按行优先顺序排布'),
+      columns: z
+        .number()
+        .int()
+        .min(1)
+        .max(4)
+        .optional()
+        .describe('列数，默认 2，取值 1–4'),
+      gap: z.number().optional().describe('格子间距（像素），默认 12')
     })
   },
   DashboardCard: {
@@ -80,32 +96,32 @@ export const zenA2uiCatalogDefinitions = {
   },
   AreaChart: {
     description:
-      '面积图（自带单层卡片：标题 + 可选描述 + 图表）。直接放在 Row/Column 下，勿再套 DashboardCard / Card。',
+      '面积图（自带单层卡片：标题 + 可选描述 + 图表）。直接放在 Grid/Row/Column 下，勿再套 DashboardCard / Card。',
     props: chartPropsSchema
   },
   BarChart: {
     description:
-      '柱状图（自带单层卡片：标题 + 可选描述 + 图表）。直接放在 Row/Column 下，勿再套 DashboardCard / Card。',
+      '柱状图（自带单层卡片：标题 + 可选描述 + 图表）。直接放在 Grid/Row/Column 下，勿再套 DashboardCard / Card。',
     props: chartPropsSchema
   },
   LineChart: {
     description:
-      '折线图（自带单层卡片：标题 + 可选描述 + 图表）。直接放在 Row/Column 下，勿再套 DashboardCard / Card。',
+      '折线图（自带单层卡片：标题 + 可选描述 + 图表）。直接放在 Grid/Row/Column 下，勿再套 DashboardCard / Card。',
     props: chartPropsSchema
   },
   PieChart: {
     description:
-      '饼图/环形图（自带单层卡片：标题 + 可选描述 + 图表）。直接放在 Row/Column 下，勿再套 DashboardCard / Card。',
+      '饼图/环形图（自带单层卡片：标题 + 可选描述 + 图表）。直接放在 Grid/Row/Column 下，勿再套 DashboardCard / Card。',
     props: chartPropsSchema
   },
   RadarChart: {
     description:
-      '雷达图（自带单层卡片：标题 + 可选描述 + 图表）。直接放在 Row/Column 下，勿再套 DashboardCard / Card。',
+      '雷达图（自带单层卡片：标题 + 可选描述 + 图表）。直接放在 Grid/Row/Column 下，勿再套 DashboardCard / Card。',
     props: chartPropsSchema
   },
   RadialChart: {
     description:
-      '径向条形图（自带单层卡片：标题 + 可选描述 + 图表）。直接放在 Row/Column 下，勿再套 DashboardCard / Card。',
+      '径向条形图（自带单层卡片：标题 + 可选描述 + 图表）。直接放在 Grid/Row/Column 下，勿再套 DashboardCard / Card。',
     props: chartPropsSchema
   }
 }
@@ -142,13 +158,15 @@ export const ZEN_A2UI_COMPOSITION_GUIDE = `
 - components: 扁平组件数组。每项必须有 id、component，属性平铺在对象上（不要再包一层 props）
 - data: 可选，写入 Surface 数据模型的纯 JSON（表单预填、path 绑定）
 
-自定义组件：Row、Column、DashboardCard、StatCard、Metric、Area/Bar/Line/Pie/Radar/RadialChart
+自定义组件：Row、Column、Grid、DashboardCard、StatCard、Metric、Area/Bar/Line/Pie/Radar/RadialChart
 基础组件（basic catalog）：Text、Button、Card、List、Image、TextField 等
 
 组装规则：
-1. 必须有 id="root" 的根节点，优先用 Column / Row 做布局
+1. 必须有 id="root" 的根节点，优先用 Column / Row / Grid 做布局
 2. 用 children / child 引用其它组件 id；id 在同一 surface 内唯一，禁止自引用
-3. StatCard / Metric / *Chart 已是单层卡片：直接挂到 Row/Column，禁止再包 DashboardCard 或 basic Card（否则双层嵌套）
-4. 图表组件自身的 title 尽量填写；description 仅在需要补充上下文时填写，标题已足够则省略；不要传 color，配色由主题 token 自动决定
-5. 按场景自由组合，不要套固定「指标行 + 单图」模板
+3. StatCard / Metric / *Chart 已是单层卡片：直接挂到 Grid/Row/Column，禁止再包 DashboardCard 或 basic Card（否则双层嵌套）
+4. 多图并排或 2×2 仪表盘：用 Grid（columns=2），不要用多层 Row 拼网格；同一行卡片会自动等高
+5. 顶栏 KPI 仍可用 Row 并排 StatCard
+6. 图表组件自身的 title 尽量填写；description 仅在需要补充上下文时填写，标题已足够则省略；不要传 color，配色由主题 token 自动决定
+7. 按场景自由组合，不要套固定「指标行 + 单图」模板
 `.trim()

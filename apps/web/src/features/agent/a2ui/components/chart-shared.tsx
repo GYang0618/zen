@@ -1,4 +1,14 @@
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  cn
+} from '@zen/ui'
+
 import type { ChartConfig } from '@zen/ui'
+import type { ReactNode } from 'react'
 
 export interface ChartDataItem {
   label: string
@@ -9,6 +19,31 @@ export interface BaseChartProps {
   title?: string
   description?: string
   data?: ChartDataItem[]
+}
+
+/** 图表统一卡片壳：h-full 以便在 Grid/Row stretch 下与同行等高。 */
+export function ChartCardShell({
+  title,
+  description,
+  children,
+  contentClassName
+}: {
+  title?: string
+  description?: string
+  children: ReactNode
+  contentClassName?: string
+}) {
+  return (
+    <Card className="h-full w-full">
+      {(title || description) && (
+        <CardHeader>
+          {title ? <CardTitle>{title}</CardTitle> : null}
+          {description ? <CardDescription>{description}</CardDescription> : null}
+        </CardHeader>
+      )}
+      <CardContent className={cn('ps-2', contentClassName)}>{children}</CardContent>
+    </Card>
+  )
 }
 
 /**

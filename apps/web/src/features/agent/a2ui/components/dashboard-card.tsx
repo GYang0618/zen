@@ -10,7 +10,7 @@ export interface DashboardCardProps {
 
 export function DashboardCard({ props, children }: RendererProps<DashboardCardProps>) {
   return (
-    <Card className="w-full">
+    <Card className="h-full w-full">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-semibold">{props.title}</CardTitle>
         {props.subtitle && <CardDescription className="text-xs">{props.subtitle}</CardDescription>}

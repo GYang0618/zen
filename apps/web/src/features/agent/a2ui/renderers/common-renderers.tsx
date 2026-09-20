@@ -3,6 +3,7 @@ import {
   BarChart,
   Column,
   DashboardCard,
+  Grid,
   LineChart,
   Metric,
   PieChart,
@@ -15,6 +16,7 @@ import {
 export const commonRenderers = {
   Row,
   Column,
+  Grid,
   DashboardCard,
   StatCard,
   Metric,

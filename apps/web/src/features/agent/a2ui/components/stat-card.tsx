@@ -40,7 +40,7 @@ function StatCardView(props: StatCardProps) {
   const isDown = props.trend === 'down'
 
   return (
-    <Card className="w-full">
+    <Card className="h-full w-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{props.title}</CardTitle>
         {Icon && <Icon className="size-4 text-muted-foreground" aria-hidden />}
