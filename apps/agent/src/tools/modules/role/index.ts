@@ -3,7 +3,6 @@ import {
   assignRoleMembersSchema,
   assignRolePermissionsSchema,
   cloneRoleSchema,
-  completePageQuery,
   createRoleSchema,
   deleteRolesSchema,
   pageQuerySchema,
@@ -27,14 +26,9 @@ import {
   roleControllerListPermissions,
   roleControllerRemoveMany,
   roleControllerRemoveMember,
-  roleControllerUpdate,
-  toQueryArray
-} from '../api'
-import { executeApiCallOrRecover, isToolFailureResult } from './recoverable-error'
-import { parsePermissionCatalog, unknownPermissionCodesResult } from './role-permission-guard'
-
-import type { RunnableConfig } from '@langchain/core/runnables'
-import type { RecoverableHint } from './recoverable-error'
+  roleControllerUpdate
+} from '../../../api'
+import { ensurePermissionCodesExist } from './ensure-permission-codes'
 
 const roleIdSchema = z.object({
   id: z.string().min(1, '角色 ID 不能为空').describe('角色 ID')
@@ -50,124 +44,12 @@ const removeRoleMemberToolSchema = roleIdSchema.extend({
 })
 const roleMembersQueryToolSchema = roleIdSchema.extend(pageQuerySchema.shape)
 
-type RolesFindAllQuery = {
-  page?: number
-  pageSize?: number
-  keyword?: string
-  status?: Array<'active' | 'disabled'>
-  effectiveStatus?: Array<'active' | 'disabled' | 'expired' | 'locked'>
-  dataScope?: Array<'all' | 'org_and_child' | 'org' | 'self' | 'custom'>
-}
-
-function normalizeRolesQuery(input: z.input<typeof rolesQuerySchema>): RolesFindAllQuery {
-  const pagination = completePageQuery({
-    page: input.page !== undefined ? Number(input.page) : undefined,
-    pageSize: input.pageSize !== undefined ? Number(input.pageSize) : undefined
-  })
-  const query: RolesFindAllQuery = {}
-
-  if (pagination.page !== undefined) query.page = pagination.page
-  if (pagination.pageSize !== undefined) query.pageSize = pagination.pageSize
-  if (input.keyword !== undefined) query.keyword = input.keyword
-
-  const status = toQueryArray(input.status)
-  if (status) query.status = status
-
-  const effectiveStatus = toQueryArray(input.effectiveStatus)
-  if (effectiveStatus) query.effectiveStatus = effectiveStatus
-
-  const dataScope = toQueryArray(input.dataScope)
-  if (dataScope) query.dataScope = dataScope
-
-  return query
-}
-
-const ROLE_WRITE_HINTS: RecoverableHint[] = [
-  {
-    match: '部分权限编码不存在',
-    reason: 'PERMISSION_CODE_INVALID',
-    hint: '请先 query_permissions_list，只使用 status=active 的 code，不要编造编码。'
-  },
-  {
-    match: '角色编码已存在',
-    reason: 'ROLE_CODE_CONFLICT',
-    hint: '请先 query_roles_list 换一个未被占用的编码（小写字母开头，仅字母数字下划线）。'
-  },
-  {
-    match: '角色已被他人修改',
-    reason: 'ROLE_VERSION_CONFLICT',
-    hint: '请先 query_role_detail，把最新 updatedAt 作为 baseVersion 再重试。'
-  },
-  {
-    match: '自定义数据范围时至少选择一个组织',
-    reason: 'CUSTOM_ORG_REQUIRED',
-    hint: 'dataScope=custom 时必须提供 customOrgIds，ID 来自 query_organization_tree。'
-  },
-  {
-    match: '部分组织不存在',
-    reason: 'ORGANIZATION_ID_INVALID',
-    hint: '请先 query_organization_tree，使用返回节点的 id。'
-  },
-  {
-    match: '系统角色不可克隆',
-    reason: 'SYSTEM_ROLE_LOCKED',
-    hint: '请改用自定义角色作为克隆源。'
-  },
-  {
-    match: '系统内置角色不可删除',
-    reason: 'SYSTEM_ROLE_LOCKED',
-    hint: '只能删除没有成员的自定义角色。'
-  },
-  {
-    match: '系统内置超级管理员角色权限不可修改',
-    reason: 'SYSTEM_ROLE_LOCKED',
-    hint: '超级管理员权限不可通过此工具修改。'
-  },
-  {
-    match: '存在已分配成员的角色',
-    reason: 'ROLE_HAS_MEMBERS',
-    hint: '请先 remove_role_member 解绑全部成员后再删除。'
-  },
-  {
-    match: '用户至少需要保留一个角色',
-    reason: 'ROLE_REQUIRED',
-    hint: '该用户只剩此角色，无法解绑。请先 assign_user_roles 补其他角色。'
-  },
-  {
-    match: '系统至少需要保留一名超级管理员',
-    reason: 'SUPER_ADMIN_REQUIRED',
-    hint: '不能移除最后一名超级管理员。'
-  },
-  {
-    match: '部分用户不存在或已删除',
-    reason: 'USER_ID_INVALID',
-    hint: '请先 query_users_list，使用返回的用户 id。'
-  }
-]
-
-async function ensurePermissionCodesExist(
-  codes: string[] | undefined,
-  config: RunnableConfig | undefined
-): Promise<string | undefined> {
-  if (!codes || codes.length === 0) return undefined
-  const raw = await executeApiCall(config, async (_context) => roleControllerListPermissions())
-  if (isToolFailureResult(raw)) return raw
-  const catalog = parsePermissionCatalog(raw)
-  if (!catalog) return undefined
-  const known = new Set(catalog.map((item) => item.code))
-  const missing = [...new Set(codes.map((code) => code.trim()).filter(Boolean))].filter(
-    (code) => !known.has(code)
-  )
-  if (missing.length > 0) return unknownPermissionCodesResult(missing, catalog)
-  return undefined
-}
-
 export const getRolesTool = tool(
   async (input, config) =>
     executeApiCall(config, async (_context) =>
       roleControllerFindAll(
         asSdkOptions({
-          query: normalizeRolesQuery(input)
+          query: input
         })
       )
     ),
@@ -184,15 +66,12 @@ export const createRoleTool = tool(
   async (input, config) => {
     const blocked = await ensurePermissionCodesExist(input.permissionCodes, config)
     if (blocked) return blocked
-    return executeApiCallOrRecover(
-      config,
-      () =>
-        roleControllerCreate(
-          asSdkOptions({
-            body: input
-          })
-        ),
-      ROLE_WRITE_HINTS
+    return executeApiCall(config, () =>
+      roleControllerCreate(
+        asSdkOptions({
+          body: input
+        })
+      )
     )
   },
   {
@@ -223,16 +102,13 @@ export const getRoleTool = tool(
 
 export const updateRoleTool = tool(
   async ({ id, ...data }, config) =>
-    executeApiCallOrRecover(
-      config,
-      () =>
-        roleControllerUpdate(
-          asSdkOptions({
-            path: { id },
-            body: data
-          })
-        ),
-      ROLE_WRITE_HINTS
+    executeApiCall(config, () =>
+      roleControllerUpdate(
+        asSdkOptions({
+          path: { id },
+          body: data
+        })
+      )
     ),
   {
     name: 'update_role_info',
@@ -245,16 +121,13 @@ export const updateRoleTool = tool(
 
 export const cloneRoleTool = tool(
   async ({ id, ...data }, config) =>
-    executeApiCallOrRecover(
-      config,
-      () =>
-        roleControllerClone(
-          asSdkOptions({
-            path: { id },
-            body: data
-          })
-        ),
-      ROLE_WRITE_HINTS
+    executeApiCall(config, () =>
+      roleControllerClone(
+        asSdkOptions({
+          path: { id },
+          body: data
+        })
+      )
     ),
   {
     name: 'clone_role',
@@ -277,15 +150,12 @@ export const listPermissionsTool = tool(
 )
 
 export const listRoleMembersTool = tool(
-  async ({ id, page, pageSize }, config) =>
+  async ({ id, ...query }, config) =>
     executeApiCall(config, async (_context) =>
       roleControllerListMembers(
         asSdkOptions({
           path: { id },
-          query: {
-            ...(page !== undefined ? { page: Number(page) } : {}),
-            ...(pageSize !== undefined ? { pageSize: Number(pageSize) } : {})
-          }
+          query
         })
       )
     ),
@@ -298,16 +168,13 @@ export const listRoleMembersTool = tool(
 
 export const addRoleMembersTool = tool(
   async ({ id, userIds }, config) =>
-    executeApiCallOrRecover(
-      config,
-      () =>
-        roleControllerAddMembers(
-          asSdkOptions({
-            path: { id },
-            body: { userIds }
-          })
-        ),
-      ROLE_WRITE_HINTS
+    executeApiCall(config, () =>
+      roleControllerAddMembers(
+        asSdkOptions({
+          path: { id },
+          body: { userIds }
+        })
+      )
     ),
   {
     name: 'add_role_members',
@@ -318,11 +185,7 @@ export const addRoleMembersTool = tool(
 
 export const removeRoleMemberTool = tool(
   async ({ id, userId }, config) =>
-    executeApiCallOrRecover(
-      config,
-      () => roleControllerRemoveMember({ path: { id, userId } }),
-      ROLE_WRITE_HINTS
-    ),
+    executeApiCall(config, () => roleControllerRemoveMember({ path: { id, userId } })),
   {
     name: 'remove_role_member',
     description: '将指定用户从角色中解绑',
@@ -334,16 +197,13 @@ export const assignRolePermissionsTool = tool(
   async ({ id, permissionCodes, baseVersion }, config) => {
     const blocked = await ensurePermissionCodesExist(permissionCodes, config)
     if (blocked) return blocked
-    return executeApiCallOrRecover(
-      config,
-      () =>
-        roleControllerAssignPermissions(
-          asSdkOptions({
-            path: { id },
-            body: { permissionCodes, baseVersion }
-          })
-        ),
-      ROLE_WRITE_HINTS
+    return executeApiCall(config, () =>
+      roleControllerAssignPermissions(
+        asSdkOptions({
+          path: { id },
+          body: { permissionCodes, baseVersion }
+        })
+      )
     )
   },
   {
@@ -358,16 +218,13 @@ export const assignRolePermissionsTool = tool(
 
 export const assignRoleDataScopeTool = tool(
   async ({ id, dataScope, customOrgIds, baseVersion }, config) =>
-    executeApiCallOrRecover(
-      config,
-      () =>
-        roleControllerAssignDataScope(
-          asSdkOptions({
-            path: { id },
-            body: { dataScope, customOrgIds, baseVersion }
-          })
-        ),
-      ROLE_WRITE_HINTS
+    executeApiCall(config, () =>
+      roleControllerAssignDataScope(
+        asSdkOptions({
+          path: { id },
+          body: { dataScope, customOrgIds, baseVersion }
+        })
+      )
     ),
   {
     name: 'assign_role_data_scope',
@@ -380,19 +237,16 @@ export const assignRoleDataScopeTool = tool(
 
 export const deleteRolesTool = tool(
   async ({ ids }, config) =>
-    executeApiCallOrRecover(
-      config,
-      () =>
-        roleControllerRemoveMany(
-          asSdkOptions({
-            body: { ids }
-          })
-        ),
-      ROLE_WRITE_HINTS
+    executeApiCall(config, () =>
+      roleControllerRemoveMany(
+        asSdkOptions({
+          body: { ids }
+        })
+      )
     ),
   {
     name: 'delete_roles',
-    description: '批量删除角色。系统内置角色或仍有成员的角色不可删除。该操作需要用户确认后才能执行',
+    description: '批量删除角色。系统内置角色或仍有成员的角色不可删除。',
     schema: deleteRolesSchema
   }
 )

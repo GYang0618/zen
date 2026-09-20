@@ -18,9 +18,10 @@ afterEach(() => {
 
 describe('executeApiCall Artifact handling', () => {
   it('将大型 Tool 结果保存为 Artifact 并只返回摘要', async () => {
-    let artifactRequest: RequestInfo | URL | undefined
+    let artifactUrl = ''
     globalThis.fetch = (async (input) => {
-      artifactRequest = input
+      artifactUrl =
+        typeof input === 'string' ? input : input instanceof Request ? input.url : String(input)
       return new Response(
         JSON.stringify({
           code: 200,
@@ -59,7 +60,7 @@ describe('executeApiCall Artifact handling', () => {
       }
     )
 
-    assert.match(String(artifactRequest), /\/api\/copilot\/runtime\/runs\/run-1\/artifacts$/)
+    assert.match(artifactUrl, /\/api\/copilot\/runtime\/runs\/run-1\/artifacts$/)
     const parsed = JSON.parse(result) as {
       code: number
       message: string

@@ -14,7 +14,7 @@ import {
 } from '@/prompts'
 import { ContextSchema } from '@/schema/context'
 import { AgentStateSchema } from '@/schema/state'
-import { defaultAgentTools } from '@/tools'
+import { coreTools } from '@/tools'
 
 import type { z } from 'zod'
 
@@ -37,11 +37,11 @@ export function createDefaultAgent() {
 
   return createAgent({
     model,
-    tools: defaultAgentTools,
+    tools: coreTools,
     stateSchema: AgentStateSchema,
     contextSchema: ContextSchema,
     middleware: [
-      createFrontendToolsMiddleware(defaultAgentTools.map((tool) => tool.name)),
+      createFrontendToolsMiddleware(coreTools.map((tool) => tool.name)),
       dynamicSystemPromptMiddleware<z.infer<typeof ContextSchema>>((_state, runtime) => {
         const memory = runtime.context?.[AGENT_MEMORY_CONFIGURABLE_KEY]
         const now = new Date()

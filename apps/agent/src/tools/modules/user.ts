@@ -26,11 +26,9 @@ import {
   userControllerUnlock,
   userControllerUpdate,
   userControllerUpdateStatus
-} from '../api'
-import { executeApiCallOrRecover } from './recoverable-error'
+} from '../../api'
 
-import type { UserControllerAdminResetPasswordData } from '../api'
-import type { RecoverableHint } from './recoverable-error'
+import type { UserControllerAdminResetPasswordData } from '@/api'
 
 const userIdSchema = z.object({
   id: z.string().min(1, '用户 ID 不能为空').describe('用户 ID')
@@ -40,64 +38,6 @@ const updateUserToolSchema = userIdSchema.extend(updateUserSchema.shape)
 const resetUserPasswordToolSchema = userIdSchema.extend(adminResetPasswordSchema.shape)
 const assignUserRolesToolSchema = userIdSchema.extend(assignUserRolesSchema.shape)
 const replaceUserOrganizationsToolSchema = userIdSchema.extend(replaceUserOrganizationsSchema.shape)
-
-const USER_WRITE_HINTS: RecoverableHint[] = [
-  {
-    match: '部分角色不存在或已禁用',
-    reason: 'ROLE_ID_INVALID',
-    hint: '请先 query_roles_list，使用返回的 id（不要把 code 当 ID），且角色须为启用状态。'
-  },
-  {
-    match: '部分组织不存在',
-    reason: 'ORGANIZATION_ID_INVALID',
-    hint: '请先 query_organization_tree，使用返回节点的 id。'
-  },
-  {
-    match: '部分岗位不存在',
-    reason: 'POSITION_ID_INVALID',
-    hint: 'postId 必须是 query_organization_positions 返回的编制 id，不是岗位目录 jobProfileId。'
-  },
-  {
-    match: '岗位不属于对应组织',
-    reason: 'POSITION_ORG_MISMATCH',
-    hint: '请对该组织调用 query_organization_positions，只使用该列表中的编制 id。'
-  },
-  {
-    match: '主职组织最多只能有一个',
-    reason: 'PRIMARY_ORG_CONFLICT',
-    hint: 'organizations 中 isPrimary=true 最多一项。'
-  },
-  {
-    match: '主角色必须属于已分配角色列表',
-    reason: 'PRIMARY_ROLE_INVALID',
-    hint: 'primaryRoleId 必须在 roleIds 内。'
-  },
-  {
-    match: '至少需要一个角色',
-    reason: 'ROLE_REQUIRED',
-    hint: '覆盖式分配必须至少保留一个角色。'
-  },
-  {
-    match: '系统至少需要保留一名超级管理员',
-    reason: 'SUPER_ADMIN_REQUIRED',
-    hint: '不能移除最后一名超级管理员。'
-  },
-  {
-    match: '不能删除当前登录用户',
-    reason: 'CANNOT_DELETE_SELF',
-    hint: '请从 ids 中去掉当前登录用户后再试。'
-  },
-  {
-    match: '未找到可恢复的已删除用户',
-    reason: 'USER_NOT_DELETED',
-    hint: 'restore_deleted_users 只能恢复已删除的用户。'
-  },
-  {
-    match: '需要二次确认',
-    reason: 'STEP_UP_REQUIRED',
-    hint: '不要再次调用同一工具。请向用户说明操作未执行，不要再让用户点审批卡片。'
-  }
-]
 
 export const getUsersTool = tool(
   async (input, config) =>
@@ -119,11 +59,7 @@ export const getUsersTool = tool(
 
 export const createUserTool = tool(
   async (input, config) =>
-    executeApiCallOrRecover(
-      config,
-      async (_context) => userControllerCreate({ body: input }),
-      USER_WRITE_HINTS
-    ),
+    executeApiCall(config, async (_context) => userControllerCreate({ body: input })),
   {
     name: 'create_user',
     description:
@@ -150,11 +86,7 @@ export const getUserTool = tool(
 
 export const updateUserTool = tool(
   async ({ id, ...data }, config) =>
-    executeApiCallOrRecover(
-      config,
-      () => userControllerUpdate({ path: { id }, body: data }),
-      USER_WRITE_HINTS
-    ),
+    executeApiCall(config, () => userControllerUpdate({ path: { id }, body: data })),
   {
     name: 'update_user_info',
     description:
@@ -165,11 +97,7 @@ export const updateUserTool = tool(
 
 export const restoreUsersTool = tool(
   async ({ ids }, config) =>
-    executeApiCallOrRecover(
-      config,
-      () => userControllerRestoreMany({ body: { ids } }),
-      USER_WRITE_HINTS
-    ),
+    executeApiCall(config, () => userControllerRestoreMany({ body: { ids } })),
   {
     name: 'restore_deleted_users',
     description: '批量恢复已删除的用户',
@@ -179,11 +107,7 @@ export const restoreUsersTool = tool(
 
 export const updateUsersStatusTool = tool(
   async (payload, config) =>
-    executeApiCallOrRecover(
-      config,
-      () => userControllerUpdateStatus({ body: payload }),
-      USER_WRITE_HINTS
-    ),
+    executeApiCall(config, () => userControllerUpdateStatus({ body: payload })),
   {
     name: 'update_user_status',
     description:
@@ -194,11 +118,7 @@ export const updateUsersStatusTool = tool(
 
 export const unlockUserTool = tool(
   async ({ id }, config) =>
-    executeApiCallOrRecover(
-      config,
-      async (_context) => userControllerUnlock({ path: { id } }),
-      USER_WRITE_HINTS
-    ),
+    executeApiCall(config, async (_context) => userControllerUnlock({ path: { id } })),
   {
     name: 'unlock_user',
     description: '解锁因登录失败次数过多而被锁定的用户账号',
@@ -208,16 +128,13 @@ export const unlockUserTool = tool(
 
 export const resetUserPasswordTool = tool(
   async ({ id, ...body }, config) =>
-    executeApiCallOrRecover(
-      config,
-      () =>
-        userControllerAdminResetPassword(
-          asSdkOptions<UserControllerAdminResetPasswordData>({
-            path: { id },
-            body
-          })
-        ),
-      USER_WRITE_HINTS
+    executeApiCall(config, () =>
+      userControllerAdminResetPassword(
+        asSdkOptions<UserControllerAdminResetPasswordData>({
+          path: { id },
+          body
+        })
+      )
     ),
   {
     name: 'reset_user_password',
@@ -230,11 +147,7 @@ export const resetUserPasswordTool = tool(
 
 export const revokeUserSessionsTool = tool(
   async ({ id }, config) =>
-    executeApiCallOrRecover(
-      config,
-      () => userControllerRevokeSessions({ path: { id } }),
-      USER_WRITE_HINTS
-    ),
+    executeApiCall(config, () => userControllerRevokeSessions({ path: { id } })),
   {
     name: 'revoke_user_sessions',
     description: '强制下线指定用户的全部登录会话',
@@ -244,31 +157,26 @@ export const revokeUserSessionsTool = tool(
 
 export const assignUserRolesTool = tool(
   async ({ id, roleIds, primaryRoleId }, config) =>
-    executeApiCallOrRecover(
-      config,
-      () =>
-        userControllerAssignRoles({
-          path: { id },
-          body: { roleIds, ...(primaryRoleId ? { primaryRoleId } : {}) }
-        }),
-      USER_WRITE_HINTS
+    executeApiCall(config, () =>
+      userControllerAssignRoles({
+        path: { id },
+        body: { roleIds, ...(primaryRoleId ? { primaryRoleId } : {}) }
+      })
     ),
   {
     name: 'assign_user_roles',
     description:
       '覆盖式分配用户角色（替换全部角色，至少保留一个）。roleIds 必须来自 query_roles_list 的 id，不要用 code。' +
       '可用 primaryRoleId 指定主角色（须属于 roleIds；省略则取 roleIds[0]）。' +
-      '会刷新权限版本并强制下线目标用户。该操作需要用户确认后才能执行。',
+      '会刷新权限版本并强制下线目标用户。',
     schema: assignUserRolesToolSchema
   }
 )
 
 export const replaceUserOrganizationsTool = tool(
   async ({ id, organizations }, config) =>
-    executeApiCallOrRecover(
-      config,
-      () => userControllerReplaceOrganizations({ path: { id }, body: { organizations } }),
-      USER_WRITE_HINTS
+    executeApiCall(config, () =>
+      userControllerReplaceOrganizations({ path: { id }, body: { organizations } })
     ),
   {
     name: 'replace_user_organizations',
@@ -282,14 +190,10 @@ export const replaceUserOrganizationsTool = tool(
 
 export const deleteUsersTool = tool(
   async ({ ids }, config) =>
-    executeApiCallOrRecover(
-      config,
-      () => userControllerRemoveMany({ body: { ids } }),
-      USER_WRITE_HINTS
-    ),
+    executeApiCall(config, () => userControllerRemoveMany({ body: { ids } })),
   {
     name: 'delete_users',
-    description: '批量删除用户，禁止删除当前登录用户自身。该操作需要用户确认后才能执行',
+    description: '批量删除用户，禁止删除当前登录用户自身。',
     schema: deleteUsersSchema
   }
 )

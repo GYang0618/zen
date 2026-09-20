@@ -1,17 +1,7 @@
-export { dashboardTools, generateDashboardTool } from './dashboard'
-export { organizationTools } from './organization'
+export { dashboardTools, generateDashboardTool } from './modules/dashboard'
+export { organizationTools } from './modules/organization'
+export { postTools } from './modules/post'
+export { roleTools } from './modules/role'
+export { userTools } from './modules/user'
 export * from './policy'
-export { postTools } from './post'
-// 兼容既有导入；新增代码应使用 defaultAgentTools 或 registry provider。
-export {
-  createAgentToolRegistry,
-  defaultAgentToolDescriptors,
-  defaultAgentTools,
-  defaultAgentTools as agentTools,
-  getActivePluginAgentPrompts,
-  getAgentToolPluginId
-} from './registry'
-export { roleTools } from './role'
-export { userTools } from './user'
-
-export type { AgentToolDescriptor, AgentToolProvider } from './registry'
+export { coreTools } from './registry'

@@ -70,7 +70,7 @@ export class RoleService {
   async create(data: CreateRoleDto): Promise<RoleResponse> {
     const existing = await this.roleRepo.findByCode(data.code)
     if (existing) {
-      throw new ConflictException('角色编码已存在')
+      throw new ConflictException('角色编码已存在，请更换未被占用的编码')
     }
 
     const dataScope = data.dataScope ?? 'self'
@@ -294,7 +294,7 @@ export class RoleService {
 
     const existing = await this.roleRepo.findByCode(payload.code)
     if (existing) {
-      throw new ConflictException('角色编码已存在')
+      throw new ConflictException('角色编码已存在，请更换未被占用的编码')
     }
 
     const permissionCodes = source.permissions
@@ -366,7 +366,7 @@ export class RoleService {
 
     const users = await this.roleRepo.findActiveUsersByIds(userIds)
     if (users.length !== userIds.length) {
-      throw new BadRequestException('部分用户不存在或已删除')
+      throw new BadRequestException('部分用户不存在或已删除，请使用有效的用户 ID')
     }
 
     const displayUsers = await this.roleRepo.findUsersDisplayByIds(userIds)
@@ -413,7 +413,9 @@ export class RoleService {
 
     const userRoles = await this.roleRepo.findUserRoleCodes(userId)
     if (userRoles.length <= 1) {
-      throw new BadRequestException('用户至少需要保留一个角色，无法解绑')
+      throw new BadRequestException(
+        '用户至少需要保留一个角色，无法解绑；请先为该用户分配其他角色'
+      )
     }
 
     const displayUsers = await this.roleRepo.findUsersDisplayByIds([userId])
@@ -563,7 +565,9 @@ export class RoleService {
     const foundCodes = new Set(permissions.map((item) => item.code))
     const missingCodes = uniqueCodes.filter((code) => !foundCodes.has(code))
     if (missingCodes.length > 0) {
-      throw new BadRequestException(`部分权限编码不存在：${missingCodes.join('、')}`)
+      throw new BadRequestException(
+        `部分权限编码不存在：${missingCodes.join('、')}，请使用权限目录中 status=active 的编码`
+      )
     }
 
     const active = permissions.filter((item) => item.status === PermissionStatus.ACTIVE)
@@ -580,11 +584,11 @@ export class RoleService {
     if (dataScope !== 'custom') return []
     const ids = [...new Set((customOrgIds ?? []).map((id) => id.trim()).filter(Boolean))]
     if (ids.length === 0) {
-      throw new BadRequestException('自定义数据范围时至少选择一个组织')
+      throw new BadRequestException('自定义数据范围时至少选择一个组织，请提供有效的组织 ID')
     }
     const count = await this.roleRepo.countOrganizationsByIds(ids)
     if (count !== ids.length) {
-      throw new BadRequestException('部分组织不存在')
+      throw new BadRequestException('部分组织不存在，请使用有效的组织 ID')
     }
     return ids
   }

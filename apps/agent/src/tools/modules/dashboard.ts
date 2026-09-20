@@ -1,8 +1,8 @@
 import { tool } from 'langchain'
 import { z } from 'zod'
 
-import { buildDynamicDashboardSurface } from '../a2ui'
-import { executeApiCall, resolveToolCallIdentity, userControllerFindAll } from '../api'
+import { buildDynamicDashboardSurface } from '@/a2ui'
+import { executeApiCall, resolveToolCallIdentity, userControllerFindAll } from '@/api'
 
 import type { User } from '@zen/shared'
 

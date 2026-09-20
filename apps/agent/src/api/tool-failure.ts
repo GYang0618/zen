@@ -1,13 +1,7 @@
-import { isToolFailurePayload, mergeErrorEnvelope } from './tool-result'
+import { isRecord, isToolFailurePayload, mergeErrorEnvelope } from './tool-result'
 
 import type { ApiErrorResponseSwaggerDto } from '../api-client/types.gen'
 import type { ApiErrorEnvelope } from './tool-result'
-
-export type RecoverableHint = {
-  match: string
-  reason: string
-  hint: string
-}
 
 export type ToolFailureResult = ApiErrorEnvelope
 
@@ -23,37 +17,60 @@ export type ToolErrorReason =
   | 'TOOL_UNAVAILABLE'
   | 'UNKNOWN_ERROR'
 
-const GENERIC_RETRY_HINT = '请根据错误修正参数后重试；若缺少用户提供的信息，向用户询问后再调用。'
-const NO_RETRY_HINT = '请向用户说明原因，不要再次调用同一工具或任何等效写操作。'
-const SYSTEM_ERROR_HINT =
-  '底层服务异常或网络不可用，请直接用中文向用户说明服务暂不可用并提示稍后重试，禁止在本轮再次调用同一工具。'
-
-const NON_RETRYABLE_REASONS = new Set<ToolErrorReason>([
-  'UNAUTHORIZED',
-  'FORBIDDEN',
-  'STEP_UP_REQUIRED'
-])
-
-const SYSTEM_FATAL_REASONS = new Set<ToolErrorReason>([
-  'TOOL_UNAVAILABLE',
-  'NETWORK_ERROR',
-  'TIMEOUT',
-  'UNKNOWN_ERROR'
-])
-
 function errorStatus(error: unknown): number | undefined {
-  if (typeof error !== 'object' || error === null) return undefined
-  const record = error as Record<string, unknown>
-  if (typeof record.status === 'number') return record.status
+  if (!isRecord(error)) return undefined
+  if (typeof error.status === 'number') return error.status
   // The generated OpenAPI client throws the parsed API error envelope directly.
   // Its HTTP status is exposed as the top-level numeric `code` field.
-  if (typeof record.code === 'number') return record.code
-  const response = record.response
-  if (typeof response === 'object' && response !== null) {
-    const status = (response as Record<string, unknown>).status
-    if (typeof status === 'number') return status
+  if (typeof error.code === 'number') return error.code
+  const response = error.response
+  if (isRecord(response) && typeof response.status === 'number') {
+    return response.status
   }
   return undefined
+}
+
+function readMessageField(value: unknown): string | undefined {
+  if (typeof value === 'string' && value.trim() !== '') return value.trim()
+  if (Array.isArray(value)) {
+    const parts = value
+      .map(String)
+      .map((part) => part.trim())
+      .filter(Boolean)
+    if (parts.length > 0) return parts.join('；')
+  }
+  return undefined
+}
+
+function formatFieldErrors(fieldErrors: Record<string, unknown>): string | undefined {
+  const parts: string[] = []
+  for (const [field, messages] of Object.entries(fieldErrors)) {
+    if (!Array.isArray(messages) || messages.length === 0) continue
+    const text = messages
+      .map(String)
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .join('；')
+    if (text) parts.push(`${field}: ${text}`)
+  }
+  return parts.length > 0 ? parts.join('；') : undefined
+}
+
+function formatValidationDetails(record: Record<string, unknown>): string | undefined {
+  const parts: string[] = []
+  if (isRecord(record.fieldErrors)) {
+    const fieldText = formatFieldErrors(record.fieldErrors)
+    if (fieldText) parts.push(fieldText)
+  }
+  if (Array.isArray(record.formErrors)) {
+    const formText = record.formErrors
+      .map(String)
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .join('；')
+    if (formText) parts.push(formText)
+  }
+  return parts.length > 0 ? parts.join('；') : undefined
 }
 
 export function classifyToolError(error: unknown): ToolErrorReason {
@@ -67,8 +84,7 @@ export function classifyToolError(error: unknown): ToolErrorReason {
   if (status !== undefined && status >= 400 && status < 500) return 'BUSINESS_ERROR'
   if (status !== undefined && status >= 500) return 'TOOL_UNAVAILABLE'
 
-  const record =
-    typeof error === 'object' && error !== null ? (error as Record<string, unknown>) : undefined
+  const record = isRecord(error) ? error : undefined
   const code = typeof record?.code === 'string' ? record.code : ''
   const message = formatApiError(error).toLowerCase()
   if (
@@ -103,25 +119,32 @@ export function classifyToolError(error: unknown): ToolErrorReason {
   return 'UNKNOWN_ERROR'
 }
 
+const GENERIC_VALIDATION_MESSAGES = new Set([
+  '参数验证失败',
+  'Bad Request',
+  'Validation failed',
+  '请求错误'
+])
+
+/** 从 API / SDK 错误体提取可读 message（含 message 数组与校验明细） */
 export function formatApiError(error: unknown): string {
-  if (typeof error === 'object' && error !== null) {
-    const record = error as Record<string, unknown>
+  if (isRecord(error)) {
+    const nested = error.error
+    const candidates = [
+      readMessageField(error.message),
+      readMessageField(error.messages),
+      isRecord(nested)
+        ? readMessageField((nested as ApiErrorResponseSwaggerDto).message)
+        : undefined
+    ]
+    const baseMessage = candidates.find((value) => value !== undefined)
+    const details = formatValidationDetails(error)
 
-    if (typeof record.message === 'string' && record.message.trim() !== '') {
-      return record.message
+    if (baseMessage && details && GENERIC_VALIDATION_MESSAGES.has(baseMessage)) {
+      return `${baseMessage}（${details}）`
     }
-
-    const nested = record.error
-    if (typeof nested === 'object' && nested !== null && 'message' in nested) {
-      const apiError = nested as ApiErrorResponseSwaggerDto
-      if (typeof apiError.message === 'string') {
-        return apiError.message
-      }
-    }
-
-    if (typeof record.code === 'number' && typeof record.message === 'string') {
-      return record.message
-    }
+    if (baseMessage) return baseMessage
+    if (details) return details
   }
 
   if (error instanceof Error) {
@@ -129,17 +152,6 @@ export function formatApiError(error: unknown): string {
   }
 
   return String(error)
-}
-
-function matchHint(message: string, hints: RecoverableHint[]): RecoverableHint | undefined {
-  return hints.find((item) => message.includes(item.match))
-}
-
-function hintForReason(reason: string): string {
-  if (SYSTEM_FATAL_REASONS.has(reason as ToolErrorReason)) {
-    return SYSTEM_ERROR_HINT
-  }
-  return NON_RETRYABLE_REASONS.has(reason as ToolErrorReason) ? NO_RETRY_HINT : GENERIC_RETRY_HINT
 }
 
 function statusForReason(reason: string, error: unknown): number {
@@ -163,26 +175,24 @@ function statusForReason(reason: string, error: unknown): number {
   }
 }
 
+function resolveFailureReason(error: unknown): string {
+  if (isRecord(error) && typeof error.reason === 'string' && error.reason.trim() !== '') {
+    return error.reason
+  }
+  return classifyToolError(error)
+}
+
 /** 将任意工具/API 错误转为与原生 API 一致的错误信封，避免打断整轮 agent run */
-export function toToolFailureResult(error: unknown, hints: RecoverableHint[] = []): string {
-  const apiMessage = formatApiError(error)
-  const matched = matchHint(apiMessage, hints)
+export function toToolFailureResult(error: unknown): string {
+  const reason = resolveFailureReason(error)
   const classified = classifyToolError(error)
-  const existingReason =
-    typeof error === 'object' &&
-    error !== null &&
-    typeof (error as Record<string, unknown>).reason === 'string'
-      ? ((error as Record<string, unknown>).reason as string)
-      : undefined
-  const reason = matched?.reason ?? existingReason ?? classified
   const statusReason = reason === 'UNAUTHORIZED' ? 'UNAUTHORIZED' : classified
-  const message = `${apiMessage}。${matched?.hint ?? hintForReason(reason)}`
 
   return JSON.stringify(
     mergeErrorEnvelope(error, {
       code: statusForReason(statusReason, error),
       reason,
-      message
+      message: formatApiError(error)
     })
   )
 }
@@ -203,7 +213,7 @@ export function formatUnhandledToolError(error: unknown, toolName: string): stri
     mergeErrorEnvelope(error, {
       code: statusForReason(reason, error),
       reason,
-      message: `工具「${toolName}」执行失败：${message}。${hintForReason(reason)}`
+      message: `工具「${toolName}」执行失败：${message}`
     })
   )
 }

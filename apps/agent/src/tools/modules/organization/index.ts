@@ -43,16 +43,8 @@ import {
   organizationControllerUpdatePosition,
   organizationControllerUpdatePositionRoles,
   organizationControllerUpdateTypeCatalog
-} from '../api'
-import {
-  organizationTypeDisabledResult,
-  parseOrganizationTypeCatalogItems
-} from './organization-type-guard'
-import { executeApiCallOrRecover, isToolFailureResult } from './recoverable-error'
-
-import type { RunnableConfig } from '@langchain/core/runnables'
-import type { ToolExecutionContext } from '@zen/shared'
-import type { RecoverableHint } from './recoverable-error'
+} from '../../../api'
+import { createOrUpdateOrganization } from './ensure-organization-type'
 
 const organizationIdSchema = z.object({
   id: z.string().min(1, '组织 ID 不能为空').describe('组织 ID')
@@ -92,71 +84,12 @@ const listActivitiesToolSchema = organizationIdSchema.extend(
   organizationActivitiesQuerySchema.shape
 )
 
-const POSITION_WRITE_HINTS: RecoverableHint[] = [
-  {
-    match: '岗位目录不存在或已停用',
-    reason: 'JOB_PROFILE_UNAVAILABLE',
-    hint: '请先 query_job_profiles_list（status=active），使用返回的 id 作为 jobProfileId。'
-  },
-  {
-    match: '该组织已关联此岗位',
-    reason: 'JOB_PROFILE_ALREADY_LINKED',
-    hint: '请先 query_organization_positions，不要重复关联；给用户任职请用已有编制 id。'
-  },
-  {
-    match: '编制人数不能小于当前在岗人数',
-    reason: 'HEADCOUNT_TOO_SMALL',
-    hint: 'headcount 不能小于当前在岗人数，请先 query_organization_positions 查看 activeCount。'
-  },
-  {
-    match: '仍有在岗人员，无法解除岗位关联',
-    reason: 'POSITION_HAS_MEMBERS',
-    hint: '请先把该编制上的用户调到其他岗位或清空 postId，再解除关联。'
-  }
-]
-
-const ORG_TYPE_WRITE_HINTS: RecoverableHint[] = [
-  {
-    match: '该组织类型未在本企业启用',
-    reason: 'ORG_TYPE_DISABLED',
-    hint: '请先 query_organization_type_catalog，再用 update_organization_type_catalog 打开该类型后重试。'
-  }
-]
-
-async function ensureOrganizationTypeEnabled(
-  type: string | undefined,
-  config: RunnableConfig | undefined
-): Promise<string | undefined> {
-  if (!type) return undefined
-  const raw = await executeApiCall(config, async (_context) =>
-    organizationControllerGetTypeCatalog()
-  )
-  if (isToolFailureResult(raw)) return raw
-  const items = parseOrganizationTypeCatalogItems(raw)
-  if (!items) return undefined
-  const item = items.find((entry) => entry.type === type)
-  if (item && !item.enabled) return organizationTypeDisabledResult(type, items)
-  return undefined
-}
-
-async function createOrUpdateOrganization(
-  config: RunnableConfig | undefined,
-  type: string | undefined,
-  call: (context: ToolExecutionContext) => Promise<unknown>
-): Promise<string> {
-  const blocked = await ensureOrganizationTypeEnabled(type, config)
-  if (blocked) return blocked
-  return executeApiCall(config, call, ORG_TYPE_WRITE_HINTS)
-}
-
 export const getOrganizationTreeTool = tool(
   async (input, config) =>
     executeApiCall(config, async (_context) =>
-      organizationControllerGetTree(
-        asSdkOptions({
-          query: input?.keyword ? { keyword: input.keyword } : undefined
-        })
-      )
+      organizationControllerGetTree({
+        query: input
+      })
     ),
   {
     name: 'query_organization_tree',
@@ -172,12 +105,7 @@ export const queryOrganizationsListTool = tool(
     executeApiCall(config, async (_context) =>
       organizationControllerFindAll(
         asSdkOptions({
-          query: {
-            page: input?.page,
-            pageSize: input?.pageSize,
-            keyword: input?.keyword,
-            type: input?.type
-          }
+          query: input
         })
       )
     ),
@@ -425,16 +353,13 @@ export const listPositionsTool = tool(
 
 export const createPositionTool = tool(
   async ({ id, ...data }, config) =>
-    executeApiCallOrRecover(
-      config,
-      () =>
-        organizationControllerCreatePosition(
-          asSdkOptions({
-            path: { id },
-            body: data
-          })
-        ),
-      POSITION_WRITE_HINTS
+    executeApiCall(config, () =>
+      organizationControllerCreatePosition(
+        asSdkOptions({
+          path: { id },
+          body: data
+        })
+      )
     ),
   {
     name: 'create_organization_position',
@@ -447,16 +372,13 @@ export const createPositionTool = tool(
 
 export const updatePositionTool = tool(
   async ({ id, positionId, ...data }, config) =>
-    executeApiCallOrRecover(
-      config,
-      () =>
-        organizationControllerUpdatePosition(
-          asSdkOptions({
-            path: { id, positionId },
-            body: data
-          })
-        ),
-      POSITION_WRITE_HINTS
+    executeApiCall(config, () =>
+      organizationControllerUpdatePosition(
+        asSdkOptions({
+          path: { id, positionId },
+          body: data
+        })
+      )
     ),
   {
     name: 'update_organization_position',
@@ -467,16 +389,13 @@ export const updatePositionTool = tool(
 
 export const updatePositionRolesTool = tool(
   async ({ id, positionId, ...data }, config) =>
-    executeApiCallOrRecover(
-      config,
-      () =>
-        organizationControllerUpdatePositionRoles(
-          asSdkOptions({
-            path: { id, positionId },
-            body: data
-          })
-        ),
-      POSITION_WRITE_HINTS
+    executeApiCall(config, () =>
+      organizationControllerUpdatePositionRoles(
+        asSdkOptions({
+          path: { id, positionId },
+          body: data
+        })
+      )
     ),
   {
     name: 'update_organization_position_roles',
@@ -487,13 +406,10 @@ export const updatePositionRolesTool = tool(
 
 export const removePositionTool = tool(
   async ({ id, positionId }, config) =>
-    executeApiCallOrRecover(
-      config,
-      () =>
-        organizationControllerRemovePosition({
-          path: { id, positionId }
-        }),
-      POSITION_WRITE_HINTS
+    executeApiCall(config, () =>
+      organizationControllerRemovePosition({
+        path: { id, positionId }
+      })
     ),
   {
     name: 'remove_organization_position',
@@ -503,12 +419,12 @@ export const removePositionTool = tool(
 )
 
 export const listOrganizationActivitiesTool = tool(
-  async ({ id, page, pageSize }, config) =>
+  async ({ id, ...query }, config) =>
     executeApiCall(config, async (_context) =>
       organizationControllerListActivities(
         asSdkOptions({
           path: { id },
-          query: { page, pageSize }
+          query
         })
       )
     ),

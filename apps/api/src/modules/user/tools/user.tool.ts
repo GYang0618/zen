@@ -61,7 +61,7 @@ export class UserTool {
 
   deleteUsersTool = tool(async ({ ids }) => JSON.stringify(await this.userService.remove(ids)), {
     name: 'delete_users',
-    description: '删除用户。该操作需要管理员审批通过后才能执行。',
+    description: '删除用户。',
     schema: deleteUsersSchema
   })
 

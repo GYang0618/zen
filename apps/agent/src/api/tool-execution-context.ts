@@ -17,6 +17,11 @@ import {
 import type { RunnableConfig } from '@langchain/core/runnables'
 import type { ToolExecutionContext } from '@zen/shared'
 
+const UNSPECIFIED_ID = 'unknown'
+const UNSPECIFIED_TOOL_NAME = 'unknown_tool'
+const DEFAULT_LOCALE = 'zh-CN'
+const DEFAULT_MEMORY_MAX_CHARS = 6_000
+
 type AgentRunnableConfig = RunnableConfig & {
   toolCallId?: string
   toolCall?: { id?: string; name?: string }
@@ -27,35 +32,47 @@ type AgentRunnableConfig = RunnableConfig & {
   }
 }
 
+function asAgentConfig(config: RunnableConfig | undefined): AgentRunnableConfig | undefined {
+  return config as AgentRunnableConfig | undefined
+}
+
+function configRecords(config: RunnableConfig | undefined): Record<string, unknown>[] {
+  const toolConfig = asAgentConfig(config)
+  const records: Record<string, unknown>[] = []
+  for (const candidate of [
+    toolConfig?.configurable,
+    toolConfig?.context,
+    toolConfig?.config?.configurable,
+    toolConfig?.config?.context
+  ]) {
+    if (candidate && typeof candidate === 'object') {
+      records.push(candidate as Record<string, unknown>)
+    }
+  }
+  return records
+}
+
+function firstNonEmptyString(values: readonly unknown[]): string | undefined {
+  for (const value of values) {
+    if (typeof value === 'string' && value.length > 0) return value
+  }
+  return undefined
+}
+
 export function readConfigString(
-  config: AgentRunnableConfig | undefined,
+  config: RunnableConfig | undefined,
   key: string
 ): string | undefined {
-  for (const candidate of [
-    config?.configurable,
-    config?.context,
-    config?.config?.configurable,
-    config?.config?.context
-  ]) {
-    if (!candidate || typeof candidate !== 'object') continue
-    const value = (candidate as Record<string, unknown>)[key]
+  for (const record of configRecords(config)) {
+    const value = record[key]
     if (typeof value === 'string' && value) return value
   }
   return undefined
 }
 
-export function readConfigStringArray(
-  config: AgentRunnableConfig | undefined,
-  key: string
-): string[] {
-  for (const candidate of [
-    config?.configurable,
-    config?.context,
-    config?.config?.configurable,
-    config?.config?.context
-  ]) {
-    if (!candidate || typeof candidate !== 'object') continue
-    const value = (candidate as Record<string, unknown>)[key]
+export function readConfigStringArray(config: RunnableConfig | undefined, key: string): string[] {
+  for (const record of configRecords(config)) {
+    const value = record[key]
     if (Array.isArray(value)) {
       return value.filter((item): item is string => typeof item === 'string' && item.length > 0)
     }
@@ -63,44 +80,37 @@ export function readConfigStringArray(
   return []
 }
 
-export function resolveToolCallIdentity(config: AgentRunnableConfig | undefined): {
+export function resolveToolCallIdentity(config: RunnableConfig | undefined): {
   toolCallId?: string
   toolName?: string
 } {
-  const rec = config as Record<string, unknown> | undefined
+  const toolConfig = asAgentConfig(config)
+  const rec = toolConfig as Record<string, unknown> | undefined
   const configurable = rec?.configurable as Record<string, unknown> | undefined
   const metadata = rec?.metadata as Record<string, unknown> | undefined
-  const configObj = rec?.config as Record<string, unknown> | undefined
+  const nested = rec?.config as Record<string, unknown> | undefined
 
-  let toolCallId: string | undefined
-
-  const candidates = [
+  const toolCallId = firstNonEmptyString([
     rec?.toolCallId,
     rec?.tool_call_id,
-    config?.toolCallId,
-    config?.toolCall?.id,
-    config?.config?.toolCall?.id,
+    toolConfig?.toolCallId,
+    toolConfig?.toolCall?.id,
+    toolConfig?.config?.toolCall?.id,
     (rec?.toolCall as { id?: string } | undefined)?.id,
-    (configObj?.toolCall as { id?: string } | undefined)?.id,
+    (nested?.toolCall as { id?: string } | undefined)?.id,
     configurable?.toolCallId,
     configurable?.tool_call_id,
     metadata?.tool_call_id,
     metadata?.toolCallId,
     readConfigString(config, 'toolCallId'),
     readConfigString(config, 'tool_call_id')
-  ]
-
-  for (const c of candidates) {
-    if (typeof c === 'string' && c.length > 0) {
-      toolCallId = c
-      break
-    }
-  }
+  ])
 
   const toolName =
-    config?.toolCall?.name ??
-    config?.config?.toolCall?.name ??
+    toolConfig?.toolCall?.name ??
+    toolConfig?.config?.toolCall?.name ??
     readConfigString(config, AGENT_TOOL_NAME_CONFIGURABLE_KEY)
+
   return { toolCallId, toolName }
 }
 
@@ -108,35 +118,31 @@ export function resolveToolCallIdentity(config: AgentRunnableConfig | undefined)
 export function resolveToolExecutionContext(
   config: RunnableConfig | undefined
 ): { context: ToolExecutionContext } | { error: string } {
-  const toolConfig = config as AgentRunnableConfig | undefined
-  const { toolCallId, toolName } = resolveToolCallIdentity(toolConfig)
+  const toolConfig = asAgentConfig(config)
+  const { toolCallId, toolName } = resolveToolCallIdentity(config)
+  const metadata = toolConfig?.metadata as Record<string, unknown> | undefined
   const parsed = toolExecutionContextSchema.safeParse({
-    tenantId: readConfigString(toolConfig, AGENT_TENANT_ID_CONFIGURABLE_KEY),
-    userId: readConfigString(toolConfig, AGENT_USER_ID_CONFIGURABLE_KEY),
+    tenantId: readConfigString(config, AGENT_TENANT_ID_CONFIGURABLE_KEY),
+    userId: readConfigString(config, AGENT_USER_ID_CONFIGURABLE_KEY),
     threadId:
-      readConfigString(toolConfig, AGENT_THREAD_ID_CONFIGURABLE_KEY) ??
-      readConfigString(toolConfig, 'thread_id') ??
-      readConfigString(toolConfig, 'threadId'),
+      readConfigString(config, AGENT_THREAD_ID_CONFIGURABLE_KEY) ??
+      readConfigString(config, 'thread_id') ??
+      readConfigString(config, 'threadId'),
     runId:
-      readConfigString(toolConfig, AGENT_RUN_ID_CONFIGURABLE_KEY) ??
+      readConfigString(config, AGENT_RUN_ID_CONFIGURABLE_KEY) ??
       toolConfig?.runId ??
-      ((toolConfig?.metadata as Record<string, unknown> | undefined)?.run_id as
-        | string
-        | undefined) ??
-      ((toolConfig?.metadata as Record<string, unknown> | undefined)?.runId as
-        | string
-        | undefined) ??
-      readConfigString(toolConfig, 'run_id') ??
-      readConfigString(toolConfig, 'runId'),
-    traceId: readConfigString(toolConfig, AGENT_TRACE_ID_CONFIGURABLE_KEY),
-    accessToken: readConfigString(toolConfig, ACCESS_TOKEN_CONFIGURABLE_KEY),
-    locale: readConfigString(toolConfig, AGENT_LOCALE_CONFIGURABLE_KEY) ?? 'zh-CN',
-    permissions: readConfigStringArray(toolConfig, AGENT_PERMISSIONS_CONFIGURABLE_KEY),
-    activePluginIds: readConfigStringArray(toolConfig, ACTIVE_AGENT_PLUGINS_CONFIGURABLE_KEY),
-    modelMetadata: readModelMetadata(toolConfig),
+      firstNonEmptyString([metadata?.run_id, metadata?.runId]) ??
+      readConfigString(config, 'run_id') ??
+      readConfigString(config, 'runId'),
+    traceId: readConfigString(config, AGENT_TRACE_ID_CONFIGURABLE_KEY),
+    accessToken: readConfigString(config, ACCESS_TOKEN_CONFIGURABLE_KEY),
+    locale: readConfigString(config, AGENT_LOCALE_CONFIGURABLE_KEY) ?? DEFAULT_LOCALE,
+    permissions: readConfigStringArray(config, AGENT_PERMISSIONS_CONFIGURABLE_KEY),
+    activePluginIds: readConfigStringArray(config, ACTIVE_AGENT_PLUGINS_CONFIGURABLE_KEY),
+    modelMetadata: readModelMetadata(config),
     toolName,
     toolCallId,
-    approvalId: readConfigString(toolConfig, AGENT_APPROVAL_ID_CONFIGURABLE_KEY),
+    approvalId: readConfigString(config, AGENT_APPROVAL_ID_CONFIGURABLE_KEY),
     abortSignal: config?.signal
   })
   if (!parsed.success) {
@@ -145,15 +151,31 @@ export function resolveToolExecutionContext(
   return { context: parsed.data }
 }
 
-function readModelMetadata(config: AgentRunnableConfig | undefined) {
-  for (const candidate of [
-    config?.configurable,
-    config?.context,
-    config?.config?.configurable,
-    config?.config?.context
-  ]) {
-    if (!candidate || typeof candidate !== 'object') continue
-    const value = (candidate as Record<string, unknown>)[AGENT_MODEL_METADATA_CONFIGURABLE_KEY]
+/** 读操作在上下文不完整时仍可执行，使用占位标识而不是拒绝。 */
+export function createReadFallbackContext(
+  config: RunnableConfig | undefined,
+  accessToken: string
+): ToolExecutionContext {
+  const { toolCallId, toolName } = resolveToolCallIdentity(config)
+  return {
+    tenantId: UNSPECIFIED_ID,
+    userId: UNSPECIFIED_ID,
+    threadId: UNSPECIFIED_ID,
+    runId: UNSPECIFIED_ID,
+    accessToken,
+    locale: readConfigString(config, AGENT_LOCALE_CONFIGURABLE_KEY) ?? DEFAULT_LOCALE,
+    permissions: [],
+    activePluginIds: [],
+    memory: { includeLongTerm: false, maxChars: DEFAULT_MEMORY_MAX_CHARS },
+    toolName: toolName ?? UNSPECIFIED_TOOL_NAME,
+    toolCallId: toolCallId ?? UNSPECIFIED_ID,
+    abortSignal: config?.signal
+  }
+}
+
+function readModelMetadata(config: RunnableConfig | undefined) {
+  for (const record of configRecords(config)) {
+    const value = record[AGENT_MODEL_METADATA_CONFIGURABLE_KEY]
     if (value && typeof value === 'object') return value
   }
   return undefined

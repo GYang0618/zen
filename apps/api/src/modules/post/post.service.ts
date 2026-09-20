@@ -68,7 +68,7 @@ export class PostService {
 
   async create(data: CreateJobProfileDto): Promise<JobProfileResponse> {
     if (await this.postRepo.findProfileByCode(data.code)) {
-      throw new ConflictException('岗位编码已存在')
+      throw new ConflictException('岗位编码已存在，请更换未被占用的编码')
     }
 
     const created = await this.postRepo.createProfile({
@@ -123,7 +123,7 @@ export class PostService {
   ): Promise<OrganizationPositionResponse> {
     const profile = await this.postRepo.findActiveProfileById(data.jobProfileId)
     if (!profile) {
-      throw new NotFoundException('岗位目录不存在或已停用')
+      throw new NotFoundException('岗位目录不存在或已停用，请使用启用中的岗位目录 ID')
     }
 
     const existing = await this.postRepo.findOrganizationPositionByProfile(
@@ -131,7 +131,7 @@ export class PostService {
       data.jobProfileId
     )
     if (existing) {
-      throw new ConflictException('该组织已关联此岗位')
+      throw new ConflictException('该组织已关联此岗位，请勿重复关联')
     }
 
     const created = await this.postRepo.createOrganizationPosition({
@@ -153,7 +153,9 @@ export class PostService {
     if (!existing) throw new NotFoundException('组织岗位编制不存在')
 
     if (data.headcount !== undefined && data.headcount < existing._count.users) {
-      throw new BadRequestException('编制人数不能小于当前在岗人数')
+      throw new BadRequestException(
+        `编制人数不能小于当前在岗人数（当前在岗 ${existing._count.users}）`
+      )
     }
 
     const updated = await this.postRepo.updateOrganizationPosition(positionId, {
@@ -173,7 +175,7 @@ export class PostService {
 
     const activeCount = await this.postRepo.countActiveAssignments(positionId)
     if (activeCount > 0) {
-      throw new ConflictException('仍有在岗人员，无法解除岗位关联')
+      throw new ConflictException('仍有在岗人员，无法解除岗位关联；请先调整相关用户任职')
     }
 
     await this.postRepo.deleteOrganizationPosition(positionId)

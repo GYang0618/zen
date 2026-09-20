@@ -3,77 +3,25 @@ import { describe, it } from 'node:test'
 
 import {
   classifyToolError,
+  formatApiError,
   formatUnhandledToolError,
   isToolFailureResult,
   toToolFailureResult
 } from './tool-failure'
 
-import type { RecoverableHint } from './tool-failure'
-
-const HINTS: RecoverableHint[] = [
-  {
-    match: '部分角色不存在或已禁用',
-    reason: 'ROLE_ID_INVALID',
-    hint: '请先 query_roles_list，使用返回的 id。'
-  }
-]
-
 describe('toToolFailureResult', () => {
-  it('匹配到业务 hint 时返回 API 错误信封与下一步指引', () => {
-    const raw = toToolFailureResult(new Error('API 调用失败: 部分角色不存在或已禁用'), HINTS)
-    const parsed = JSON.parse(raw) as { code: number; reason: string; message: string }
-
-    assert.equal(parsed.code, 500)
-    assert.equal(parsed.reason, 'ROLE_ID_INVALID')
-    assert.match(parsed.message, /query_roles_list/)
-  })
-
-  it('未匹配 hint 时仍返回工具结果，系统级错误提示服务暂不可用且禁止重试', () => {
-    const raw = toToolFailureResult(new Error('网络超时'), HINTS)
-    const parsed = JSON.parse(raw) as { code: number; reason: string; message: string }
-
-    assert.equal(parsed.code, 500)
-    assert.equal(parsed.reason, 'TIMEOUT')
-    assert.match(parsed.message, /网络超时/)
-    assert.match(parsed.message, /服务暂不可用/)
-    assert.match(parsed.message, /禁止在本轮再次调用/)
-  })
-
-  it('未知业务参数异常返回工具结果并引导修正参数', () => {
-    const raw = toToolFailureResult(new Error('参数格式不合法'), HINTS)
-    const parsed = JSON.parse(raw) as { code: number; reason: string; message: string }
-
-    assert.equal(parsed.code, 500)
-    assert.equal(parsed.reason, 'UNKNOWN_ERROR')
-    assert.match(parsed.message, /参数格式不合法/)
-    assert.match(parsed.message, /服务暂不可用/)
-  })
-
-  it('权限类错误禁止引导模型再次调用同一工具', () => {
-    const raw = toToolFailureResult({ code: 403, message: '需要二次确认' })
-    const parsed = JSON.parse(raw) as { code: number; reason: string; message: string }
-
-    assert.equal(parsed.code, 403)
-    assert.equal(parsed.reason, 'STEP_UP_REQUIRED')
-    assert.match(parsed.message, /不要再次调用/)
-    assert.doesNotMatch(parsed.message, /修正参数后重试/)
-  })
-
-  it('透传原生 API 错误体字段', () => {
-    const raw = toToolFailureResult(
-      {
-        code: 400,
-        reason: 'VALIDATION_ERROR',
-        message: '部分角色不存在或已禁用',
-        path: '/api/user',
-        traceId: 'trace-api',
-        timestamp: '2026-09-08T06:00:00.000Z',
-        error: null,
-        fieldErrors: { roleIds: ['无效'] },
-        formErrors: null
-      },
-      HINTS
-    )
+  it('透传 API 错误 message，不附加硬编码业务 hint', () => {
+    const raw = toToolFailureResult({
+      code: 400,
+      reason: 'VALIDATION_ERROR',
+      message: '部分角色不存在或已禁用，请使用有效且已启用的角色 ID',
+      path: '/api/user',
+      traceId: 'trace-api',
+      timestamp: '2026-09-08T06:00:00.000Z',
+      error: null,
+      fieldErrors: { roleIds: ['无效'] },
+      formErrors: null
+    })
     const parsed = JSON.parse(raw) as {
       code: number
       reason: string
@@ -84,11 +32,63 @@ describe('toToolFailureResult', () => {
     }
 
     assert.equal(parsed.code, 400)
-    assert.equal(parsed.reason, 'ROLE_ID_INVALID')
+    assert.equal(parsed.reason, 'VALIDATION_ERROR')
     assert.equal(parsed.path, '/api/user')
     assert.equal(parsed.traceId, 'trace-api')
     assert.deepEqual(parsed.fieldErrors, { roleIds: ['无效'] })
-    assert.match(parsed.message, /query_roles_list/)
+    assert.equal(parsed.message, '部分角色不存在或已禁用，请使用有效且已启用的角色 ID')
+  })
+
+  it('网络类错误保留原始 message，并归类为 TIMEOUT', () => {
+    const raw = toToolFailureResult(new Error('网络超时'))
+    const parsed = JSON.parse(raw) as { code: number; reason: string; message: string }
+
+    assert.equal(parsed.code, 500)
+    assert.equal(parsed.reason, 'TIMEOUT')
+    assert.equal(parsed.message, '网络超时')
+  })
+
+  it('未知异常保留原始 message', () => {
+    const raw = toToolFailureResult(new Error('参数格式不合法'))
+    const parsed = JSON.parse(raw) as { code: number; reason: string; message: string }
+
+    assert.equal(parsed.code, 500)
+    assert.equal(parsed.reason, 'UNKNOWN_ERROR')
+    assert.equal(parsed.message, '参数格式不合法')
+  })
+
+  it('二次确认错误归类为 STEP_UP_REQUIRED 并透传 API message', () => {
+    const raw = toToolFailureResult({ code: 403, message: '需要二次确认，操作尚未执行' })
+    const parsed = JSON.parse(raw) as { code: number; reason: string; message: string }
+
+    assert.equal(parsed.code, 403)
+    assert.equal(parsed.reason, 'STEP_UP_REQUIRED')
+    assert.equal(parsed.message, '需要二次确认，操作尚未执行')
+  })
+})
+
+describe('formatApiError', () => {
+  it('合并 message 数组', () => {
+    assert.equal(
+      formatApiError({
+        message: ['邮箱格式不正确', '用户名过短']
+      }),
+      '邮箱格式不正确；用户名过短'
+    )
+  })
+
+  it('通用校验失败时附带 fieldErrors 明细', () => {
+    assert.equal(
+      formatApiError({
+        message: '参数验证失败',
+        fieldErrors: { email: ['必须是邮箱'] }
+      }),
+      '参数验证失败（email: 必须是邮箱）'
+    )
+  })
+
+  it('兼容 messages 字段', () => {
+    assert.equal(formatApiError({ messages: ['组织不存在'] }), '组织不存在')
   })
 })
 
@@ -133,7 +133,10 @@ describe('classifyToolError', () => {
       'UNAUTHORIZED'
     )
     assert.equal(classifyToolError({ response: { status: 403 } }), 'FORBIDDEN')
-    assert.equal(classifyToolError({ code: 403, message: '需要二次确认' }), 'STEP_UP_REQUIRED')
+    assert.equal(
+      classifyToolError({ code: 403, message: '需要二次确认，操作尚未执行' }),
+      'STEP_UP_REQUIRED'
+    )
     assert.equal(classifyToolError({ response: { status: 429 } }), 'RATE_LIMITED')
     assert.equal(
       classifyToolError({ code: 'ECONNRESET', message: 'socket closed' }),
@@ -148,6 +151,6 @@ describe('classifyToolError', () => {
 
     assert.equal(parsed.code, 401)
     assert.equal(parsed.reason, 'UNAUTHORIZED')
-    assert.match(parsed.message, /不要再次调用/)
+    assert.match(parsed.message, /缺少用户 access token/)
   })
 })

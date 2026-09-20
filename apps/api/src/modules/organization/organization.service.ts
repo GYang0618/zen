@@ -953,7 +953,7 @@ export class OrganizationService {
     const catalog = await this.loadTypeCatalog(auth)
     if (!isOrganizationTypeEnabled(type, catalog)) {
       throw new BadRequestException({
-        message: '该组织类型未在本企业启用',
+        message: '该组织类型未在本企业启用，请先在组织类型目录中启用后再使用',
         reason: 'ORG_TYPE_DISABLED'
       })
     }

@@ -115,13 +115,13 @@ expectIncludes(
 )
 expectIncludes(
   'apps/agent/src/tools/registry.ts',
-  'PLUGIN_AGENT_TOOL_FACTORIES',
-  '插件 Tool 必须从生成注册表装载'
+  'export const defaultAgentTools',
+  'Default Agent 必须通过 registry 聚合导出 defaultAgentTools'
 )
-expectIncludes(
-  'apps/agent/src/middlewares/plugin-visibility.ts',
-  'pluginToolVisibilityMiddleware',
-  '非 ACTIVE 插件 Tool 必须从模型请求中移除'
+expectExcludes(
+  'apps/agent/src/tools/registry.ts',
+  'PLUGIN_AGENT_TOOL_FACTORIES',
+  'Default Agent registry 暂不装载插件 Tool'
 )
 expectIncludes(
   'apps/api/src/modules/copilot/copilot.service.ts',
@@ -129,7 +129,7 @@ expectIncludes(
   'API 必须传递租户 ACTIVE 插件'
 )
 expectIncludes(
-  'apps/agent/src/api/create-client.ts',
+  'apps/agent/src/api/middleware.ts',
   'x-agent-idempotency-key',
   'Agent Tool 必须向 API 传递幂等键'
 )

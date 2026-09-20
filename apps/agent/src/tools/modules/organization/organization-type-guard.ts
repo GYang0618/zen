@@ -1,4 +1,4 @@
-import { toErrorEnvelope, unwrapToolSuccessData } from '../api/tool-result'
+import { toErrorEnvelope, unwrapToolSuccessData } from '../../../api/tool-result'
 
 export type OrganizationCatalogItem = {
   type: string
@@ -56,8 +56,7 @@ export function organizationTypeDisabledResult(
         `组织类型「${type}」未在本企业启用。` +
         `当前已启用：${enabled.map(format).join('、') || '无'}。` +
         `未启用：${disabled.map(format).join('、') || '无'}。` +
-        '请先基于 query_organization_type_catalog 返回的完整 items 调用 update_organization_type_catalog，' +
-        '将所需类型的 enabled 设为 true，其余保持原样（必选类型不可关闭），然后再重试本工具。'
+        '请先在组织类型目录中启用所需类型后再重试。'
     })
   )
 }

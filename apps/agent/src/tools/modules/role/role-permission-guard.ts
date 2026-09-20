@@ -1,4 +1,4 @@
-import { toErrorEnvelope, unwrapToolSuccessData } from '../api/tool-result'
+import { toErrorEnvelope, unwrapToolSuccessData } from '../../../api/tool-result'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -39,8 +39,7 @@ export function unknownPermissionCodesResult(
       reason: 'PERMISSION_CODE_INVALID',
       message:
         `部分权限编码不存在：${missingCodes.join('、')}。` +
-        `当前目录共有 ${activeCount} 个可用（active）编码。` +
-        '请先 query_permissions_list，只使用 status=active 的 code，不要编造编码后再重试。'
+        `当前目录共有 ${activeCount} 个可用（active）编码，请只使用有效且启用中的权限编码。`
     })
   )
 }

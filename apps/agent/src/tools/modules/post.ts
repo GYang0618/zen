@@ -14,10 +14,7 @@ import {
   postControllerFindOne,
   postControllerRemove,
   postControllerUpdate
-} from '../api'
-import { executeApiCallOrRecover } from './recoverable-error'
-
-import type { RecoverableHint } from './recoverable-error'
+} from '@/api'
 
 const jobProfileIdSchema = z.object({
   id: z.string().min(1, '岗位目录 ID 不能为空').describe('岗位目录 ID')
@@ -25,45 +22,15 @@ const jobProfileIdSchema = z.object({
 
 const updateJobProfileToolSchema = jobProfileIdSchema.extend(updateJobProfileSchema.shape)
 
-const POST_WRITE_HINTS: RecoverableHint[] = [
-  {
-    match: '岗位编码已存在',
-    reason: 'JOB_PROFILE_CODE_CONFLICT',
-    hint: '请先 query_job_profiles_list，换一个未被占用的 POS-四位数字（如 POS-1001）。'
-  },
-  {
-    match: '该岗位已关联组织编制',
-    reason: 'JOB_PROFILE_IN_USE',
-    hint: '请先 query_job_profile_detail，对已挂组织调用 remove_organization_position，或改为停用。'
-  },
-  {
-    match: '岗位目录不存在或已停用',
-    reason: 'JOB_PROFILE_UNAVAILABLE',
-    hint: '请先 query_job_profiles_list（status=active），使用返回的 id 作为 jobProfileId。'
-  },
-  {
-    match: '该组织已关联此岗位',
-    reason: 'JOB_PROFILE_ALREADY_LINKED',
-    hint: '请先 query_organization_positions，该组织已有此岗位编制则改用已有编制，不要重复关联。'
-  }
-]
-
 export const getJobProfilesTool = tool(
   async (input, config) =>
-    executeApiCall(config, async (_context) => {
-      const status = Array.isArray(input.status) ? input.status[0] : input.status
-      return postControllerFindAll(
+    executeApiCall(config, async (_context) =>
+      postControllerFindAll(
         asSdkOptions({
-          query: {
-            ...(input.page !== undefined ? { page: Number(input.page) } : {}),
-            ...(input.pageSize !== undefined ? { pageSize: Number(input.pageSize) } : {}),
-            ...(input.keyword !== undefined ? { keyword: input.keyword } : {}),
-            ...(status !== undefined ? { status } : {}),
-            ...(input.level !== undefined ? { level: input.level } : {})
-          }
+          query: input
         })
       )
-    }),
+    ),
   {
     name: 'query_job_profiles_list',
     description:
@@ -76,15 +43,12 @@ export const getJobProfilesTool = tool(
 
 export const createJobProfileTool = tool(
   async (input, config) =>
-    executeApiCallOrRecover(
-      config,
-      () =>
-        postControllerCreate(
-          asSdkOptions({
-            body: input
-          })
-        ),
-      POST_WRITE_HINTS
+    executeApiCall(config, () =>
+      postControllerCreate(
+        asSdkOptions({
+          body: input
+        })
+      )
     ),
   {
     name: 'create_job_profile',
@@ -111,16 +75,13 @@ export const getJobProfileTool = tool(
 
 export const updateJobProfileTool = tool(
   async ({ id, ...data }, config) =>
-    executeApiCallOrRecover(
-      config,
-      () =>
-        postControllerUpdate(
-          asSdkOptions({
-            path: { id },
-            body: data
-          })
-        ),
-      POST_WRITE_HINTS
+    executeApiCall(config, () =>
+      postControllerUpdate(
+        asSdkOptions({
+          path: { id },
+          body: data
+        })
+      )
     ),
   {
     name: 'update_job_profile_info',
@@ -133,19 +94,15 @@ export const updateJobProfileTool = tool(
 
 export const deleteJobProfileTool = tool(
   async ({ id }, config) =>
-    executeApiCallOrRecover(
-      config,
-      () =>
-        postControllerRemove({
-          path: { id }
-        }),
-      POST_WRITE_HINTS
+    executeApiCall(config, () =>
+      postControllerRemove({
+        path: { id }
+      })
     ),
   {
     name: 'delete_job_profile',
     description:
-      '删除岗位目录。已关联组织编制的岗位不可删除，请先 remove_organization_position 解除关联，或改为停用。' +
-      '该操作需要用户确认后才能执行。',
+      '删除岗位目录。已关联组织编制的岗位不可删除，请先 remove_organization_position 解除关联，或改为停用。',
     schema: jobProfileIdSchema
   }
 )

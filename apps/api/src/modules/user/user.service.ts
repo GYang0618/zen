@@ -410,7 +410,7 @@ export class UserService {
 
     const deletedUsers = users.filter((user) => user.deletedAt !== null)
     if (deletedUsers.length === 0) {
-      throw new BadRequestException('未找到可恢复的已删除用户')
+      throw new BadRequestException('未找到可恢复的已删除用户，仅可恢复已软删除的用户')
     }
 
     await this.userRepo.restoreByIds(normalizedIds)
@@ -531,7 +531,7 @@ export class UserService {
     if (!existing) throw new NotFoundException('用户不存在')
     const roleIds = existing.roles.map((item) => item.role.id)
     if (!roleIds.includes(primaryRoleId)) {
-      throw new BadRequestException('主角色必须属于已分配角色列表')
+      throw new BadRequestException('主角色必须属于已分配的角色列表')
     }
 
     await this.userRepo.setPrimaryUserRole(userId, primaryRoleId)
@@ -573,17 +573,17 @@ export class UserService {
       ...new Set(roleIdsInput.map((id) => id.trim()).filter((id): id is string => id.length > 0))
     ]
     if (roleIds.length === 0) {
-      throw new BadRequestException('至少需要一个角色')
+      throw new BadRequestException('至少需要分配一个角色')
     }
 
     const roles = await this.userRepo.findRolesByIds(roleIds)
     if (roles.length !== roleIds.length) {
-      throw new BadRequestException('部分角色不存在或已禁用')
+      throw new BadRequestException('部分角色不存在或已禁用，请使用有效且已启用的角色 ID')
     }
 
     const primaryRoleId = options.primaryRoleId?.trim()
     if (primaryRoleId && !roleIds.includes(primaryRoleId)) {
-      throw new BadRequestException('主角色必须属于已分配角色列表')
+      throw new BadRequestException('主角色必须属于已分配的角色列表')
     }
     const resolvedPrimaryRoleId = primaryRoleId ?? roleIds[0]
 
@@ -629,12 +629,12 @@ export class UserService {
       const orgIds = [...new Set(organizations.map((item) => item.organizationId))]
       const orgs = await this.userRepo.findOrganizationsByIds(orgIds)
       if (orgs.length !== orgIds.length) {
-        throw new BadRequestException('部分组织不存在')
+        throw new BadRequestException('部分组织不存在，请使用有效的组织 ID')
       }
 
       const primaryCount = organizations.filter((item) => item.isPrimary).length
       if (primaryCount > 1) {
-        throw new BadRequestException('主职组织最多只能有一个')
+        throw new BadRequestException('主职组织（isPrimary=true）最多只能有一个')
       }
       if (primaryCount === 0) {
         organizations[0].isPrimary = true
@@ -650,13 +650,15 @@ export class UserService {
       if (postIds.length > 0) {
         const posts = await this.userRepo.findPostsByIds(postIds)
         if (posts.length !== postIds.length) {
-          throw new BadRequestException('部分岗位不存在')
+          throw new BadRequestException(
+            '部分岗位编制不存在，请使用组织下的编制 ID（不是岗位目录 ID）'
+          )
         }
         const postOrgMap = new Map(posts.map((post) => [post.id, post.organizationId]))
         for (const item of organizations) {
           if (!item.postId) continue
           if (postOrgMap.get(item.postId) !== item.organizationId) {
-            throw new BadRequestException('岗位不属于对应组织')
+            throw new BadRequestException('岗位编制不属于对应组织，请使用该组织下的编制 ID')
           }
         }
       }

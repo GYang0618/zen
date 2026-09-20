@@ -82,7 +82,9 @@ describe('StepUpGuard', () => {
     const findFirst = jest.fn()
     const { guard } = createGuard(findFirst)
 
-    await expect(guard.canActivate(context())).rejects.toMatchObject({ message: '需要二次确认' })
+    await expect(guard.canActivate(context())).rejects.toMatchObject({
+      message: '需要二次确认，操作尚未执行'
+    })
     expect(findFirst).not.toHaveBeenCalled()
   })
 

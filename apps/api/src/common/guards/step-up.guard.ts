@@ -46,7 +46,7 @@ export class StepUpGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<StepUpRequest>()
     const token = request.header('x-step-up-token')
     if (token) return this.verifyStepUpToken(token, request)
-    throw new ForbiddenException('需要二次确认')
+    throw new ForbiddenException('需要二次确认，操作尚未执行')
   }
 
   private async verifyStepUpToken(token: string, request: StepUpRequest): Promise<true> {
