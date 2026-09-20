@@ -9,12 +9,12 @@ import { ConfirmDialog } from '@/components'
 
 import { useDeleteUsersMutation } from '../mutations'
 
-import type { User } from '@zen/shared'
+import type { UserListItem } from '@zen/shared'
 
 type UsersMultiDeleteDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  users: User[]
+  users: UserListItem[]
   onDeleted: () => void
 }
 

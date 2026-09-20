@@ -1,7 +1,6 @@
 import {
   adminResetPasswordSchema,
   assignUserRolesSchema,
-  completePageQuery,
   createUserSchema,
   deleteUsersSchema,
   replaceUserOrganizationsSchema,
@@ -15,7 +14,6 @@ import { z } from 'zod'
 import {
   asSdkOptions,
   executeApiCall,
-  toQueryArray,
   userControllerAdminResetPassword,
   userControllerAssignRoles,
   userControllerCreate,
@@ -29,10 +27,9 @@ import {
   userControllerUpdate,
   userControllerUpdateStatus
 } from '../api'
-import { compactPagedToolResult, compactUserListItem } from './compact-result'
 import { executeApiCallOrRecover } from './recoverable-error'
 
-import type { UserControllerAdminResetPasswordData, UserControllerFindAllData } from '../api'
+import type { UserControllerAdminResetPasswordData } from '../api'
 import type { RecoverableHint } from './recoverable-error'
 
 const userIdSchema = z.object({
@@ -43,28 +40,6 @@ const updateUserToolSchema = userIdSchema.extend(updateUserSchema.shape)
 const resetUserPasswordToolSchema = userIdSchema.extend(adminResetPasswordSchema.shape)
 const assignUserRolesToolSchema = userIdSchema.extend(assignUserRolesSchema.shape)
 const replaceUserOrganizationsToolSchema = userIdSchema.extend(replaceUserOrganizationsSchema.shape)
-
-type FindAllQuery = NonNullable<UserControllerFindAllData['query']>
-
-function normalizeUsersQuery(input: z.infer<typeof usersQueryToolSchema>): FindAllQuery {
-  const {
-    title: _t,
-    description: _d,
-    display: _disp,
-    page,
-    pageSize,
-    status,
-    role,
-    ...rest
-  } = input
-
-  return {
-    ...rest,
-    ...completePageQuery({ page, pageSize }),
-    ...(status !== undefined ? { status: toQueryArray(status) } : {}),
-    ...(role !== undefined ? { role: toQueryArray(role) } : {})
-  }
-}
 
 const USER_WRITE_HINTS: RecoverableHint[] = [
   {
@@ -91,6 +66,11 @@ const USER_WRITE_HINTS: RecoverableHint[] = [
     match: '主职组织最多只能有一个',
     reason: 'PRIMARY_ORG_CONFLICT',
     hint: 'organizations 中 isPrimary=true 最多一项。'
+  },
+  {
+    match: '主角色必须属于已分配角色列表',
+    reason: 'PRIMARY_ROLE_INVALID',
+    hint: 'primaryRoleId 必须在 roleIds 内。'
   },
   {
     match: '至少需要一个角色',
@@ -121,20 +101,17 @@ const USER_WRITE_HINTS: RecoverableHint[] = [
 
 export const getUsersTool = tool(
   async (input, config) =>
-    compactPagedToolResult(
-      await executeApiCall(config, async (_context) =>
-        userControllerFindAll({
-          query: normalizeUsersQuery(input)
-        })
-      ),
-      compactUserListItem
+    executeApiCall(config, async (_context) =>
+      userControllerFindAll({
+        query: input
+      })
     ),
   {
     name: 'query_users_list',
     description:
       '查询用户列表。keyword 为子串匹配（谷歌邮箱用 gmail.com / @gmail.com，不要用 google.com）。' +
       '按状态筛选注意：已停用/禁用账号必须使用 status="suspended"（inactive 仅表示尚未完成激活流程）。' +
-      'page 与 pageSize 可只传其一。返回精简字段；完整资料用 query_user_detail。' +
+      'page 与 pageSize 可只传其一。返回列表精简字段（仅主角色与主职组织摘要）；完整资料用 query_user_detail。' +
       '若用户核心意图是查看/筛选/展示用户列表，将 display 设为 true 在前端以 A2UI 呈现；若仅为查组织或鉴权等内部中间步骤，设为 false。',
     schema: usersQueryToolSchema
   }
@@ -266,16 +243,21 @@ export const revokeUserSessionsTool = tool(
 )
 
 export const assignUserRolesTool = tool(
-  async ({ id, roleIds }, config) =>
+  async ({ id, roleIds, primaryRoleId }, config) =>
     executeApiCallOrRecover(
       config,
-      () => userControllerAssignRoles({ path: { id }, body: { roleIds } }),
+      () =>
+        userControllerAssignRoles({
+          path: { id },
+          body: { roleIds, ...(primaryRoleId ? { primaryRoleId } : {}) }
+        }),
       USER_WRITE_HINTS
     ),
   {
     name: 'assign_user_roles',
     description:
       '覆盖式分配用户角色（替换全部角色，至少保留一个）。roleIds 必须来自 query_roles_list 的 id，不要用 code。' +
+      '可用 primaryRoleId 指定主角色（须属于 roleIds；省略则取 roleIds[0]）。' +
       '会刷新权限版本并强制下线目标用户。该操作需要用户确认后才能执行。',
     schema: assignUserRolesToolSchema
   }

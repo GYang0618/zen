@@ -32,6 +32,28 @@ export const USER_INCLUDE = {
   }
 } satisfies Prisma.UserInclude
 
+/** 列表查询：仅主职组织 + 主角色，角色不拉权限明细 */
+export const USER_LIST_INCLUDE = {
+  profile: true,
+  audit: true,
+  organizations: {
+    where: { leftAt: null },
+    include: {
+      organization: true,
+      post: { include: { jobProfile: true } }
+    },
+    orderBy: [{ isPrimary: 'desc' as const }, { joinedAt: 'asc' as const }],
+    take: 1
+  },
+  roles: {
+    include: {
+      role: true
+    },
+    orderBy: [{ isPrimary: 'desc' as const }, { createdAt: 'asc' as const }],
+    take: 1
+  }
+} satisfies Prisma.UserInclude
+
 const USER_BASIC_INFO_SELECT = {
   id: true,
   nickname: true,
@@ -59,6 +81,7 @@ const USER_ORGANIZATIONS_SELECT = {
 } satisfies Prisma.UserSelect
 
 export type UserWithDomain = Prisma.UserGetPayload<{ include: typeof USER_INCLUDE }>
+export type UserListWithDomain = Prisma.UserGetPayload<{ include: typeof USER_LIST_INCLUDE }>
 export type UserBasicInfo = Prisma.UserGetPayload<{ select: typeof USER_BASIC_INFO_SELECT }>
 export type UserRoles = Prisma.UserGetPayload<{ select: typeof USER_ROLES_SELECT }>
 export type UserOrganizations = Prisma.UserGetPayload<{
@@ -174,6 +197,21 @@ export class UserRepository {
     })
   }
 
+  findManyForList(
+    where: Prisma.UserWhereInput,
+    skip: number | undefined,
+    take: number | undefined,
+    orderBy: Prisma.UserOrderByWithRelationInput
+  ) {
+    return this.prisma.user.findMany({
+      where,
+      include: USER_LIST_INCLUDE,
+      skip,
+      take,
+      orderBy
+    })
+  }
+
   /** 确保用户的所有关联领域表数据存在（幂等 upsert） */
   ensureDomainData(userId: string) {
     const upsertArgs = { where: { userId }, create: { userId }, update: {} }
@@ -204,11 +242,11 @@ export class UserRepository {
     return this.prisma.role.findUnique({ where: { code } })
   }
 
-  upsertUserRole(userId: string, roleId: string) {
+  upsertUserRole(userId: string, roleId: string, isPrimary = false) {
     return this.prisma.userRole.upsert({
       where: { userId_roleId: { userId, roleId } },
-      create: { userId, roleId },
-      update: {}
+      create: { userId, roleId, isPrimary },
+      update: { isPrimary }
     })
   }
 
@@ -218,16 +256,36 @@ export class UserRepository {
     })
   }
 
-  replaceUserRoles(userId: string, roleIds: string[]) {
+  replaceUserRoles(
+    userId: string,
+    roles: Array<{ roleId: string; isPrimary: boolean }>
+  ) {
     return this.prisma.$transaction([
       this.prisma.userRole.deleteMany({ where: { userId } }),
-      ...(roleIds.length > 0
+      ...(roles.length > 0
         ? [
             this.prisma.userRole.createMany({
-              data: roleIds.map((roleId) => ({ userId, roleId }))
+              data: roles.map((item) => ({
+                userId,
+                roleId: item.roleId,
+                isPrimary: item.isPrimary
+              }))
             })
           ]
         : [])
+    ])
+  }
+
+  async setPrimaryUserRole(userId: string, primaryRoleId: string) {
+    await this.prisma.$transaction([
+      this.prisma.userRole.updateMany({
+        where: { userId },
+        data: { isPrimary: false }
+      }),
+      this.prisma.userRole.update({
+        where: { userId_roleId: { userId, roleId: primaryRoleId } },
+        data: { isPrimary: true }
+      })
     ])
   }
 

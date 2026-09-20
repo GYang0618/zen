@@ -5,12 +5,12 @@ import { isCurrentUserId, useAccessChangeFeedback } from '@/lib/auth/access-chan
 
 import { useRevokeUserSessionsMutation } from '../mutations'
 
-import type { User } from '@zen/shared'
+import type { UserListItem } from '@zen/shared'
 
 type UsersRevokeSessionsDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  currentRow: User
+  currentRow: UserListItem
 }
 
 export function UsersRevokeSessionsDialog({

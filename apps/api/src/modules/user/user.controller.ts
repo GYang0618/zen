@@ -186,7 +186,7 @@ export class UserController {
   @ApiOperation({ summary: '解锁用户账号' })
   @ApiOkResponse({ description: '解锁成功', type: UpdateUserSuccessSwaggerDto })
   @ApiStandardErrorResponses()
-  unlock(@Param('id') id: string): Promise<UserResponse> {
+  unlock(@Param('id') id: string): Promise<UserListItemResponse> {
     return this.userService.unlock(id)
   }
 
@@ -199,7 +199,7 @@ export class UserController {
   adminResetPassword(
     @Param('id') id: string,
     @Body() body: AdminResetPasswordDto
-  ): Promise<UserResponse> {
+  ): Promise<UserListItemResponse> {
     return this.userService.adminResetPassword(id, body.password, body.mustChangePassword ?? true)
   }
 
@@ -208,7 +208,7 @@ export class UserController {
   @ApiOperation({ summary: '强制下线用户全部会话' })
   @ApiOkResponse({ description: '下线成功', type: UpdateUserSuccessSwaggerDto })
   @ApiStandardErrorResponses()
-  revokeSessions(@Param('id') id: string): Promise<UserResponse> {
+  revokeSessions(@Param('id') id: string): Promise<UserListItemResponse> {
     return this.userService.revokeSessions(id)
   }
 
@@ -217,7 +217,8 @@ export class UserController {
   @RequireStepUp()
   @ApiOperation({
     summary: '覆盖式分配用户角色',
-    description: '替换用户全部角色；会 bump 权限版本并强制下线目标用户。需要二次确认令牌。'
+    description:
+      '替换用户全部角色；可指定 primaryRoleId 为主角色（须在 roleIds 内，省略则取首项）。会 bump 权限版本并强制下线目标用户。需要二次确认令牌。'
   })
   @ApiParam({ name: 'id', description: '用户 ID' })
   @ApiBody({
@@ -225,7 +226,8 @@ export class UserController {
       type: 'object',
       required: ['roleIds'],
       properties: {
-        roleIds: { type: 'array', items: { type: 'string' } }
+        roleIds: { type: 'array', items: { type: 'string' } },
+        primaryRoleId: { type: 'string', description: '主角色 ID，须属于 roleIds' }
       }
     }
   })
@@ -237,6 +239,31 @@ export class UserController {
     @Body() body: AssignUserRolesDto
   ): Promise<AssignUserRolesResponse> {
     return this.userService.assignRoles(id, body)
+  }
+
+  @Patch(':id/primary-role')
+  @RequirePermission(PermissionCode.ROLE_ASSIGN)
+  @ApiOperation({
+    summary: '设置用户主角色',
+    description: '在已绑定角色中切换主角色，不改变角色集合；会 bump 权限版本并强制下线。'
+  })
+  @ApiParam({ name: 'id', description: '用户 ID' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['primaryRoleId'],
+      properties: {
+        primaryRoleId: { type: 'string' }
+      }
+    }
+  })
+  @ApiOkResponse({ description: '更新成功', type: AssignUserRolesSuccessSwaggerDto })
+  @ApiStandardErrorResponses()
+  setPrimaryRole(
+    @Param('id') id: string,
+    @Body() body: { primaryRoleId: string }
+  ): Promise<AssignUserRolesResponse> {
+    return this.userService.setPrimaryRole(id, body.primaryRoleId)
   }
 
   @Patch(':id/organizations')

@@ -16,6 +16,7 @@ import type { ToolExecutionContext } from '@zen/shared'
 import type { RecoverableHint } from './tool-failure'
 
 export {
+  type ApiEnvelope,
   type ApiErrorEnvelope,
   type ApiSuccessEnvelope,
   isApiErrorEnvelope,
@@ -61,10 +62,55 @@ export function toQueryArray<T>(value: T | T[] | undefined): T[] | undefined {
   return Array.isArray(value) ? value : [value]
 }
 
+/** 响应拦截器（对齐 web 的 dataTransformMiddleware）：成功响应统一为 { code, message, data } 信封 */
+async function transformSuccessResponse<T>(
+  body: unknown,
+  context: {
+    accessToken: string
+    runId: string
+    toolCallId: string
+    toolName: string
+    signal: AbortSignal
+  }
+): Promise<string> {
+  const envelope = toSuccessEnvelope<T>(body)
+  const serialized = JSON.stringify(envelope)
+  if (serialized.length > ARTIFACT_THRESHOLD_CHARS && context.runId && context.toolCallId) {
+    const artifact = await persistArtifact({
+      accessToken: context.accessToken,
+      runId: context.runId,
+      toolCallId: context.toolCallId,
+      toolName: context.toolName,
+      data: envelope.data,
+      signal: context.signal
+    })
+    if (artifact) {
+      return JSON.stringify(
+        toSuccessEnvelope(
+          {
+            artifactId: artifact.id,
+            name: artifact.name,
+            size: artifact.size,
+            summary: artifact.summary,
+            message: '结果较大，已保存为 Artifact。'
+          },
+          envelope.traceId
+        )
+      )
+    }
+  }
+  return serialized
+}
+
+/** 错误拦截器（对齐 web 的 globalErrorMiddleware）：失败响应统一为 { code, message, data: null } 信封 */
+function transformErrorResponse(error: unknown, hints: RecoverableHint[]): string {
+  return toToolFailureResult(error, hints)
+}
+
 /**
- * 执行 SDK 请求，并将结果序列化为与原生 API 一致的信封：
- * 成功 { code, message, data, traceId, timestamp }；
- * 失败 { code, reason, message, path, traceId, timestamp, ... }。
+ * 执行 SDK 请求，并经响应/错误拦截器统一序列化为一致信封：
+ * 成功 { code, message, data, traceId, timestamp }（data 为真实业务数据）；
+ * 失败 { code, reason, message, data: null, path, traceId, timestamp, ... }。
  */
 export async function executeApiCall<T>(
   config: RunnableConfig | undefined,
@@ -84,7 +130,7 @@ export async function executeApiCall<T>(
   try {
     accessToken = getAccessTokenFromConfig(config)
   } catch (error) {
-    return toToolFailureResult(error, hints)
+    return transformErrorResponse(error, hints)
   }
   const toolContext: ToolExecutionContext =
     'context' in resolved
@@ -150,39 +196,15 @@ export async function executeApiCall<T>(
       )
       // hey-api fields 风格失败体：{ error }（throwOnError=false 时）。不得当成业务成功。
       if (isSdkFieldsErrorResult(body)) {
-        return toToolFailureResult(body.error, hints)
+        return transformErrorResponse(body.error, hints)
       }
-      const envelope = toSuccessEnvelope<T>(body)
-      const serialized = JSON.stringify(envelope)
-      if (
-        serialized.length > ARTIFACT_THRESHOLD_CHARS &&
-        toolContext.runId &&
-        toolContext.toolCallId
-      ) {
-        const artifact = await persistArtifact({
-          accessToken,
-          runId: toolContext.runId,
-          toolCallId: toolContext.toolCallId,
-          toolName: toolContext.toolName,
-          data: envelope.data,
-          signal
-        })
-        if (artifact) {
-          return JSON.stringify(
-            toSuccessEnvelope(
-              {
-                artifactId: artifact.id,
-                name: artifact.name,
-                size: artifact.size,
-                summary: artifact.summary,
-                message: '结果较大，已保存为 Artifact。'
-              },
-              envelope.traceId
-            )
-          )
-        }
-      }
-      return serialized
+      return await transformSuccessResponse<T>(body, {
+        accessToken,
+        runId: toolContext.runId,
+        toolCallId: toolContext.toolCallId,
+        toolName: toolContext.toolName,
+        signal
+      })
     } catch (error) {
       const reason = classifyToolError(error)
       const retryable = policy?.retryPolicy.retryableReasons.includes(reason) === true
@@ -190,11 +212,11 @@ export async function executeApiCall<T>(
         await delay(300 * 2 ** attempt, config?.signal)
         continue
       }
-      return toToolFailureResult(error, hints)
+      return transformErrorResponse(error, hints)
     }
   }
 
-  return toToolFailureResult(new Error('Tool retry budget exhausted'), hints)
+  return transformErrorResponse(new Error('Tool retry budget exhausted'), hints)
 }
 
 function readStringFromContext(

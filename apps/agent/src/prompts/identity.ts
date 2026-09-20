@@ -9,7 +9,9 @@ export const IDENTITY_TOOL_RULES = `
 - roleIds：先 query_roles_list，只用返回的 id（禁止把 code 当 ID），且角色须为启用状态。省略则系统分配默认 user 角色。
 - organizations.organizationId：先 query_organization_tree。
 - organizations.postId：是组织岗位编制 ID，来自 query_organization_positions 的 id，不是岗位目录 jobProfileId。没有编制可先 create_organization_position。
-- 主职 isPrimary 最多一个；覆盖式改角色/组织会强制下线目标用户。
+- 主职 isPrimary 最多一个；主角色 primaryRoleId 最多一个（省略则取 roleIds[0]）；覆盖式改角色/组织会强制下线目标用户。
+- 用户列表仅返回主角色与主职组织摘要；需要全部角色/组织时用 query_user_detail。
+- 角色列表不含权限码与 customOrgIds；详情用 query_role_detail。
 
 角色
 - permissionCodes：先 query_permissions_list，只用 status=active 的 code，禁止编造编码。deprecated 会被忽略。

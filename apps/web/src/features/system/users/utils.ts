@@ -1,6 +1,11 @@
 import { formatFromNow, getPrimaryOrganization, getUserDisplayName } from '@zen/shared'
 
-import type { User, UserOrganizationMembership } from '@zen/shared'
+import type {
+  User,
+  UserListItem,
+  UserOrganizationListPreview,
+  UserOrganizationMembership
+} from '@zen/shared'
 import type { UserPresence } from './data/data'
 
 export { formatFromNow, getPrimaryOrganization, getUserDisplayName }
@@ -41,11 +46,18 @@ export function formatPhoneNumber(value: string | null | undefined): string {
   return value
 }
 
-export function getPrimaryMembership(user: User): UserOrganizationMembership | null {
+export function getPrimaryMembership(
+  user: Pick<User | UserListItem, 'organizations'>
+): UserOrganizationMembership | UserOrganizationListPreview | null {
   return getPrimaryOrganization(user.organizations)
 }
 
-export function getOrganizationLabel(membership: UserOrganizationMembership | null): string {
+export function getOrganizationLabel(
+  membership: Pick<
+    UserOrganizationMembership | UserOrganizationListPreview,
+    'organizationName' | 'postName'
+  > | null
+): string {
   if (!membership) return '未分配组织'
   return membership.postName
     ? `${membership.organizationName} · ${membership.postName}`

@@ -258,6 +258,15 @@ export const roleSchema = z.object({
   updatedAt: z.string().describe('更新时间（ISO 8601）')
 })
 
+/** 角色列表行：不含权限码与自定义组织白名单等详情字段 */
+export const roleListItemSchema = roleSchema.omit({
+  customOrgIds: true,
+  permissions: true,
+  createdAt: true,
+  updatedAt: true,
+  sort: true
+})
+
 export const roleMemberSchema = z.object({
   id: z.string().describe('用户 ID'),
   username: z.string().describe('用户名'),
@@ -269,7 +278,7 @@ export const roleMemberSchema = z.object({
   boundAt: z.string().describe('绑定时间（ISO 8601）')
 })
 
-export const rolesPageSchema = paged(roleSchema)
+export const rolesPageSchema = paged(roleListItemSchema)
 export const roleMembersPageSchema = paged(roleMemberSchema)
 
 export function deriveRoleEffectiveStatus(input: {

@@ -1,6 +1,16 @@
 /** 与 Nest TransformInterceptor / AllExceptionsFilter 对齐的工具结果信封 */
 
-export interface ApiSuccessEnvelope<T = unknown> {
+/**
+ * 统一响应信封：成功与失败共用 `code` / `message` / `data` 三字段。
+ * 成功时 `data` 为真实业务数据；失败时 `data` 恒为 `null`。
+ */
+export interface ApiEnvelope<T = unknown> {
+  code: number
+  message: string
+  data: T | null
+}
+
+export interface ApiSuccessEnvelope<T = unknown> extends ApiEnvelope<T> {
   code: number
   message: string
   data: T
@@ -8,10 +18,11 @@ export interface ApiSuccessEnvelope<T = unknown> {
   timestamp: string
 }
 
-export interface ApiErrorEnvelope {
+export interface ApiErrorEnvelope extends ApiEnvelope<null> {
   code: number
   reason: string | null
   message: string
+  data: null
   path: string
   traceId: string
   timestamp: string
@@ -91,6 +102,7 @@ export function toErrorEnvelope(input: {
     code: input.code ?? 400,
     reason: input.reason,
     message: input.message,
+    data: null,
     path: input.path ?? '',
     traceId: input.traceId ?? 'agent-local',
     timestamp: new Date().toISOString(),
@@ -110,7 +122,8 @@ export function mergeErrorEnvelope(
       ...error,
       code: overrides.code ?? error.code,
       reason: overrides.reason,
-      message: overrides.message
+      message: overrides.message,
+      data: null
     }
   }
 

@@ -21,6 +21,8 @@ import {
   toReplaceUserOrganizationsResult,
   toUpdateUserResult,
   toUserInfoResponse,
+  toUserListItemFromFull,
+  toUserListItemResponse,
   toUserResponse
 } from './user.mapper.js'
 import { UserRepository } from './user.repository.js'
@@ -67,6 +69,14 @@ export class UserService {
 
   private toUser(user: Parameters<typeof toUserResponse>[0]) {
     return toUserResponse(user, durationToSeconds(this.authCfg.expiresIn) * 1000)
+  }
+
+  private toListItem(user: Parameters<typeof toUserListItemResponse>[0]) {
+    return toUserListItemResponse(user)
+  }
+
+  private toListItemFromFull(user: Parameters<typeof toUserListItemFromFull>[0]) {
+    return toUserListItemFromFull(user)
   }
 
   private async withResolvedAvatar<T extends { avatar: string | null }>(dto: T): Promise<T> {
@@ -227,7 +237,9 @@ export class UserService {
   }
 
   private async getUserListItemByUserId(userId: string): Promise<UserListItemResponse> {
-    return this.getUserById(userId)
+    const user = await this.userRepo.findActiveWithDomainById(userId)
+    if (!user) throw new NotFoundException('用户不存在')
+    return this.withResolvedAvatar(this.toListItemFromFull(user))
   }
 
   async update(id: string, data: UpdateUserDto): Promise<UpdateUserResponse> {
@@ -308,19 +320,21 @@ export class UserService {
         page: page!,
         pageSize: pageSize!,
         count: () => this.userRepo.count(where),
-        findMany: ({ skip, take }) => this.userRepo.findManyWithDomain(where, skip, take, orderBy)
+        findMany: ({ skip, take }) => this.userRepo.findManyForList(where, skip, take, orderBy)
       })
 
       return {
-        items: await Promise.all(items.map((item) => this.withResolvedAvatar(this.toUser(item)))),
+        items: await Promise.all(
+          items.map((item) => this.withResolvedAvatar(this.toListItem(item)))
+        ),
         pagination
       }
     }
 
-    const items = await this.userRepo.findManyWithDomain(where, undefined, undefined, orderBy)
+    const items = await this.userRepo.findManyForList(where, undefined, undefined, orderBy)
     const total = items.length
     return {
-      items: await Promise.all(items.map((item) => this.withResolvedAvatar(this.toUser(item)))),
+      items: await Promise.all(items.map((item) => this.withResolvedAvatar(this.toListItem(item)))),
       pagination: buildPaginationMeta(1, total, total)
     }
   }
@@ -348,7 +362,7 @@ export class UserService {
     }
 
     await this.userRepo.softDeleteByIds(ids)
-    return users.map((item) => this.toUser(item))
+    return users.map((item) => this.toListItemFromFull(item))
   }
 
   async hardRemove(ids: string[], currentUserId?: string): Promise<UserListItemResponse[]> {
@@ -373,7 +387,7 @@ export class UserService {
     }
 
     await this.userRepo.deleteManyByIds(normalizedIds)
-    return users.map((item) => this.toUser(item))
+    return users.map((item) => this.toListItemFromFull(item))
   }
 
   async restore(ids: string[]): Promise<UserListItemResponse[]> {
@@ -400,7 +414,7 @@ export class UserService {
     }
 
     await this.userRepo.restoreByIds(normalizedIds)
-    return deletedUsers.map((item) => this.toUser(item))
+    return deletedUsers.map((item) => this.toListItemFromFull(item))
   }
 
   async updateStatus(payload: UpdateUsersStatusDto): Promise<UserListItemResponse[]> {
@@ -424,7 +438,7 @@ export class UserService {
 
     await this.userRepo.updateStatusByIds(normalizedIds, toUserStatusCode(payload.status))
     const updatedUsers = await this.userRepo.findManyWithDomainByIds(normalizedIds)
-    return updatedUsers.map((item) => this.toUser(item))
+    return updatedUsers.map((item) => this.toListItemFromFull(item))
   }
 
   async ensureUserDomainData(userId: string) {
@@ -491,16 +505,44 @@ export class UserService {
   async assignRoleByCode(userId: string, roleCode: string) {
     const role = await this.userRepo.findRoleByCode(roleCode)
     if (!role) return
-    await this.userRepo.upsertUserRole(userId, role.id)
+    const existing = await this.userRepo.findActiveRolesById(userId)
+    const hasPrimary = existing?.roles.some((item) => item.isPrimary) ?? false
+    await this.userRepo.upsertUserRole(userId, role.id, !hasPrimary)
   }
 
   async assignRoles(userId: string, payload: AssignUserRolesDto): Promise<AssignUserRolesResponse> {
     const existing = await this.userRepo.findActiveRolesById(userId)
     if (!existing) throw new NotFoundException('用户不存在')
     await this.replaceUserRoles(userId, payload.roleIds, {
+      primaryRoleId: payload.primaryRoleId,
       currentCodes: existing.roles.map((item) => item.role.code),
       revokeSessions: true
     })
+    const updatedUser = await this.userRepo.findActiveRolesById(userId)
+    if (!updatedUser) throw new NotFoundException('用户不存在')
+    return toAssignUserRolesResult(updatedUser)
+  }
+
+  async setPrimaryRole(
+    userId: string,
+    primaryRoleId: string
+  ): Promise<AssignUserRolesResponse> {
+    const existing = await this.userRepo.findActiveRolesById(userId)
+    if (!existing) throw new NotFoundException('用户不存在')
+    const roleIds = existing.roles.map((item) => item.role.id)
+    if (!roleIds.includes(primaryRoleId)) {
+      throw new BadRequestException('主角色必须属于已分配角色列表')
+    }
+
+    await this.userRepo.setPrimaryUserRole(userId, primaryRoleId)
+    await this.auditService.write({
+      action: 'system.user.primary_role_updated',
+      resource: 'user',
+      resourceId: userId,
+      diff: { primaryRoleId }
+    })
+    await this.refreshUserAccess(userId, true)
+
     const updatedUser = await this.userRepo.findActiveRolesById(userId)
     if (!updatedUser) throw new NotFoundException('用户不存在')
     return toAssignUserRolesResult(updatedUser)
@@ -521,7 +563,11 @@ export class UserService {
   private async replaceUserRoles(
     userId: string,
     roleIdsInput: string[],
-    options: { currentCodes?: string[]; revokeSessions: boolean }
+    options: {
+      primaryRoleId?: string
+      currentCodes?: string[]
+      revokeSessions: boolean
+    }
   ) {
     const roleIds = [
       ...new Set(roleIdsInput.map((id) => id.trim()).filter((id): id is string => id.length > 0))
@@ -535,6 +581,12 @@ export class UserService {
       throw new BadRequestException('部分角色不存在或已禁用')
     }
 
+    const primaryRoleId = options.primaryRoleId?.trim()
+    if (primaryRoleId && !roleIds.includes(primaryRoleId)) {
+      throw new BadRequestException('主角色必须属于已分配角色列表')
+    }
+    const resolvedPrimaryRoleId = primaryRoleId ?? roleIds[0]
+
     const nextCodes = roles.map((role) => role.code)
     const currentCodes = options.currentCodes ?? []
     const removingSuperAdmin =
@@ -546,12 +598,18 @@ export class UserService {
       }
     }
 
-    await this.userRepo.replaceUserRoles(userId, roleIds)
+    await this.userRepo.replaceUserRoles(
+      userId,
+      roleIds.map((roleId) => ({
+        roleId,
+        isPrimary: roleId === resolvedPrimaryRoleId
+      }))
+    )
     await this.auditService.write({
       action: 'system.user.roles_assigned',
       resource: 'user',
       resourceId: userId,
-      diff: { roleIds, roleCodes: nextCodes }
+      diff: { roleIds, roleCodes: nextCodes, primaryRoleId: resolvedPrimaryRoleId }
     })
     await this.refreshUserAccess(userId, options.revokeSessions)
   }

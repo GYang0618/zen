@@ -17,11 +17,11 @@ import {
 import { UserAvatar } from './user-avatar'
 import { UsersCardActions } from './users-card-actions'
 
-import type { RoleIcon, User } from '@zen/shared'
+import type { RoleIcon, UserListItem } from '@zen/shared'
 import type { ListSelectionActionProps } from '@/hooks'
 
 type UsersCardProps = ListSelectionActionProps & {
-  user: User
+  user: UserListItem
 }
 
 async function copyText(value: string, successLabel: string) {

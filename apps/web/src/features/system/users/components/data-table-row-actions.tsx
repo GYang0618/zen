@@ -28,10 +28,10 @@ import { useUnlockUserMutation, useUpdateUsersStatusMutation } from '../mutation
 import { useUsers } from '../users-provider'
 
 import type { Row } from '@tanstack/react-table'
-import type { User } from '@zen/shared'
+import type { UserListItem } from '@zen/shared'
 
 type DataTableRowActionsProps = {
-  row: Row<User>
+  row: Row<UserListItem>
 }
 
 export function DataTableRowActions({ row }: DataTableRowActionsProps) {

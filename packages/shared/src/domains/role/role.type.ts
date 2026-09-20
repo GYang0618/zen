@@ -11,6 +11,7 @@ import type {
   roleIconColorSchema,
   roleIconSchema,
   roleKindSchema,
+  roleListItemSchema,
   roleMemberPreviewSchema,
   roleMemberSchema,
   roleMembersPageSchema,
@@ -28,6 +29,7 @@ export type RoleDataScope = z.infer<typeof roleDataScopeSchema>
 export type RoleIcon = z.infer<typeof roleIconSchema>
 export type RoleIconColor = z.infer<typeof roleIconColorSchema>
 export type Role = z.infer<typeof roleSchema>
+export type RoleListItem = z.infer<typeof roleListItemSchema>
 export type RoleMember = z.infer<typeof roleMemberSchema>
 export type RoleMemberPreview = z.infer<typeof roleMemberPreviewSchema>
 export type CreateRole = z.infer<typeof createRoleSchema>

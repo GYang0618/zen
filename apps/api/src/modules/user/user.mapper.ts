@@ -7,18 +7,20 @@ import type {
   UpdateUserResult,
   User,
   UserGender,
+  UserListItem,
   UserMfaType,
+  UserRoleListPreview,
   UserRolePreview,
   UserStatus
 } from '@zen/shared'
 import type {
   RoleInfoResponse,
   UserInfoResponse,
-  UserListItemResponse,
   UserTheme
 } from './responses/user.response.js'
 import type {
   UserBasicInfo,
+  UserListWithDomain,
   UserOrganizations,
   UserRoles,
   UserWithDomain
@@ -96,7 +98,7 @@ function toMeta(raw?: Prisma.JsonValue | null): Record<string, unknown> | null {
 }
 
 function toRolePreview(roles: UserRoles['roles']): UserRolePreview[] {
-  return roles.map(({ role }) => ({
+  return roles.map(({ role, isPrimary }) => ({
     id: role.id,
     code: role.code,
     name: role.name,
@@ -105,7 +107,30 @@ function toRolePreview(roles: UserRoles['roles']): UserRolePreview[] {
     iconColor: role.iconColor ?? null,
     kind: role.kind === 'SYSTEM' ? 'system' : 'custom',
     status: role.status === 'ACTIVE' ? 'active' : 'disabled',
-    permissionCount: role.permissions.length
+    permissionCount: role.permissions.length,
+    isPrimary
+  }))
+}
+
+function toRoleListPreview(
+  roles: Array<{
+    isPrimary: boolean
+    role: {
+      id: string
+      code: string
+      name: string
+      icon: string | null
+      iconColor: string | null
+    }
+  }>
+): UserRoleListPreview[] {
+  return roles.map(({ role, isPrimary }) => ({
+    id: role.id,
+    code: role.code,
+    name: role.name,
+    icon: role.icon ?? null,
+    iconColor: role.iconColor ?? null,
+    isPrimary
   }))
 }
 
@@ -223,11 +248,59 @@ export function toUserResponse(user: UserWithDomain, accessTokenTtlMs: number): 
   }
 }
 
-export function toUserListItemResponse(
-  user: UserWithDomain,
-  accessTokenTtlMs: number
-): UserListItemResponse {
-  return toUserResponse(user, accessTokenTtlMs)
+export function toUserListItemResponse(user: UserListWithDomain): UserListItem {
+  const { profile, audit } = user
+  const primaryRole =
+    user.roles.find((item) => item.isPrimary) ?? (user.roles.length > 0 ? user.roles[0] : undefined)
+  const primaryOrg =
+    user.organizations.find((item) => item.isPrimary) ??
+    (user.organizations.length > 0 ? user.organizations[0] : undefined)
+
+  return {
+    id: user.id,
+    username: user.username,
+    nickname: user.nickname ?? null,
+    realName: profile?.realName ?? null,
+    avatar: profile?.avatar ?? null,
+    gender: toGender(profile?.gender),
+    email: user.email,
+    phoneNumber: user.phoneNumber ?? null,
+    status: toUserStatus(user.status),
+    isLocked: user.isLocked,
+    lastActiveAt: audit?.lastActiveAt?.toISOString() ?? null,
+    remark: profile?.remark ?? null,
+    roles: primaryRole
+      ? toRoleListPreview([{ ...primaryRole, isPrimary: true }])
+      : [],
+    organizations: primaryOrg
+      ? [
+          {
+            organizationId: primaryOrg.organizationId,
+            organizationName: primaryOrg.organization.name,
+            organizationType: toApiOrganizationType(primaryOrg.organization.type),
+            isPrimary: true,
+            postId: primaryOrg.postId ?? null,
+            postName: primaryOrg.post?.jobProfile.name ?? null,
+            postLevel: primaryOrg.post?.level ?? primaryOrg.post?.jobProfile.level ?? null
+          }
+        ]
+      : []
+  }
+}
+
+/** 从完整用户聚合裁剪为列表行（主职组织 + 主角色） */
+export function toUserListItemFromFull(user: UserWithDomain): UserListItem {
+  const primaryRole =
+    user.roles.find((item) => item.isPrimary) ?? (user.roles.length > 0 ? user.roles[0] : undefined)
+  const primaryOrg =
+    user.organizations.find((item) => item.isPrimary) ??
+    (user.organizations.length > 0 ? user.organizations[0] : undefined)
+
+  return toUserListItemResponse({
+    ...user,
+    roles: primaryRole ? [primaryRole] : [],
+    organizations: primaryOrg ? [primaryOrg] : []
+  } as UserListWithDomain)
 }
 
 export function toUserInfoResponse(user: UserWithDomain): UserInfoResponse {

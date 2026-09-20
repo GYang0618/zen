@@ -31,10 +31,10 @@ import { z } from 'zod'
 
 import { useCloneRoleMutation } from '@/features/system/roles/mutations'
 
-import type { Role } from '@zen/shared'
+import type { RoleListItem } from '@zen/shared'
 
 interface RoleCloneDialogProps {
-  currentRow: Role
+  currentRow: RoleListItem
   open: boolean
   onOpenChange: (open: boolean) => void
 }
@@ -52,14 +52,14 @@ const TODAY = (() => {
 })()
 
 const cloneFormSchema = z.object({
-  name: z.string().trim().min(1, '角色名称不能为空').max(50, '角色名称不能超过50个字符'),
+  name: z.string().trim().min(1, 'è§è²åç§°ä¸è½ä¸ºç©º').max(50, 'è§è²åç§°ä¸è½è¶è¿50ä¸ªå­ç¬¦'),
   code: z
     .string()
     .trim()
-    .min(2, '角色编码至少需要2个字符')
-    .max(50, '角色编码不能超过50个字符')
-    .regex(/^[a-z][a-z0-9_]*$/, '角色编码仅支持小写字母、数字和下划线，且以字母开头'),
-  description: z.string().trim().max(200, '角色描述不能超过200个字符'),
+    .min(2, 'è§è²ç¼ç è³å°éè¦2ä¸ªå­ç¬¦')
+    .max(50, 'è§è²ç¼ç ä¸è½è¶è¿50ä¸ªå­ç¬¦')
+    .regex(/^[a-z][a-z0-9_]*$/, 'è§è²ç¼ç ä»æ¯æå°åå­æ¯ãæ°å­åä¸åçº¿ï¼ä¸ä»¥å­æ¯å¼å¤´'),
+  description: z.string().trim().max(200, 'è§è²æè¿°ä¸è½è¶è¿200ä¸ªå­ç¬¦'),
   expiresAt: z.date().nullable()
 })
 
@@ -80,9 +80,9 @@ function suggestCloneCode(sourceCode: string): string {
     .replace(/[^a-z0-9_]/g, '_')}_copy`
 }
 
-function buildDefaultValues(source: Role): CloneFormValues {
+function buildDefaultValues(source: RoleListItem): CloneFormValues {
   return {
-    name: `${source.name} 副本`,
+    name: `${source.name} å¯æ¬`,
     code: suggestCloneCode(source.code),
     description: source.description ?? '',
     expiresAt: null
@@ -113,7 +113,7 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
         ...meta,
         errorMap: {
           ...meta.errorMap,
-          onSubmit: [{ code: 'custom', path: [], message: '过期时间不能早于今天' }]
+          onSubmit: [{ code: 'custom', path: [], message: 'è¿ææ¶é´ä¸è½æ©äºä»å¤©' }]
         }
       }))
       return
@@ -131,17 +131,17 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
       },
       {
         onSuccess: (cloned) => {
-          toast.success(`已基于「${currentRow.name}」克隆出新角色「${cloned.name}」`)
+          toast.success(`å·²åºäºã${currentRow.name}ãåéåºæ°è§è²ã${cloned.name}ã`)
           onOpenChange(false)
         },
         onError: (error) => {
-          const message = error instanceof Error ? error.message : '克隆失败'
-          if (message.includes('编码') || message.includes('已存在')) {
+          const message = error instanceof Error ? error.message : 'åéå¤±è´¥'
+          if (message.includes('ç¼ç ') || message.includes('å·²å­å¨')) {
             form.setFieldMeta('code', (meta) => ({
               ...meta,
               errorMap: {
                 ...meta.errorMap,
-                onSubmit: [{ code: 'custom', path: [], message: '角色编码已存在' }]
+                onSubmit: [{ code: 'custom', path: [], message: 'è§è²ç¼ç å·²å­å¨' }]
               }
             }))
             return
@@ -164,25 +164,25 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
         <DialogHeader>
           <DialogTitle>
             <span className="flex items-center gap-2">
-              <Copy className="size-5" /> 克隆角色权限配置
+              <Copy className="size-5" /> åéè§è²æééç½®
             </span>
           </DialogTitle>
           <DialogDescription>
-            基于「{currentRow.name}」创建一个新角色，可在保存前调整名称与编码。
+            åºäºã{currentRow.name}ãåå»ºä¸ä¸ªæ°è§è²ï¼å¯å¨ä¿å­åè°æ´åç§°ä¸ç¼ç ã
           </DialogDescription>
         </DialogHeader>
 
         <Alert>
           <Info />
           <AlertTitle className="flex items-center gap-2">
-            将复制以下配置
+            å°å¤å¶ä»¥ä¸éç½®
             <Badge variant="secondary" className="gap-1">
               <ShieldCheck className="size-3" />
-              {currentRow.permissionCount} 项权限
+              {currentRow.permissionCount} é¡¹æé
             </Badge>
           </AlertTitle>
           <AlertDescription className="flex items-center gap-1.5">
-            <UserX className="size-3.5" /> 不包含该角色当前关联的成员，克隆后需重新分配。
+            <UserX className="size-3.5" /> ä¸åå«è¯¥è§è²å½åå³èçæåï¼åéåééæ°åéã
           </AlertDescription>
         </Alert>
 
@@ -199,7 +199,7 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
             <form.Field name="name">
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid}>
-                  <FieldLabel htmlFor="clone-role-name">新角色名称</FieldLabel>
+                  <FieldLabel htmlFor="clone-role-name">æ°è§è²åç§°</FieldLabel>
                   <FieldContent>
                     <Input
                       name={field.name}
@@ -207,7 +207,7 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
                       onBlur={field.handleBlur}
                       onChange={(event) => field.handleChange(event.target.value)}
                       id="clone-role-name"
-                      placeholder="例如：运维专家 副本"
+                      placeholder="ä¾å¦ï¼è¿ç»´ä¸å®¶ å¯æ¬"
                       aria-invalid={!field.state.meta.isValid}
                       autoComplete="off"
                       autoFocus
@@ -222,7 +222,7 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
             <form.Field name="code">
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid}>
-                  <FieldLabel htmlFor="clone-role-code">唯一标识 Code</FieldLabel>
+                  <FieldLabel htmlFor="clone-role-code">å¯ä¸æ è¯ Code</FieldLabel>
                   <FieldContent>
                     <Input
                       name={field.name}
@@ -231,11 +231,11 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
                       onChange={(event) => field.handleChange(event.target.value)}
                       id="clone-role-code"
                       className="font-mono"
-                      placeholder="例如：ops_expert_copy"
+                      placeholder="ä¾å¦ï¼ops_expert_copy"
                       aria-invalid={!field.state.meta.isValid}
                       autoComplete="off"
                     />
-                    <FieldDescription>已根据来源角色自动生成，可自行修改。</FieldDescription>
+                    <FieldDescription>å·²æ ¹æ®æ¥æºè§è²èªå¨çæï¼å¯èªè¡ä¿®æ¹ã</FieldDescription>
                     {!field.state.meta.isValid ? (
                       <FieldError errors={field.state.meta.errors} />
                     ) : null}
@@ -246,7 +246,7 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
             <form.Field name="expiresAt">
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid}>
-                  <FieldLabel htmlFor="clone-role-expired-at">过期时间</FieldLabel>
+                  <FieldLabel htmlFor="clone-role-expired-at">è¿ææ¶é´</FieldLabel>
                   <FieldContent>
                     <Popover open={expiredAtOpen} onOpenChange={setExpiredAtOpen}>
                       <PopoverTrigger
@@ -263,7 +263,7 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
                       >
                         {field.state.value
                           ? EXPIRED_AT_FORMATTER.format(field.state.value)
-                          : '留空表示长期有效'}
+                          : 'çç©ºè¡¨ç¤ºé¿æææ'}
                         <CalendarIcon data-icon="inline-end" />
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -292,7 +292,7 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
                                 setExpiredAtOpen(false)
                               }}
                             >
-                              清除（长期有效）
+                              æ¸é¤ï¼é¿æææï¼
                             </Button>
                           </div>
                         ) : null}
@@ -308,7 +308,7 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
             <form.Field name="description">
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid}>
-                  <FieldLabel htmlFor="clone-role-description">角色描述说明</FieldLabel>
+                  <FieldLabel htmlFor="clone-role-description">è§è²æè¿°è¯´æ</FieldLabel>
                   <FieldContent>
                     <Textarea
                       name={field.name}
@@ -317,7 +317,7 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
                       onChange={(event) => field.handleChange(event.target.value)}
                       id="clone-role-description"
                       rows={3}
-                      placeholder="明确该角色的职责"
+                      placeholder="æç¡®è¯¥è§è²çèè´£"
                       aria-invalid={!field.state.meta.isValid}
                     />
                     {!field.state.meta.isValid ? (
@@ -337,11 +337,11 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
             disabled={isPending}
             onClick={() => onOpenChange(false)}
           >
-            取消
+            åæ¶
           </Button>
           <Button type="submit" form="role-clone-form" disabled={isPending}>
             {isPending ? <Loader2 className="animate-spin" /> : <Copy />}
-            克隆
+            åé
           </Button>
         </DialogFooter>
       </DialogContent>

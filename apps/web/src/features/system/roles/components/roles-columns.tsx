@@ -22,9 +22,9 @@ import { dataScopeConfig, getRoleIconColorClassName, roleEffectiveStatusConfig }
 import { RolesRowActions } from './roles-row-actions'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import type { Role, RoleDataScope, RoleEffectiveStatus, RoleIcon } from '@zen/shared'
+import type { Role, RoleDataScope, RoleEffectiveStatus, RoleIcon, RoleListItem } from '@zen/shared'
 
-const columnHelper = createColumnHelper<Role>()
+const columnHelper = createColumnHelper<RoleListItem>()
 
 export const rolesColumns = [
   columnHelper.display({
@@ -170,4 +170,4 @@ export const rolesColumns = [
     id: 'actions',
     cell: ({ row }) => <RolesRowActions role={row.original} />
   })
-] as ColumnDef<Role>[]
+] as ColumnDef<RoleListItem>[]

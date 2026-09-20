@@ -6,7 +6,7 @@ import { userApi } from './api'
 import { usersQueryKeys } from './queries'
 
 import type { InfiniteData } from '@tanstack/react-query'
-import type { User } from '@zen/shared'
+import type { User, UserListItem } from '@zen/shared'
 import type { PaginationResponse } from '@/lib/request'
 
 const USERS_LIST_QUERY_KEY = ['system', 'users', 'list'] as const
@@ -18,26 +18,27 @@ const ROLE_MEMBERS_QUERY_KEY = ['system', 'roles', 'members'] as const
 function mergeUserCaches(
   queryClient: ReturnType<typeof useQueryClient>,
   userId: string,
-  patch: Partial<User>
+  patch: Partial<User> | Partial<UserListItem>
 ) {
-  const applyPatch = (user: User) => (user.id === userId ? { ...user, ...patch } : user)
+  const applyListPatch = (user: UserListItem) =>
+    user.id === userId ? { ...user, ...patch } : user
 
   queryClient.setQueryData<User>(usersQueryKeys.detail(userId), (current) =>
     current ? { ...current, ...patch } : current
   )
-  queryClient.setQueriesData<PaginationResponse<User>>(
+  queryClient.setQueriesData<PaginationResponse<UserListItem>>(
     { queryKey: USERS_LIST_QUERY_KEY },
     (current) => {
       if (!current) return current
       return {
         ...current,
-        items: current.items.map(applyPatch)
+        items: current.items.map(applyListPatch)
       }
     }
   )
-  queryClient.setQueriesData<InfiniteData<PaginationResponse<User>>>(
+  queryClient.setQueriesData<InfiniteData<PaginationResponse<UserListItem>>>(
     { queryKey: USERS_INFINITE_QUERY_KEY },
-    (current) => mapInfinitePageItems(current, applyPatch)
+    (current) => mapInfinitePageItems(current, applyListPatch)
   )
 }
 
@@ -156,12 +157,14 @@ export function useAssignUserRolesMutation() {
     mutationFn: ({
       id,
       roleIds,
+      primaryRoleId,
       stepUpToken
     }: {
       id: string
       roleIds: string[]
+      primaryRoleId?: string
       stepUpToken: string
-    }) => userApi.assignRoles(id, { roleIds }, stepUpToken),
+    }) => userApi.assignRoles(id, { roleIds, primaryRoleId }, stepUpToken),
     onSuccess: (result, variables) => {
       mergeUserCaches(queryClient, variables.id, { roles: result.roles })
 
@@ -184,6 +187,19 @@ export function useAssignUserRolesMutation() {
         })
       ]
       void Promise.all(staleQueries)
+    }
+  })
+}
+
+export function useSetPrimaryUserRoleMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationKey: ['system', 'users', 'set-primary-role'],
+    mutationFn: ({ id, primaryRoleId }: { id: string; primaryRoleId: string }) =>
+      userApi.setPrimaryRole(id, primaryRoleId),
+    onSuccess: (result, variables) => {
+      mergeUserCaches(queryClient, variables.id, { roles: result.roles })
     }
   })
 }

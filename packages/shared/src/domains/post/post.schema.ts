@@ -158,6 +158,11 @@ export const jobProfileSchema = z.object({
   updatedAt: dateTimeSchema
 })
 
+/** 岗位目录列表行：不含创建时间等次要字段 */
+export const jobProfileListItemSchema = jobProfileSchema.omit({
+  createdAt: true
+})
+
 export const jobProfileDetailSchema = jobProfileSchema.extend({
   organizations: z.array(jobProfileOrganizationLinkSchema)
 })
@@ -240,6 +245,7 @@ export type CreateJobProfile = z.infer<typeof createJobProfileSchema>
 export type UpdateJobProfile = z.infer<typeof updateJobProfileSchema>
 export type FindJobProfilesQuery = z.infer<typeof findJobProfilesQuerySchema>
 export type JobProfile = z.infer<typeof jobProfileSchema>
+export type JobProfileListItem = z.infer<typeof jobProfileListItemSchema>
 export type JobProfileDetail = z.infer<typeof jobProfileDetailSchema>
 export type JobProfileOrganizationLink = z.infer<typeof jobProfileOrganizationLinkSchema>
 export type LinkOrganizationPosition = z.infer<typeof linkOrganizationPositionSchema>
@@ -251,5 +257,5 @@ export type PositionRoleSummary = z.infer<typeof positionRoleSummarySchema>
 export type PositionMemberPreview = z.infer<typeof positionMemberPreviewSchema>
 export type Position = z.infer<typeof positionSchema>
 
-export const jobProfilesPageSchema = paged(jobProfileSchema)
+export const jobProfilesPageSchema = paged(jobProfileListItemSchema)
 export type JobProfilesPage = z.infer<typeof jobProfilesPageSchema>

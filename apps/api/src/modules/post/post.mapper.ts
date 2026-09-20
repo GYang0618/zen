@@ -8,6 +8,7 @@ import type {
   JobProfileDetail,
   JobProfileIcon,
   JobProfileIconColor,
+  JobProfileListItem,
   JobProfileOrganizationLink,
   Position
 } from '@zen/shared'
@@ -185,6 +186,11 @@ export function toJobProfileResponse(row: JobProfileWithCounts): JobProfile {
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString()
   }
+}
+
+export function toJobProfileListItemResponse(row: JobProfileWithCounts): JobProfileListItem {
+  const { createdAt: _createdAt, ...item } = toJobProfileResponse(row)
+  return item
 }
 
 export function toJobProfileDetailResponse(row: JobProfileWithOrganizations): JobProfileDetail {

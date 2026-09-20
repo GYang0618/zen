@@ -31,7 +31,7 @@ import { Can } from '@/components/auth/can'
 import { useUnlockUserMutation, useUpdateUsersStatusMutation } from '../mutations'
 import { useUsers } from '../users-provider'
 
-import type { User } from '@zen/shared'
+import type { UserListItem } from '@zen/shared'
 import type { ListSelectionActionProps } from '@/hooks'
 
 export function UsersCardActions({
@@ -41,7 +41,7 @@ export function UsersCardActions({
   selected = false,
   onEnterSelecting,
   onSelectedChange
-}: ListSelectionActionProps & { user: User; className?: string }) {
+}: ListSelectionActionProps & { user: UserListItem; className?: string }) {
   const navigate = useNavigate()
   const { setOpen, setCurrentRow } = useUsers()
   const { mutate: updateUsersStatus, isPending } = useUpdateUsersStatusMutation()

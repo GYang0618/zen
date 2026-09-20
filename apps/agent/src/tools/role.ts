@@ -30,7 +30,6 @@ import {
   roleControllerUpdate,
   toQueryArray
 } from '../api'
-import { compactPagedToolResult, compactRoleListItem } from './compact-result'
 import { executeApiCallOrRecover, isToolFailureResult } from './recoverable-error'
 import { parsePermissionCatalog, unknownPermissionCodesResult } from './role-permission-guard'
 
@@ -165,20 +164,18 @@ async function ensurePermissionCodesExist(
 
 export const getRolesTool = tool(
   async (input, config) =>
-    compactPagedToolResult(
-      await executeApiCall(config, async (_context) =>
-        roleControllerFindAll(
-          asSdkOptions({
-            query: normalizeRolesQuery(input)
-          })
-        )
-      ),
-      compactRoleListItem
+    executeApiCall(config, async (_context) =>
+      roleControllerFindAll(
+        asSdkOptions({
+          query: normalizeRolesQuery(input)
+        })
+      )
     ),
   {
     name: 'query_roles_list',
     description:
-      '查询角色列表，可通过关键字（名称/编码）、持久化状态 status、派生展示状态 effectiveStatus（active/disabled/expired/locked）、数据范围筛选并分页。',
+      '查询角色列表，可通过关键字（名称/编码）、持久化状态 status、派生展示状态 effectiveStatus（active/disabled/expired/locked）、数据范围筛选并分页。' +
+      '返回列表精简字段（不含权限码与自定义组织白名单）；完整配置用 query_role_detail。',
     schema: rolesQuerySchema
   }
 )

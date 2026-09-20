@@ -11,6 +11,7 @@ import {
   fromApiJobProfileStatus,
   fromApiOrganizationPositionStatus,
   toJobProfileDetailResponse,
+  toJobProfileListItemResponse,
   toJobProfileResponse,
   toOrganizationPositionResponse
 } from './post.mapper.js'
@@ -55,7 +56,7 @@ export class PostService {
 
     return {
       pagination: page.pagination,
-      items: page.items.map(toJobProfileResponse)
+      items: page.items.map(toJobProfileListItemResponse)
     }
   }
 

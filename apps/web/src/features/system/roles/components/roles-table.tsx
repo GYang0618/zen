@@ -20,7 +20,7 @@ import { RolesBulkActions } from './roles-bulk-actions'
 import { rolesColumns as columns } from './roles-columns'
 
 import type { VisibilityState } from '@tanstack/react-table'
-import type { Role, RoleDataScope, RoleEffectiveStatus } from '@zen/shared'
+import type { Role, RoleDataScope, RoleEffectiveStatus, RoleListItem } from '@zen/shared'
 import type { ReactNode } from 'react'
 import type { NavigateFn } from '@/hooks'
 
@@ -33,7 +33,7 @@ type RolesSearch = {
 }
 
 type RolesTableProps = {
-  data: Role[]
+  data: RoleListItem[]
   isLoading?: boolean
   isFetching?: boolean
   isError?: boolean
@@ -67,7 +67,7 @@ export function RolesTable({
     pagination,
     onPaginationChange,
     ensurePageInRange
-  } = useTableUrlState<Role>({
+  } = useTableUrlState<RoleListItem>({
     search,
     navigate,
     pagination: { defaultPage: 1, defaultPageSize: 10 },

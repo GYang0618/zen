@@ -1124,6 +1124,8 @@ model UserRole {
   userId    String   @map("user_id")
   /// 角色ID
   roleId    String   @map("role_id")
+  /// 是否主角色
+  isPrimary Boolean  @default(false) @map("is_primary")
   /// 创建时间
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -1134,6 +1136,7 @@ model UserRole {
 
   @@id([userId, roleId])
   @@index([roleId])
+  @@index([isPrimary])
   @@map("user_roles")
 }
 

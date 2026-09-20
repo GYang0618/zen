@@ -85,7 +85,8 @@ describe('user V2 contracts', () => {
             iconColor: null,
             kind: 'system',
             status: 'active',
-            permissionCount: 1
+            permissionCount: 1,
+            isPrimary: true
           }
         ],
         organizations: []
@@ -168,7 +169,8 @@ describe('user V2 contracts', () => {
           iconColor: 'slate',
           kind: 'system',
           status: 'active',
-          permissionCount: 0
+          permissionCount: 0,
+          isPrimary: true
         }
       ],
       organizations: [],

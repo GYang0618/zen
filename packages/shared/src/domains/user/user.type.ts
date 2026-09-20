@@ -12,8 +12,11 @@ import type {
   updateUserSchema,
   updateUsersStatusSchema,
   userGenderSchema,
+  userListItemSchema,
   userMfaTypeSchema,
+  userOrganizationListPreviewSchema,
   userOrganizationMembershipSchema,
+  userRoleListPreviewSchema,
   userRolePreviewSchema,
   userSchema,
   userStatusSchema,
@@ -28,8 +31,11 @@ export type UserStatus = z.infer<typeof userStatusSchema>
 export type UserGender = z.infer<typeof userGenderSchema>
 export type UserMfaType = z.infer<typeof userMfaTypeSchema>
 export type UserRolePreview = z.infer<typeof userRolePreviewSchema>
+export type UserRoleListPreview = z.infer<typeof userRoleListPreviewSchema>
 export type UserOrganizationMembership = z.infer<typeof userOrganizationMembershipSchema>
+export type UserOrganizationListPreview = z.infer<typeof userOrganizationListPreviewSchema>
 export type User = z.infer<typeof userSchema>
+export type UserListItem = z.infer<typeof userListItemSchema>
 export type CreateUser = z.infer<typeof createUserSchema>
 export type CreateUserResult = z.infer<typeof createUserResultSchema>
 export type UpdateUser = z.infer<typeof updateUserSchema>

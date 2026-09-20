@@ -48,7 +48,7 @@ export const DEFAULT_AGENT_RUN_BUDGET = {
 } as const
 
 export const DEFAULT_AGENT_VERSIONS = {
-  model: 'qwen3.7-max-2026-06-08',
+  model: 'deepseek-flash',
   prompt: 'default-agent-prompt-v1',
   toolSchema: 'default-agent-tools-v1'
 } as const

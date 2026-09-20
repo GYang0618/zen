@@ -25,7 +25,10 @@ export type RoleResponse = {
   updatedAt: string
 }
 
-export type RoleListItemResponse = RoleResponse
+export type RoleListItemResponse = Omit<
+  RoleResponse,
+  'customOrgIds' | 'permissions' | 'createdAt' | 'updatedAt' | 'sort'
+>
 
 export type RoleListResponse = {
   items: RoleListItemResponse[]

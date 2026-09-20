@@ -9,12 +9,12 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 
 import { useDeleteUsersMutation } from '../mutations'
 
-import type { User } from '@zen/shared'
+import type { UserListItem } from '@zen/shared'
 
 type UserDeleteDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  currentRow: User
+  currentRow: UserListItem
 }
 
 export function UsersDeleteDialog({ open, onOpenChange, currentRow }: UserDeleteDialogProps) {

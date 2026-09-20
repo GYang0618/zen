@@ -34,10 +34,10 @@ import { UserCreateInvitePanel } from './user-create-invite-panel'
 import { UserMembershipFields } from './user-membership-fields'
 import { UserRolePicker } from './user-role-picker'
 
-import type { CreateUserResult, User } from '@zen/shared'
+import type { CreateUserResult, User, UserListItem } from '@zen/shared'
 
 interface UserActionSheetProps {
-  currentRow?: User
+  currentRow?: User | UserListItem
   open: boolean
   onOpenChange: (open: boolean) => void
 }

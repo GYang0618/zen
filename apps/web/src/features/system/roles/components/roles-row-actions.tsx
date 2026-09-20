@@ -18,11 +18,11 @@ import { useUpdateRoleMutation } from '@/features/system/roles/mutations'
 import { useRoles } from '../roles-provider'
 import { canChangeRoleStatus, isProtectedRole } from '../utils'
 
-import type { Role } from '@zen/shared'
+import type { RoleListItem } from '@zen/shared'
 import type { ListSelectionActionProps } from '@/hooks'
 
 type RolesRowActionsProps = ListSelectionActionProps & {
-  role: Role
+  role: RoleListItem
 }
 
 export function RolesRowActions({
@@ -44,7 +44,7 @@ export function RolesRowActions({
 
   const handleStatusChange = () => {
     if (!canToggleStatus) {
-      toast.error('系统角色状态不可修改')
+      toast.error('系统角色状态不可修�?)
       return
     }
     const nextStatus = isFrozen ? 'active' : 'disabled'
@@ -53,7 +53,7 @@ export function RolesRowActions({
       {
         onSuccess: () =>
           toast.success(
-            nextStatus === 'active' ? `已激活角色「${role.name}」` : `已冻结角色「${role.name}」`
+            nextStatus === 'active' ? `已激活角色�?{role.name}」` : `已冻结角色�?{role.name}」`
           )
       }
     )
@@ -94,7 +94,7 @@ export function RolesRowActions({
             {canToggleStatus ? (
               <DropdownMenuItem onClick={handleStatusChange} disabled={isPending}>
                 {isFrozen ? <ShieldCheck /> : <Ban />}
-                {isFrozen ? '激活角色' : '冻结角色'}
+                {isFrozen ? '激活角�? : '冻结角色'}
               </DropdownMenuItem>
             ) : null}
           </Can>

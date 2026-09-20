@@ -42,6 +42,7 @@ export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRo
   const notifyAccessChange = useAccessChangeFeedback()
   const isSelf = isCurrentUserId(user.id)
   const [roleIds, setRoleIds] = useState<string[]>([])
+  const [primaryRoleId, setPrimaryRoleId] = useState<string>()
   const [password, setPassword] = useState('')
   const [keyword, setKeyword] = useState('')
   const [showSelectedOnly, setShowSelectedOnly] = useState(false)
@@ -53,6 +54,9 @@ export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRo
   useEffect(() => {
     if (!open) return
     setRoleIds(user.roles.map((role) => role.id))
+    setPrimaryRoleId(
+      user.roles.find((role) => role.isPrimary)?.id ?? user.roles[0]?.id
+    )
     setPassword('')
     setKeyword('')
     setShowSelectedOnly(false)
@@ -62,17 +66,30 @@ export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRo
   }, [open])
 
   const initialRoleIds = useMemo(() => user.roles.map((role) => role.id), [user.roles])
+  const initialPrimaryRoleId = useMemo(
+    () => user.roles.find((role) => role.isPrimary)?.id ?? user.roles[0]?.id,
+    [user.roles]
+  )
   const { addedIds, removedIds } = diffIdLists(initialRoleIds, roleIds)
-  const isDirty = addedIds.length > 0 || removedIds.length > 0
+  const isDirty =
+    addedIds.length > 0 ||
+    removedIds.length > 0 ||
+    primaryRoleId !== initialPrimaryRoleId
 
   const toggleRole = (roleId: string, checked: boolean) => {
     setSelectionError(undefined)
     setRoleIds((prev) => {
       if (checked) {
         if (prev.includes(roleId)) return prev
-        return [...prev, roleId]
+        const next = [...prev, roleId]
+        if (!primaryRoleId) setPrimaryRoleId(roleId)
+        return next
       }
-      return prev.filter((id) => id !== roleId)
+      const next = prev.filter((id) => id !== roleId)
+      if (primaryRoleId === roleId) {
+        setPrimaryRoleId(next[0])
+      }
+      return next
     })
   }
 
@@ -93,7 +110,7 @@ export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRo
     }
     try {
       const { stepUpToken } = await authApi.stepUp({ password })
-      await assignRoles({ id: user.id, roleIds, stepUpToken })
+      await assignRoles({ id: user.id, roleIds, primaryRoleId, stepUpToken })
       notifyAccessChange(user.id, '角色已更新')
       onOpenChange(false)
     } catch (error) {
@@ -169,14 +186,17 @@ export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRo
                   visibleRoles={visibleRoles}
                   selectedRoles={selectedRoles}
                   roleIds={roleIds}
+                  primaryRoleId={primaryRoleId}
                   keyword={keyword}
                   showSelectedOnly={showSelectedOnly}
                   selectionError={selectionError}
                   onKeywordChange={setKeyword}
                   onShowSelectedOnlyChange={setShowSelectedOnly}
                   onToggle={toggleRole}
+                  onPrimaryChange={setPrimaryRoleId}
                   onClear={() => {
                     setRoleIds([])
+                    setPrimaryRoleId(undefined)
                     setShowSelectedOnly(false)
                     setSelectionError('至少保留一个角色')
                   }}
