@@ -18,7 +18,7 @@ import {
   ItemMedia,
   ItemTitle
 } from '@zen/ui'
-import { ChevronRight, Shield, ShieldCheck } from 'lucide-react'
+import { Shield, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -38,7 +38,9 @@ type UserRolesCardProps = {
 }
 
 export function UserRolesCard({ user, onAssign }: UserRolesCardProps) {
-  const roles = [...user.roles].sort((left, right) => Number(right.isPrimary) - Number(left.isPrimary))
+  const roles = [...user.roles].sort(
+    (left, right) => Number(right.isPrimary) - Number(left.isPrimary)
+  )
   const [pendingPrimary, setPendingPrimary] = useState<UserRolePreview>()
   const { mutate: setPrimaryRole, isPending } = useSetPrimaryUserRoleMutation()
   const notifyAccessChange = useAccessChangeFeedback()
@@ -92,11 +94,7 @@ export function UserRolesCard({ user, onAssign }: UserRolesCardProps) {
           ) : (
             <ItemGroup className="grid gap-3 sm:grid-cols-2">
               {roles.map((role) => (
-                <Item
-                  key={role.id}
-                  variant="outline"
-                  className="rounded-2xl border px-4 py-4"
-                >
+                <Item key={role.id} variant="outline" className="rounded-2xl border px-4 py-4">
                   <Link
                     to="/system/roles/$id"
                     params={{ id: role.id }}
@@ -114,7 +112,6 @@ export function UserRolesCard({ user, onAssign }: UserRolesCardProps) {
                       </ItemTitle>
                       <ItemDescription>{role.description || '该角色暂无描述'}</ItemDescription>
                     </ItemContent>
-                    <ChevronRight className="text-muted-foreground" aria-hidden="true" />
                   </Link>
                   <ItemActions>
                     {role.isPrimary ? (

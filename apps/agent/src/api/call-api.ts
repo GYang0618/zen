@@ -1,7 +1,4 @@
-import {
-  AGENT_APPROVAL_ID_CONFIGURABLE_KEY,
-  AGENT_STEP_UP_TOKEN_CONFIGURABLE_KEY
-} from '@zen/shared'
+import { AGENT_APPROVAL_ID_CONFIGURABLE_KEY } from '@zen/shared'
 
 import { getToolExecutionPolicy } from '../tools/policy'
 import { client } from './client'
@@ -76,7 +73,6 @@ export async function executeApiCall<T>(
 
   const requestContext: Omit<AgentRequestContext, 'signal'> = {
     accessToken,
-    stepUpToken: readConfigString(config, AGENT_STEP_UP_TOKEN_CONFIGURABLE_KEY),
     runId: toolContext.runId,
     toolName: toolContext.toolName,
     approvalId:

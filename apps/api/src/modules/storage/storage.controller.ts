@@ -30,7 +30,6 @@ import {
 import { AllowAuthenticated } from '../../common/decorators/allow-authenticated.decorator.js'
 import { CurrentAuth } from '../../common/decorators/current-auth.decorator.js'
 import { RequirePermission } from '../../common/decorators/require-permission.decorator.js'
-import { RequireStepUp } from '../../common/decorators/require-step-up.decorator.js'
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js'
 import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '../../common/swagger/index.js'
 import { StorageService } from './storage.service.js'
@@ -160,9 +159,8 @@ export class StorageController {
 
   @Delete('files/:id/purge')
   @RequirePermission(PermissionCode.FILE_PURGE)
-  @RequireStepUp()
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: '彻底删除', description: '不可逆清除对象与元数据，需二次确认令牌。' })
+  @ApiOperation({ summary: '彻底删除', description: '不可逆清除对象与元数据。' })
   @ApiParam({ name: 'id', description: '文件 ID' })
   @ApiStandardErrorResponses()
   purge(@Param('id') id: string, @CurrentAuth() auth: AuthContext): Promise<void> {

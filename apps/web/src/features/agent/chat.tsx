@@ -1,7 +1,6 @@
 import { CopilotChatConfigurationProvider, UseAgentUpdate } from '@copilotkit/react-core/v2'
 import { Outlet, useLocation } from '@tanstack/react-router'
-import { Button, ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@zen/ui'
-import { Sparkles } from 'lucide-react'
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@zen/ui'
 import { useState } from 'react'
 
 import { ProfileDropdown, ThemeSwitch } from '@/components'
@@ -11,12 +10,12 @@ import { isAgentChatPath, parseThreadIdFromPath, useShellModeStore } from '@/sto
 
 import { AgentBackgroundRunner } from './components/agent-background-runner'
 import { ChatConversation } from './components/chat-conversation'
-import { ChatGenerativePanel } from './components/chat-generative-panel'
+import { ChatCanvas } from './components/chat-canvas'
 import { ChatInputDock } from './components/chat-input-dock'
 import { ChatRegistrations } from './components/registrations'
 import { ChatAgentProvider, useChatAgent } from './context/chat-agent-context'
 import { useAgentThreadSync } from './hooks/use-agent-thread-sync'
-import { useAgentGenerativePanelStore } from './stores/agent-generative-panel'
+import { useAgentCanvasStore } from './stores/agent-canvas'
 
 export function AgentChat({
   threadId: propThreadId,
@@ -26,7 +25,6 @@ export function AgentChat({
   threadId?: string
   active?: boolean
 } = {}) {
-  const { isOpen, setOpen } = useAgentGenerativePanelStore()
   const { pathname } = useLocation()
   const lastAgentPath = useShellModeStore((state) => state.lastAgentPath)
 
@@ -50,17 +48,6 @@ export function AgentChat({
       <ChatAgentProvider agent={agent} isReady={isReady} activeThreadId={activeThreadId}>
         <Header>
           <div className="ms-auto flex items-center gap-2 sm:gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5 text-xs"
-              onClick={() => setOpen(!isOpen)}
-              title={isOpen ? '收起生成式工作区' : '展开生成式工作区'}
-            >
-              <Sparkles className="size-3.5 text-primary" />
-              <span className="hidden sm:inline">生成式工作区</span>
-            </Button>
             <ThemeSwitch />
             <ProfileDropdown />
           </div>
@@ -82,7 +69,7 @@ function Chat({ isConnecting, activeThreadId }: { isConnecting: boolean; activeT
     updates: [UseAgentUpdate.OnMessagesChanged, UseAgentUpdate.OnRunStatusChanged],
     throttleMs: 0
   })
-  const isGenerativeOpen = useAgentGenerativePanelStore((state) => state.isOpen)
+  const isCanvasOpen = useAgentCanvasStore((state) => state.isOpen)
   const [awaitingApproval, setAwaitingApproval] = useState(false)
 
   const showEmptyGreeting = !isConnecting && agent.messages.length === 0
@@ -92,7 +79,7 @@ function Chat({ isConnecting, activeThreadId }: { isConnecting: boolean; activeT
       <ResizablePanelGroup orientation="horizontal" className="h-full w-full">
         <ResizablePanel
           id="chat-conversation-panel"
-          defaultSize={isGenerativeOpen ? 40 : 100}
+          defaultSize={isCanvasOpen ? 40 : 100}
           minSize="25%"
           className="relative flex h-full flex-col min-w-0"
         >
@@ -110,16 +97,16 @@ function Chat({ isConnecting, activeThreadId }: { isConnecting: boolean; activeT
           />
         </ResizablePanel>
 
-        {isGenerativeOpen && (
+        {isCanvasOpen && (
           <>
             <ResizableHandle withHandle />
             <ResizablePanel
-              id="chat-generative-panel"
+              id="chat-canvas"
               defaultSize={60}
               minSize="25%"
               className="relative flex h-full flex-col min-w-0"
             >
-              <ChatGenerativePanel />
+              <ChatCanvas />
             </ResizablePanel>
           </>
         )}

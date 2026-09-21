@@ -7,13 +7,8 @@ export const AGENT_MEMORY_CONFIGURABLE_KEY = 'agentMemory'
 /** 当前 AG-UI Run ID，供 Tool 幂等键与 Artifact 关联使用。 */
 export const AGENT_RUN_ID_CONFIGURABLE_KEY = 'agentRunId'
 
-/** HITL 通过后注入给 Default Agent 的短期二次确认令牌。 */
-export const AGENT_STEP_UP_TOKEN_CONFIGURABLE_KEY = 'stepUpToken'
 export const AGENT_APPROVAL_ID_CONFIGURABLE_KEY = 'approvalId'
 export const AGENT_TOOL_NAME_CONFIGURABLE_KEY = 'toolName'
-
-/** 对话审批通过后，与页面 step-up 令牌同等有效的时间窗。 */
-export const AGENT_HITL_STEP_UP_WINDOW_MS = 3 * 60 * 1_000
 
 /** 当前租户允许 Default Agent 暴露 Tool 的 ACTIVE 插件 ID。 */
 export const ACTIVE_AGENT_PLUGINS_CONFIGURABLE_KEY = 'activeAgentPlugins'
@@ -62,7 +57,7 @@ export const A2UI_SURFACE_TOOL_NAME = 'render_a2ui' as const
 /** 历史会话中可能出现的旧 A2UI 工具名，仅用于识别，不再注册 */
 export const LEGACY_A2UI_SURFACE_TOOL_NAMES = ['generate_dynamic_dashboard'] as const
 
-/** 所有应走 A2UI 生成式工作区的工具名（含历史兼容） */
+/** 所有应走 A2UI 画布的工具名（含历史兼容） */
 export const A2UI_SURFACE_TOOL_NAMES = [
   A2UI_SURFACE_TOOL_NAME,
   ...LEGACY_A2UI_SURFACE_TOOL_NAMES

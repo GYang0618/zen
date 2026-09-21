@@ -26,8 +26,7 @@ export function useRestoreFileMutation() {
 export function usePurgeFileMutation() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, stepUpToken }: { id: string; stepUpToken: string }) =>
-      storageApi.purge(id, stepUpToken),
+    mutationFn: (id: string) => storageApi.purge(id),
     onSuccess: () => invalidateFiles(queryClient)
   })
 }

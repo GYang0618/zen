@@ -416,31 +416,11 @@ model AgentApproval {
   updatedAt        DateTime               @updatedAt @map("updated_at")
 
   run AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
-  stepUpGrants AgentStepUpGrant[]
 
   @@unique([runId, toolCallId])
   @@unique([runId, interruptId])
   @@index([tenantId, userId, status, createdAt])
   @@map("agent_approvals")
-}
-
-/// 已批准的 Agent Tool 一次性 step-up 授权；令牌只允许匹配的 Run/Tool 使用一次。
-model AgentStepUpGrant {
-  id         String    @id @default(cuid())
-  tenantId   String    @map("tenant_id")
-  userId     String    @map("user_id")
-  runId      String    @map("run_id")
-  toolName   String    @map("tool_name")
-  approvalId String    @map("approval_id")
-  nonce      String    @unique
-  expiresAt  DateTime  @map("expires_at")
-  consumedAt DateTime? @map("consumed_at")
-  createdAt  DateTime  @default(now()) @map("created_at")
-
-  approval AgentApproval @relation(fields: [approvalId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId, userId, runId, toolName, expiresAt])
-  @@map("agent_step_up_grants")
 }
 
 /// Tool 执行账本；idempotencyKey 防止重连或重试造成重复写入。

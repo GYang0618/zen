@@ -10,7 +10,7 @@ export interface ToolCallLikeForA2UI {
 
 /**
  * 判断 ToolCall 是否属于 A2UI 生成式 UI 界面。
- * 属于 A2UI 的工具会在右侧“生成式工作区”展示专用的 A2UI 组件；
+ * 属于 A2UI 的工具会在右侧画布展示专用的 A2UI 组件；
  * 普通工具（如修改资料、更新状态、删除用户等）保持在左侧对话流中内联展示。
  */
 export function isA2UIToolCall(toolCall: ToolCallLikeForA2UI | undefined | null): boolean {

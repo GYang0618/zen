@@ -57,13 +57,13 @@ describe('toToolFailureResult', () => {
     assert.equal(parsed.message, '参数格式不合法')
   })
 
-  it('二次确认错误归类为 STEP_UP_REQUIRED 并透传 API message', () => {
-    const raw = toToolFailureResult({ code: 403, message: '需要二次确认，操作尚未执行' })
+  it('403 归类为 FORBIDDEN 并透传 API message', () => {
+    const raw = toToolFailureResult({ code: 403, message: '权限不足' })
     const parsed = JSON.parse(raw) as { code: number; reason: string; message: string }
 
     assert.equal(parsed.code, 403)
-    assert.equal(parsed.reason, 'STEP_UP_REQUIRED')
-    assert.equal(parsed.message, '需要二次确认，操作尚未执行')
+    assert.equal(parsed.reason, 'FORBIDDEN')
+    assert.equal(parsed.message, '权限不足')
   })
 })
 
@@ -133,10 +133,7 @@ describe('classifyToolError', () => {
       'UNAUTHORIZED'
     )
     assert.equal(classifyToolError({ response: { status: 403 } }), 'FORBIDDEN')
-    assert.equal(
-      classifyToolError({ code: 403, message: '需要二次确认，操作尚未执行' }),
-      'STEP_UP_REQUIRED'
-    )
+    assert.equal(classifyToolError({ code: 403, message: '权限不足' }), 'FORBIDDEN')
     assert.equal(classifyToolError({ response: { status: 429 } }), 'RATE_LIMITED')
     assert.equal(
       classifyToolError({ code: 'ECONNRESET', message: 'socket closed' }),

@@ -9,7 +9,6 @@ export type ToolErrorReason =
   | 'VALIDATION_ERROR'
   | 'UNAUTHORIZED'
   | 'FORBIDDEN'
-  | 'STEP_UP_REQUIRED'
   | 'BUSINESS_ERROR'
   | 'NETWORK_ERROR'
   | 'RATE_LIMITED'
@@ -77,9 +76,7 @@ export function classifyToolError(error: unknown): ToolErrorReason {
   const status = errorStatus(error)
   if (status === 400 || status === 422) return 'VALIDATION_ERROR'
   if (status === 401) return 'UNAUTHORIZED'
-  if (status === 403) {
-    return formatApiError(error).includes('二次确认') ? 'STEP_UP_REQUIRED' : 'FORBIDDEN'
-  }
+  if (status === 403) return 'FORBIDDEN'
   if (status === 429) return 'RATE_LIMITED'
   if (status !== undefined && status >= 400 && status < 500) return 'BUSINESS_ERROR'
   if (status !== undefined && status >= 500) return 'TOOL_UNAVAILABLE'
@@ -161,7 +158,6 @@ function statusForReason(reason: string, error: unknown): number {
     case 'UNAUTHORIZED':
       return 401
     case 'FORBIDDEN':
-    case 'STEP_UP_REQUIRED':
       return 403
     case 'RATE_LIMITED':
       return 429

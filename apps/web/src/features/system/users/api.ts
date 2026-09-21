@@ -24,10 +24,9 @@ export const userApi = {
   createUser: (data: CreateUser) => request.post<CreateUserResult, CreateUser>('/user', data),
   updateUser: (id: string, data: UpdateUser) =>
     request.patch<UpdateUserResult, UpdateUser>(`/user/${id}`, data),
-  deleteUsers: (ids: string[], stepUpToken?: string) =>
+  deleteUsers: (ids: string[]) =>
     request.delete<unknown, { ids: string[] }>('/user', {
-      data: { ids },
-      headers: stepUpToken ? { 'x-step-up-token': stepUpToken } : undefined
+      data: { ids }
     }),
   updateUsersStatus: (payload: UpdateUsersStatus) =>
     request.patch<unknown, UpdateUsersStatus>('/user/status', payload),
@@ -35,10 +34,8 @@ export const userApi = {
   adminResetPassword: (id: string, payload: AdminResetPassword) =>
     request.post<UserListItem, AdminResetPassword>(`/user/${id}/reset-password`, payload),
   revokeSessions: (id: string) => request.post<UserListItem>(`/user/${id}/revoke-sessions`),
-  assignRoles: (id: string, payload: AssignUserRoles, stepUpToken: string) =>
-    request.patch<AssignUserRolesResult, AssignUserRoles>(`/user/${id}/roles`, payload, {
-      headers: { 'x-step-up-token': stepUpToken }
-    }),
+  assignRoles: (id: string, payload: AssignUserRoles) =>
+    request.patch<AssignUserRolesResult, AssignUserRoles>(`/user/${id}/roles`, payload),
   setPrimaryRole: (id: string, primaryRoleId: string) =>
     request.patch<AssignUserRolesResult, { primaryRoleId: string }>(`/user/${id}/primary-role`, {
       primaryRoleId

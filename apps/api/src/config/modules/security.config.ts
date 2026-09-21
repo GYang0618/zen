@@ -21,7 +21,6 @@ export const securityConfig = registerConfig('security', (env) => ({
     allowedHeaders: [
       'Content-Type',
       'Authorization',
-      'x-step-up-token',
       'x-agent-idempotency-key',
       'x-agent-run-id',
       'x-agent-tool-name',

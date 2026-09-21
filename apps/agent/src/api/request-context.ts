@@ -9,7 +9,6 @@ import type { RunnableConfig } from '@langchain/core/runnables'
 export interface AgentRequestContext {
   accessToken: string
   idempotencyKey?: string
-  stepUpToken?: string
   runId?: string
   toolName?: string
   approvalId?: string

@@ -208,30 +208,6 @@ export class AuthService {
     })
   }
 
-  async createStepUpToken(
-    userId: string,
-    input: { password?: string; mfaCode?: string }
-  ): Promise<{ stepUpToken: string }> {
-    const user = await this.userService.findOne({ id: userId })
-    if (!user) throw new UnauthorizedException('用户不存在')
-
-    if (input.password) {
-      const ok = await argon2.verify(user.password, input.password)
-      if (!ok) throw new UnauthorizedException('密码错误')
-    } else if (input.mfaCode) {
-      const security = await this.prisma.userSecurity.findUnique({ where: { userId } })
-      if (!security?.mfaEnabled || !security.mfaSecret) {
-        throw new BadRequestException('未启用 MFA，请使用密码确认')
-      }
-      const ok = await this.verifyTotp(input.mfaCode, security.mfaSecret)
-      if (!ok) throw new UnauthorizedException('验证码错误')
-    } else {
-      throw new BadRequestException('请提供密码或 MFA 验证码')
-    }
-
-    return { stepUpToken: this.tokenService.signStepUp(user.id, user.email) }
-  }
-
   async refresh(userId: string): Promise<IssueSessionResult> {
     const user = await this.userService.findOne({ id: userId })
     if (!user) throw new UnauthorizedException('用户不存在')

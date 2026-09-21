@@ -4,7 +4,7 @@ import { A2UI_SURFACE_TOOL_NAMES } from '@zen/shared'
 import { useEffect, useMemo, useRef } from 'react'
 
 import { parseToolCallArguments } from '../lib/group-tool-calls'
-import { useAgentGenerativePanelStore } from '../stores/agent-generative-panel'
+import { useAgentCanvasStore } from '../stores/agent-canvas'
 import { assembleRenderA2uiOperations } from './assemble-operations'
 import { readA2uiArgsTitle } from './resolve-a2ui-title'
 
@@ -251,11 +251,11 @@ export function extractA2UISurfaces(
 }
 
 export function useA2UISurfaces(messages: unknown[], isRunning: boolean) {
-  const activeSurfaceId = useAgentGenerativePanelStore((state) => state.activeSurfaceId)
-  const activeToolCallId = useAgentGenerativePanelStore((state) => state.activeToolCallId)
-  const setActiveSurfaceId = useAgentGenerativePanelStore((state) => state.setActiveSurfaceId)
-  const openSurface = useAgentGenerativePanelStore((state) => state.openSurface)
-  const isOpen = useAgentGenerativePanelStore((state) => state.isOpen)
+  const activeSurfaceId = useAgentCanvasStore((state) => state.activeSurfaceId)
+  const activeToolCallId = useAgentCanvasStore((state) => state.activeToolCallId)
+  const setActiveSurfaceId = useAgentCanvasStore((state) => state.setActiveSurfaceId)
+  const openSurface = useAgentCanvasStore((state) => state.openSurface)
+  const isOpen = useAgentCanvasStore((state) => state.isOpen)
 
   const surfaces = useMemo(() => {
     return extractA2UISurfaces(messages, isRunning)
@@ -281,7 +281,7 @@ export function useA2UISurfaces(messages: unknown[], isRunning: boolean) {
     }
   }, [activeSurface, activeSurfaceId, setActiveSurfaceId])
 
-  // 当生成式 Surface 首次产生且工作区处于闭合状态时，自动展开工作区
+  // 当画布 Surface 首次产生且画布处于闭合状态时，自动展开画布
   const hasAutoOpenedRef = useRef(false)
   useEffect(() => {
     if (surfaces.length > 0 && !isOpen && !hasAutoOpenedRef.current) {

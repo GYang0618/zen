@@ -85,8 +85,7 @@ export function useDeleteUsersMutation() {
 
   return useMutation({
     mutationKey: ['system', 'users', 'delete'],
-    mutationFn: ({ ids, stepUpToken }: { ids: string[]; stepUpToken?: string }) =>
-      userApi.deleteUsers(ids, stepUpToken),
+    mutationFn: ({ ids }: { ids: string[] }) => userApi.deleteUsers(ids),
     onSuccess: async () => {
       await invalidateUserQueries(queryClient)
     }
@@ -157,14 +156,12 @@ export function useAssignUserRolesMutation() {
     mutationFn: ({
       id,
       roleIds,
-      primaryRoleId,
-      stepUpToken
+      primaryRoleId
     }: {
       id: string
       roleIds: string[]
       primaryRoleId?: string
-      stepUpToken: string
-    }) => userApi.assignRoles(id, { roleIds, primaryRoleId }, stepUpToken),
+    }) => userApi.assignRoles(id, { roleIds, primaryRoleId }),
     onSuccess: (result, variables) => {
       mergeUserCaches(queryClient, variables.id, { roles: result.roles })
 

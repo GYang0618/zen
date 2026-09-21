@@ -19,7 +19,6 @@ import { AuthGuard } from './guards/auth.guard.js'
 import { AuthContextGuard } from './guards/auth-context.guard.js'
 import { PermissionGuard } from './guards/permission.guard.js'
 import { PluginActiveGuard } from './guards/plugin-active.guard.js'
-import { StepUpGuard } from './guards/step-up.guard.js'
 import { AgentIdempotencyInterceptor } from './interceptors/agent-idempotency.interceptor.js'
 import { TransformInterceptor } from './interceptors/transform.interceptor.js'
 
@@ -88,10 +87,6 @@ import type { AuthConfig, SecurityConfig } from '../config/index.js'
     {
       provide: APP_GUARD,
       useClass: PluginActiveGuard
-    },
-    {
-      provide: APP_GUARD,
-      useClass: StepUpGuard
     },
     {
       provide: APP_INTERCEPTOR,

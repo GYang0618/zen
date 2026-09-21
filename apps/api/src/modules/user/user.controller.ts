@@ -25,7 +25,6 @@ import { PermissionCode } from '@zen/shared'
 
 import { CurrentAuth } from '../../common/decorators/current-auth.decorator.js'
 import { RequirePermission } from '../../common/decorators/require-permission.decorator.js'
-import { RequireStepUp } from '../../common/decorators/require-step-up.decorator.js'
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js'
 import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '../../common/swagger/index.js'
 import { adminResetPasswordSchema } from './dto/admin-reset-password.dto.js'
@@ -214,11 +213,10 @@ export class UserController {
 
   @Patch(':id/roles')
   @RequirePermission(PermissionCode.ROLE_ASSIGN)
-  @RequireStepUp()
   @ApiOperation({
     summary: '覆盖式分配用户角色',
     description:
-      '替换用户全部角色；可指定 primaryRoleId 为主角色（须在 roleIds 内，省略则取首项）。会 bump 权限版本并强制下线目标用户。需要二次确认令牌。'
+      '替换用户全部角色；可指定 primaryRoleId 为主角色（须在 roleIds 内，省略则取首项）。会 bump 权限版本并强制下线目标用户。'
   })
   @ApiParam({ name: 'id', description: '用户 ID' })
   @ApiBody({

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export interface AgentGenerativePanelState {
+export interface AgentCanvasState {
   isOpen: boolean
   activeToolCallId: string | null
   activeSurfaceId: string | null
@@ -12,7 +12,7 @@ export interface AgentGenerativePanelState {
   close: () => void
 }
 
-export const useAgentGenerativePanelStore = create<AgentGenerativePanelState>((set) => ({
+export const useAgentCanvasStore = create<AgentCanvasState>((set) => ({
   isOpen: false,
   activeToolCallId: null,
   activeSurfaceId: null,

@@ -95,11 +95,6 @@ export const authApi = {
   setupMfa: () => request.post<{ secret: string; otpauthUrl: string }>('/auth/mfa/setup'),
   enableMfa: (code: string) => request.post<void, { code: string }>('/auth/mfa/enable', { code }),
   disableMfa: (code: string) => request.post<void, { code: string }>('/auth/mfa/disable', { code }),
-  stepUp: (payload: { password?: string; mfaCode?: string }) =>
-    request.post<{ stepUpToken: string }, { password?: string; mfaCode?: string }>(
-      '/auth/step-up',
-      payload
-    ),
   signUp: (data: SignUpData) => request.post<AuthSession, SignUpData>('/auth/register', data),
   refresh: () => refreshAuthSessionOnce(),
   signOut: () => request.post<void, void>('/auth/logout'),

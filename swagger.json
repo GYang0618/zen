@@ -474,7 +474,7 @@
     },
     "/api/storage/files/{id}/purge": {
       "delete": {
-        "description": "不可逆清除对象与元数据，需二次确认令牌。",
+        "description": "不可逆清除对象与元数据。",
         "operationId": "StorageController_purge",
         "parameters": [
           {
@@ -774,18 +774,6 @@
         "parameters": [],
         "responses": {
           "204": {
-            "description": ""
-          }
-        },
-        "tags": ["Auth"]
-      }
-    },
-    "/api/auth/step-up": {
-      "post": {
-        "operationId": "AuthController_stepUp",
-        "parameters": [],
-        "responses": {
-          "200": {
             "description": ""
           }
         },
@@ -1633,7 +1621,7 @@
     },
     "/api/user/{id}/roles": {
       "patch": {
-        "description": "替换用户全部角色；会 bump 权限版本并强制下线目标用户。需要二次确认令牌。",
+        "description": "替换用户全部角色；可指定 primaryRoleId 为主角色（须在 roleIds 内，省略则取首项）。会 bump 权限版本并强制下线目标用户。",
         "operationId": "UserController_assignRoles",
         "parameters": [
           {

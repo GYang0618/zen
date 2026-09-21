@@ -1,8 +1,6 @@
 import { PermissionCode } from '@zen/shared'
 import {
   Button,
-  Field,
-  FieldLabel,
   Sheet,
   SheetContent,
   SheetDescription,
@@ -14,10 +12,8 @@ import { Loader2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
-import { PasswordInput } from '@/components'
 import { Can } from '@/components/auth/can'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { authApi } from '@/features/auth/api'
 import { isCurrentUserId, useAccessChangeFeedback } from '@/lib/auth/access-change'
 
 import { useAssignUserRolesMutation } from '../mutations'
@@ -43,7 +39,6 @@ export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRo
   const isSelf = isCurrentUserId(user.id)
   const [roleIds, setRoleIds] = useState<string[]>([])
   const [primaryRoleId, setPrimaryRoleId] = useState<string>()
-  const [password, setPassword] = useState('')
   const [keyword, setKeyword] = useState('')
   const [showSelectedOnly, setShowSelectedOnly] = useState(false)
   const [step, setStep] = useState<AssignStep>('edit')
@@ -57,7 +52,6 @@ export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRo
     setPrimaryRoleId(
       user.roles.find((role) => role.isPrimary)?.id ?? user.roles[0]?.id
     )
-    setPassword('')
     setKeyword('')
     setShowSelectedOnly(false)
     setStep('edit')
@@ -109,8 +103,7 @@ export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRo
       return
     }
     try {
-      const { stepUpToken } = await authApi.stepUp({ password })
-      await assignRoles({ id: user.id, roleIds, primaryRoleId, stepUpToken })
+      await assignRoles({ id: user.id, roleIds, primaryRoleId })
       notifyAccessChange(user.id, '角色已更新')
       onOpenChange(false)
     } catch (error) {
@@ -163,17 +156,6 @@ export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRo
                   added={addedIds.map((id) => ({ id, label: resolveRoleLabel(id) }))}
                   removed={removedIds.map((id) => ({ id, label: resolveRoleLabel(id) }))}
                 />
-                <Field>
-                  <FieldLabel htmlFor="assign-role-password">当前登录密码</FieldLabel>
-                  <PasswordInput
-                    id="assign-role-password"
-                    name="password"
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    placeholder="输入当前登录密码以确认变更"
-                  />
-                </Field>
                 <AssignmentSessionAlert isSelf={isSelf} />
               </div>
             ) : null}
@@ -241,7 +223,7 @@ export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRo
                 <Can permission={PermissionCode.ROLE_ASSIGN}>
                   <Button
                     type="button"
-                    disabled={isPending || !password}
+                    disabled={isPending}
                     onClick={() => {
                       void handleSubmit()
                     }}

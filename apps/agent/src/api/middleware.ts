@@ -4,7 +4,6 @@ import { isApiSuccessEnvelope, isRecord } from './tool-result'
 /** 与 API CORS / Guard 约定一致的 Agent 请求头 */
 export const AGENT_HTTP_HEADERS = {
   idempotencyKey: 'x-agent-idempotency-key',
-  stepUpToken: 'x-step-up-token',
   runId: 'x-agent-run-id',
   toolName: 'x-agent-tool-name',
   approvalId: 'x-agent-approval-id'
@@ -15,7 +14,7 @@ function setOptionalHeader(headers: Headers, name: string, value: string | undef
 }
 
 /**
- * 请求拦截：对齐 web `withTokenMiddleware`，注入 Authorization、幂等键、step-up 与 run/tool 标识。
+ * 请求拦截：对齐 web `withTokenMiddleware`，注入 Authorization、幂等键与 run/tool 标识。
  */
 export function withAgentContextMiddleware(request: Request): Request {
   const context = getCurrentRequestContext()
@@ -24,7 +23,6 @@ export function withAgentContextMiddleware(request: Request): Request {
     headers.set('Authorization', `Bearer ${context.accessToken}`)
   }
   setOptionalHeader(headers, AGENT_HTTP_HEADERS.idempotencyKey, context?.idempotencyKey)
-  setOptionalHeader(headers, AGENT_HTTP_HEADERS.stepUpToken, context?.stepUpToken)
   setOptionalHeader(headers, AGENT_HTTP_HEADERS.runId, context?.runId)
   setOptionalHeader(headers, AGENT_HTTP_HEADERS.toolName, context?.toolName)
   setOptionalHeader(headers, AGENT_HTTP_HEADERS.approvalId, context?.approvalId)

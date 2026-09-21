@@ -40,7 +40,7 @@ export function GroupedToolCallsView({ toolCalls, messages }: GroupedToolCallsVi
           return candidate.toolCallId === toolCall.id || candidate.tool_call_id === toolCall.id
         })
         return (
-          <div key={toolCall.id} className="my-2 w-full">
+          <div key={toolCall.id} className="w-full">
             {renderToolCall({
               toolCall: toolCall as never,
               toolMessage: toolMessage as never

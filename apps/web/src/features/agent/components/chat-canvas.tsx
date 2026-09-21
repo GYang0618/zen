@@ -9,14 +9,14 @@ import { A2UISurfaceHost } from '../a2ui/a2ui-surface-host'
 import { catalog } from '../a2ui/catalog'
 import { useA2UISurfaces } from '../a2ui/use-a2ui-surfaces'
 import { useChatAgent } from '../context/chat-agent-context'
-import { useAgentGenerativePanelStore } from '../stores/agent-generative-panel'
+import { useAgentCanvasStore } from '../stores/agent-canvas'
 
-export function ChatGenerativePanel() {
+export function ChatCanvas() {
   const { agent } = useChatAgent({
     updates: [UseAgentUpdate.OnMessagesChanged, UseAgentUpdate.OnRunStatusChanged],
     throttleMs: 0
   })
-  const close = useAgentGenerativePanelStore((state) => state.close)
+  const close = useAgentCanvasStore((state) => state.close)
 
   const { surfaces, activeSurface, setActiveSurfaceId } = useA2UISurfaces(
     agent.messages,
@@ -32,7 +32,7 @@ export function ChatGenerativePanel() {
             <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
               <Sparkles className="size-4" />
             </div>
-            <span className="truncate text-sm font-semibold">生成式工作区</span>
+            <span className="truncate text-sm font-semibold">画布</span>
             {activeSurface && (
               <Badge variant="outline" className="text-xs font-normal">
                 {activeSurface.title}
@@ -65,10 +65,10 @@ export function ChatGenerativePanel() {
               size="icon"
               className="size-8 text-muted-foreground hover:text-foreground"
               onClick={close}
-              title="收起工作区"
+              title="收起画布"
             >
               <PanelRightClose className="size-4" />
-              <span className="sr-only">收起工作区</span>
+              <span className="sr-only">收起画布</span>
             </Button>
           </div>
         </div>
@@ -108,7 +108,7 @@ export function ChatGenerativePanel() {
               <div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
                 <Sparkles className="size-6" />
               </div>
-              <h3 className="mt-4 text-sm font-semibold">暂无生成式内容</h3>
+              <h3 className="mt-4 text-sm font-semibold">暂无画布内容</h3>
               <p className="mt-1.5 max-w-xs text-xs text-muted-foreground">
                 当智能体执行生成式工具（如查询用户列表等）时，将通过 A2UI
                 协议在此处实时呈现交互界面和结构化结果。

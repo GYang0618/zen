@@ -19,7 +19,7 @@ export function Row({ props, children }: RendererProps<RowProps>) {
       }}
     >
       {childIds.map((id) => (
-        <div key={id} className="min-w-50 flex-1 self-stretch [&>*]:h-full">
+        <div key={id} className="min-w-50 flex-1 self-stretch *:h-full">
           {children(id)}
         </div>
       ))}

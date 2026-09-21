@@ -4,20 +4,30 @@ import {
   contextEditingMiddleware,
   humanInTheLoopMiddleware,
   modelCallLimitMiddleware,
+  modelFallbackMiddleware,
+  modelRetryMiddleware,
   summarizationMiddleware,
-  toolErrorMiddleware
+  toolErrorMiddleware,
+  toolRetryMiddleware
 } from 'langchain'
 
 import { formatUnhandledToolError } from '@/api/tool-failure'
+import { createModel } from '@/models'
 import { createApprovalPolicy } from '@/tools/policy'
 
-import type { createModel } from '@/models'
+import { MODEL_RETRY_CONFIG, TOOL_RETRY_CONFIG } from './retry-policy'
 
 export function createDefaultAgentMiddleware(model: ReturnType<typeof createModel>) {
   return [
     modelCallLimitMiddleware({
       runLimit: DEFAULT_AGENT_RUN_BUDGET.maxModelCalls,
       exitBehavior: 'error'
+    }),
+    summarizationMiddleware({
+      model,
+      trigger: [{ tokens: 80_000 }, { messages: 50 }],
+      keep: { messages: 10 },
+      summaryPrefix: '此前对话摘要：'
     }),
     humanInTheLoopMiddleware({
       interruptOn: createApprovalPolicy(),
@@ -32,14 +42,11 @@ export function createDefaultAgentMiddleware(model: ReturnType<typeof createMode
         })
       ]
     }),
-    summarizationMiddleware({
-      model,
-      trigger: [{ tokens: 80_000 }, { messages: 50 }],
-      keep: { messages: 10 },
-      summaryPrefix: '此前对话摘要：'
-    }),
+    modelFallbackMiddleware(createModel({ model: 'deepseek-v4-pro' })),
+    modelRetryMiddleware(MODEL_RETRY_CONFIG),
     toolErrorMiddleware({
       onError: (error, request) => formatUnhandledToolError(error, request.toolCall.name)
-    })
+    }),
+    toolRetryMiddleware(TOOL_RETRY_CONFIG)
   ]
 }
