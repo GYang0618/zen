@@ -147,7 +147,7 @@ export const AgentLauncherButton = forwardRef<HTMLButtonElement, AgentLauncherBu
         aria-label={isOpen ? '关闭 AI 助手' : '打开 AI 助手'}
         aria-pressed={isOpen}
         className={cn(
-          'fixed z-[1300] size-14 p-0 touch-none rounded-2xl bg-transparent hover:bg-transparent shadow-none transition-[left,top,transform,opacity] duration-300 ease-out',
+          'fixed z-1300 size-14 p-0 touch-none rounded-2xl bg-transparent hover:bg-transparent shadow-none transition-[left,top,transform,opacity] duration-300 ease-out',
           isOpen ? 'cursor-pointer' : isDragging ? 'cursor-grabbing duration-0' : 'cursor-grab',
           isTucked && 'opacity-70',
           // 模态层已屏蔽外部交互，此时球不可用，淡出避免造成可点击的错觉

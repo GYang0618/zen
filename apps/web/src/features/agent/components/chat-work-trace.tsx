@@ -55,7 +55,7 @@ export function ChatWorkTrace({ turnKey, isWorking, children }: ChatWorkTracePro
         )
       }
     >
-      <div className="pt-4 flex flex-col gap-6">{children}</div>
+      <div className="pt-4 flex flex-col gap-4">{children}</div>
     </ChatFoldPanel>
   )
 }

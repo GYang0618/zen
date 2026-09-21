@@ -9,8 +9,8 @@ import { useElementHeight } from '@/hooks'
 import { isAgentChatPath, parseThreadIdFromPath, useShellModeStore } from '@/stores'
 
 import { AgentBackgroundRunner } from './components/agent-background-runner'
-import { ChatConversation } from './components/chat-conversation'
 import { ChatCanvas } from './components/chat-canvas'
+import { ChatConversation } from './components/chat-conversation'
 import { ChatInputDock } from './components/chat-input-dock'
 import { ChatRegistrations } from './components/registrations'
 import { ChatAgentProvider, useChatAgent } from './context/chat-agent-context'
@@ -98,17 +98,14 @@ function Chat({ isConnecting, activeThreadId }: { isConnecting: boolean; activeT
         </ResizablePanel>
 
         {isCanvasOpen && (
-          <>
-            <ResizableHandle withHandle />
-            <ResizablePanel
-              id="chat-canvas"
-              defaultSize={60}
-              minSize="25%"
-              className="relative flex h-full flex-col min-w-0"
-            >
-              <ChatCanvas />
-            </ResizablePanel>
-          </>
+          <ResizablePanel
+            id="chat-canvas"
+            defaultSize={60}
+            minSize="25%"
+            className="relative flex h-full flex-col min-w-0 pb-3 pr-3"
+          >
+            <ChatCanvas />
+          </ResizablePanel>
         )}
       </ResizablePanelGroup>
     </div>

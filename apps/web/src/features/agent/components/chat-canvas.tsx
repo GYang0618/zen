@@ -25,7 +25,7 @@ export function ChatCanvas() {
 
   return (
     <A2UIProvider catalog={catalog}>
-      <div className="flex h-full w-full flex-col overflow-hidden bg-background">
+      <div className="flex h-full w-full flex-col overflow-hidden bg-background border rounded-4xl">
         {/* 头部工具栏 */}
         <div className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
           <div className="flex min-w-0 items-center gap-2">
