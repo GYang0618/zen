@@ -1,13 +1,22 @@
 import { UseAgentUpdate, useDefaultRenderTool } from '@copilotkit/react-core/v2'
-import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from '@zen/ui'
+import { CodeBlock, Shimmer } from '@zen/ui'
+import {
+  CheckCircleIcon,
+  CircleIcon,
+  ClockIcon,
+  LoaderCircleIcon,
+  WrenchIcon,
+  XCircleIcon
+} from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
+import { ChatFoldPanel } from '../components/chat-fold-panel'
 import { useOptionalChatAgent } from '../context/chat-agent-context'
 import { isA2UIToolCall } from '../lib/a2ui-tools'
 import { formatToolTitle } from '../lib/tool-title'
 import { useAgentChatInputStore } from '../stores/agent-chat-input'
 
-import type { ToolPart } from '@zen/ui'
+import type { ReactNode } from 'react'
 
 const AUTO_COLLAPSE_DELAY_MS = 1000
 const TOOL_EXECUTION_TIMEOUT_MS = 25_000
@@ -29,7 +38,44 @@ export interface ParsedToolError {
   reason?: string
 }
 
-type ToolState = ToolPart['state']
+type ToolUiState =
+  | 'approval-requested'
+  | 'input-available'
+  | 'input-streaming'
+  | 'output-available'
+  | 'output-error'
+
+const TOOL_STATE_LABELS: Record<ToolUiState, string> = {
+  'approval-requested': '等待确认',
+  'input-available': '执行中',
+  'input-streaming': '准备中',
+  'output-available': '已完成',
+  'output-error': '失败'
+}
+
+const TOOL_STATE_ICONS: Record<ToolUiState, ReactNode> = {
+  'approval-requested': <ClockIcon className="size-3.5 text-amber-600 dark:text-amber-400" />,
+  'input-available': (
+    <LoaderCircleIcon className="size-3.5 animate-spin text-sky-600 dark:text-sky-400" />
+  ),
+  'input-streaming': <CircleIcon className="size-3.5 text-muted-foreground" />,
+  'output-available': (
+    <CheckCircleIcon className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+  ),
+  'output-error': <XCircleIcon className="size-3.5 text-destructive" />
+}
+
+function ToolStateIcon({ state }: { state: ToolUiState }) {
+  return (
+    <span
+      className="flex size-3.5 -translate-y-px items-center justify-center [&_svg]:block"
+      role="img"
+      aria-label={TOOL_STATE_LABELS[state]}
+    >
+      {TOOL_STATE_ICONS[state]}
+    </span>
+  )
+}
 
 export function parseToolResultError(result: string | undefined): ParsedToolError | null {
   if (!result) return null
@@ -59,7 +105,6 @@ export function parseToolResultError(result: string | undefined): ParsedToolErro
       rawMessage = String((parsed.error as { message: unknown }).message).trim()
     }
 
-    // 剥离可能附带给模型的后半句提示指令
     const cleanMessage =
       rawMessage.split('。请')[0].split('。不要再次')[0].split('。禁止')[0].trim() || rawMessage
     const shortSummary = cleanMessage.split(/[,，;；]/)[0].trim()
@@ -102,50 +147,24 @@ export function parseToolResultError(result: string | undefined): ParsedToolErro
 function mapToToolState(
   status: 'inProgress' | 'executing' | 'complete',
   isError: boolean
-): ToolState {
+): ToolUiState {
   if (isError) return 'output-error'
   if (status === 'complete') return 'output-available'
   if (status === 'executing') return 'input-available'
   return 'input-streaming'
 }
 
-function extractToolResultSummary(
-  result: string | undefined,
-  parsedError: ParsedToolError | null,
-  isInterrupted: boolean
-): string | null {
-  if (isInterrupted) return '执行中断'
-  if (parsedError) return parsedError.title
+function JsonSection({ label, value }: { label: string; value: unknown }) {
+  const code = typeof value === 'string' ? value : JSON.stringify(value, null, 2)
 
-  if (!result) return null
-
-  try {
-    const parsed = JSON.parse(result) as Record<string, unknown>
-    if (parsed.success === true) return '执行成功'
-    if (typeof parsed.total === 'number') return `共 ${parsed.total} 条记录`
-
-    if (Array.isArray(parsed)) {
-      return `返回 ${parsed.length} 条数据`
-    }
-    for (const key of ['items', 'records', 'data', 'users', 'roles', 'posts', 'list']) {
-      const val = parsed[key]
-      if (Array.isArray(val)) {
-        return `返回 ${val.length} 条数据`
-      }
-    }
-    if (typeof parsed.count === 'number') {
-      return `共 ${parsed.count} 项`
-    }
-    if (typeof parsed.message === 'string' && parsed.message.length <= 15) {
-      return parsed.message
-    }
-  } catch {
-    if (result.length <= 15 && !result.includes('\n')) {
-      return result.trim()
-    }
-  }
-
-  return '已完成'
+  return (
+    <div className="space-y-2 overflow-hidden">
+      <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">{label}</h4>
+      <div className="max-h-64 overflow-auto rounded-md bg-muted/50">
+        <CodeBlock code={code} language="json" />
+      </div>
+    </div>
+  )
 }
 
 export function DefaultToolCard({
@@ -171,7 +190,6 @@ export function DefaultToolCard({
   })
   const isAgentRunning = propIsAgentRunning ?? (agent ? agent.isRunning : true)
 
-  // 自愈支持：只要结果已返回且非空，则状态视为已完成
   const effectiveStatus: 'inProgress' | 'executing' | 'complete' =
     status === 'complete' || (result !== undefined && result !== '') ? 'complete' : status
 
@@ -197,7 +215,6 @@ export function DefaultToolCard({
     }
   }, [effectiveStatus, resolvingApprovalToolNames, name, clearResolvingApprovalTools])
 
-  // 超时自愈检测：若未完成且超过阈值，标记为超时
   const [isTimedOut, setIsTimedOut] = useState(false)
   useEffect(() => {
     if (effectiveStatus === 'complete' || isAwaitingApproval) {
@@ -213,7 +230,6 @@ export function DefaultToolCard({
   }, [effectiveStatus, isAwaitingApproval])
 
   const parsedError = useMemo(() => parseToolResultError(result), [result])
-  // 若智能体已停止运行或等待超时，但工具未完成，且既不在待审批也不在审批恢复执行中，视作中断/失败
   const isInterrupted =
     (!isAgentRunning || isTimedOut) &&
     effectiveStatus !== 'complete' &&
@@ -229,38 +245,24 @@ export function DefaultToolCard({
         ? 'output-error'
         : mapToToolState(effectiveStatus, isError)
 
-  const isRunning =
-    ((effectiveStatus === 'inProgress' || effectiveStatus === 'executing') &&
-      !isAwaitingApproval &&
-      !isInterrupted) ||
-    isResolvingApproval
-  const [open, setOpen] = useState(isRunning || isAwaitingApproval || isError)
+  const isBusy = toolState === 'input-streaming' || toolState === 'input-available'
+  const [open, setOpen] = useState(isAwaitingApproval || isError)
 
   useEffect(() => {
-    if (isRunning || isAwaitingApproval || isError) {
+    if (isAwaitingApproval || isError) {
       setOpen(true)
       return
     }
 
-    // 运行完成且未出错时，延时平滑折叠，保持对话主干清晰
     const timer = window.setTimeout(() => setOpen(false), AUTO_COLLAPSE_DELAY_MS)
     return () => window.clearTimeout(timer)
-  }, [isRunning, isAwaitingApproval, isError])
-
-  const resultSummary = useMemo(
-    () =>
-      effectiveStatus === 'complete' || isInterrupted
-        ? extractToolResultSummary(result, parsedError, isInterrupted)
-        : null,
-    [effectiveStatus, result, parsedError, isInterrupted]
-  )
+  }, [isAwaitingApproval, isError])
 
   if (isA2UI) {
     return null
   }
 
   const title = formatToolTitle(name)
-  const displayTitle = resultSummary ? `${title} · ${resultSummary}` : title
   const hasParams =
     parameters !== undefined &&
     parameters !== null &&
@@ -275,10 +277,24 @@ export function DefaultToolCard({
         : undefined)
 
   return (
-    <Tool data-tool-call-id={toolCallId} open={open} onOpenChange={setOpen}>
-      <ToolHeader type="dynamic-tool" toolName={name} title={displayTitle} state={toolState} />
-      <ToolContent>
-        {hasParams && <ToolInput input={parameters} />}
+    <ChatFoldPanel
+      className="not-prose"
+      open={open}
+      onOpenChange={setOpen}
+      icon={<WrenchIcon className="block size-3.5" />}
+      trigger={
+        isBusy ? (
+          <Shimmer as="span" className="leading-none" duration={1}>
+            {title}
+          </Shimmer>
+        ) : (
+          <span className="leading-none">{title}</span>
+        )
+      }
+      trailing={<ToolStateIcon state={toolState} />}
+    >
+      <div className="flex flex-col gap-4 pt-4" data-tool-call-id={toolCallId}>
+        {hasParams && <JsonSection label="参数" value={parameters} />}
 
         {isError && (
           <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-destructive text-xs">
@@ -294,15 +310,10 @@ export function DefaultToolCard({
           </div>
         )}
 
-        {result && (
-          <ToolOutput
-            className="[&_pre]:max-h-64 [&_pre]:overflow-auto"
-            output={isError ? undefined : result}
-            errorText={isError ? (parsedError ? undefined : result) : undefined}
-          />
-        )}
-      </ToolContent>
-    </Tool>
+        {result && !isError && <JsonSection label="结果" value={result} />}
+        {isError && !parsedError && result ? <JsonSection label="错误" value={result} /> : null}
+      </div>
+    </ChatFoldPanel>
   )
 }
 

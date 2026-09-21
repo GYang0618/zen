@@ -1,10 +1,6 @@
 'use client'
 
-import {
-  UseAgentUpdate,
-  useRenderActivityMessage,
-  useRenderToolCall
-} from '@copilotkit/react-core/v2'
+import { UseAgentUpdate, useRenderActivityMessage } from '@copilotkit/react-core/v2'
 import {
   Alert,
   AlertDescription,
@@ -23,10 +19,14 @@ import { Fragment, useMemo } from 'react'
 
 import { useChatAgent } from '../context/chat-agent-context'
 import { useAgentRetry } from '../hooks/use-agent-retry'
-import { isA2UIToolCall } from '../lib/a2ui-tools'
+import { A2UI_ACTIVITY_TYPE, isA2UIToolCall } from '../lib/a2ui-tools'
+import {
+  getInlineStandardToolCalls,
+  groupMessagesIntoTurns,
+  turnHasFoldableWork
+} from '../lib/group-chat-turns'
 import {
   isToolCallDisplayEnabled,
-  isTurnFinalDisplayToolCall,
   resolveTurnGenerativeToolCalls,
   resolveTurnToolCalls
 } from '../lib/group-tool-calls'
@@ -35,22 +35,18 @@ import { ChatAssistantActions } from './chat-assistant-actions'
 import { ChatCanvasBadge } from './chat-canvas-badge'
 import { ChatPendingMessage } from './chat-pending-message'
 import { ChatUserActions } from './chat-user-actions'
+import { ChatWorkTrace } from './chat-work-trace'
 import { GroupedToolCallsView } from './grouped-tool-calls-view'
 
 import type { Message as AGUIMessage } from '@copilotkit/react-core/v2'
+import type { ChatTurnMessageLike } from '../lib/group-chat-turns'
 
 type UserMessageContentPart = { type: string; text?: string }
 
-type ChatMessageLike = AGUIMessage & {
-  toolCalls?: Array<{
-    id?: string
-    function?: {
-      name?: string
-      arguments?: string
-    }
-  }>
-  activityType?: string
-}
+export type ChatMessageLike = AGUIMessage &
+  ChatTurnMessageLike & {
+    toolCalls?: ChatTurnMessageLike['toolCalls']
+  }
 
 function flattenUserMessageContent(content: unknown): string {
   if (!content) return ''
@@ -64,7 +60,7 @@ function flattenUserMessageContent(content: unknown): string {
   return String(content)
 }
 
-function UserMessageItem({ message }: { message: ChatMessageLike }) {
+export function UserMessageItem({ message }: { message: ChatMessageLike }) {
   const text = useMemo(() => flattenUserMessageContent(message.content), [message.content])
   if (!text) return null
 
@@ -78,22 +74,25 @@ function UserMessageItem({ message }: { message: ChatMessageLike }) {
   )
 }
 
-interface AssistantMessageItemProps {
+export interface AssistantMessageItemProps {
   message: ChatMessageLike
   messages: ChatMessageLike[]
   isRunning: boolean
   isLastAssistant: boolean
+  includeInlineTools?: boolean
+  showWorkingPlaceholder?: boolean
   onRetry?: () => void
 }
 
-function AssistantMessageItem({
+export function AssistantMessageItem({
   message,
   messages,
   isRunning,
   isLastAssistant,
+  includeInlineTools = true,
+  showWorkingPlaceholder = false,
   onRetry
 }: AssistantMessageItemProps) {
-  const renderToolCall = useRenderToolCall()
   const isStopped = useAgentChatInputStore((state) =>
     message.id ? state.stoppedMessageIds.has(message.id) : false
   )
@@ -101,14 +100,9 @@ function AssistantMessageItem({
   const isStreaming = isRunning && isLastAssistant
   const hasContent = Boolean(content.trim())
   const toolCalls = Array.isArray(message.toolCalls) ? message.toolCalls : []
-  // meta.display === true → 末尾槽；display === false → 不展示；其余内联默认卡片
   const inlineStandardToolCalls = useMemo(
-    () =>
-      toolCalls.filter(
-        (tc) =>
-          !isA2UIToolCall(tc) && !isTurnFinalDisplayToolCall(tc) && isToolCallDisplayEnabled(tc)
-      ),
-    [toolCalls]
+    () => (includeInlineTools ? getInlineStandardToolCalls(toolCalls) : []),
+    [includeInlineTools, toolCalls]
   )
   const turnA2uiTools = useMemo(
     () =>
@@ -131,12 +125,13 @@ function AssistantMessageItem({
   )
 
   const hasInlineTools = inlineStandardToolCalls.length > 0
+  const showStreamingPlaceholder = Boolean(!hasContent && isStreaming && showWorkingPlaceholder)
   if (
     !hasContent &&
     !hasInlineTools &&
     !showA2uiSlot &&
     !showGenerativeSlot &&
-    !isStreaming &&
+    !showStreamingPlaceholder &&
     !isStopped
   ) {
     return null
@@ -154,22 +149,10 @@ function AssistantMessageItem({
             {content}
           </MessageResponse>
         )}
-        {inlineStandardToolCalls.map((tc) => {
-          const toolMessage = messages.find((m) => {
-            if (m.role !== 'tool') return false
-            const candidate = m as { toolCallId?: string; tool_call_id?: string }
-            return candidate.toolCallId === tc.id || candidate.tool_call_id === tc.id
-          })
-          return (
-            <div key={tc.id} className="w-full">
-              {renderToolCall({
-                toolCall: tc as never,
-                toolMessage: toolMessage as never
-              })}
-            </div>
-          )
-        })}
-        {!hasContent && isStreaming && (
+        {hasInlineTools && (
+          <GroupedToolCallsView toolCalls={inlineStandardToolCalls} messages={messages as never} />
+        )}
+        {showStreamingPlaceholder && (
           <div className="my-1.5 flex items-center gap-2 py-0.5 text-muted-foreground">
             <Sparkles className="size-3.5 animate-pulse text-primary/70" />
             <Shimmer duration={1.5} className="text-xs font-normal text-muted-foreground">
@@ -202,7 +185,7 @@ function AssistantMessageItem({
   )
 }
 
-function ReasoningMessageItem({
+export function ReasoningMessageItem({
   message,
   isRunning,
   isLatest
@@ -218,10 +201,53 @@ function ReasoningMessageItem({
   if (!hasContent && !isStreaming) return null
 
   return (
-    <Reasoning className="w-full" isStreaming={isStreaming}>
+    <Reasoning className="mb-0 w-full" isStreaming={isStreaming}>
       <ReasoningTrigger />
       {hasContent && <ReasoningContent>{content}</ReasoningContent>}
     </Reasoning>
+  )
+}
+
+function FoldedTurnMessages({
+  messages,
+  foldedMessages,
+  isRunning,
+  isLastTurn
+}: {
+  messages: ChatMessageLike[]
+  foldedMessages: ChatMessageLike[]
+  isRunning: boolean
+  isLastTurn: boolean
+}) {
+  const { renderActivityMessage } = useRenderActivityMessage()
+  const lastMessageId = messages.at(-1)?.id
+
+  return (
+    <>
+      {foldedMessages.map((message, idx) => (
+        <Fragment key={message.id ?? `folded-${idx}`}>
+          {message.role === 'assistant' && (
+            <AssistantMessageItem
+              message={message}
+              messages={messages}
+              isRunning={isRunning}
+              isLastAssistant={false}
+              includeInlineTools
+            />
+          )}
+          {message.role === 'reasoning' && (
+            <ReasoningMessageItem
+              message={message}
+              isRunning={isRunning}
+              isLatest={isLastTurn && message.id === lastMessageId}
+            />
+          )}
+          {message.role === 'activity' &&
+            message.activityType !== A2UI_ACTIVITY_TYPE &&
+            renderActivityMessage(message as never)}
+        </Fragment>
+      ))}
+    </>
   )
 }
 
@@ -230,7 +256,6 @@ export function ChatMessages() {
     updates: [UseAgentUpdate.OnMessagesChanged, UseAgentUpdate.OnRunStatusChanged],
     throttleMs: 0
   })
-  const { renderActivityMessage } = useRenderActivityMessage()
   const { runError, retryLastRun, failedUserMessage } = useAgentRetry()
 
   const rawMessages = agent.messages as ChatMessageLike[]
@@ -241,11 +266,8 @@ export function ChatMessages() {
     return rawMessages
   }, [failedUserMessage, rawMessages])
 
+  const turns = useMemo(() => groupMessagesIntoTurns(messages), [messages])
   const lastUserIndex = messages.findLastIndex((m) => m.role === 'user')
-  const lastAssistantIndex = messages.findLastIndex((m) => m.role === 'assistant')
-  const isLastAssistantTurn = lastAssistantIndex !== -1 && lastAssistantIndex > lastUserIndex
-  const lastAssistantId = isLastAssistantTurn ? messages[lastAssistantIndex]?.id : undefined
-
   const messagesAfterUser = lastUserIndex >= 0 ? messages.slice(lastUserIndex + 1) : []
   const hasActiveAssistantOutput = messagesAfterUser.some((message) => {
     if (message.role === 'assistant') {
@@ -259,7 +281,6 @@ export function ChatMessages() {
     return message.role === 'activity'
   })
 
-  // 仅在用户发送消息后、尚未产生任何输出（首字/思考流/工具调用）前展示极简微脉冲占位态
   const showPendingPlaceholder = agent.isRunning && !hasActiveAssistantOutput
   const canRetry = messages.some((m) => m.role === 'user')
 
@@ -284,31 +305,38 @@ export function ChatMessages() {
 
   return (
     <div className="flex flex-col gap-4">
-      {messages.map((message, idx) => {
-        if (message.role === 'tool') return null
+      {turns.map((turn, turnIndex) => {
+        const isLastTurn = turnIndex === turns.length - 1
+        const hasWork = turnHasFoldableWork(turn)
+        const finalInlineTools = getInlineStandardToolCalls(turn.finalAssistant?.toolCalls)
 
         return (
-          <Fragment key={message.id ?? `msg-${idx}`}>
-            {message.role === 'user' && <UserMessageItem message={message} />}
-            {message.role === 'assistant' && (
+          <Fragment key={turn.key}>
+            {turn.user && <UserMessageItem message={turn.user} />}
+            {hasWork && (
+              <ChatWorkTrace turnKey={turn.key} isWorking={isLastTurn && agent.isRunning}>
+                <FoldedTurnMessages
+                  messages={messages}
+                  foldedMessages={turn.foldedMessages}
+                  isRunning={agent.isRunning}
+                  isLastTurn={isLastTurn}
+                />
+                {finalInlineTools.length > 0 && (
+                  <GroupedToolCallsView toolCalls={finalInlineTools} messages={messages as never} />
+                )}
+              </ChatWorkTrace>
+            )}
+            {turn.finalAssistant && (
               <AssistantMessageItem
-                message={message}
+                message={turn.finalAssistant}
                 messages={messages}
                 isRunning={agent.isRunning}
-                isLastAssistant={message.id === lastAssistantId}
+                isLastAssistant={isLastTurn}
+                includeInlineTools={false}
+                showWorkingPlaceholder={!hasWork}
                 onRetry={handleRetry}
               />
             )}
-            {message.role === 'reasoning' && (
-              <ReasoningMessageItem
-                message={message}
-                isRunning={agent.isRunning}
-                isLatest={idx === messages.length - 1}
-              />
-            )}
-            {message.role === 'activity' &&
-              (message as { activityType?: string }).activityType !== 'a2ui-surface' &&
-              renderActivityMessage(message as never)}
           </Fragment>
         )
       })}

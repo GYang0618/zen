@@ -37,7 +37,7 @@ describe('DefaultToolCard 状态与待审批联动', () => {
       />
     )
 
-    expect(screen.getByText('准备中')).toBeDefined()
+    expect(screen.getByLabelText('准备中')).toBeDefined()
     expect(screen.getByText('创建用户')).toBeDefined()
   })
 
@@ -58,11 +58,11 @@ describe('DefaultToolCard 状态与待审批联动', () => {
       />
     )
 
-    expect(screen.getByText('等待确认')).toBeDefined()
+    expect(screen.getByLabelText('等待确认')).toBeDefined()
     expect(screen.getByText('删除用户')).toBeDefined()
   })
 
-  it('工具完成后展示已完成状态并提取摘要', () => {
+  it('工具完成后展示已完成状态，标题不含结果摘要', () => {
     render(
       <DefaultToolCard
         name="delete_users"
@@ -72,8 +72,9 @@ describe('DefaultToolCard 状态与待审批联动', () => {
       />
     )
 
-    expect(screen.getByText('已完成')).toBeDefined()
-    expect(screen.getByText('删除用户 · 执行成功')).toBeDefined()
+    expect(screen.getByLabelText('已完成')).toBeDefined()
+    expect(screen.getByText('删除用户')).toBeDefined()
+    expect(screen.queryByText('删除用户 · 执行成功')).toBeNull()
   })
 
   it('后端返回 500 服务异常信封时，展示失败状态与服务暂不可用原因', () => {
@@ -90,8 +91,9 @@ describe('DefaultToolCard 状态与待审批联动', () => {
       />
     )
 
-    expect(screen.getByText('失败')).toBeDefined()
-    expect(screen.getByText('删除岗位 · 服务暂不可用')).toBeDefined()
+    expect(screen.getByLabelText('失败')).toBeDefined()
+    expect(screen.getByText('删除岗位')).toBeDefined()
+    expect(screen.queryByText(/删除岗位 · /)).toBeNull()
     expect(screen.getByText('底层服务异常或网络不可用')).toBeDefined()
     expect(screen.getByText('HTTP 500')).toBeDefined()
   })
@@ -110,8 +112,9 @@ describe('DefaultToolCard 状态与待审批联动', () => {
       />
     )
 
-    expect(screen.getByText('失败')).toBeDefined()
-    expect(screen.getByText('删除岗位 · 该岗位已关联组织编制')).toBeDefined()
+    expect(screen.getByLabelText('失败')).toBeDefined()
+    expect(screen.getByText('删除岗位')).toBeDefined()
+    expect(screen.queryByText(/删除岗位 · /)).toBeNull()
     expect(screen.getByText('该岗位已关联组织编制，请先解除关联后再删除')).toBeDefined()
     expect(screen.getByText('HTTP 409')).toBeDefined()
   })
@@ -127,8 +130,9 @@ describe('DefaultToolCard 状态与待审批联动', () => {
       />
     )
 
-    expect(screen.getByText('失败')).toBeDefined()
-    expect(screen.getByText('删除岗位 · 执行中断')).toBeDefined()
+    expect(screen.getByLabelText('失败')).toBeDefined()
+    expect(screen.getByText('删除岗位')).toBeDefined()
+    expect(screen.queryByText('删除岗位 · 执行中断')).toBeNull()
     expect(screen.getByText(/智能体运行已结束，该工具未收到后端响应/)).toBeDefined()
   })
 
@@ -148,7 +152,7 @@ describe('DefaultToolCard 状态与待审批联动', () => {
     // 不应展示中断/失败错误
     expect(screen.queryByText('失败')).toBeNull()
     expect(screen.queryByText(/智能体运行已结束，该工具未收到后端响应/)).toBeNull()
-    expect(screen.getByText('执行中')).toBeDefined()
+    expect(screen.getByLabelText('执行中')).toBeDefined()
   })
 
   it('当工具虽然 status 仍为 inProgress 但 result 已携带有效返回结果时，能自愈展示已完成', () => {
@@ -163,7 +167,8 @@ describe('DefaultToolCard 状态与待审批联动', () => {
     )
 
     expect(screen.queryByText('失败')).toBeNull()
-    expect(screen.getByText('已完成')).toBeDefined()
-    expect(screen.getByText('删除用户 · 执行成功')).toBeDefined()
+    expect(screen.getByLabelText('已完成')).toBeDefined()
+    expect(screen.getByText('删除用户')).toBeDefined()
+    expect(screen.queryByText('删除用户 · 执行成功')).toBeNull()
   })
 })

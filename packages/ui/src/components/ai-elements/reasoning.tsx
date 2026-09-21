@@ -7,7 +7,7 @@ import { math } from '@streamdown/math'
 import { mermaid } from '@streamdown/mermaid'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@zen/ui/components/collapsible'
 import { cn } from '@zen/ui/lib/utils'
-import { BrainIcon, ChevronDownIcon } from 'lucide-react'
+import { BrainIcon, ChevronRightIcon } from 'lucide-react'
 import {
   createContext,
   memo,
@@ -146,12 +146,16 @@ export type ReasoningTriggerProps = ComponentProps<typeof CollapsibleTrigger> & 
 
 const defaultGetThinkingMessage = (isStreaming: boolean, duration?: number) => {
   if (isStreaming || duration === 0) {
-    return <Shimmer duration={1}>思考中...</Shimmer>
+    return (
+      <Shimmer as="span" className="leading-none" duration={1}>
+        思考中...
+      </Shimmer>
+    )
   }
   if (duration === undefined) {
-    return <p>思考了片刻</p>
+    return <span className="leading-none">思考了片刻</span>
   }
-  return <p>已思考 {duration} 秒</p>
+  return <span className="leading-none">已思考 {duration} 秒</span>
 }
 
 export const ReasoningTrigger = memo(
@@ -166,19 +170,25 @@ export const ReasoningTrigger = memo(
     return (
       <CollapsibleTrigger
         className={cn(
-          'flex w-full items-center gap-2 text-muted-foreground text-sm transition-colors hover:text-foreground',
+          'group flex w-full items-center overflow-visible text-muted-foreground text-sm leading-none transition-colors hover:text-foreground',
           className
         )}
         {...props}
       >
         {children ?? (
-          <>
-            <BrainIcon className="size-4" />
+          <span className="inline-flex items-center gap-1.5">
+            <span className="relative flex size-3.5 shrink-0 -translate-y-px items-center justify-center">
+              <BrainIcon className="block size-3.5 transition-opacity group-hover:opacity-0 group-focus-visible:opacity-0" />
+              <ChevronRightIcon
+                aria-hidden="true"
+                className={cn(
+                  'pointer-events-none absolute inset-0 m-auto block size-3.5 opacity-0 transition-[opacity,transform] group-hover:opacity-100 group-focus-visible:opacity-100',
+                  isOpen ? 'rotate-90' : 'rotate-0'
+                )}
+              />
+            </span>
             {getThinkingMessage(isStreaming, duration)}
-            <ChevronDownIcon
-              className={cn('size-4 transition-transform', isOpen ? 'rotate-180' : 'rotate-0')}
-            />
-          </>
+          </span>
         )}
       </CollapsibleTrigger>
     )

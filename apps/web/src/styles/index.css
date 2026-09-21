@@ -3,3 +3,10 @@
 @import "@zen/ui/globals.css";
 
 @import "./react-flow.css";
+
+@media (min-width: 768px) {
+  /* 确保桌面端 CopilotPopup 容器底部稳定在 6rem (96px)，与下方的小宠物按钮留出完全独立、不重合的安全空间 */
+  div[data-copilotkit].cpk\:fixed.cpk\:z-\[1200\] {
+    bottom: 6rem !important;
+  }
+}

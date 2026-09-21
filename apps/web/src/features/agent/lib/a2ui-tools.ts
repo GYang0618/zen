@@ -1,5 +1,8 @@
 import { A2UI_SURFACE_TOOL_NAMES } from '@zen/shared'
 
+/** CopilotKit activity 消息上的 A2UI Surface 类型，由画布而非对话流渲染。 */
+export const A2UI_ACTIVITY_TYPE = 'a2ui-surface' as const
+
 export interface ToolCallLikeForA2UI {
   id?: string
   function?: {
