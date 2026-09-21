@@ -203,7 +203,10 @@ describe('CopilotThreadService', () => {
           upsert: jest.fn().mockResolvedValue({}),
           updateMany: jest.fn().mockResolvedValue({ count: 1 })
         },
-        agentMessage: { upsert: jest.fn().mockResolvedValue({}) }
+        agentMessage: {
+          upsert: jest.fn().mockResolvedValue({}),
+          deleteMany: jest.fn().mockResolvedValue({ count: 0 })
+        }
       }
       prisma.$transaction.mockImplementationOnce(
         async (fn: (tx: typeof txMock) => Promise<unknown>) => {

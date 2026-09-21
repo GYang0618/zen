@@ -5,6 +5,7 @@ import {
   useRenderActivityMessage,
   useRenderToolCall
 } from '@copilotkit/react-core/v2'
+import { A2UI_SURFACE_TOOL_NAME } from '@zen/shared'
 import {
   Alert,
   AlertDescription,
@@ -30,6 +31,7 @@ import {
   resolveTurnGenerativeToolCalls,
   resolveTurnToolCalls
 } from '../lib/group-tool-calls'
+import { formatToolTitle } from '../lib/tool-title'
 import { useAgentChatInputStore } from '../stores/agent-chat-input'
 import { ChatAssistantActions } from './chat-assistant-actions'
 import { ChatPendingMessage } from './chat-pending-message'
@@ -106,9 +108,7 @@ function AssistantMessageItem({
     () =>
       toolCalls.filter(
         (tc) =>
-          !isA2UIToolCall(tc) &&
-          !isTurnFinalDisplayToolCall(tc) &&
-          isToolCallDisplayEnabled(tc)
+          !isA2UIToolCall(tc) && !isTurnFinalDisplayToolCall(tc) && isToolCallDisplayEnabled(tc)
       ),
     [toolCalls]
   )
@@ -131,12 +131,42 @@ function AssistantMessageItem({
   const showGenerativeSlot = Boolean(
     turnGenerativeTools?.shouldRender && turnGenerativeTools.toolCalls.length > 0
   )
+  // 本轮已有检索类工具结果、当前助手文案已出但 A2UI 尚未落地时，用同一徽章展示生成中占位，避免空窗「卡住」感
+  const turnHasPriorToolActivity = useMemo(() => {
+    if (!message.id) return false
+    const messageIndex = messages.findIndex((item) => item.id === message.id)
+    if (messageIndex <= 0) return false
+
+    let turnStart = 0
+    for (let index = messageIndex; index >= 0; index -= 1) {
+      if (messages[index]?.role === 'user') {
+        turnStart = index + 1
+        break
+      }
+    }
+
+    return messages.slice(turnStart, messageIndex).some((item) => {
+      if (item.role === 'tool') return true
+      if (item.role !== 'assistant') return false
+      return Array.isArray(item.toolCalls) && item.toolCalls.length > 0
+    })
+  }, [message.id, messages])
+
+  const showA2uiPending =
+    isLastAssistant &&
+    isRunning &&
+    hasContent &&
+    !showA2uiSlot &&
+    toolCalls.length === 0 &&
+    !showGenerativeSlot &&
+    turnHasPriorToolActivity
 
   const hasInlineTools = inlineStandardToolCalls.length > 0
   if (
     !hasContent &&
     !hasInlineTools &&
     !showA2uiSlot &&
+    !showA2uiPending &&
     !showGenerativeSlot &&
     !isStreaming &&
     !isStopped
@@ -175,7 +205,7 @@ function AssistantMessageItem({
           <div className="my-1.5 flex items-center gap-2 py-0.5 text-muted-foreground">
             <Sparkles className="size-3.5 animate-pulse text-primary/70" />
             <Shimmer duration={1.5} className="text-xs font-normal text-muted-foreground">
-              正在组织回答...
+              工作中...
             </Shimmer>
           </div>
         )}
@@ -187,9 +217,13 @@ function AssistantMessageItem({
         )}
       </MessageContent>
       {showA2uiSlot && turnA2uiTools && (
+        <ChatToolCallBadge toolCalls={turnA2uiTools.toolCalls} messages={messages as never} />
+      )}
+      {showA2uiPending && (
         <ChatToolCallBadge
-          toolCalls={turnA2uiTools.toolCalls}
+          toolCalls={[]}
           messages={messages as never}
+          pendingTitle={formatToolTitle(A2UI_SURFACE_TOOL_NAME)}
         />
       )}
       {showGenerativeSlot && turnGenerativeTools && (

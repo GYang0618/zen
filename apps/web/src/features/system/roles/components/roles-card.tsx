@@ -79,7 +79,7 @@ export function RolesCard({
             <div className="mt-1 truncate text-xs text-muted-foreground">{role.code}</div>
             <div className="mt-1 min-w-0">
               <Badge variant="secondary" className="max-w-full min-w-0 shrink truncate">
-                {role.expiresAt ? `过期时间�?{formatFromNow(role.expiresAt)}` : '长期有效'}
+                {role.expiresAt ? `过期时间：${formatFromNow(role.expiresAt)}` : '长期有效'}
               </Badge>
             </div>
           </div>
@@ -96,12 +96,12 @@ export function RolesCard({
       </CardHeader>
       <CardContent>
         <p className="min-h-10 line-clamp-2 text-sm leading-5 text-muted-foreground">
-          {role.description || '该角色没有任何描�?}
+          {role.description || '该角色没有任何描述'}
         </p>
         <div className="mt-3 flex items-center justify-between">
           <div className="flex items-center gap-1.5 rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20">
             <ShieldCheck className="size-3.5" />
-            <span>{role.permissionCount} 项权�?/span>
+            <span>{role.permissionCount} 项权限</span>
           </div>
           <AvatarGroup>
             {previewMembers.map((member) => (

@@ -52,14 +52,14 @@ export function AppSidebar() {
         <ModeSwitcher />
       </SidebarHeader>
       <SidebarContent>
+        {/* Agent 模式：内部 ScrollArea 滚动，外层需裁剪高度 */}
         <div
-          className={cn('flex flex-col flex-1 min-h-0 overflow-hidden', !isAgentMode && 'hidden')}
+          className={cn('flex min-h-0 flex-1 flex-col overflow-hidden', !isAgentMode && 'hidden')}
         >
           <AgentSidebar />
         </div>
-        <div
-          className={cn('flex flex-col flex-1 min-h-0 overflow-hidden', isAgentMode && 'hidden')}
-        >
+        {/* 管理后台：交给 SidebarContent 的 overflow-auto 滚动，勿再套 overflow-hidden */}
+        <div className={cn(isAgentMode && 'hidden')}>
           <AppNav items={navGroups} />
         </div>
       </SidebarContent>

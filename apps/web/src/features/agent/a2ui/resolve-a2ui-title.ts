@@ -32,6 +32,21 @@ export function readA2uiArgsTitle(args: Record<string, unknown> | undefined): st
 }
 
 /**
+ * 流式 arguments 尚未凑成合法 JSON 时，尽力从原始字符串中提取 title。
+ * 便于徽章在参数流式阶段尽早展示「正在生成【标题】中…」。
+ */
+export function peekA2uiTitleFromArgumentsRaw(raw: string | undefined): string | undefined {
+  if (!raw) return undefined
+  const match = /"title"\s*:\s*"((?:\\.|[^"\\])*)"/.exec(raw)
+  if (!match?.[1]) return undefined
+  try {
+    return readNonEmptyString(JSON.parse(`"${match[1]}"`) as unknown)
+  } catch {
+    return readNonEmptyString(match[1].replace(/\\"/g, '"'))
+  }
+}
+
+/**
  * 对话徽章 / 工作区标签用的 A2UI 标题。
  * 优先用模型在 tool args 中给出的概括标题，其次用组件树推断，最后回退到工具名映射。
  */
@@ -41,5 +56,10 @@ export function resolveA2uiToolCallTitle(
 ): string {
   const name = toolCall?.function?.name ?? ''
   const args = parseToolCallArguments(toolCall)
-  return readA2uiArgsTitle(args) ?? readNonEmptyString(inferredTitle) ?? formatToolTitle(name)
+  return (
+    readA2uiArgsTitle(args) ??
+    peekA2uiTitleFromArgumentsRaw(toolCall?.function?.arguments) ??
+    readNonEmptyString(inferredTitle) ??
+    formatToolTitle(name)
+  )
 }

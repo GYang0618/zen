@@ -61,6 +61,10 @@ export function useAgentThreadSync({
   const previousThreadIdRef = useRef<string | null>(null)
 
   const isConnecting = hasExplicitThreadId && lastConnectedThreadId !== activeThreadId
+  // connectAgent 回放历史时可能短暂 isRunning / 触发 onRunInitialized，
+  // 不能据此点亮侧栏「运行中」图标；用 ref 避免订阅回调读到过期值。
+  const isConnectingRef = useRef(isConnecting)
+  isConnectingRef.current = isConnecting
 
   const startNewThread = useCallback(() => {
     const nextId = randomUUID()
@@ -79,11 +83,12 @@ export function useAgentThreadSync({
 
   // 监听并上报当前 Agent 的运行状态到全局 runningThreadIds
   useEffect(() => {
-    if (agent.isRunning) {
+    if (agent.isRunning && !isConnecting) {
       markThreadRunning(activeThreadId, true)
     }
     const sub = agent.subscribe({
       onRunInitialized: () => {
+        if (isConnectingRef.current) return
         markThreadRunning(activeThreadId, true)
       },
       onRunFinalized: () => {
@@ -94,7 +99,7 @@ export function useAgentThreadSync({
       }
     })
     return () => sub.unsubscribe()
-  }, [agent, activeThreadId, markThreadRunning])
+  }, [agent, activeThreadId, markThreadRunning, isConnecting])
 
   useEffect(() => {
     agent.threadId = activeThreadId

@@ -26,6 +26,10 @@ export interface ThreadMessage {
     id: string
     name: string
     args: string
+    function?: {
+      name?: string
+      arguments?: string
+    }
   }>
   toolCallId?: string
 }
@@ -35,13 +39,7 @@ export interface SaveThreadSnapshotParams {
   tenantId: string
   userId: string
   agentId: string
-  messages: Array<{
-    id: string
-    role: string
-    content?: string
-    toolCalls?: Array<{ id: string; name: string; args: string }>
-    toolCallId?: string
-  }>
+  messages: ThreadMessage[]
 }
 
 @Injectable()
@@ -342,6 +340,13 @@ export class CopilotThreadService {
             }
           })
         }
+
+        await tx.agentMessage.deleteMany({
+          where: {
+            threadId: params.threadId,
+            sequence: { gte: params.messages.length }
+          }
+        })
       })
     } catch (error) {
       this.logger.error({ err: error, threadId: params.threadId }, '保存 AgentThread 会话快照失败')

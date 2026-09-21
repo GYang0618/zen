@@ -1,5 +1,3 @@
-import { useRenderTool } from '@copilotkit/react-core/v2'
-import { usersPageSchema, usersQueryToolSchema } from '@zen/shared'
 import { Button, ScrollArea } from '@zen/ui'
 import { ChevronLeftIcon, ChevronRightIcon, LayoutGrid, TextAlignStart } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -8,42 +6,10 @@ import { columns, UserCard, UsersDialogs, UsersProvider } from '@/features/syste
 
 import { DataTable } from '../../generative-ui'
 import { ViewSwitcher } from '../../generative-ui/components/view-switcher'
-import { parseToolResult } from '../../lib/parse-tool-result'
 
 import type { PageMeta, UserListItem } from '@zen/shared'
 
-export function useUsersRenderers() {
-  useRenderTool({
-    name: 'query_users_list',
-    parameters: usersQueryToolSchema,
-    render: ({ parameters, status, result }) => {
-      try {
-        if (status === 'inProgress') return <span>处理中...</span>
-        const { title, description, display } = parameters.meta
-        if (display === false) return null
-        if (status === 'executing') return <span>工具执行中...</span>
-        if (status === 'complete') {
-          const data = parseToolResult(result, usersPageSchema)
-          if (data?.items?.length === 0) return null
-          return (
-            <UsersRender
-              title={title}
-              description={description}
-              data={data?.items ?? []}
-              pagination={data?.pagination}
-            />
-          )
-        }
-        return null
-      } catch (error) {
-        console.error(error)
-        return null
-      }
-    }
-  })
-}
-
-interface UsersRenderViewProps {
+interface UsersListViewProps {
   title: string
   data: UserListItem[]
   description?: string
@@ -146,7 +112,7 @@ function UsersCardScroll({ data }: { data: UserListItem[] }) {
   )
 }
 
-function UsersRender({ title, description, data, loading = false }: UsersRenderViewProps) {
+export function UsersList({ title, description, data, loading = false }: UsersListViewProps) {
   const views = useMemo(
     () => [
       {

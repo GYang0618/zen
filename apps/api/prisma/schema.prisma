@@ -324,7 +324,7 @@ model AgentTurn {
   @@map("agent_turns")
 }
 
-/// 可回传模型的规范消息。reasoning/activity 仅存 AgentEvent。
+/// 会话展示消息（含 reasoning/activity 回放）；回传模型时过滤展示角色。
 model AgentMessage {
   id         String   @id
   threadId   String   @map("thread_id")

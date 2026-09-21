@@ -45,6 +45,17 @@ export const copilotRunEventTypeSchema = z.enum([
 
 export const copilotMessageRoleSchema = z.enum(['system', 'user', 'assistant', 'tool'])
 
+/** 面向 UI 的展示角色，禁止回传给模型。 */
+export const copilotDisplayMessageRoleSchema = z.enum(['reasoning', 'activity'])
+
+export function isCopilotRunnableMessageRole(role: string): boolean {
+  return copilotMessageRoleSchema.safeParse(role).success
+}
+
+export function stripCopilotDisplayMessages<T extends { role: string }>(messages: T[]): T[] {
+  return messages.filter((message) => isCopilotRunnableMessageRole(message.role))
+}
+
 export const copilotToolCallStatusSchema = z.enum([
   'pending',
   'running',

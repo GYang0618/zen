@@ -15,13 +15,16 @@ import { CONFIG_NAMESPACES } from '../../config/index.js'
 import { defaultAgent, planAgent } from './agents.js'
 import { CopilotThreadService } from './copilot-thread.service.js'
 import { extractBearerToken } from './copilot-token.util.js'
+import {
+  parseCopilotSseResponse,
+  rewriteRunRequestWithoutDisplayMessages
+} from './parse-copilot-sse-messages.js'
 
 import type { AgentFactoryContext } from '@copilotkit/runtime/v2'
 import type { OnModuleInit } from '@nestjs/common'
 import type { AuthContext } from '@zen/shared'
 import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface.js'
 import type { AppConfig, LanggraphConfig } from '../../config/index.js'
-import type { ThreadMessage } from './copilot-thread.service.js'
 
 export function copilotKitBasePath(apiPrefix: string): string {
   const prefix = apiPrefix.startsWith('/') ? apiPrefix : `/${apiPrefix}`
@@ -93,25 +96,6 @@ export class CopilotService implements OnModuleInit {
         a2uiToolNames: [A2UI_SURFACE_TOOL_NAME],
         defaultCatalogId: ZEN_A2UI_CATALOG_ID,
         schema: getZenA2uiInlineCatalog()
-      },
-      afterRequestMiddleware: async ({
-        messages,
-        threadId
-      }: {
-        messages?: ThreadMessage[]
-        threadId?: string
-      }) => {
-        if (!threadId || !messages || messages.length === 0) return
-        const authInfo = this.threadAuthMap.get(threadId)
-        if (!authInfo) return
-
-        await this.threadService.saveThreadSnapshot({
-          threadId,
-          tenantId: authInfo.tenantId,
-          userId: authInfo.userId,
-          agentId: authInfo.agentId,
-          messages
-        })
       }
     }
 
@@ -152,15 +136,18 @@ export class CopilotService implements OnModuleInit {
           if (route.method === 'agent/run') {
             try {
               const fullAuth = await this.authContextService.resolve(payload.sub)
-              const cloned = request.clone()
-              const body = (await cloned.json()) as { threadId?: string }
+              const body = (await request.clone().json()) as {
+                threadId?: string
+                messages?: Array<{ role: string }>
+              }
               if (body.threadId) {
                 this.threadAuthMap.set(body.threadId, {
                   tenantId: fullAuth.tenantId,
                   userId: fullAuth.userId,
-                  agentId: ('agentId' in route ? (route.agentId as string) : undefined) ?? 'default'
+                  agentId: route.agentId
                 })
               }
+              return rewriteRunRequestWithoutDisplayMessages(request, body)
             } catch {
               // 忽略解析失败
             }
@@ -224,6 +211,9 @@ export class CopilotService implements OnModuleInit {
           }
         },
         onResponse: async ({ response, route }) => {
+          if (route?.method === 'agent/run') {
+            void this.persistThreadSnapshotFromSse(response.clone())
+          }
           if (route?.method === 'info') {
             try {
               const body = (await response.clone().json()) as {
@@ -247,6 +237,25 @@ export class CopilotService implements OnModuleInit {
         }
       }
     })
+  }
+
+  private async persistThreadSnapshotFromSse(response: Response): Promise<void> {
+    try {
+      const { threadId, messages } = await parseCopilotSseResponse(response)
+      if (!threadId || messages.length === 0) return
+      const authInfo = this.threadAuthMap.get(threadId)
+      if (!authInfo) return
+
+      await this.threadService.saveThreadSnapshot({
+        threadId,
+        tenantId: authInfo.tenantId,
+        userId: authInfo.userId,
+        agentId: authInfo.agentId,
+        messages
+      })
+    } catch (error) {
+      this.logger.error({ err: error }, '从 SSE 持久化会话快照失败')
+    }
   }
 
   getHandler() {

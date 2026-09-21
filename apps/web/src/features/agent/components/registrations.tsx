@@ -1,6 +1,6 @@
 import { useDefaultToolRender } from '../generative-ui'
-import { useUsersRenderers } from '../hooks/renderers'
-import { useAppearanceTool } from '../hooks/tools'
+import { useUsersRenderers } from '../renderers'
+import { useAppearanceTool } from '../tools'
 
 /**
  * agent共享的生成式UI和前端工具
