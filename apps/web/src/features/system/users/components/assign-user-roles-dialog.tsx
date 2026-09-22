@@ -49,9 +49,7 @@ export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRo
   useEffect(() => {
     if (!open) return
     setRoleIds(user.roles.map((role) => role.id))
-    setPrimaryRoleId(
-      user.roles.find((role) => role.isPrimary)?.id ?? user.roles[0]?.id
-    )
+    setPrimaryRoleId(user.roles.find((role) => role.isPrimary)?.id ?? user.roles[0]?.id)
     setKeyword('')
     setShowSelectedOnly(false)
     setStep('edit')
@@ -66,9 +64,7 @@ export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRo
   )
   const { addedIds, removedIds } = diffIdLists(initialRoleIds, roleIds)
   const isDirty =
-    addedIds.length > 0 ||
-    removedIds.length > 0 ||
-    primaryRoleId !== initialPrimaryRoleId
+    addedIds.length > 0 || removedIds.length > 0 || primaryRoleId !== initialPrimaryRoleId
 
   const toggleRole = (roleId: string, checked: boolean) => {
     setSelectionError(undefined)

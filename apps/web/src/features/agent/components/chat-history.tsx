@@ -12,7 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from '@zen/ui'
-import { useMemo, useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { InfiniteScrollSentinel } from '@/components/infinite-scroll-sentinel'
 import { parseThreadIdFromPath, useShellModeStore } from '@/stores'
@@ -64,7 +64,11 @@ export function ChatHistory() {
 
       const clientName = provisional.name?.trim()
       const serverName = server.name.trim()
-      if (clientName && clientName !== serverName && isProvisionalThreadNewer(server, provisional)) {
+      if (
+        clientName &&
+        clientName !== serverName &&
+        isProvisionalThreadNewer(server, provisional)
+      ) {
         continue
       }
 

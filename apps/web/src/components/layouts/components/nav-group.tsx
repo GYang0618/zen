@@ -22,6 +22,7 @@ import {
   useSidebar
 } from '@zen/ui'
 import { ChevronRight, ExternalLink } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 import type { LinkProps } from '@tanstack/react-router'
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
@@ -110,9 +111,19 @@ function SidebarMenuLink({ item, href }: { item: NavLink; href: string }) {
 
 function SidebarMenuCollapsible({ item, href }: { item: NavCollapsible; href: string }) {
   const { setOpenMobile } = useSidebar()
+  const isActive = checkIsActive(href, item, true)
+  const [open, setOpen] = useState(isActive)
+
+  useEffect(() => {
+    if (isActive) {
+      setOpen(true)
+    }
+  }, [isActive])
+
   return (
     <Collapsible
-      defaultOpen={checkIsActive(href, item, true)}
+      open={open}
+      onOpenChange={setOpen}
       className="group/collapsible"
       render={<SidebarMenuItem />}
     >

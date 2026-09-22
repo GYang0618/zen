@@ -32,6 +32,7 @@ import { Route as AuthenticatedWorkbenchBimRouteImport } from './routes/_authent
 import { Route as AuthenticatedWorkbenchChatRouteRouteImport } from './routes/_authenticated/_workbench/chat/route'
 import { Route as AuthenticatedWorkbenchGisRouteImport } from './routes/_authenticated/_workbench/gis'
 import { Route as AuthenticatedAiAgentsRouteImport } from './routes/_authenticated/ai/agents'
+import { Route as AuthenticatedAiPetsRouteImport } from './routes/_authenticated/ai/pets'
 import { Route as AuthenticatedAiSkillsRouteImport } from './routes/_authenticated/ai/skills'
 import { Route as AuthenticatedAiWorkflowsRouteImport } from './routes/_authenticated/ai/workflows'
 import { Route as AuthenticatedPluginsJobsRouteImport } from './routes/_authenticated/plugins/jobs'
@@ -46,6 +47,7 @@ import { Route as AuthenticatedSystemPluginsRouteImport } from './routes/_authen
 import { Route as AuthenticatedOtherSettingsAccountRouteImport } from './routes/_authenticated/_other/settings/account'
 import { Route as AuthenticatedOtherSettingsAppearanceRouteImport } from './routes/_authenticated/_other/settings/appearance'
 import { Route as AuthenticatedOtherSettingsNotificationsRouteImport } from './routes/_authenticated/_other/settings/notifications'
+import { Route as AuthenticatedOtherSettingsPetRouteImport } from './routes/_authenticated/_other/settings/pet'
 import { Route as AuthenticatedOtherSettingsProfileRouteImport } from './routes/_authenticated/_other/settings/profile'
 import { Route as AuthenticatedOtherSettingsSystemRouteImport } from './routes/_authenticated/_other/settings/system'
 import { Route as AuthenticatedWorkbenchChatIndexRouteImport } from './routes/_authenticated/_workbench/chat/index'
@@ -178,6 +180,11 @@ const AuthenticatedAiAgentsRoute = AuthenticatedAiAgentsRouteImport.update({
   path: '/agents',
   getParentRoute: () => AuthenticatedAiRouteRoute,
 } as any)
+const AuthenticatedAiPetsRoute = AuthenticatedAiPetsRouteImport.update({
+  id: '/pets',
+  path: '/pets',
+  getParentRoute: () => AuthenticatedAiRouteRoute,
+} as any)
 const AuthenticatedAiSkillsRoute = AuthenticatedAiSkillsRouteImport.update({
   id: '/skills',
   path: '/skills',
@@ -257,6 +264,12 @@ const AuthenticatedOtherSettingsNotificationsRoute =
   AuthenticatedOtherSettingsNotificationsRouteImport.update({
     id: '/notifications',
     path: '/notifications',
+    getParentRoute: () => AuthenticatedOtherSettingsRouteRoute,
+  } as any)
+const AuthenticatedOtherSettingsPetRoute =
+  AuthenticatedOtherSettingsPetRouteImport.update({
+    id: '/pet',
+    path: '/pet',
     getParentRoute: () => AuthenticatedOtherSettingsRouteRoute,
   } as any)
 const AuthenticatedOtherSettingsProfileRoute =
@@ -346,6 +359,7 @@ export interface FileRoutesByFullPath {
   '/bim': typeof AuthenticatedWorkbenchBimRoute
   '/gis': typeof AuthenticatedWorkbenchGisRoute
   '/ai/agents': typeof AuthenticatedAiAgentsRoute
+  '/ai/pets': typeof AuthenticatedAiPetsRoute
   '/ai/skills': typeof AuthenticatedAiSkillsRoute
   '/ai/workflows': typeof AuthenticatedAiWorkflowsRoute
   '/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
@@ -359,6 +373,7 @@ export interface FileRoutesByFullPath {
   '/settings/account': typeof AuthenticatedOtherSettingsAccountRoute
   '/settings/appearance': typeof AuthenticatedOtherSettingsAppearanceRoute
   '/settings/notifications': typeof AuthenticatedOtherSettingsNotificationsRoute
+  '/settings/pet': typeof AuthenticatedOtherSettingsPetRoute
   '/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
   '/settings/system': typeof AuthenticatedOtherSettingsSystemRoute
   '/chat/$threadId': typeof AuthenticatedWorkbenchChatThreadIdRoute
@@ -390,6 +405,7 @@ export interface FileRoutesByTo {
   '/bim': typeof AuthenticatedWorkbenchBimRoute
   '/gis': typeof AuthenticatedWorkbenchGisRoute
   '/ai/agents': typeof AuthenticatedAiAgentsRoute
+  '/ai/pets': typeof AuthenticatedAiPetsRoute
   '/ai/skills': typeof AuthenticatedAiSkillsRoute
   '/ai/workflows': typeof AuthenticatedAiWorkflowsRoute
   '/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
@@ -403,6 +419,7 @@ export interface FileRoutesByTo {
   '/settings/account': typeof AuthenticatedOtherSettingsAccountRoute
   '/settings/appearance': typeof AuthenticatedOtherSettingsAppearanceRoute
   '/settings/notifications': typeof AuthenticatedOtherSettingsNotificationsRoute
+  '/settings/pet': typeof AuthenticatedOtherSettingsPetRoute
   '/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
   '/settings/system': typeof AuthenticatedOtherSettingsSystemRoute
   '/chat/$threadId': typeof AuthenticatedWorkbenchChatThreadIdRoute
@@ -440,6 +457,7 @@ export interface FileRoutesById {
   '/_authenticated/_workbench/bim': typeof AuthenticatedWorkbenchBimRoute
   '/_authenticated/_workbench/gis': typeof AuthenticatedWorkbenchGisRoute
   '/_authenticated/ai/agents': typeof AuthenticatedAiAgentsRoute
+  '/_authenticated/ai/pets': typeof AuthenticatedAiPetsRoute
   '/_authenticated/ai/skills': typeof AuthenticatedAiSkillsRoute
   '/_authenticated/ai/workflows': typeof AuthenticatedAiWorkflowsRoute
   '/_authenticated/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
@@ -454,6 +472,7 @@ export interface FileRoutesById {
   '/_authenticated/_other/settings/account': typeof AuthenticatedOtherSettingsAccountRoute
   '/_authenticated/_other/settings/appearance': typeof AuthenticatedOtherSettingsAppearanceRoute
   '/_authenticated/_other/settings/notifications': typeof AuthenticatedOtherSettingsNotificationsRoute
+  '/_authenticated/_other/settings/pet': typeof AuthenticatedOtherSettingsPetRoute
   '/_authenticated/_other/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
   '/_authenticated/_other/settings/system': typeof AuthenticatedOtherSettingsSystemRoute
   '/_authenticated/_workbench/chat/$threadId': typeof AuthenticatedWorkbenchChatThreadIdRoute
@@ -488,6 +507,7 @@ export interface FileRouteTypes {
     | '/bim'
     | '/gis'
     | '/ai/agents'
+    | '/ai/pets'
     | '/ai/skills'
     | '/ai/workflows'
     | '/plugins/jobs'
@@ -501,6 +521,7 @@ export interface FileRouteTypes {
     | '/settings/account'
     | '/settings/appearance'
     | '/settings/notifications'
+    | '/settings/pet'
     | '/settings/profile'
     | '/settings/system'
     | '/chat/$threadId'
@@ -532,6 +553,7 @@ export interface FileRouteTypes {
     | '/bim'
     | '/gis'
     | '/ai/agents'
+    | '/ai/pets'
     | '/ai/skills'
     | '/ai/workflows'
     | '/plugins/jobs'
@@ -545,6 +567,7 @@ export interface FileRouteTypes {
     | '/settings/account'
     | '/settings/appearance'
     | '/settings/notifications'
+    | '/settings/pet'
     | '/settings/profile'
     | '/settings/system'
     | '/chat/$threadId'
@@ -581,6 +604,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_workbench/bim'
     | '/_authenticated/_workbench/gis'
     | '/_authenticated/ai/agents'
+    | '/_authenticated/ai/pets'
     | '/_authenticated/ai/skills'
     | '/_authenticated/ai/workflows'
     | '/_authenticated/plugins/jobs'
@@ -595,6 +619,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_other/settings/account'
     | '/_authenticated/_other/settings/appearance'
     | '/_authenticated/_other/settings/notifications'
+    | '/_authenticated/_other/settings/pet'
     | '/_authenticated/_other/settings/profile'
     | '/_authenticated/_other/settings/system'
     | '/_authenticated/_workbench/chat/$threadId'
@@ -781,6 +806,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAiAgentsRouteImport
       parentRoute: typeof AuthenticatedAiRouteRoute
     }
+    '/_authenticated/ai/pets': {
+      id: '/_authenticated/ai/pets'
+      path: '/pets'
+      fullPath: '/ai/pets'
+      preLoaderRoute: typeof AuthenticatedAiPetsRouteImport
+      parentRoute: typeof AuthenticatedAiRouteRoute
+    }
     '/_authenticated/ai/skills': {
       id: '/_authenticated/ai/skills'
       path: '/skills'
@@ -877,6 +909,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/settings/notifications'
       preLoaderRoute: typeof AuthenticatedOtherSettingsNotificationsRouteImport
+      parentRoute: typeof AuthenticatedOtherSettingsRouteRoute
+    }
+    '/_authenticated/_other/settings/pet': {
+      id: '/_authenticated/_other/settings/pet'
+      path: '/pet'
+      fullPath: '/settings/pet'
+      preLoaderRoute: typeof AuthenticatedOtherSettingsPetRouteImport
       parentRoute: typeof AuthenticatedOtherSettingsRouteRoute
     }
     '/_authenticated/_other/settings/profile': {
@@ -981,6 +1020,7 @@ interface AuthenticatedOtherSettingsRouteRouteChildren {
   AuthenticatedOtherSettingsAccountRoute: typeof AuthenticatedOtherSettingsAccountRoute
   AuthenticatedOtherSettingsAppearanceRoute: typeof AuthenticatedOtherSettingsAppearanceRoute
   AuthenticatedOtherSettingsNotificationsRoute: typeof AuthenticatedOtherSettingsNotificationsRoute
+  AuthenticatedOtherSettingsPetRoute: typeof AuthenticatedOtherSettingsPetRoute
   AuthenticatedOtherSettingsProfileRoute: typeof AuthenticatedOtherSettingsProfileRoute
   AuthenticatedOtherSettingsSystemRoute: typeof AuthenticatedOtherSettingsSystemRoute
 }
@@ -993,6 +1033,7 @@ const AuthenticatedOtherSettingsRouteRouteChildren: AuthenticatedOtherSettingsRo
       AuthenticatedOtherSettingsAppearanceRoute,
     AuthenticatedOtherSettingsNotificationsRoute:
       AuthenticatedOtherSettingsNotificationsRoute,
+    AuthenticatedOtherSettingsPetRoute: AuthenticatedOtherSettingsPetRoute,
     AuthenticatedOtherSettingsProfileRoute:
       AuthenticatedOtherSettingsProfileRoute,
     AuthenticatedOtherSettingsSystemRoute:
@@ -1059,12 +1100,14 @@ const AuthenticatedWorkbenchRouteRouteWithChildren =
 
 interface AuthenticatedAiRouteRouteChildren {
   AuthenticatedAiAgentsRoute: typeof AuthenticatedAiAgentsRoute
+  AuthenticatedAiPetsRoute: typeof AuthenticatedAiPetsRoute
   AuthenticatedAiSkillsRoute: typeof AuthenticatedAiSkillsRoute
   AuthenticatedAiWorkflowsRoute: typeof AuthenticatedAiWorkflowsRoute
 }
 
 const AuthenticatedAiRouteRouteChildren: AuthenticatedAiRouteRouteChildren = {
   AuthenticatedAiAgentsRoute: AuthenticatedAiAgentsRoute,
+  AuthenticatedAiPetsRoute: AuthenticatedAiPetsRoute,
   AuthenticatedAiSkillsRoute: AuthenticatedAiSkillsRoute,
   AuthenticatedAiWorkflowsRoute: AuthenticatedAiWorkflowsRoute,
 }

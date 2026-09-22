@@ -1,5 +1,6 @@
-import { useDefaultToolRender } from '../generative-ui'
-import { useUsersRenderers } from '../renderers'
+import { useUserGenerativeUI } from '../generative-ui/user'
+import { useUserHumanInTheLoop } from '../hitl'
+import { useDefaultRender, useUsersRenderers } from '../renderers'
 import { useAppearanceTool } from '../tools'
 
 /**
@@ -7,7 +8,8 @@ import { useAppearanceTool } from '../tools'
  */
 export function AgentSharedRegistrations() {
   useAppearanceTool()
-  useDefaultToolRender()
+  useDefaultRender()
+  useUserGenerativeUI()
   return null
 }
 
@@ -23,5 +25,6 @@ export function PopupChatRegistrations() {
  */
 export function ChatRegistrations() {
   useUsersRenderers()
+  useUserHumanInTheLoop()
   return null
 }

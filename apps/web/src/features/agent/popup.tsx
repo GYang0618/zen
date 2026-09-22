@@ -1,16 +1,18 @@
 import {
   CopilotChatAssistantMessage,
+  CopilotChatConfigurationProvider,
   CopilotChatInput,
   CopilotChatReasoningMessage,
   CopilotChatUserMessage,
   CopilotPopup as CopilotkitPopup,
   CopilotModalHeader,
   randomUUID,
-  useCopilotChatConfiguration
+  useCopilotChatConfiguration,
+  useCopilotKit
 } from '@copilotkit/react-core/v2'
-import { Button, Tooltip, TooltipContent, TooltipTrigger } from '@zen/ui'
-import { SquarePen, X } from 'lucide-react'
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { Button, cn, Tooltip, TooltipContent, TooltipTrigger } from '@zen/ui'
+import { MessageCirclePlus, X } from 'lucide-react'
+import { useCallback, useContext, useMemo, useState } from 'react'
 
 import { AgentBackgroundRunner } from './components/agent-background-runner'
 import { AgentLauncherButton } from './components/agent-launcher-button'
@@ -97,7 +99,7 @@ const PopupHeader = Object.assign(function PopupHeader() {
             />
           }
         >
-          <SquarePen className="size-4" />
+          <MessageCirclePlus className="size-4" />
         </TooltipTrigger>
         <TooltipContent side="bottom">新建对话</TooltipContent>
       </Tooltip>
@@ -125,15 +127,19 @@ const PopupHeader = Object.assign(function PopupHeader() {
 
 function PopupWelcomeScreen({
   input,
-  suggestionView
+  suggestionView,
+  className
 }: {
   input: React.ReactNode
-  suggestionView: React.ReactNode
+  suggestionView?: React.ReactNode
+  className?: string
 }) {
+  const popupContext = useContext(AgentPopupContext)
+
   return (
-    <div className="flex h-full flex-col justify-between">
+    <div className={cn('flex h-full flex-col justify-between', className)}>
       <div className="flex flex-1 flex-col items-center justify-center px-4">
-        <ChatGreeting className="scale-90 pb-0" />
+        <ChatGreeting threadId={popupContext?.threadId} className="pb-0" />
       </div>
       <div className="w-full">
         {suggestionView}
@@ -144,22 +150,20 @@ function PopupWelcomeScreen({
 }
 
 export function AgentPopup() {
-  const configuration = useCopilotChatConfiguration()
-  const hasInitializedRef = useRef(false)
+  const { copilotkit } = useCopilotKit()
   const [threadId, setThreadId] = useState(() => randomUUID())
 
-  // 修复 CopilotKit v2 顶层 Provider 默认 isModalOpen=true 并在子级更新时覆盖 defaultOpen 的问题
-  useEffect(() => {
-    if (hasInitializedRef.current) return
-    hasInitializedRef.current = true
-    configuration?.setModalOpen(false)
-  }, [configuration])
-
   const handleNewThread = useCallback(() => {
-    setThreadId(randomUUID())
+    const nextThreadId = randomUUID()
+    setThreadId(nextThreadId)
+    const agent = copilotkit.getAgent('plan')
+    if (agent) {
+      agent.threadId = nextThreadId
+      agent.setMessages([])
+    }
     useAgentChatInputStore.getState().clearEditDraft()
     useAgentChatInputStore.getState().triggerNewThread()
-  }, [])
+  }, [copilotkit])
 
   const contextValue = useMemo(
     () => ({ threadId, onNewThread: handleNewThread }),
@@ -170,30 +174,35 @@ export function AgentPopup() {
     <AgentPopupContext.Provider value={contextValue}>
       <PopupChatRegistrations />
       <AgentBackgroundRunner activeThreadId={threadId} agentId="plan" />
-      <CopilotkitPopup
-        agentId="plan"
+      <CopilotChatConfigurationProvider
         threadId={threadId}
-        defaultOpen={false}
-        clickOutsideToClose
-        width={POPUP_WIDTH_PX}
-        height={POPUP_HEIGHT_PX}
-        toggleButton={AgentLauncherButton}
-        header={PopupHeader}
-        messageView={{
-          className: 'pt-2 px-4 pb-3 gap-4',
-          userMessage: PopupUserMessage,
-          assistantMessage: PopupAssistantMessage,
-          reasoningMessage: PopupReasoningMessage
-        }}
-        input={PopupInput}
-        welcomeScreen={PopupWelcomeScreen}
-        labels={{
-          modalHeaderTitle: 'AI 助手',
-          chatInputPlaceholder: '输入你想问的任务问题',
-          welcomeMessageText: '你好！有什么我可以帮你的吗？',
-          chatDisclaimerText: 'AI可能会出错，请核实重要信息。'
-        }}
-      />
+        hasExplicitThreadId={false}
+        isModalDefaultOpen={false}
+      >
+        <CopilotkitPopup
+          agentId="plan"
+          defaultOpen={false}
+          clickOutsideToClose
+          width={POPUP_WIDTH_PX}
+          height={POPUP_HEIGHT_PX}
+          toggleButton={AgentLauncherButton}
+          header={PopupHeader}
+          messageView={{
+            className: 'pt-2 px-4 pb-3 gap-4',
+            userMessage: PopupUserMessage,
+            assistantMessage: PopupAssistantMessage,
+            reasoningMessage: PopupReasoningMessage
+          }}
+          input={PopupInput}
+          welcomeScreen={PopupWelcomeScreen}
+          labels={{
+            modalHeaderTitle: 'AI 助手',
+            chatInputPlaceholder: '输入你想问的任务问题',
+            welcomeMessageText: '你好！有什么我可以帮你的吗？',
+            chatDisclaimerText: 'AI可能会出错，请核实重要信息。'
+          }}
+        />
+      </CopilotChatConfigurationProvider>
     </AgentPopupContext.Provider>
   )
 }

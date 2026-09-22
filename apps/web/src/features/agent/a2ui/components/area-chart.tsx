@@ -1,8 +1,4 @@
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent
-} from '@zen/ui'
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@zen/ui'
 import { Area, CartesianGrid, AreaChart as RechartsArea, XAxis, YAxis } from 'recharts'
 
 import { ChartCardShell, createSingleSeriesConfig } from './chart-shared'

@@ -1,8 +1,4 @@
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent
-} from '@zen/ui'
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@zen/ui'
 import { PolarGrid, RadialBar, RadialBarChart as RechartsRadial } from 'recharts'
 
 import { ChartCardShell, createCategoryConfig, withCategoryFills } from './chart-shared'

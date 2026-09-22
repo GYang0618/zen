@@ -63,17 +63,6 @@ export const A2UI_SURFACE_TOOL_NAMES = [
   ...LEGACY_A2UI_SURFACE_TOOL_NAMES
 ] as const
 
-/** 拥有前端专用渲染 UI（表格、3D/属性卡片等）的工具名单，提示词与展示层单源引用 */
-export const DEDICATED_RESULT_UI_TOOL_NAMES = [
-  A2UI_SURFACE_TOOL_NAME,
-  'indoor_walkthrough',
-  'query_job_profiles_list',
-  'query_properties',
-  'query_users_list'
-] as const
-
-export type DedicatedResultUiToolName = (typeof DEDICATED_RESULT_UI_TOOL_NAMES)[number]
-
 /** Agent 工具的中文业务标题映射，供提示词与 UI 展示层单源引用 */
 export const TOOL_TITLES: Record<string, string> = {
   add_organization_member: '添加组织成员',

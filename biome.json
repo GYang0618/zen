@@ -103,6 +103,16 @@
           }
         }
       }
+    },
+    {
+      "includes": ["apps/web/src/styles/**"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noImportantStyles": "off"
+          }
+        }
+      }
     }
   ]
 }

@@ -1,8 +1,4 @@
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent
-} from '@zen/ui'
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@zen/ui'
 import { PolarAngleAxis, PolarGrid, Radar, RadarChart as RechartsRadar } from 'recharts'
 
 import { ChartCardShell, createSingleSeriesConfig } from './chart-shared'

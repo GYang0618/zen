@@ -8,7 +8,7 @@ import {
   TooltipTrigger,
   useSidebar
 } from '@zen/ui'
-import { ClockFading, Pencil } from 'lucide-react'
+import { ClockFading, MessageCirclePlus } from 'lucide-react'
 
 import { useShellModeStore } from '@/stores'
 
@@ -68,7 +68,7 @@ function NewThreadButton({
             />
           }
         >
-          <Pencil data-icon={!isIconCollapsed && 'inline-start'} />
+          <MessageCirclePlus data-icon={!isIconCollapsed && 'inline-start'} />
           {!isIconCollapsed && <span>发起新对话</span>}
         </TooltipTrigger>
         <TooltipContent side="right" hidden={!isIconCollapsed}>

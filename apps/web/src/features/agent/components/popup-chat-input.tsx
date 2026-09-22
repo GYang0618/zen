@@ -8,7 +8,6 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 
 import { useAgentPopupContext } from '../context/agent-popup-context'
 import { useAgentChatInputStore } from '../stores/agent-chat-input'
-import { CHAT_INPUT_PLACEHOLDERS, ChatInputDynamicTexts } from './chat-input-dynamic-texts'
 
 import type { CopilotChatInputProps } from '@copilotkit/react-core/v2'
 
@@ -34,9 +33,6 @@ export function PopupChatInput({
   const isControlled = controlledValue !== undefined
   const inputValue = isControlled ? controlledValue : internalValue
 
-  const [placeholderIndex, setPlaceholderIndex] = useState(0)
-  const [showPlaceholder, setShowPlaceholder] = useState(true)
-  const [isActive, setIsActive] = useState(false)
   const [isMultiline, setIsMultiline] = useState(false)
 
   const editDraft = useAgentChatInputStore((state) => state.editDraft)
@@ -53,7 +49,6 @@ export function PopupChatInput({
     }
   }, [currentThreadId, isRunning, markThreadRunning])
 
-  const wrapperRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const singleLineHeightRef = useRef<number | null>(null)
 
@@ -65,7 +60,6 @@ export function PopupChatInput({
       setInternalValue(text)
     }
     onChange?.(text)
-    setIsActive(true)
     clearEditDraft()
 
     requestAnimationFrame(() => {
@@ -77,33 +71,6 @@ export function PopupChatInput({
       }
     })
   }, [editDraft, clearEditDraft, isControlled, onChange])
-
-  // 占位符轮播
-  useEffect(() => {
-    if (isActive || inputValue) return
-
-    const interval = setInterval(() => {
-      setShowPlaceholder(false)
-      setTimeout(() => {
-        setPlaceholderIndex((prev) => (prev + 1) % CHAT_INPUT_PLACEHOLDERS.length)
-        setShowPlaceholder(true)
-      }, 400)
-    }, 3000)
-
-    return () => clearInterval(interval)
-  }, [isActive, inputValue])
-
-  // 点击外部处理激活状态
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
-        if (!inputValue) setIsActive(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [inputValue])
 
   // 自适应高度与多行状态计算
   useLayoutEffect(() => {
@@ -165,10 +132,7 @@ export function PopupChatInput({
       setInternalValue('')
     }
     onChange?.('')
-    setIsActive(false)
   }, [isRunning, onStop, inputValue, onSubmitMessage, isControlled, onChange])
-
-  const dynamicPlaceholderActive = showPlaceholder && !isActive && !inputValue
 
   const attachButton = (
     <Button
@@ -233,7 +197,6 @@ export function PopupChatInput({
       )}
     >
       <div
-        ref={wrapperRef}
         className={cn(
           'w-full overflow-hidden border border-border/40 bg-background shadow-sm transition-[border-radius] duration-200 dark:bg-input/30',
           isMultiline ? 'rounded-3xl' : 'rounded-full'
@@ -245,16 +208,16 @@ export function PopupChatInput({
           >
             {!isMultiline && attachButton}
 
-            <div className="relative grid min-w-0 flex-1">
+            <div className="relative min-w-0 flex-1">
               <textarea
                 ref={textareaRef}
                 rows={1}
                 value={inputValue}
                 disabled={isRunning}
                 aria-label="发送消息"
+                placeholder={labels?.chatInputPlaceholder}
                 onChange={handleInputChange}
-                className="col-start-1 row-start-1 w-full resize-none overflow-y-auto border-0 bg-transparent px-2 py-1.5 text-sm font-normal leading-5 outline-0 focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60"
-                onFocus={() => setIsActive(true)}
+                className="w-full resize-none overflow-y-auto border-0 bg-transparent px-2 py-1.5 text-sm font-normal leading-5 outline-0 placeholder:text-muted-foreground focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60"
                 onKeyDown={(e) => {
                   if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing) return
                   e.preventDefault()
@@ -262,12 +225,6 @@ export function PopupChatInput({
                   handlePrimaryAction()
                 }}
               />
-              <div className="pointer-events-none col-start-1 row-start-1 flex min-w-0 items-center px-2">
-                <ChatInputDynamicTexts
-                  active={dynamicPlaceholderActive}
-                  activeIndex={placeholderIndex}
-                />
-              </div>
             </div>
 
             {!isMultiline && trailingActions}

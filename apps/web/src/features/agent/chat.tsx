@@ -1,6 +1,6 @@
 import { CopilotChatConfigurationProvider, UseAgentUpdate } from '@copilotkit/react-core/v2'
 import { Outlet, useLocation } from '@tanstack/react-router'
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@zen/ui'
+import { ResizablePanel, ResizablePanelGroup } from '@zen/ui'
 import { useState } from 'react'
 
 import { ProfileDropdown, ThemeSwitch } from '@/components'

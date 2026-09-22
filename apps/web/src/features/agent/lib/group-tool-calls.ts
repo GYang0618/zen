@@ -30,6 +30,18 @@ export function getToolCallName(toolCall: ToolCallLike | undefined): string | un
   return name && name.length > 0 ? name : undefined
 }
 
+const chatSurfaceToolNames = new Set<string>()
+
+/** useHumanInTheLoop 的界面挂到回合末，不进入工作轨迹。调用方在模块加载时登记名称。 */
+export function registerChatSurfaceTool(name: string) {
+  chatSurfaceToolNames.add(name)
+}
+
+export function isChatSurfaceToolCall(toolCall: ToolCallLike | undefined): boolean {
+  const name = getToolCallName(toolCall)
+  return Boolean(name && chatSurfaceToolNames.has(name))
+}
+
 /** 解析 tool call arguments；流式未完成或非法 JSON 时返回 undefined。 */
 export function parseToolCallArguments(
   toolCall: ToolCallLike | undefined
@@ -246,5 +258,9 @@ export function resolveTurnGenerativeToolCalls<T extends AssistantToolMessageLik
   messages: T[],
   messageId: string
 ): { shouldRender: boolean; toolCalls: ToolCallLike[] } {
-  return resolveTurnToolCalls(messages, messageId, isTurnFinalDisplayToolCall)
+  return resolveTurnToolCalls(
+    messages,
+    messageId,
+    (toolCall) => isTurnFinalDisplayToolCall(toolCall) || isChatSurfaceToolCall(toolCall)
+  )
 }

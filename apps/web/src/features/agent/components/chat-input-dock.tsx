@@ -29,7 +29,7 @@ export function ChatInputDock({
       )}
     >
       <div className="@5xl/content:mx-auto @5xl/content:w-full @5xl/content:max-w-5xl relative pb-4">
-        {showEmptyGreeting && <ChatGreeting className="relative z-10" />}
+        {showEmptyGreeting && <ChatGreeting threadId={threadId} className="relative z-10" />}
         <ChatInput
           className="relative z-10"
           online={online}

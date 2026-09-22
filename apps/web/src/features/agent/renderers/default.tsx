@@ -317,7 +317,7 @@ export function DefaultToolCard({
   )
 }
 
-export function useDefaultToolRender() {
+export function useDefaultRender() {
   useDefaultRenderTool({
     render: ({ name, parameters, status, result, toolCallId }) => (
       <DefaultToolCard

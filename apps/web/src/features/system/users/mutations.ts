@@ -20,8 +20,7 @@ function mergeUserCaches(
   userId: string,
   patch: Partial<User> | Partial<UserListItem>
 ) {
-  const applyListPatch = (user: UserListItem) =>
-    user.id === userId ? { ...user, ...patch } : user
+  const applyListPatch = (user: UserListItem) => (user.id === userId ? { ...user, ...patch } : user)
 
   queryClient.setQueryData<User>(usersQueryKeys.detail(userId), (current) =>
     current ? { ...current, ...patch } : current

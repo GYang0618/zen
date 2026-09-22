@@ -52,7 +52,7 @@ export const getUsersTool = tool(
       '查询用户列表。keyword 为子串匹配（谷歌邮箱用 gmail.com / @gmail.com，不要用 google.com）。' +
       '按状态筛选注意：已停用/禁用账号必须使用 status="suspended"（inactive 仅表示尚未完成激活流程）。' +
       'page 与 pageSize 可只传其一。返回列表精简字段（仅主角色与主职组织摘要）；完整资料用 query_user_detail。' +
-      '若用户核心意图是查看/筛选/展示用户列表，将 display 设为 true 由前端专用工具 UI 呈现；若仅为查组织或鉴权等内部中间步骤，设为 false。',
+      'meta.display 只在用户要看的就是本次返回的这份列表时为 true；取证、归类、统计、为后续办理查数时为 false，判断标准见该字段说明。',
     schema: usersQueryToolSchema
   }
 )

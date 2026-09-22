@@ -11,7 +11,10 @@ export function isProvisionalThreadNewer(server: Thread, provisional: Thread): b
   return provAt.localeCompare(srvAt) >= 0
 }
 
-export function mergeHistoryThreads(serverThreads: Thread[], provisionalThreads: Thread[]): Thread[] {
+export function mergeHistoryThreads(
+  serverThreads: Thread[],
+  provisionalThreads: Thread[]
+): Thread[] {
   const byId = new Map<string, Thread>()
 
   for (const thread of serverThreads) {
@@ -38,7 +41,11 @@ export function mergeHistoryThreads(serverThreads: Thread[], provisionalThreads:
       continue
     }
 
-    if (clientName && clientName !== serverName && isProvisionalThreadNewer(existing, provisional)) {
+    if (
+      clientName &&
+      clientName !== serverName &&
+      isProvisionalThreadNewer(existing, provisional)
+    ) {
       byId.set(provisional.id, {
         ...existing,
         name: clientName,

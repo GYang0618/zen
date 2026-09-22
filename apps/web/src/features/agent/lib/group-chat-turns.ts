@@ -1,5 +1,9 @@
 import { A2UI_ACTIVITY_TYPE, isA2UIToolCall } from './a2ui-tools'
-import { isToolCallDisplayEnabled, isTurnFinalDisplayToolCall } from './group-tool-calls'
+import {
+  isChatSurfaceToolCall,
+  isToolCallDisplayEnabled,
+  isTurnFinalDisplayToolCall
+} from './group-tool-calls'
 
 import type { ToolCallLike } from './group-tool-calls'
 
@@ -18,11 +22,12 @@ export interface ChatTurn<T extends ChatTurnMessageLike = ChatTurnMessageLike> {
   finalAssistant?: T
 }
 
-/** 对话流内联工具卡片：非 A2UI、非末尾展示槽，且未显式关闭 display。 */
+/** 对话流内联工具卡片：非 A2UI、非末尾展示槽、非 HITL 表单，且未显式关闭 display。 */
 export function isInlineStandardToolCall(toolCall: ToolCallLike): boolean {
   return (
     !isA2UIToolCall(toolCall) &&
     !isTurnFinalDisplayToolCall(toolCall) &&
+    !isChatSurfaceToolCall(toolCall) &&
     isToolCallDisplayEnabled(toolCall)
   )
 }

@@ -1,11 +1,4 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  cn
-} from '@zen/ui'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, cn } from '@zen/ui'
 
 import type { ChartConfig } from '@zen/ui'
 import type { ReactNode } from 'react'

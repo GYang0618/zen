@@ -2,7 +2,19 @@
 
 import { cn } from '@zen/ui'
 import { motion } from 'motion/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+
+import {
+  getBiomimeticExpressiveDuration,
+  getBiomimeticNormalDuration,
+  PET_EYE_SHAPES,
+  Pet,
+  pickRandomExpressiveEmotion
+} from '@/features/pets'
+
+import { useAgentPetStore } from '../stores/agent-pet-store'
+
+import type { EmotionMode, PetEmotion, PetEyeShape } from '@/features/pets'
 
 interface AgentPetProps {
   isOpen: boolean
@@ -10,292 +22,247 @@ interface AgentPetProps {
   isTucked: boolean
   isHovered: boolean
   isRunning?: boolean
+  squishSignal?: number
   className?: string
 }
 
-type PetMood = 'normal' | 'happy' | 'sleepy' | 'surprised' | 'open' | 'working'
+function pickDifferentItem<T>(pool: readonly T[], current: T): T {
+  const filtered = pool.filter((item) => item !== current)
+  const candidates = filtered.length > 0 ? filtered : pool
+  const idx = Math.floor(Math.random() * candidates.length)
+  return candidates[idx] ?? pool[0]!
+}
 
+/**
+ * Agent 悬浮球宠物适配组件：
+ * 默认呈现饱满可爱的球团，支持视向自由跟随鼠标、待机表情随机轮换或固定、
+ * 眼睛固定或随机、以及各场景（待机、悬停、打开、拖拽、运行、休眠）自由定制表情。
+ */
 export function AgentPet({
   isOpen,
   isDragging,
   isTucked,
   isHovered,
   isRunning = false,
+  squishSignal,
   className
 }: AgentPetProps) {
-  const [isBlinking, setIsBlinking] = useState(false)
+  const shape = useAgentPetStore((s) => s.shape) || 'orb'
+  const eyeShape = useAgentPetStore((s) => s.eyeShape) || 'capsule'
+  const eyeShapeMode = useAgentPetStore((s) => s.eyeShapeMode)
+  const eyeParams = useAgentPetStore((s) => s.eyeParams)
+  const petEmotionMode = useAgentPetStore((s) => s.emotionMode)
+  const scenarioEmotions = useAgentPetStore((s) => s.scenarioEmotions)
+  const previewEmotion = useAgentPetStore((s) => s.previewEmotion)
+  const changeSignal = useAgentPetStore((s) => s.changeSignal)
 
-  // 情绪状态判定：拖拽惊奇 > 运行思考 > 休眠 > 悬停开心 > 对话打开 > 常态
-  let mood: PetMood = 'normal'
-  if (isDragging) {
-    mood = 'surprised'
-  } else if (isRunning) {
-    mood = 'working'
-  } else if (isTucked) {
-    mood = 'sleepy'
-  } else if (isHovered && !isOpen) {
-    mood = 'happy'
-  } else if (isOpen) {
-    mood = 'open'
-  }
-
-  // 待机自然有机眨眼
+  // 当全局配置修改时，提供即时果冻弹跳反馈
+  const [changeSquish, setChangeSquish] = useState(0)
   useEffect(() => {
-    if (mood !== 'normal') {
-      setIsBlinking(false)
+    if (changeSignal > 0) {
+      setChangeSquish((c) => c + 1)
+    }
+  }, [changeSignal])
+
+  // 监听会话关闭动作：当 isOpen 从 true 变为 false 时，呈现 1.6 秒温柔的关闭告别反馈
+  const [justClosed, setJustClosed] = useState(false)
+  const prevOpenRef = useRef(isOpen)
+
+  useEffect(() => {
+    if (prevOpenRef.current && !isOpen) {
+      setJustClosed(true)
+      const timer = setTimeout(() => {
+        setJustClosed(false)
+      }, 1600)
+      return () => clearTimeout(timer)
+    }
+    prevOpenRef.current = isOpen
+  }, [isOpen])
+
+  // 鼠标悬停表情机制：首次悬停呈现定制场景表情（默认微笑 happy），保持 2.5s~4.5s 友好问候，
+  // 随后进入拟真循环：自然 (5-10s) -> 随机生动微表情 (2-5s) -> 自然 (5-10s)
+  const [hoverEmotion, setHoverEmotion] = useState<PetEmotion>('happy')
+  useEffect(() => {
+    if (!isHovered || isOpen) {
+      setHoverEmotion(scenarioEmotions.hover)
       return
     }
 
-    let blinkTimeout: ReturnType<typeof setTimeout>
-    const blinkInterval = setInterval(() => {
-      setIsBlinking(true)
-      blinkTimeout = setTimeout(() => {
-        setIsBlinking(false)
-      }, 150)
-    }, 3800)
+    setHoverEmotion(scenarioEmotions.hover)
 
-    return () => {
-      clearInterval(blinkInterval)
-      clearTimeout(blinkTimeout)
+    let timer: ReturnType<typeof setTimeout>
+    let isNormalPhase = true
+    let lastExpressive: PetEmotion = scenarioEmotions.hover
+
+    const scheduleNextHover = () => {
+      if (isNormalPhase) {
+        setHoverEmotion('normal')
+        isNormalPhase = false
+        const delayMs = getBiomimeticNormalDuration()
+        timer = setTimeout(scheduleNextHover, delayMs)
+      } else {
+        const nextEmo = pickRandomExpressiveEmotion(lastExpressive)
+        lastExpressive = nextEmo
+        setHoverEmotion(nextEmo)
+        isNormalPhase = true
+        const delayMs = getBiomimeticExpressiveDuration(nextEmo)
+        timer = setTimeout(scheduleNextHover, delayMs)
+      }
     }
-  }, [mood])
+
+    const greetingDuration = getBiomimeticExpressiveDuration(scenarioEmotions.hover)
+    timer = setTimeout(scheduleNextHover, greetingDuration)
+
+    return () => clearTimeout(timer)
+  }, [isHovered, isOpen, scenarioEmotions.hover])
+
+  // 待机拟真随机表情与眼型轮换：
+  // 以自然表情 (normal) 为基线主导 (5-10s)，随机穿插生动非自然微表情 (2-5s)
+  // 循环节奏：自然 (5-10s) -> 随机表情 (2-5s) -> 自然 (5-10s) -> ...
+  const [idleEmotion, setIdleEmotion] = useState<PetEmotion>('normal')
+  const [randomEyeShape, setRandomEyeShape] = useState<PetEyeShape>('capsule')
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>
+    let isNormalPhase = false
+    let lastExpressive: PetEmotion = 'happy'
+
+    const scheduleNextIdle = () => {
+      if (isNormalPhase) {
+        // 回归自然基线状态，同时在此刻轻巧变幻眼型（若开启随机眼型）
+        setIdleEmotion('normal')
+        setRandomEyeShape((prev) => pickDifferentItem(PET_EYE_SHAPES, prev))
+        isNormalPhase = false
+        const delayMs = getBiomimeticNormalDuration()
+        timer = setTimeout(scheduleNextIdle, delayMs)
+      } else {
+        // 浮现随机生动表情 (2-5s)
+        const nextEmo = pickRandomExpressiveEmotion(lastExpressive)
+        lastExpressive = nextEmo
+        setIdleEmotion(nextEmo)
+        isNormalPhase = true
+        const delayMs = getBiomimeticExpressiveDuration(nextEmo)
+        timer = setTimeout(scheduleNextIdle, delayMs)
+      }
+    }
+
+    const initialDelay = getBiomimeticNormalDuration()
+    timer = setTimeout(scheduleNextIdle, initialDelay)
+
+    return () => clearTimeout(timer)
+  }, [])
+
+  // 动态表情决议
+  // 优先级：临时预览 > 贴边休眠 > 拖拽中 > 思考中 > 悬停中 > 打开中 > 关闭短反馈 > 待机（固定或随机）
+  const { emotion, emotionMode }: { emotion: PetEmotion; emotionMode: EmotionMode } =
+    useMemo(() => {
+      if (previewEmotion) {
+        return { emotion: previewEmotion, emotionMode: 'fixed' }
+      }
+      if (isTucked) {
+        return { emotion: scenarioEmotions.tucked, emotionMode: 'fixed' }
+      }
+      if (isDragging) {
+        return { emotion: scenarioEmotions.drag, emotionMode: 'fixed' }
+      }
+      if (isRunning) {
+        return { emotion: scenarioEmotions.running, emotionMode: 'fixed' }
+      }
+      if (isHovered && !isOpen) {
+        return { emotion: hoverEmotion, emotionMode: 'fixed' }
+      }
+      if (isOpen) {
+        return { emotion: scenarioEmotions.open, emotionMode: 'fixed' }
+      }
+      if (justClosed) {
+        return { emotion: 'wink', emotionMode: 'fixed' }
+      }
+      if (petEmotionMode === 'fixed') {
+        return { emotion: scenarioEmotions.idle, emotionMode: 'fixed' }
+      }
+      // 常态待机：随机轮换
+      return { emotion: idleEmotion, emotionMode: 'fixed' }
+    }, [
+      previewEmotion,
+      isTucked,
+      scenarioEmotions.tucked,
+      scenarioEmotions.drag,
+      scenarioEmotions.running,
+      scenarioEmotions.open,
+      scenarioEmotions.idle,
+      isDragging,
+      isRunning,
+      isHovered,
+      isOpen,
+      hoverEmotion,
+      justClosed,
+      petEmotionMode,
+      idleEmotion
+    ])
+
+  const resolvedEyeShape = eyeShapeMode === 'random' ? randomEyeShape : eyeShape
 
   return (
-    <div className={cn('relative flex size-14 items-center justify-center select-none', className)}>
-      {/* 呼吸浮动外层：运行思考时微动频更轻快，传递专注生机 */}
+    <div
+      className={cn(
+        'relative flex size-16 items-center justify-center select-none overflow-visible',
+        className
+      )}
+    >
+      {/* 呼吸与交互微动外层 */}
       <motion.div
         className="relative flex size-full items-center justify-center"
         animate={{
-          y: isTucked || isDragging ? 0 : isRunning ? [0, -3, 0] : [0, -2, 0],
-          scale: isDragging ? 1.06 : isHovered ? 1.03 : 1
+          y: isTucked || isDragging ? 0 : isRunning ? [0, -3, 0] : [0, -1.8, 0],
+          scale: isDragging ? 1.08 : isHovered ? 1.06 : 1,
+          rotate: isDragging ? [0, -3, 3, 0] : 0
         }}
         transition={{
           y: {
             repeat: Number.POSITIVE_INFINITY,
-            duration: isRunning ? 1.8 : 3.2,
+            duration: isRunning ? 1.8 : 3.4,
             ease: 'easeInOut'
           },
-          scale: { type: 'spring', stiffness: 320, damping: 22 }
+          scale: { type: 'spring', stiffness: 340, damping: 20 },
+          rotate: isDragging
+            ? { repeat: Number.POSITIVE_INFINITY, duration: 0.6, ease: 'easeInOut' }
+            : { duration: 0.2 }
         }}
       >
-        {/* 左天线转轴与微透镜 */}
-        <motion.div
-          className="absolute -top-1 left-2.5 flex size-2.5 items-center justify-center rounded-full border border-border/80 bg-muted shadow-xs dark:border-white/15 dark:bg-zinc-800"
-          animate={{
-            rotate: isHovered ? -12 : 0,
-            y: isHovered ? -1 : 0
-          }}
-          transition={{ type: 'spring', stiffness: 280, damping: 20 }}
-        >
-          {/* 主题自适应微光宝石 */}
-          <span
-            className={cn(
-              'size-1 rounded-full bg-primary transition-all duration-300',
-              isRunning ? 'animate-pulse opacity-100' : 'opacity-70'
-            )}
-          />
-        </motion.div>
+        {/* 运行思考中顶部专注呼吸微光指示 */}
+        {isRunning && (
+          <span className="absolute -top-1 -right-1 z-30 size-2 animate-ping rounded-full bg-primary" />
+        )}
 
-        {/* 右天线转轴与微透镜 */}
-        <motion.div
-          className="absolute -top-1 right-2.5 flex size-2.5 items-center justify-center rounded-full border border-border/80 bg-muted shadow-xs dark:border-white/15 dark:bg-zinc-800"
-          animate={{
-            rotate: isHovered ? 12 : 0,
-            y: isHovered ? -1 : 0
-          }}
-          transition={{ type: 'spring', stiffness: 280, damping: 20 }}
-        >
-          {/* 主题自适应微光宝石 */}
-          <span
-            className={cn(
-              'size-1 rounded-full bg-primary transition-all duration-300',
-              isRunning ? 'animate-pulse opacity-100' : 'opacity-70'
-            )}
-          />
-        </motion.div>
-
-        {/* 精工机身外壳：彻底去除生硬 AI 荧光，融合温润陶瓷与深空石墨质感 */}
+        {/* 核心球团宠物渲染：无任何方框背景，大球团圆滚滚充满视野，点击触发 Q 弹果冻弹跳 */}
         <div
           className={cn(
-            'relative flex size-13 items-center justify-center rounded-[20px] p-1 transition-all duration-300',
-            // 亮色主题：细腻陶瓷白质感，轻盈物理弥散阴影
-            'border border-border/80 bg-gradient-to-b from-card via-card to-muted/40 text-card-foreground',
-            'shadow-[0_4px_14px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)]',
-            // 暗色主题：太空暗黑金属/深石墨微磨砂，深邃沉静
-            'dark:border-white/12 dark:bg-gradient-to-b dark:from-zinc-800/95 dark:via-zinc-900 dark:to-zinc-950 dark:text-zinc-100',
-            'dark:shadow-[0_6px_20px_rgba(0,0,0,0.45),0_1px_3px_rgba(0,0,0,0.35)]',
-            // 状态联动：根据主题色 token（Primary）自然呼应
-            isHovered && 'border-primary/40 shadow-md ring-1 ring-primary/20',
-            isOpen && 'border-primary/60 shadow-lg ring-1 ring-primary/30',
-            isRunning && 'border-primary shadow-xl ring-2 ring-primary/40'
+            'relative flex size-full items-center justify-center transition-all duration-300',
+            // 物理阴影与环境光微漫反射，暗夜明亮，白昼立体
+            'drop-shadow-[0_6px_16px_rgba(0,0,0,0.18)] dark:drop-shadow-[0_8px_24px_rgba(0,0,0,0.55)]',
+            isHovered && 'drop-shadow-[0_8px_24px_rgba(0,0,0,0.28)]',
+            isOpen && 'drop-shadow-[0_8px_28px_rgba(var(--primary),0.35)]',
+            isRunning && 'drop-shadow-[0_0_18px_var(--primary)]'
           )}
         >
-          {/* 顶部环境光微倒角反射线，增添物理工业质感 */}
-          <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent dark:via-white/20" />
-
-          {/* 弧面矿物玻璃视窗 (Mineral Glass Visor) */}
-          <div
-            className={cn(
-              'relative flex h-7.5 w-11 items-center justify-center overflow-hidden rounded-[12px]',
-              'bg-zinc-950 ring-1 ring-black/25 dark:bg-black dark:ring-white/10',
-              'shadow-[inset_0_2px_4px_rgba(0,0,0,0.85),inset_0_-1px_1px_rgba(255,255,255,0.06)]'
-            )}
-          >
-            {/* 顶部曲面反光层 */}
-            <div className="pointer-events-none absolute inset-x-1 top-0.5 h-2 rounded-t-[10px] bg-gradient-to-b from-white/20 via-white/5 to-transparent" />
-
-            {/* 灵动情绪双眼 */}
-            <div className="relative z-10 flex w-full items-center justify-center gap-2">
-              <PetEye mood={mood} isBlinking={isBlinking} isHovered={isHovered} side="left" />
-              <PetEye mood={mood} isBlinking={isBlinking} isHovered={isHovered} side="right" />
-            </div>
-
-            {/* 柔和腮红：随欢快情绪自然浮现 */}
-            <motion.div
-              className="pointer-events-none absolute bottom-1 inset-x-2.5 flex justify-between px-0.5"
-              initial={false}
-              animate={{ opacity: mood === 'happy' ? 0.6 : 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <span className="size-1.5 rounded-full bg-rose-400/40 blur-[1px]" />
-              <span className="size-1.5 rounded-full bg-rose-400/40 blur-[1px]" />
-            </motion.div>
-          </div>
+          <Pet
+            key={`${shape}-${resolvedEyeShape}`}
+            shape={shape}
+            eyeShape={resolvedEyeShape}
+            eyeParams={eyeParams}
+            emotion={emotion}
+            emotionMode={emotionMode}
+            gazeMode={isTucked ? 'fixed' : 'follow'}
+            fixedGaze={[0, 0]}
+            colorMode="theme"
+            size={64}
+            showShadow={false}
+            enableSquishOnClick={true}
+            squishSignal={(squishSignal ?? 0) + changeSquish}
+            className="size-full scale-[1.28] transition-transform duration-200"
+          />
         </div>
       </motion.div>
     </div>
-  )
-}
-
-function PetEye({
-  mood,
-  isBlinking,
-  isHovered,
-  side
-}: {
-  mood: PetMood
-  isBlinking: boolean
-  isHovered: boolean
-  side: 'left' | 'right'
-}) {
-  // 惊奇状态（拖拽抓起时）：瞳孔微张，带柔和高光
-  if (mood === 'surprised') {
-    return (
-      <div className="relative flex size-3.5 items-center justify-center rounded-full bg-primary drop-shadow-[0_0_4px_var(--primary)]">
-        <span className="size-1.5 rounded-full bg-white/90" />
-      </div>
-    )
-  }
-
-  // 运算思考态（Agent 正在推理生成）
-  // 告别廉价的 MP3 均衡器跳动，呈现专注呼吸与凝聚智慧的微透镜脉动
-  if (mood === 'working') {
-    return (
-      <motion.div
-        className="relative flex size-3 items-center justify-center"
-        animate={{ scale: [0.92, 1.08, 0.92] }}
-        transition={{
-          repeat: Number.POSITIVE_INFINITY,
-          duration: 1.6,
-          ease: 'easeInOut'
-        }}
-      >
-        {/* 外圈轻柔微光轮廓 */}
-        <span className="absolute inset-0 rounded-full border border-primary/40 bg-primary/15" />
-        {/* 核心专注光点 */}
-        <motion.span
-          className="size-1.5 rounded-full bg-primary drop-shadow-[0_0_4px_var(--primary)]"
-          animate={{
-            scale: [0.8, 1.25, 0.8],
-            opacity: [0.75, 1, 0.75]
-          }}
-          transition={{
-            repeat: Number.POSITIVE_INFINITY,
-            duration: 1.6,
-            delay: side === 'left' ? 0 : 0.2,
-            ease: 'easeInOut'
-          }}
-        />
-      </motion.div>
-    )
-  }
-
-  // 瞌睡休眠态（贴边收起状态）：安详小睡弧线
-  if (mood === 'sleepy') {
-    return (
-      <svg aria-hidden="true" className="size-3 text-primary/70" viewBox="0 0 12 12" fill="none">
-        <path
-          d="M 2,7 C 4,9 8,9 10,7"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-        />
-      </svg>
-    )
-  }
-
-  // 开心状态（鼠标悬停）：纯真笑眼 ^ ^
-  if (mood === 'happy') {
-    return (
-      <svg
-        aria-hidden="true"
-        className="size-3 text-primary drop-shadow-[0_0_4px_var(--primary)]"
-        viewBox="0 0 12 12"
-        fill="none"
-      >
-        <path
-          d="M 2,8 C 4,3 8,3 10,8"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-      </svg>
-    )
-  }
-
-  // 对话已打开状态：专注陪伴视线，若悬停则笑眼致意
-  if (mood === 'open') {
-    if (isHovered) {
-      return (
-        <svg
-          aria-hidden="true"
-          className="size-3 text-primary drop-shadow-[0_0_4px_var(--primary)]"
-          viewBox="0 0 12 12"
-          fill="none"
-        >
-          <path
-            d="M 2,8 C 4,3 8,3 10,8"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </svg>
-      )
-    }
-
-    return (
-      <div className="relative flex h-3 w-2.5 items-center justify-center rounded-full bg-primary drop-shadow-[0_0_4px_var(--primary)]">
-        <span
-          className={cn(
-            'size-0.5 rounded-full bg-white/95',
-            side === 'left' ? 'translate-x-[0.5px]' : '-translate-x-[0.5px]'
-          )}
-        />
-      </div>
-    )
-  }
-
-  // 常态 (normal) 状态：温润的椭圆数码瞳孔 + 自然眨眼与生动高光点
-  return (
-    <motion.div
-      className="relative flex h-3.5 w-2.5 items-start justify-center rounded-full bg-primary pt-0.5 drop-shadow-[0_0_4px_var(--primary)]"
-      animate={{
-        scaleY: isBlinking ? 0.08 : 1
-      }}
-      transition={{ duration: 0.12 }}
-    >
-      {/* 眼神高光小点，赋予生命力与温度 */}
-      <span className="size-0.5 rounded-full bg-white/95" />
-    </motion.div>
   )
 }
