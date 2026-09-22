@@ -12,7 +12,8 @@ export const GENERATIVE_UI_REPLY_RULES = `
 ${ZEN_A2UI_COMPOSITION_GUIDE.split('\n')
   .map((line) => (line ? `  ${line}` : line))
   .join('\n')}
-- 用户列表不要用 A2UI 嵌入。需要把用户列表本身展示出来时，调用 \`query_users_list\` 并将 \`meta.display\` 设为 true。
+- 用户列表、岗位列表、角色列表不要用 A2UI 嵌入。需要把对应列表展示出来时，分别调用 \`query_users_list\`、\`query_job_profiles_list\`、\`query_roles_list\` 并将 \`meta.display\` 设为 true。
+- 组织模块（组织架构、组织列表、部门架构）不要用 A2UI 嵌入。需要把组织架构或组织展示出来时，调用 \`query_organization_tree\`（优先）或 \`query_organizations_list\` 并将 \`meta.display\` 设为 true，前端会自动以组织架构树与图谱双视图呈现。
 
 当 \`meta.display\` 为 true，或本次调用了 \`${A2UI_SURFACE_TOOL_NAME}\` 时：
 - 只用 2–3 句话概括执行情况：是否成功、命中条数、所用筛选条件、以及用户可能关心的结论。

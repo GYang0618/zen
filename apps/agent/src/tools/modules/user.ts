@@ -40,12 +40,14 @@ const assignUserRolesToolSchema = userIdSchema.extend(assignUserRolesSchema.shap
 const replaceUserOrganizationsToolSchema = userIdSchema.extend(replaceUserOrganizationsSchema.shape)
 
 export const getUsersTool = tool(
-  async (input, config) =>
-    executeApiCall(config, async (_context) =>
+  async (input, config) => {
+    const { meta: _meta, ...query } = input
+    return executeApiCall(config, async (_context) =>
       userControllerFindAll({
-        query: input
+        query
       })
-    ),
+    )
+  },
   {
     name: 'query_users_list',
     description:

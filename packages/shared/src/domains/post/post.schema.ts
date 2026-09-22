@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { toolCallMetaSchema } from '../../agent/tool-meta.schema.js'
 import { paged, pageQuerySchema } from '../pagination/index.js'
 
 const idSchema = z.string().trim().min(1)
@@ -259,3 +260,8 @@ export type Position = z.infer<typeof positionSchema>
 
 export const jobProfilesPageSchema = paged(jobProfileListItemSchema)
 export type JobProfilesPage = z.infer<typeof jobProfilesPageSchema>
+
+export const jobProfilesQueryToolSchema = toolCallMetaSchema.extend(
+  findJobProfilesQuerySchema.shape
+)
+export type JobProfilesQueryTool = z.infer<typeof jobProfilesQueryToolSchema>

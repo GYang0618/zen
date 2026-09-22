@@ -1,6 +1,6 @@
 import {
   createJobProfileSchema,
-  findJobProfilesQuerySchema,
+  jobProfilesQueryToolSchema,
   updateJobProfileSchema
 } from '@zen/shared'
 import { tool } from 'langchain'
@@ -23,21 +23,24 @@ const jobProfileIdSchema = z.object({
 const updateJobProfileToolSchema = jobProfileIdSchema.extend(updateJobProfileSchema.shape)
 
 export const getJobProfilesTool = tool(
-  async (input, config) =>
-    executeApiCall(config, async (_context) =>
+  async (input, config) => {
+    const { meta: _meta, ...query } = input
+    return executeApiCall(config, async (_context) =>
       postControllerFindAll(
         asSdkOptions({
-          query: input
+          query
         })
       )
-    ),
+    )
+  },
   {
     name: 'query_job_profiles_list',
     description:
       '分页查询岗位目录（可按关键字、状态 active/disabled、职级 P5–P8 筛选）。' +
       '创建新岗位前应先调用以避免编码冲突；组织关联编制前获取 jobProfileId。' +
-      '仅能关联尚未挂到该组织的启用岗位。给用户任职请用编制 id，不要用本列表的 id。',
-    schema: findJobProfilesQuerySchema
+      '仅能关联尚未挂到该组织的启用岗位。给用户任职请用编制 id，不要用本列表的 id。' +
+      'meta.display 只在用户要看的就是本次返回的这份列表时为 true；取证、归类、统计、为后续办理查数时为 false。',
+    schema: jobProfilesQueryToolSchema
   }
 )
 

@@ -52,15 +52,22 @@ const OrganizationsContext = createContext<OrganizationsContextType | null>(null
 
 export function OrganizationsProvider({
   children,
-  keyword
+  keyword,
+  initialData
 }: {
   children: React.ReactNode
   keyword?: string
+  initialData?: Organization[]
 }) {
   const [open, setOpen] = useDialogState<OrganizationsDialogType>(null)
   const [currentNode, setCurrentNode] = useState<Organization | null>(null)
 
-  const { data: organizations = [], isLoading } = useOrganizationTree({ keyword })
+  const { data: treeData = [], isLoading: isTreeLoading } = useOrganizationTree({
+    keyword,
+    enabled: initialData === undefined
+  })
+  const organizations = initialData ?? treeData
+  const isLoading = initialData !== undefined ? false : isTreeLoading
   const createOrganization = useCreateOrganization()
   const updateOrganizationMutation = useUpdateOrganization()
   const deleteOrganizationMutation = useDeleteOrganization()

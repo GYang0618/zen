@@ -15,6 +15,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  cn,
   Empty,
   EmptyDescription,
   EmptyHeader,
@@ -159,7 +160,7 @@ function OrganizationGraphCanvas({
   )
 }
 
-export function OrganizationGraph() {
+export function OrganizationGraph({ className }: { className?: string } = {}) {
   const { organizations, currentNode, setCurrentNode, isLoading, keyword } = useOrganizations()
   const expandableIds = useMemo(() => collectExpandableIds(organizations), [organizations])
   const [rankdir, setRankdir] = useState<OrganizationGraphRankdir>('TB')
@@ -218,7 +219,7 @@ export function OrganizationGraph() {
   )
 
   return (
-    <Card className="flex h-full min-h-0 flex-col py-3">
+    <Card className={cn('flex h-full min-h-0 flex-col py-3', className)}>
       <CardHeader>
         <CardTitle>组织图谱</CardTitle>
         <CardAction className="flex items-center gap-1">

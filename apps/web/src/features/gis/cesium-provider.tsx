@@ -1,4 +1,12 @@
-import { Ion, Viewer } from 'cesium'
+import {
+  ArcGisMapServerImageryProvider,
+  Cartesian3,
+  Color,
+  ImageryLayer,
+  Ion,
+  OpenStreetMapImageryProvider,
+  Viewer
+} from 'cesium'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
@@ -18,7 +26,8 @@ const DEFAULT_VIEWER_OPTIONS: Viewer.ConstructorOptions = {
   sceneModePicker: false,
   navigationHelpButton: false,
   infoBox: false,
-  selectionIndicator: false
+  selectionIndicator: false,
+  baseLayer: false // 禁用默认的 Bing Maps 请求（已退役且国内无法直连），由 setupBaseLayer 统一管理
 }
 
 export type CesiumContextValue = {
@@ -31,6 +40,39 @@ type CesiumProviderProps = {
   children?: React.ReactNode
   /** 仅在挂载时生效，后续变更不会重建 Viewer */
   options?: Viewer.ConstructorOptions
+}
+
+/**
+ * 异步初始化高可用全球影像底图
+ * 优先采用免 Token、全球高速 CDN 的 ArcGIS 卫星影像；若失败自动降级为 OpenStreetMap
+ */
+async function setupBaseLayer(viewer: Viewer) {
+  try {
+    const arcgisProvider = await ArcGisMapServerImageryProvider.fromUrl(
+      'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer',
+      { enablePickFeatures: false }
+    )
+    if (!viewer.isDestroyed()) {
+      viewer.imageryLayers.removeAll()
+      viewer.imageryLayers.add(new ImageryLayer(arcgisProvider))
+      return
+    }
+  } catch (err) {
+    console.warn('[Cesium] ArcGIS 影像底图加载失败，尝试降级为 OpenStreetMap:', err)
+  }
+
+  try {
+    const osmProvider = new OpenStreetMapImageryProvider({
+      url: 'https://tile.openstreetmap.org/'
+    })
+    if (!viewer.isDestroyed()) {
+      viewer.imageryLayers.removeAll()
+      viewer.imageryLayers.add(new ImageryLayer(osmProvider))
+      return
+    }
+  } catch (err) {
+    console.warn('[Cesium] OpenStreetMap 影像底图加载失败:', err)
+  }
 }
 
 /**
@@ -57,10 +99,26 @@ export function CesiumProvider({ children, options }: CesiumProviderProps) {
       creditContainer,
       ...optionsRef.current
     })
+
+    // 隐藏底部默认版权容器
     const bottomContainer = instance.bottomContainer
     if (bottomContainer instanceof HTMLElement) {
       bottomContainer.style.display = 'none'
     }
+
+    // 优化地球光照与大气渲染参数，保证地球清晰明亮、不发黑
+    instance.scene.globe.baseColor = Color.fromCssColorString('#0f172a')
+    instance.scene.globe.enableLighting = false
+    instance.scene.globe.showGroundAtmosphere = true
+
+    // 默认视角：俯瞰全景（中国及欧亚大陆中心）
+    instance.camera.setView({
+      destination: Cartesian3.fromDegrees(108.5, 34.0, 14000000)
+    })
+
+    // 异步挂载高可用底图影像
+    setupBaseLayer(instance)
+
     setViewer(instance)
 
     const removePostRender = instance.scene.postRender.addEventListener(() => {
@@ -81,7 +139,7 @@ export function CesiumProvider({ children, options }: CesiumProviderProps) {
   const value = useMemo(() => (viewer ? { viewer } : null), [viewer])
 
   return (
-    <div className="relative size-full overflow-hidden">
+    <div className="relative flex-1 size-full min-h-0 overflow-hidden">
       <div
         ref={containerRef}
         className="absolute inset-0"

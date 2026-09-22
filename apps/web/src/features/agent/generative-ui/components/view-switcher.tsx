@@ -28,7 +28,7 @@ interface ViewSwitcherProps {
 
 export function ViewSwitcher({ title, description, loading = false, views }: ViewSwitcherProps) {
   return (
-    <Tabs className="p-2">
+    <Tabs className="p-2" defaultValue={views[0]?.key}>
       <Card>
         <CardHeader>
           {loading ? (

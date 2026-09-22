@@ -4,11 +4,11 @@ import {
   changeOrganizationParentSchema,
   createOrganizationSchema,
   dissolveOrganizationSchema,
-  findOrganizationsQuerySchema,
   linkOrganizationPositionSchema,
   mergeOrganizationSchema,
   organizationActivitiesQuerySchema,
-  organizationTreeQuerySchema,
+  organizationsQueryToolSchema,
+  organizationTreeQueryToolSchema,
   updateOrganizationLeaderSchema,
   updateOrganizationPositionSchema,
   updateOrganizationSchema,
@@ -85,34 +85,41 @@ const listActivitiesToolSchema = organizationIdSchema.extend(
 )
 
 export const getOrganizationTreeTool = tool(
-  async (input, config) =>
-    executeApiCall(config, async (_context) =>
+  async (input, config) => {
+    const { meta: _meta, ...query } = input
+    return executeApiCall(config, async (_context) =>
       organizationControllerGetTree({
-        query: input
+        query
       })
-    ),
+    )
+  },
   {
     name: 'query_organization_tree',
     description:
       '获取按名称排序的组织树，支持按关键字过滤组织树并保留匹配节点的祖先链路。' +
+      'meta.display 只在用户要看的就是本次返回的组织架构时为 true。' +
       '节点类型以本企业已启用目录为准，创建前请先 query_organization_type_catalog。',
-    schema: organizationTreeQuerySchema
+    schema: organizationTreeQueryToolSchema
   }
 )
 
 export const queryOrganizationsListTool = tool(
-  async (input, config) =>
-    executeApiCall(config, async (_context) =>
+  async (input, config) => {
+    const { meta: _meta, ...query } = input
+    return executeApiCall(config, async (_context) =>
       organizationControllerFindAll(
         asSdkOptions({
-          query: input
+          query
         })
       )
-    ),
+    )
+  },
   {
     name: 'query_organizations_list',
-    description: '根据关键字（组织名称或编码）、组织类型分页查询组织列表。',
-    schema: findOrganizationsQuerySchema
+    description:
+      '根据关键字（组织名称或编码）、组织类型分页查询组织列表。' +
+      'meta.display 只在用户要看的就是本次返回的这份列表时为 true；取证、归类、统计、为后续办理查数时为 false。',
+    schema: organizationsQueryToolSchema
   }
 )
 

@@ -1,16 +1,30 @@
 import {
+  A2uiDataTable,
   AreaChart,
+  Avatar,
+  Badge,
   BarChart,
   Column,
   DashboardCard,
   Grid,
+  Icon,
+  Item,
+  ItemGroup,
   LineChart,
   Metric,
+  OrganizationCard,
   PieChart,
+  PostCard,
+  Progress,
   RadarChart,
   RadialChart,
+  RoleCard,
   Row,
-  StatCard
+  ScrollArea,
+  StatCard,
+  Tabs,
+  Timeline,
+  UserCard
 } from '../components'
 
 export const commonRenderers = {
@@ -25,5 +39,19 @@ export const commonRenderers = {
   LineChart,
   PieChart,
   RadarChart,
-  RadialChart
+  RadialChart,
+  DataTable: A2uiDataTable,
+  Icon,
+  Timeline,
+  Avatar,
+  Badge,
+  ScrollArea,
+  Tabs,
+  Progress,
+  Item,
+  ItemGroup,
+  UserCard,
+  RoleCard,
+  PostCard,
+  OrganizationCard
 }

@@ -1,5 +1,360 @@
+import {
+  Badge,
+  Button,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  Separator,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@zen/ui'
+import {
+  Crosshair,
+  Footprints,
+  Layers,
+  MapPin,
+  Minus,
+  Pause,
+  Plane,
+  Play,
+  Plus,
+  Square,
+  Timer,
+  Trash2,
+  X
+} from 'lucide-react'
+import { useEffect } from 'react'
+
+import { formatCoordinates, formatDistance, formatEstimatedArrivalTime } from '../lib/geo-utils'
+import { useGisStore } from '../stores/gis'
+import { useGisRoamStore } from '../stores/gis-roam'
+
+import type { GisToolType } from '../stores/gis'
+
 export function SceneDock() {
+  const activeTool = useGisStore((state) => state.activeTool)
+  const setActiveTool = useGisStore((state) => state.setActiveTool)
+  const markers = useGisStore((state) => state.markers)
+  const removeMarker = useGisStore((state) => state.removeMarker)
+  const clearMarkers = useGisStore((state) => state.clearMarkers)
+
+  const roamPhase = useGisRoamStore((state) => state.phase)
+  const vehicleType = useGisRoamStore((state) => state.vehicleType)
+  const totalDistanceMeters = useGisRoamStore((state) => state.totalDistanceMeters)
+  const pauseRoam = useGisRoamStore((state) => state.pauseRoam)
+  const resumeRoam = useGisRoamStore((state) => state.resumeRoam)
+  const stopRoam = useGisRoamStore((state) => state.stopRoam)
+  const speedMultiplier = useGisRoamStore((state) => state.speedMultiplier)
+  const speedUp = useGisRoamStore((state) => state.speedUp)
+  const speedDown = useGisRoamStore((state) => state.speedDown)
+  const resetSpeed = useGisRoamStore((state) => state.resetSpeed)
+  const remainingRealSeconds = useGisRoamStore((state) => state.remainingRealSeconds)
+  const roamProgress = useGisRoamStore((state) => state.roamProgress)
+
+  const isRoaming = roamPhase === 'roaming'
+  const isPaused = roamPhase === 'paused'
+
+  // 漫游快捷键：支持 [ 减速、] 加速、\ 重置为 1x
+  useEffect(() => {
+    if (!isRoaming && !isPaused) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === ']' || e.key === '=') {
+        speedUp()
+      } else if (e.key === '[' || e.key === '-') {
+        speedDown()
+      } else if (e.key === '\\') {
+        resetSpeed()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isRoaming, isPaused, speedUp, speedDown, resetSpeed])
+
+  const toggleTool = (tool: GisToolType) => {
+    if (activeTool === tool) {
+      setActiveTool('none')
+    } else {
+      setActiveTool(tool)
+    }
+  }
+
   return (
-    <div className="absolute bottom-0 left-0 right-0 h-10 bg-white/80 backdrop-blur-sm">dock</div>
+    <TooltipProvider delay={150}>
+      <div className="pointer-events-auto absolute bottom-6 left-1/2 z-20 -translate-x-1/2 select-none">
+        {/* iOS 27 超轻奢未来毛玻璃药丸 Dock 容器 */}
+        <div className="relative flex items-center gap-1.5 rounded-full border border-white/30 bg-background/65 px-3 py-2 shadow-[0_16px_40px_0_rgba(0,0,0,0.18)] backdrop-blur-2xl transition-all duration-300 dark:border-white/10 dark:bg-background/45 dark:shadow-[0_20px_50px_0_rgba(0,0,0,0.55)] before:pointer-events-none before:absolute before:inset-x-6 before:top-0 before:h-[1px] before:bg-gradient-to-r before:from-transparent before:via-white/60 before:to-transparent">
+          {/* 1. 标记工具 */}
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => toggleTool('marker')}
+                  className={`relative h-9 rounded-full px-3 text-xs font-medium transition-all duration-200 ${
+                    activeTool === 'marker'
+                      ? 'bg-primary/20 text-primary shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_0_12px_rgba(var(--primary),0.35)] ring-1 ring-primary/40'
+                      : 'text-foreground/80 hover:bg-white/25 dark:hover:bg-white/10'
+                  }`}
+                />
+              }
+            >
+              <MapPin
+                className={`mr-1.5 size-4 ${activeTool === 'marker' ? 'text-primary' : ''}`}
+              />
+              <span>标记点位</span>
+              {activeTool === 'marker' && (
+                <span className="ml-1.5 size-1.5 animate-ping rounded-full bg-primary" />
+              )}
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-xs">
+              {activeTool === 'marker'
+                ? '已激活：点击地图打点，双击标签改名（按 Esc 或再点按钮退出）'
+                : '激活标记工具：鼠标变加号，在地图上放置标记点'}
+            </TooltipContent>
+          </Tooltip>
+
+          {/* 2. 坐标拾取 */}
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => toggleTool('picker')}
+                  className={`relative h-9 rounded-full px-3 text-xs font-medium transition-all duration-200 ${
+                    activeTool === 'picker'
+                      ? 'bg-primary/20 text-primary shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_0_12px_rgba(var(--primary),0.35)] ring-1 ring-primary/40'
+                      : 'text-foreground/80 hover:bg-white/25 dark:hover:bg-white/10'
+                  }`}
+                />
+              }
+            >
+              <Crosshair
+                className={`mr-1.5 size-4 ${activeTool === 'picker' ? 'text-primary' : ''}`}
+              />
+              <span>坐标拾取</span>
+              {activeTool === 'picker' && (
+                <span className="ml-1.5 size-1.5 animate-ping rounded-full bg-primary" />
+              )}
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-xs">
+              {activeTool === 'picker'
+                ? '已激活：点击地图拾取坐标并自动复制剪切板'
+                : '激活坐标拾取：点击地图拾取经纬度并复制'}
+            </TooltipContent>
+          </Tooltip>
+
+          <Separator orientation="vertical" className="mx-1 h-5 bg-border/60" />
+
+          {/* 3. 标记点列表与全局上下文管理 */}
+          <Popover>
+            <PopoverTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="relative h-9 rounded-full px-3 text-xs text-foreground/80 hover:bg-white/25 dark:hover:bg-white/10"
+                />
+              }
+            >
+              <Layers className="mr-1.5 size-4" />
+              <span>标记列表</span>
+              {markers.length > 0 && (
+                <Badge
+                  variant="secondary"
+                  className="ml-1.5 h-4 min-w-4 rounded-full px-1 text-[10px] leading-none"
+                >
+                  {markers.length}
+                </Badge>
+              )}
+            </PopoverTrigger>
+
+            <PopoverContent
+              side="top"
+              align="center"
+              className="w-80 rounded-2xl border-white/25 bg-background/85 p-3 shadow-2xl backdrop-blur-xl dark:border-white/10"
+            >
+              <div className="flex items-center justify-between pb-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold text-xs text-foreground">全局标记点列表</span>
+                  <Badge variant="outline" className="text-[10px]">
+                    {markers.length} 个
+                  </Badge>
+                </div>
+                {markers.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={clearMarkers}
+                    title="清空所有标记"
+                    className="size-6 text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                )}
+              </div>
+
+              {markers.length === 0 ? (
+                <div className="py-6 text-center text-muted-foreground text-xs">
+                  暂无标记点，可点击「标记点位」在场景中打点
+                </div>
+              ) : (
+                <ul className="max-h-48 space-y-1.5 overflow-y-auto pr-1 text-xs">
+                  {markers.map((marker, index) => (
+                    <li
+                      key={marker.id}
+                      className="flex items-center justify-between rounded-xl border border-border/50 bg-muted/40 px-2.5 py-1.5"
+                    >
+                      <div className="flex flex-col overflow-hidden pr-2">
+                        <span className="truncate font-medium text-foreground">
+                          {index + 1}. {marker.name}
+                        </span>
+                        <span className="truncate font-mono text-[10px] text-muted-foreground">
+                          {formatCoordinates(marker.longitude, marker.latitude, marker.height)}
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => removeMarker(marker.id)}
+                        className="size-5 shrink-0 text-muted-foreground hover:text-destructive"
+                      >
+                        <X className="size-3" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </PopoverContent>
+          </Popover>
+
+          {/* 4. 漫游进行时的浮动控制 */}
+          {(isRoaming || isPaused) && (
+            <>
+              <Separator orientation="vertical" className="mx-1 h-5 bg-border/60" />
+              <div className="relative flex items-center gap-1.5 overflow-hidden rounded-full bg-primary/10 px-2.5 py-1 text-xs text-primary ring-1 ring-primary/30">
+                {vehicleType === 'plane' ? (
+                  <Plane className="size-3.5 animate-pulse" />
+                ) : (
+                  <Footprints className="size-3.5 animate-pulse" />
+                )}
+                <span className="font-medium text-[11px]">
+                  {vehicleType === 'walk'
+                    ? '步行漫游中'
+                    : vehicleType === 'vehicle'
+                      ? '车辆巡航中'
+                      : '飞机飞行中'}
+                </span>
+                {totalDistanceMeters > 0 && (
+                  <span className="font-mono text-[10px] opacity-80">
+                    ({formatDistance(totalDistanceMeters)})
+                  </span>
+                )}
+
+                {/* 实时预计到达时间（ETA） */}
+                {typeof remainingRealSeconds === 'number' && (
+                  <div
+                    className="flex items-center gap-1 rounded-full bg-primary/20 px-2 py-0.5 font-mono text-[10px] font-semibold text-primary shadow-[inset_0_1px_1px_rgba(255,255,255,0.25)] ring-1 ring-primary/30"
+                    title={`当前漫游进度：${Math.round(roamProgress * 100)}%`}
+                  >
+                    <Timer className="size-3 shrink-0 animate-pulse text-primary" />
+                    <span>{formatEstimatedArrivalTime(remainingRealSeconds)}</span>
+                  </div>
+                )}
+
+                {/* 实时倍速调节 */}
+                <div className="ml-1 flex items-center gap-0.5 border-l border-primary/25 pl-1.5">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={speedDown}
+                    disabled={speedMultiplier <= 0.25}
+                    title="漫游减速（快捷键 [）"
+                    className="size-5 p-0 hover:bg-primary/20 text-primary"
+                  >
+                    <Minus className="size-2.5" />
+                  </Button>
+
+                  <button
+                    type="button"
+                    onClick={resetSpeed}
+                    title="点击恢复 1.0x 正常速度（快捷键 \\）"
+                    className="px-1 font-mono text-[10px] font-semibold text-primary hover:underline"
+                  >
+                    {speedMultiplier}x
+                  </button>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={speedUp}
+                    disabled={speedMultiplier >= 32}
+                    title="漫游加速（快捷键 ]）"
+                    className="size-5 p-0 hover:bg-primary/20 text-primary"
+                  >
+                    <Plus className="size-2.5" />
+                  </Button>
+                </div>
+
+                <div className="ml-1 flex items-center gap-1 border-l border-primary/25 pl-1.5">
+                  {isRoaming ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      onClick={pauseRoam}
+                      title="暂停漫游"
+                      className="size-5 p-0 hover:bg-primary/20"
+                    >
+                      <Pause className="size-3" />
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      onClick={resumeRoam}
+                      title="继续漫游"
+                      className="size-5 p-0 hover:bg-primary/20"
+                    >
+                      <Play className="size-3" />
+                    </Button>
+                  )}
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={stopRoam}
+                    title="停止漫游"
+                    className="size-5 p-0 hover:bg-destructive/20 hover:text-destructive"
+                  >
+                    <Square className="size-3" />
+                  </Button>
+                </div>
+
+                {/* 漫游细微进度条 */}
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-primary/20">
+                  <div
+                    className="h-full bg-primary transition-all duration-300 ease-out shadow-[0_0_6px_rgba(var(--primary),0.8)]"
+                    style={{ width: `${Math.round(roamProgress * 100)}%` }}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </TooltipProvider>
   )
 }

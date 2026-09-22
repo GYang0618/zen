@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { toolCallMetaSchema } from '../../agent/tool-meta.schema.js'
 import { dataScopeSchema } from '../../primitives/index.js'
 import { paged, pageQuerySchema } from '../pagination/index.js'
 
@@ -280,6 +281,9 @@ export const roleMemberSchema = z.object({
 
 export const rolesPageSchema = paged(roleListItemSchema)
 export const roleMembersPageSchema = paged(roleMemberSchema)
+
+export const rolesQueryToolSchema = toolCallMetaSchema.extend(rolesQuerySchema.shape)
+export type RolesQueryTool = z.infer<typeof rolesQueryToolSchema>
 
 export function deriveRoleEffectiveStatus(input: {
   kind: 'system' | 'custom'

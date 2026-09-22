@@ -1,2 +1,5 @@
 export { useDefaultRender } from './default'
+export { useOrganizationsRenderers } from './organizations'
+export { usePostsRenderers } from './posts'
+export { useRolesRenderers } from './roles'
 export { useUsersRenderers } from './users'

@@ -306,7 +306,7 @@ function TreeNode({
   )
 }
 
-export function OrganizationTree() {
+export function OrganizationTree({ className }: { className?: string } = {}) {
   const { currentNode, setCurrentNode, organizations, moveOrganization, isLoading, keyword } =
     useOrganizations()
   const { catalog } = useOrganizationTypeCatalog()
@@ -408,7 +408,7 @@ export function OrganizationTree() {
   }
 
   return (
-    <Card className="flex h-full min-h-0 flex-col py-3">
+    <Card className={cn('flex h-full min-h-0 flex-col py-3', className)}>
       <CardHeader>
         <CardTitle>组织架构树</CardTitle>
         <CardAction>

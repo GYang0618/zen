@@ -1,2 +1,5 @@
+export { PostsCard } from './components/posts-card'
 export { postsColumns as columns } from './components/posts-columns'
+export { PostsDialogs } from './components/posts-dialogs'
 export { Posts } from './posts'
+export { PostsProvider, usePosts } from './posts-provider'

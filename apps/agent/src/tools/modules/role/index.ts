@@ -6,7 +6,7 @@ import {
   createRoleSchema,
   deleteRolesSchema,
   pageQuerySchema,
-  rolesQuerySchema,
+  rolesQueryToolSchema,
   updateRoleSchema
 } from '@zen/shared'
 import { tool } from 'langchain'
@@ -45,20 +45,23 @@ const removeRoleMemberToolSchema = roleIdSchema.extend({
 const roleMembersQueryToolSchema = roleIdSchema.extend(pageQuerySchema.shape)
 
 export const getRolesTool = tool(
-  async (input, config) =>
-    executeApiCall(config, async (_context) =>
+  async (input, config) => {
+    const { meta: _meta, ...query } = input
+    return executeApiCall(config, async (_context) =>
       roleControllerFindAll(
         asSdkOptions({
-          query: input
+          query
         })
       )
-    ),
+    )
+  },
   {
     name: 'query_roles_list',
     description:
       '查询角色列表，可通过关键字（名称/编码）、持久化状态 status、派生展示状态 effectiveStatus（active/disabled/expired/locked）、数据范围筛选并分页。' +
-      '返回列表精简字段（不含权限码与自定义组织白名单）；完整配置用 query_role_detail。',
-    schema: rolesQuerySchema
+      '返回列表精简字段（不含权限码与自定义组织白名单）；完整配置用 query_role_detail。' +
+      'meta.display 只在用户要看的就是本次返回的这份列表时为 true；取证、归类、统计、为后续办理查数时为 false。',
+    schema: rolesQueryToolSchema
   }
 )
 

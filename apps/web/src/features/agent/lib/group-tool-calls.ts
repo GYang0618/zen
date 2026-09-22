@@ -1,5 +1,11 @@
 /** 对话中以表格等专属结果 UI 展示的查询工具（分组时不与同名写工具合并）。 */
-export const GENERATIVE_UI_TOOL_NAMES = ['query_users_list', 'query_job_profiles_list'] as const
+export const GENERATIVE_UI_TOOL_NAMES = [
+  'query_users_list',
+  'query_job_profiles_list',
+  'query_roles_list',
+  'query_organizations_list',
+  'query_organization_tree'
+] as const
 
 export const GENERATIVE_UI_TOOL_NAME_SET: ReadonlySet<string> = new Set(GENERATIVE_UI_TOOL_NAMES)
 

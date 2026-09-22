@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { toolCallMetaSchema } from '../../agent/tool-meta.schema.js'
 import { auditDiffSchema } from '../audit/audit-diff.schema.js'
 import { paged, pageQuerySchema } from '../pagination/index.js'
 import {
@@ -335,6 +336,16 @@ export const findOrganizationsQuerySchema = pageQuerySchema
   .strict()
 
 export const organizationPageSchema = paged(organizationSchema)
+
+export const organizationsQueryToolSchema = toolCallMetaSchema.extend(
+  findOrganizationsQuerySchema.shape
+)
+export type OrganizationsQueryTool = z.infer<typeof organizationsQueryToolSchema>
+
+export const organizationTreeQueryToolSchema = toolCallMetaSchema.extend(
+  organizationTreeQuerySchema.shape
+)
+export type OrganizationTreeQueryTool = z.infer<typeof organizationTreeQueryToolSchema>
 
 export type OrganizationFocus = z.input<typeof organizationFocusSchema>
 export type OrganizationTreeQuery = z.infer<typeof organizationTreeQuerySchema>

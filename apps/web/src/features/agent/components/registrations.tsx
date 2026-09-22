@@ -1,6 +1,12 @@
 import { useUserGenerativeUI } from '../generative-ui/user'
 import { useUserHumanInTheLoop } from '../hitl'
-import { useDefaultRender, useUsersRenderers } from '../renderers'
+import {
+  useDefaultRender,
+  useOrganizationsRenderers,
+  usePostsRenderers,
+  useRolesRenderers,
+  useUsersRenderers
+} from '../renderers'
 import { useAppearanceTool } from '../tools'
 
 /**
@@ -25,6 +31,9 @@ export function PopupChatRegistrations() {
  */
 export function ChatRegistrations() {
   useUsersRenderers()
+  usePostsRenderers()
+  useRolesRenderers()
+  useOrganizationsRenderers()
   useUserHumanInTheLoop()
   return null
 }
