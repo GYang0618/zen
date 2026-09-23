@@ -128,9 +128,7 @@ ${content.slice(0, 300)}`
 
       const response = await model.invoke(prompt)
       const text =
-        typeof response.content === 'string'
-          ? response.content
-          : JSON.stringify(response.content)
+        typeof response.content === 'string' ? response.content : JSON.stringify(response.content)
 
       const cleaned = sanitizeChatModelTitleOutput(text)
         .replace(/["'“”`]/g, '')

@@ -27,8 +27,8 @@ export type GisRoamAction =
   | { type: 'pitch_down'; deltaAltitude?: number; speedBoostKmh?: number; durationSec?: number }
   | {
       type: 'roll_turn'
+      /** 水平偏航角（度）。负数为向左，正数为向右。动作结束时回到 0，机头重新贴航线。 */
       deltaHeadingDeg: number
-      bankRollDeg?: number
       speedBoostKmh?: number
       durationSec?: number
     }

@@ -1,6 +1,7 @@
 import {
   createJobProfileSchema,
   jobProfilesQueryToolSchema,
+  postStatisticsToolSchema,
   updateJobProfileSchema
 } from '@zen/shared'
 import { tool } from 'langchain'
@@ -12,6 +13,7 @@ import {
   postControllerCreate,
   postControllerFindAll,
   postControllerFindOne,
+  postControllerGetStatistics,
   postControllerRemove,
   postControllerUpdate
 } from '@/api'
@@ -110,8 +112,28 @@ export const deleteJobProfileTool = tool(
   }
 )
 
+export const getPostStatisticsTool = tool(
+  async (input, config) => {
+    const { meta: _meta, ...query } = input
+    return executeApiCall(config, async (_context) =>
+      postControllerGetStatistics({
+        query
+      })
+    )
+  },
+  {
+    name: 'query_post_statistics',
+    description:
+      '查询岗位与编制多维度聚合统计数据（岗位目录总数、启停分布、职级分布、岗位族分布以及组织岗位编制的规划人数、实际在岗人数、满编/缺编/超编/空置编制情况）。' +
+      '生成人岗编制分析、职级分布报表时优先使用本工具，严禁多次翻页遍历 query_job_profiles_list 手动累加。' +
+      '可传 organizationId 按特定组织筛选编制统计范围。',
+    schema: postStatisticsToolSchema
+  }
+)
+
 export const postTools = [
   getJobProfilesTool,
+  getPostStatisticsTool,
   createJobProfileTool,
   getJobProfileTool,
   updateJobProfileTool,

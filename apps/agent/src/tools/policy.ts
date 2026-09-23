@@ -63,6 +63,7 @@ function destructive(permissionCode: string): ToolExecutionPolicy {
 export const TOOL_EXECUTION_POLICIES = {
   query_users_list: read(PermissionCode.USER_LIST),
   query_user_detail: read(PermissionCode.USER_LIST),
+  query_user_statistics: read(PermissionCode.USER_LIST),
   create_user: write(PermissionCode.USER_CREATE),
   update_user_info: write(PermissionCode.USER_UPDATE),
   restore_deleted_users: write(PermissionCode.USER_UPDATE, true),
@@ -76,6 +77,7 @@ export const TOOL_EXECUTION_POLICIES = {
 
   query_roles_list: read(PermissionCode.ROLE_LIST),
   query_role_detail: read(PermissionCode.ROLE_LIST),
+  query_role_statistics: read(PermissionCode.ROLE_LIST),
   query_permissions_list: read(PermissionCode.ROLE_LIST),
   query_role_members: read(PermissionCode.ROLE_LIST),
   create_role: write(PermissionCode.ROLE_CREATE),
@@ -89,6 +91,7 @@ export const TOOL_EXECUTION_POLICIES = {
 
   query_organization_tree: read(PermissionCode.ORG_LIST),
   query_organizations_list: read(PermissionCode.ORG_LIST),
+  query_organization_statistics: read(PermissionCode.ORG_LIST),
   query_organization_type_catalog: read(),
   query_organization_detail: read(PermissionCode.ORG_LIST),
   query_organization_members: read(PermissionCode.ORG_LIST),
@@ -112,6 +115,7 @@ export const TOOL_EXECUTION_POLICIES = {
 
   query_job_profiles_list: read(PermissionCode.POST_LIST),
   query_job_profile_detail: read(PermissionCode.POST_LIST),
+  query_post_statistics: read(PermissionCode.POST_LIST),
   create_job_profile: write(PermissionCode.POST_MANAGE),
   update_job_profile_info: write(PermissionCode.POST_MANAGE),
   delete_job_profile: destructive(PermissionCode.POST_MANAGE),

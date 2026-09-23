@@ -16,6 +16,8 @@ import type {
   roleMemberSchema,
   roleMembersPageSchema,
   roleSchema,
+  roleStatisticsSchema,
+  roleStatisticsToolSchema,
   roleStatusSchema,
   rolesPageSchema,
   rolesQuerySchema,
@@ -42,3 +44,5 @@ export type CloneRole = z.infer<typeof cloneRoleSchema>
 export type RolesQuery = z.input<typeof rolesQuerySchema>
 export type RolesPage = z.infer<typeof rolesPageSchema>
 export type RoleMembersPage = z.infer<typeof roleMembersPageSchema>
+export type RoleStatisticsResponse = z.infer<typeof roleStatisticsSchema>
+export type RoleStatisticsTool = z.input<typeof roleStatisticsToolSchema>

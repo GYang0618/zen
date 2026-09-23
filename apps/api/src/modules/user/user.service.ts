@@ -41,6 +41,7 @@ import type {
 import type { ReplaceUserOrganizationsDto } from './dto/replace-user-organizations.dto.js'
 import type { UpdateUserDto } from './dto/update-user.dto.js'
 import type { UpdateUsersStatusDto } from './dto/update-users-status.dto.js'
+import type { UserStatisticsQueryDto } from './dto/user-statistics-query.dto.js'
 import type {
   AssignUserRolesResponse,
   CreateUserResponse,
@@ -49,7 +50,8 @@ import type {
   UserInfoResponse,
   UserListItemResponse,
   UserListResponse,
-  UserResponse
+  UserResponse,
+  UserStatisticsResponse
 } from './responses/user.response.js'
 
 const DEFAULT_ROLE_CODE = 'user'
@@ -339,6 +341,19 @@ export class UserService {
     }
   }
 
+  async getStatistics(
+    query?: UserStatisticsQueryDto,
+    auth?: AuthContext
+  ): Promise<UserStatisticsResponse> {
+    const where = this.buildFindUsersWhere(
+      {
+        organizationId: query?.organizationId
+      },
+      auth
+    )
+    return this.userRepo.getStatistics(where)
+  }
+
   async remove(idsInput: string[], currentUserId?: string): Promise<UserListItemResponse[]> {
     const rawIds = Array.isArray(idsInput) ? idsInput : []
     const ids = [
@@ -523,10 +538,7 @@ export class UserService {
     return toAssignUserRolesResult(updatedUser)
   }
 
-  async setPrimaryRole(
-    userId: string,
-    primaryRoleId: string
-  ): Promise<AssignUserRolesResponse> {
+  async setPrimaryRole(userId: string, primaryRoleId: string): Promise<AssignUserRolesResponse> {
     const existing = await this.userRepo.findActiveRolesById(userId)
     if (!existing) throw new NotFoundException('用户不存在')
     const roleIds = existing.roles.map((item) => item.role.id)

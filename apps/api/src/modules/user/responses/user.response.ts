@@ -8,6 +8,7 @@ import type {
   UserGender,
   UserListItem,
   UserMfaType,
+  UserStatisticsResponse,
   UserStatus
 } from '@zen/shared'
 
@@ -19,7 +20,7 @@ export type UpdateUserResponse = UpdateUserResult
 export type AssignUserRolesResponse = AssignUserRolesResult
 export type ReplaceUserOrganizationsResponse = ReplaceUserOrganizationsResult
 
-export type { UserGender, UserMfaType, UserStatus }
+export type { UserGender, UserMfaType, UserStatisticsResponse, UserStatus }
 
 export type UserTheme = 'light' | 'dark' | 'system'
 

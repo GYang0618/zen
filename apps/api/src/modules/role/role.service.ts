@@ -53,7 +53,8 @@ import type {
   RoleListResponse,
   RoleMemberResponse,
   RoleMembersResponse,
-  RoleResponse
+  RoleResponse,
+  RoleStatisticsResponse
 } from './responses/role.response.js'
 
 const SUPER_ADMIN_ROLE_CODE = 'super_admin'
@@ -114,6 +115,10 @@ export class RoleService {
     const role = await this.roleRepo.findById(created.id)
     if (!role) throw new NotFoundException('角色不存在')
     return toRoleResponse(role)
+  }
+
+  async getStatistics(): Promise<RoleStatisticsResponse> {
+    return this.roleRepo.getStatistics()
   }
 
   async findAll(query?: FindRolesQueryDto): Promise<RoleListResponse> {
@@ -413,9 +418,7 @@ export class RoleService {
 
     const userRoles = await this.roleRepo.findUserRoleCodes(userId)
     if (userRoles.length <= 1) {
-      throw new BadRequestException(
-        '用户至少需要保留一个角色，无法解绑；请先为该用户分配其他角色'
-      )
+      throw new BadRequestException('用户至少需要保留一个角色，无法解绑；请先为该用户分配其他角色')
     }
 
     const displayUsers = await this.roleRepo.findUsersDisplayByIds([userId])

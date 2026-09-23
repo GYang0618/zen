@@ -33,7 +33,6 @@ import {
   Zap
 } from 'lucide-react'
 import { useEffect } from 'react'
-import { toast } from 'sonner'
 
 import { useCesium } from '../cesium-provider'
 import { GIS_ROAM_CONFIG, GIS_ROAM_SPEED_MULTIPLIERS } from '../constants'
@@ -100,13 +99,10 @@ export function SceneDock() {
         else if (isPaused) resumeRoam()
       } else if (e.key === 'r' || e.key === 'R') {
         restartRoam()
-        toast.info('已重新开始漫游')
       } else if (e.key === 'v' || e.key === 'V') {
         toggleViewMode()
       } else if (e.key === 'm' || e.key === 'M') {
         cycleSpeedMultiplier()
-        const nextRate = useGisRoamStore.getState().speedMultiplier
-        toast.info(`漫游倍速：${nextRate}x`)
       } else if (e.key === '[') {
         speedDown()
       } else if (e.key === ']') {
@@ -401,14 +397,11 @@ export function SceneDock() {
                     onClick={() => {
                       const next = viewTarget === 'airdrop' ? 'vehicle' : 'airdrop'
                       setViewTarget(next)
-                      toast.info(
-                        next === 'airdrop' ? '已切至空投箱降落追随视角' : '已返回客机主视角'
-                      )
                     }}
                     title={
                       viewTarget === 'airdrop'
-                        ? '当前正在跟踪空投箱降落。点击返回客机主视角'
-                        : '检测到空投正在降落！点击切入第三人称俯视追随视角'
+                        ? '当前从驾驶舱看向空投。点击返回飞机视角'
+                        : '空投正在降落。点击从驾驶舱看向空投'
                     }
                     className={`h-6 shrink-0 rounded-full border px-2 text-[10px] font-medium whitespace-nowrap transition-all ${
                       viewTarget === 'airdrop'
@@ -523,7 +516,6 @@ export function SceneDock() {
                           size="sm"
                           onClick={() => {
                             setSpeedMultiplier(rate)
-                            toast.success(`已切换至 ${rate}x 倍速漫游`)
                           }}
                           className={`h-6 text-xs font-mono ${
                             speedMultiplier === rate
@@ -592,7 +584,6 @@ export function SceneDock() {
                             size="sm"
                             onClick={() => {
                               triggerAction({ type: 'jump' })
-                              toast.info('行人起跳！')
                             }}
                             className="h-7 justify-start text-xs text-foreground/80 hover:bg-primary/10 hover:text-primary"
                           >
@@ -604,7 +595,6 @@ export function SceneDock() {
                             size="sm"
                             onClick={() => {
                               triggerAction({ type: 'pause_briefly', durationSeconds: 3 })
-                              toast.info('行人原地驻留 3 秒')
                             }}
                             className="h-7 justify-start text-xs text-foreground/80 hover:bg-primary/10 hover:text-primary"
                           >
@@ -621,7 +611,6 @@ export function SceneDock() {
                             size="sm"
                             onClick={() => {
                               triggerAction({ type: 'lane_change_left' })
-                              toast.info('启动向左变道超车！')
                             }}
                             className="h-7 justify-start text-xs text-foreground/80 hover:bg-primary/10 hover:text-primary"
                           >
@@ -633,7 +622,6 @@ export function SceneDock() {
                             size="sm"
                             onClick={() => {
                               triggerAction({ type: 'lane_change_right' })
-                              toast.info('启动向右变道超车！')
                             }}
                             className="h-7 justify-start text-xs text-foreground/80 hover:bg-primary/10 hover:text-primary"
                           >
@@ -674,7 +662,6 @@ export function SceneDock() {
                                       deltaAltitude: alt,
                                       speedBoostKmh: 50
                                     })
-                                    toast.info(`机头仰起，爬升 +${alt}m（推力加速 +50km/h）`)
                                   }}
                                   className="h-6 px-1 text-[11px] hover:bg-primary/20 hover:text-primary"
                                 >
@@ -702,7 +689,6 @@ export function SceneDock() {
                                       deltaAltitude: alt,
                                       speedBoostKmh: 30
                                     })
-                                    toast.info(`机头下俯，俯冲 -${alt}m`)
                                   }}
                                   className="h-6 px-1 text-[11px] hover:bg-primary/20 hover:text-primary"
                                 >
@@ -712,10 +698,10 @@ export function SceneDock() {
                             </div>
                           </div>
 
-                          {/* 左倾盘旋角度 */}
+                          {/* 左盘旋角度 */}
                           <div className="flex flex-col gap-1 rounded-xl bg-white/5 p-1.5 border border-white/10">
                             <span className="text-[11px] font-medium text-foreground/75">
-                              🔄 左倾盘旋（指定角度并加速）
+                              🔄 左盘旋（机头左转后回正）
                             </span>
                             <div className="grid grid-cols-4 gap-1">
                               {[15, 30, 45, 60].map((deg) => (
@@ -730,7 +716,6 @@ export function SceneDock() {
                                       deltaHeadingDeg: -deg,
                                       speedBoostKmh: 50
                                     })
-                                    toast.info(`向左横滚盘旋 ${deg}°（推力加速 +50km/h）`)
                                   }}
                                   className="h-6 px-0.5 text-[11px] hover:bg-primary/20 hover:text-primary"
                                 >
@@ -740,10 +725,10 @@ export function SceneDock() {
                             </div>
                           </div>
 
-                          {/* 右倾盘旋角度 */}
+                          {/* 右盘旋角度 */}
                           <div className="flex flex-col gap-1 rounded-xl bg-white/5 p-1.5 border border-white/10">
                             <span className="text-[11px] font-medium text-foreground/75">
-                              🔄 右倾盘旋（指定角度并加速）
+                              🔄 右盘旋（机头右转后回正）
                             </span>
                             <div className="grid grid-cols-4 gap-1">
                               {[15, 30, 45, 60].map((deg) => (
@@ -758,7 +743,6 @@ export function SceneDock() {
                                       deltaHeadingDeg: deg,
                                       speedBoostKmh: 50
                                     })
-                                    toast.info(`向右横滚盘旋 ${deg}°（推力加速 +50km/h）`)
                                   }}
                                   className="h-6 px-0.5 text-[11px] hover:bg-primary/20 hover:text-primary"
                                 >
@@ -802,10 +786,7 @@ export function SceneDock() {
                     type="button"
                     variant="ghost"
                     size="icon-xs"
-                    onClick={() => {
-                      restartRoam()
-                      toast.info('已重新开始漫游')
-                    }}
+                    onClick={restartRoam}
                     title="重新开始漫游（从起点播放，快捷键 R）"
                     className="size-5 shrink-0 p-0 hover:bg-primary/20 text-primary"
                   >

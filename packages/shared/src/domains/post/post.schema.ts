@@ -265,3 +265,46 @@ export const jobProfilesQueryToolSchema = toolCallMetaSchema.extend(
   findJobProfilesQuerySchema.shape
 )
 export type JobProfilesQueryTool = z.infer<typeof jobProfilesQueryToolSchema>
+
+export const postStatisticsQuerySchema = z.object({
+  organizationId: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe('按组织 ID 筛选岗位编制统计范围；不传则统计全局编制')
+})
+
+export const postStatisticsSchema = z.object({
+  profiles: z.object({
+    total: z.number().int().nonnegative().describe('岗位目录总数'),
+    active: z.number().int().nonnegative().describe('启用状态岗位数'),
+    disabled: z.number().int().nonnegative().describe('停用状态岗位数'),
+    byLevel: z.record(z.string(), z.number().int().nonnegative()).describe('按职级分布统计'),
+    byFamily: z
+      .array(
+        z.object({
+          family: z.string().describe('岗位族名称'),
+          count: z.number().int().nonnegative().describe('岗位数量')
+        })
+      )
+      .describe('按岗位族分布统计')
+  }),
+  positions: z.object({
+    totalCount: z.number().int().nonnegative().describe('组织编制项总数'),
+    activeCount: z.number().int().nonnegative().describe('启用状态编制数'),
+    frozenCount: z.number().int().nonnegative().describe('冻结状态编制数'),
+    totalPlanHeadcount: z.number().int().nonnegative().describe('规划编制总人数'),
+    totalActualHeadcount: z.number().int().nonnegative().describe('实际在岗总人次'),
+    understaffedCount: z.number().int().nonnegative().describe('缺编编制项数（在岗 < 编制）'),
+    fullCount: z.number().int().nonnegative().describe('满编编制项数（在岗 = 编制）'),
+    overstaffedCount: z.number().int().nonnegative().describe('超编编制项数（在岗 > 编制）'),
+    vacantCount: z.number().int().nonnegative().describe('完全空缺编制项数（在岗 = 0）')
+  })
+})
+
+export const postStatisticsToolSchema = toolCallMetaSchema.extend(postStatisticsQuerySchema.shape)
+
+export type PostStatisticsQuery = z.input<typeof postStatisticsQuerySchema>
+export type PostStatisticsResponse = z.infer<typeof postStatisticsSchema>
+export type PostStatisticsTool = z.input<typeof postStatisticsToolSchema>

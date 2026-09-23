@@ -34,7 +34,7 @@ export function OrganizationsList({
         key: 'graph',
         icon: Network,
         render: (
-          <div className="h-[460px] w-full min-h-[400px]">
+          <div className="h-115 w-full min-h-100">
             <OrganizationWorkspaceLayout className="h-full">
               <OrganizationGraph className="border-none bg-transparent py-0 shadow-none" />
             </OrganizationWorkspaceLayout>
@@ -45,7 +45,7 @@ export function OrganizationsList({
         key: 'tree',
         icon: ListTree,
         render: (
-          <div className="h-[460px] w-full min-h-[400px]">
+          <div className="h-115 w-full min-h-100">
             <OrganizationWorkspaceLayout className="h-full">
               <OrganizationTree className="border-none bg-transparent py-0 shadow-none" />
             </OrganizationWorkspaceLayout>

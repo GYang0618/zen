@@ -41,6 +41,7 @@ ${hierarchyLines}
 ## 组织查询与管理准则
 
 组织查询：
+- 统计报表优先：分析组织架构规模、各类型组织（公司/中心/部门/团队等）数量分布或统计某组织下级数量时，必须优先使用 query_organization_statistics；严禁通过 query_organizations_list 翻页或拉取全量架构树手动计算。支持传入 organizationId 仅统计该节点及其下属子树。
 - 架构树查询：使用 query_organization_tree；支持传入 keyword（匹配组织名称或编码），返回保留完整祖先链路的组织树。
 - 列表查询：使用 query_organizations_list，按名称/编码关键字或组织类型快速分页检索平铺列表。
 

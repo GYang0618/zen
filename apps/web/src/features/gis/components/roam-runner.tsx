@@ -5,7 +5,6 @@ import {
   Cartographic,
   Math as CesiumMath,
   Color,
-  ConstantPositionProperty,
   ConstantProperty,
   Ellipsoid,
   HeadingPitchRange,
@@ -18,14 +17,14 @@ import {
   Transforms
 } from 'cesium'
 import { useEffect, useRef } from 'react'
-import { toast } from 'sonner'
 
 import { useCesium } from '../cesium-provider'
 import { GIS_ACTION_CONFIG, GIS_MODEL_PATHS, GIS_ROAM_CONFIG } from '../constants'
 import { createFlightTrajectory, createGroundTrajectory } from '../lib/geo-utils'
 import { useGisRoamStore } from '../stores/gis-roam'
 
-import type { Entity } from 'cesium'
+import type { Entity, Viewer } from 'cesium'
+import type { FlightPathSample, GroundPathSample } from '../lib/geo-utils'
 import type { GisFlightPhase, GisRoamAction, GisRoamVehicle } from '../stores/gis-roam'
 
 function getModelUri(vehicle: GisRoamVehicle): string {
@@ -58,10 +57,143 @@ const scratchLeft = new Cartesian3()
 const scratchLateralVec = new Cartesian3()
 const scratchVerticalVec = new Cartesian3()
 const scratchRotQuat = new Quaternion()
+/** 机体局部轴：+Y 左、+Z 上。偏航绕上轴，俯仰绕左轴。 */
+const modelAxisLeft = new Cartesian3(0, 1, 0)
+const modelAxisUp = new Cartesian3(0, 0, 1)
 const scratchAdForward = new Cartesian3()
 const scratchAdUp = new Cartesian3()
 const scratchAdLeft = new Cartesian3()
 const scratchMatrix4 = new Matrix4()
+const scratchFlightSample: FlightPathSample = {
+  position: new Cartesian3(),
+  forwardDir: new Cartesian3(),
+  altitudeMeters: 0,
+  pitchDeg: 0,
+  phase: 'taxi_start',
+  targetSpeedKmh: 0
+}
+const scratchGroundSample: GroundPathSample = {
+  position: new Cartesian3(),
+  forwardDir: new Cartesian3()
+}
+
+/** 空投模型的上轴对齐当地法线。glTF 的 +Y 经 Cesium 轴修正后是模型 +Z。 */
+function syncAirdropOrientation(position: Cartesian3, orientation: Quaternion) {
+  const enu = Transforms.eastNorthUpToFixedFrame(position, Ellipsoid.WGS84, scratchMatrix4)
+  Matrix4.getMatrix3(enu, scratchMatrix3)
+  Quaternion.fromRotationMatrix(scratchMatrix3, orientation)
+}
+
+function rejectLookComponent(axis: Cartesian3, lookDir: Cartesian3, result: Cartesian3) {
+  const along = Cartesian3.dot(axis, lookDir)
+  Cartesian3.multiplyByScalar(lookDir, along, result)
+  Cartesian3.subtract(axis, result, result)
+}
+
+/**
+ * 相机停在驾驶舱，看向空投。上方向取飞机上轴并去掉沿视线的分量，地平线跟随机身，不再摆动。
+ */
+function lookFromCockpitAt(
+  viewer: Viewer,
+  cockpitPosition: Cartesian3,
+  aimPosition: Cartesian3,
+  planeUp: Cartesian3,
+  planeForward: Cartesian3
+) {
+  Cartesian3.subtract(aimPosition, cockpitPosition, scratchWorldDir)
+  const distSq = Cartesian3.magnitudeSquared(scratchWorldDir)
+  if (distSq < 1) {
+    return
+  }
+  Cartesian3.multiplyByScalar(scratchWorldDir, 1 / Math.sqrt(distSq), scratchWorldDir)
+
+  rejectLookComponent(planeUp, scratchWorldDir, scratchWorldUp)
+  if (Cartesian3.magnitudeSquared(scratchWorldUp) < 1e-4) {
+    rejectLookComponent(planeForward, scratchWorldDir, scratchWorldUp)
+  }
+  if (Cartesian3.magnitudeSquared(scratchWorldUp) < 1e-8) {
+    return
+  }
+  Cartesian3.normalize(scratchWorldUp, scratchWorldUp)
+
+  viewer.camera.setView({
+    destination: cockpitPosition,
+    orientation: {
+      direction: scratchWorldDir,
+      up: scratchWorldUp
+    }
+  })
+}
+
+type GlobeHeightSource = {
+  getHeight(cartographic: Cartographic): number | undefined
+}
+
+type RoamModelPrimitive = {
+  id?: Entity
+  modelMatrix: Matrix4
+  isDestroyed?: () => boolean
+}
+
+function isRoamModelPrimitive(value: unknown, entity: Entity): value is RoamModelPrimitive {
+  if (typeof value !== 'object' || value === null) return false
+  if (!('modelMatrix' in value) || !('id' in value)) return false
+  return value.id === entity && value.modelMatrix instanceof Matrix4
+}
+
+function findRoamModel(viewer: Viewer, entity: Entity): RoamModelPrimitive | undefined {
+  const primitives = viewer.scene.primitives
+  for (let index = 0; index < primitives.length; index += 1) {
+    const candidate: unknown = primitives.get(index)
+    if (isRoamModelPrimitive(candidate, entity)) return candidate
+  }
+  return undefined
+}
+
+/**
+ * 用当前地形网格的精确高度替换原点高程，水平位置保持本帧模拟结果。
+ * 采不到地形时沿用上一帧，避免掉回椭球面后再弹起。
+ */
+function clampCartesianToTerrain(
+  globe: GlobeHeightSource | undefined,
+  position: Cartesian3,
+  lastHeight: number | undefined
+): number | undefined {
+  if (!globe) return lastHeight
+
+  const carto = Cartographic.fromCartesian(position, Ellipsoid.WGS84, scratchCartographic)
+  if (!carto) return lastHeight
+
+  const sampled = globe.getHeight(carto)
+  const height = typeof sampled === 'number' ? sampled : lastHeight
+  if (typeof height !== 'number') return lastHeight
+
+  Cartesian3.fromRadians(carto.longitude, carto.latitude, height, Ellipsoid.WGS84, position)
+  return typeof sampled === 'number' ? sampled : lastHeight
+}
+
+/** 飞机低于地形加起落架高度时抬升。巡航高于该面时保持飞行包线高度。 */
+function liftAboveTerrain(
+  globe: GlobeHeightSource | undefined,
+  position: Cartesian3,
+  clearanceMeters: number,
+  lastTerrainHeight: number | undefined
+): number | undefined {
+  if (!globe) return lastTerrainHeight
+
+  const carto = Cartographic.fromCartesian(position, Ellipsoid.WGS84, scratchCartographic)
+  if (!carto) return lastTerrainHeight
+
+  const sampled = globe.getHeight(carto)
+  const terrainHeight = typeof sampled === 'number' ? sampled : lastTerrainHeight
+  if (typeof terrainHeight !== 'number') return lastTerrainHeight
+
+  const minHeight = terrainHeight + clearanceMeters
+  if (carto.height < minHeight) {
+    Cartesian3.fromRadians(carto.longitude, carto.latitude, minHeight, Ellipsoid.WGS84, position)
+  }
+  return typeof sampled === 'number' ? sampled : lastTerrainHeight
+}
 
 interface ActiveActionRuntime {
   action: GisRoamAction
@@ -71,8 +203,8 @@ interface ActiveActionRuntime {
 
 interface AirdropEntityRuntime {
   entity: Entity
-  parachuteEntity: Entity
   position: Cartesian3
+  orientation: Quaternion
   fallSpeedMps: number
   groundHeight: number
   elapsedSec: number
@@ -105,6 +237,7 @@ export function RoamRunner() {
   viewModeRef.current = viewMode
 
   const airdropsRef = useRef<AirdropEntityRuntime[]>([])
+  const airdropEntitiesRef = useRef<Entity[]>([])
 
   // 1. 全程高质感导航路线（地面发光导航线 / 飞机全包线高空走廊）
   useEffect(() => {
@@ -224,10 +357,10 @@ export function RoamRunner() {
 
     // 初始位置设定
     if (isAir && flightTraj) {
-      const initSample = flightTraj.sampleAtDistance(0)
+      const initSample = flightTraj.sampleAtDistance(0, scratchFlightSample)
       Cartesian3.clone(initSample.position, simPosition)
     } else if (groundTraj) {
-      const initSample = groundTraj.sampleAtDistance(0)
+      const initSample = groundTraj.sampleAtDistance(0, scratchGroundSample)
       Cartesian3.clone(initSample.position, simPosition)
     }
     Cartesian3.clone(simPosition, scratchPosition)
@@ -243,9 +376,9 @@ export function RoamRunner() {
         scale: 1.0,
         runAnimations: true,
         clampAnimations: false,
-        heightReference: config.clampToGround
-          ? HeightReference.CLAMP_TO_GROUND
-          : HeightReference.NONE
+        // 运动模型禁止 CLAMP_TO_GROUND。Cesium 贴地会把经纬度量化到地形瓦片网格后再覆盖平移，
+        // 模型会钉在格子上再跳到下一格；速度越快、瓦片越粗，步长越大。高度在模拟循环里逐帧写入。
+        heightReference: HeightReference.NONE
       }
     })
 
@@ -255,6 +388,7 @@ export function RoamRunner() {
     }
 
     // 优化相机近剪裁面
+    const prevClockMultiplier = viewer.clock.multiplier
     const prevNear =
       viewer.camera.frustum instanceof PerspectiveFrustum ? viewer.camera.frustum.near : 1.0
     if (viewer.camera.frustum instanceof PerspectiveFrustum) {
@@ -266,6 +400,8 @@ export function RoamRunner() {
     let lastReportedSec = -1
     let lastReportedKmh = -1
     let lastStateUpdateTime = 0
+    let lastTerrainHeight: number | undefined
+    let roamModelPrimitive: RoamModelPrimitive | undefined
 
     // 逐帧物理积分与相机追踪
     const onPreUpdateListener = () => {
@@ -292,7 +428,7 @@ export function RoamRunner() {
       const baseDir = scratchDir
 
       if (isAir && flightTraj) {
-        const sample = flightTraj.sampleAtDistance(distanceTraveled)
+        const sample = flightTraj.sampleAtDistance(distanceTraveled, scratchFlightSample)
         currentFlightPhase = sample.phase
         samplePitchDeg = sample.pitchDeg
         Cartesian3.clone(sample.forwardDir, baseDir)
@@ -304,7 +440,7 @@ export function RoamRunner() {
           targetKmh = sample.targetSpeedKmh
         }
       } else if (groundTraj) {
-        const sample = groundTraj.sampleAtDistance(distanceTraveled)
+        const sample = groundTraj.sampleAtDistance(distanceTraveled, scratchGroundSample)
         Cartesian3.clone(sample.forwardDir, baseDir)
       }
 
@@ -337,51 +473,39 @@ export function RoamRunner() {
         // 若为空投指令，立即生成空投物资箱物理实体
         if (currentActionFromStore.type === 'airdrop' && isAir) {
           const dropPos = Cartesian3.clone(simPosition, new Cartesian3())
+          const orientation = new Quaternion()
           const groundH = waypoints[0].height ?? 0
+          syncAirdropOrientation(dropPos, orientation)
 
-          const boxEntity = viewer.entities.add({
-            position: new ConstantPositionProperty(dropPos),
-            box: {
-              dimensions: new Cartesian3(2.5, 2.5, 2.5),
-              material: Color.ORANGE
+          const dropEntity = viewer.entities.add({
+            position: new CallbackPositionProperty(() => dropPos, false),
+            orientation: new CallbackProperty(() => orientation, false),
+            model: {
+              uri: GIS_MODEL_PATHS.airdrop,
+              heightReference: HeightReference.NONE
             }
           })
-          const chuteEntity = viewer.entities.add({
-            position: new ConstantPositionProperty(
-              Cartesian3.add(dropPos, new Cartesian3(0, 0, 3.5), new Cartesian3())
-            ),
-            cylinder: {
-              length: 1.0,
-              topRadius: 4.5,
-              bottomRadius: 0.2,
-              material: Color.WHITE.withAlpha(0.85)
-            }
-          })
+          airdropEntitiesRef.current.push(dropEntity)
 
           airdropsRef.current.push({
-            entity: boxEntity,
-            parachuteEntity: chuteEntity,
+            entity: dropEntity,
             position: dropPos,
+            orientation,
             fallSpeedMps: GIS_ACTION_CONFIG.plane.airdrop.terminalVelocityMps,
             groundHeight: groundH,
             elapsedSec: 0
           })
 
-          toast.success('📦 空投物资箱已释放！正在降落伞减速下坠中', {
-            action: {
-              label: '🪂 跟踪空投视角',
-              onClick: () => {
-                useGisRoamStore.getState().setViewTarget('airdrop')
-              }
-            }
-          })
+          if (viewModeRef.current !== 'free') {
+            viewTargetRef.current = 'airdrop'
+            setViewTarget('airdrop')
+          }
         }
       }
 
       let actionLateralOffsetM = 0
       let actionVerticalOffsetM = 0
       let actionPitchDeg = 0
-      let actionRollDeg = 0
       let actionYawDeg = 0
 
       if (runtimeAction) {
@@ -408,7 +532,6 @@ export function RoamRunner() {
             if (t >= pauseDuration) {
               runtimeAction = null
               clearAction()
-              toast.info('驻留结束，继续漫游')
             }
             break
           }
@@ -438,7 +561,6 @@ export function RoamRunner() {
               actionLateralOffsetM = 0
               runtimeAction = null
               clearAction()
-              toast.success('变道超车完成，已平稳回归车道')
             }
             break
           }
@@ -470,21 +592,19 @@ export function RoamRunner() {
           case 'roll_turn': {
             const cfg = GIS_ACTION_CONFIG.plane.rollTurn
             const deltaH = runtimeAction.action.deltaHeadingDeg
-            const sign = deltaH >= 0 ? 1 : -1
             const absDeltaH = Math.abs(deltaH)
             const duration =
               runtimeAction.action.durationSec ?? Math.max(3.0, (absDeltaH / 30) * cfg.durationSec)
-            const bankRoll =
-              runtimeAction.action.bankRollDeg ?? Math.min(45, Math.max(12, absDeltaH * 0.8))
             const boostKmh = runtimeAction.action.speedBoostKmh ?? 0
 
             if (t <= duration) {
               const normT = t / duration
-              // 倾斜横滚角与偏航转向角联合协调转弯（Coordinated Bank Turn）
-              actionRollDeg = sign * bankRoll * Math.sin(normT * Math.PI)
-              actionYawDeg = deltaH * Math.sin(normT * Math.PI)
+              const envelope = Math.sin(normT * Math.PI)
+              // 绕机体上轴偏航：机头在水平面转向，机尾跟随摆动，机翼保持水平。
+              // 包络从 0 到峰值再回到 0，动作结束时机头重新贴回航线切线。
+              actionYawDeg = deltaH * envelope
               if (boostKmh > 0) {
-                effectiveTargetMps += (boostKmh / 3.6) * Math.sin(normT * Math.PI)
+                effectiveTargetMps += (boostKmh / 3.6) * envelope
               }
             } else {
               runtimeAction = null
@@ -515,7 +635,6 @@ export function RoamRunner() {
 
       // 抵达终点判定
       if (distanceTraveled >= totalDistance) {
-        toast.success('漫游已圆满完成！')
         stopRoam()
         return
       }
@@ -523,10 +642,10 @@ export function RoamRunner() {
       // 2. 轨迹坐标与朝向四元数求值
       const rawPos = scratchPosition
       if (isAir && flightTraj) {
-        const sample = flightTraj.sampleAtDistance(distanceTraveled)
+        const sample = flightTraj.sampleAtDistance(distanceTraveled, scratchFlightSample)
         Cartesian3.clone(sample.position, rawPos)
       } else if (groundTraj) {
-        const sample = groundTraj.sampleAtDistance(distanceTraveled)
+        const sample = groundTraj.sampleAtDistance(distanceTraveled, scratchGroundSample)
         Cartesian3.clone(sample.position, rawPos)
       }
 
@@ -553,13 +672,23 @@ export function RoamRunner() {
       Cartesian3.multiplyByScalar(scratchUp, actionVerticalOffsetM, scratchVerticalVec)
 
       const finalPos = Cartesian3.add(rawPos, scratchLateralVec, simPosition)
+      if (config.clampToGround) {
+        lastTerrainHeight = clampCartesianToTerrain(viewer.scene.globe, finalPos, lastTerrainHeight)
+      } else if (vehicleType === 'plane') {
+        lastTerrainHeight = liftAboveTerrain(
+          viewer.scene.globe,
+          finalPos,
+          GIS_ROAM_CONFIG.plane.gearHeightMeters,
+          lastTerrainHeight
+        )
+      }
       Cartesian3.add(finalPos, scratchVerticalVec, finalPos)
       Cartesian3.clone(finalPos, scratchPosition)
 
-      // 姿态旋转复合：俯仰角 (Pitch) + 航向偏角 (Yaw) + 横滚角 (Roll)
+      // 姿态旋转复合：先对齐航线，再绕机体轴偏航 / 俯仰。
+      // 后乘是局部轴旋转：偏航绕上轴（机尾摆动），俯仰绕左轴。盘旋不绕前轴横滚。
       const totalPitch = samplePitchDeg + actionPitchDeg
       const totalYaw = useGisRoamStore.getState().headingOffsetDeg + actionYawDeg
-      const totalRoll = actionRollDeg
 
       // 基础正交矩阵
       Matrix3.fromColumnMajorArray(
@@ -579,32 +708,18 @@ export function RoamRunner() {
 
       let finalOrient = Quaternion.fromRotationMatrix(scratchMatrix3, scratchOrientation)
 
-      // 叠加 Yaw（绕 Up 轴）
       if (Math.abs(totalYaw) > 0.01) {
-        const yawQuat = Quaternion.fromAxisAngle(
-          scratchUp,
-          CesiumMath.toRadians(totalYaw),
-          scratchRotQuat
-        )
-        finalOrient = Quaternion.multiply(yawQuat, finalOrient, finalOrient)
+        // 局部 +Z 正转把机头拨向左侧（+Y）。指令里负角度表示向左，因此取反。
+        Quaternion.fromAxisAngle(modelAxisUp, CesiumMath.toRadians(-totalYaw), scratchRotQuat)
+        finalOrient = Quaternion.multiply(finalOrient, scratchRotQuat, finalOrient)
       }
-      // 叠加 Pitch（绕 Left 轴）
       if (Math.abs(totalPitch) > 0.01) {
-        const pitchQuat = Quaternion.fromAxisAngle(
-          scratchLeft,
+        Quaternion.fromAxisAngle(
+          modelAxisLeft,
           CesiumMath.toRadians(-totalPitch),
           scratchRotQuat
         )
-        finalOrient = Quaternion.multiply(pitchQuat, finalOrient, finalOrient)
-      }
-      // 叠加 Roll（绕 Forward 轴）
-      if (Math.abs(totalRoll) > 0.01) {
-        const rollQuat = Quaternion.fromAxisAngle(
-          forwardT,
-          CesiumMath.toRadians(totalRoll),
-          scratchRotQuat
-        )
-        finalOrient = Quaternion.multiply(rollQuat, finalOrient, finalOrient)
+        finalOrient = Quaternion.multiply(finalOrient, scratchRotQuat, finalOrient)
       }
 
       if (!isOrientationInitialized) {
@@ -618,6 +733,23 @@ export function RoamRunner() {
 
       Quaternion.clone(simOrientation, scratchLastOrientation)
       hasOrientation = true
+
+      // 实体矩阵要等下一帧的 dataSourceDisplay 才会写到 Model。
+      // 相机在本帧 preUpdate 里已经对准新位置，模型若仍停在上一帧，就会相对镜头窜动；速度越快越明显。
+      if (
+        !roamModelPrimitive ||
+        roamModelPrimitive.isDestroyed?.() ||
+        roamModelPrimitive.id !== roamEntity
+      ) {
+        roamModelPrimitive = findRoamModel(viewer, roamEntity)
+      }
+      if (roamModelPrimitive) {
+        Matrix4.fromRotationTranslation(
+          Matrix3.fromQuaternion(simOrientation, scratchMatrix3),
+          simPosition,
+          roamModelPrimitive.modelMatrix
+        )
+      }
 
       // 3. 模型车轮/骨骼动画与物理速度联动：转速与当前真实时速无缝成正比，叠加播放倍速
       const baseCruiseKmh = vehicleType === 'vehicle' ? 7.7 : Math.max(1, config.cruiseSpeedKmh)
@@ -648,10 +780,7 @@ export function RoamRunner() {
               Ellipsoid.WGS84,
               ad.position
             )
-            ad.entity.position = new ConstantPositionProperty(ad.position)
-            ad.parachuteEntity.position = new ConstantPositionProperty(
-              Cartesian3.add(ad.position, new Cartesian3(0, 0, 3.5), scratchWorldOffset)
-            )
+            syncAirdropOrientation(ad.position, ad.orientation)
 
             const remainingH = Math.max(0, carto.height - ad.groundHeight)
             const eta = Math.round(remainingH / ad.fallSpeedMps)
@@ -662,19 +791,15 @@ export function RoamRunner() {
               etaSeconds: eta
             }
           } else {
-            // 已着陆，移除降落伞并转为着陆点标记
-            viewer.entities.remove(ad.parachuteEntity)
+            // 已着陆，物资箱留在落点
             airdropsRef.current.splice(i, 1)
 
             if (viewTargetRef.current === 'airdrop') {
-              toast.success('🎯 空投物资箱已安全着陆！2秒后自动平滑返回客机视角')
               setTimeout(() => {
                 if (useGisRoamStore.getState().viewTarget === 'airdrop') {
                   setViewTarget('vehicle')
                 }
               }, 2000)
-            } else {
-              toast.info('🎯 空投物资箱已安全着陆！')
             }
           }
         }
@@ -695,98 +820,39 @@ export function RoamRunner() {
       const activeAirdrop =
         airdropsRef.current.length > 0 ? airdropsRef.current[airdropsRef.current.length - 1] : null
 
-      if (currentViewTarget === 'airdrop' && activeAirdrop && currentViewMode !== 'free') {
-        // === 空投专属伴随降落视角 (Airdrop Chase Cam) ===
+      if (
+        currentViewTarget === 'airdrop' &&
+        activeAirdrop &&
+        currentViewMode !== 'free' &&
+        hasOrientation
+      ) {
         if (lastTrackedTarget !== 'airdrop') {
           lastTrackedTarget = 'airdrop'
           isCameraInitialized = false
         }
-
-        const adPos = activeAirdrop.position
-        const adUp = Ellipsoid.WGS84.geodeticSurfaceNormal(adPos, scratchAdUp)
-
-        // 前向矢量沿地表切面投影
-        const dotAdUp = Cartesian3.dot(adUp, forwardT)
-        Cartesian3.subtract(
-          forwardT,
-          Cartesian3.multiplyByScalar(adUp, dotAdUp, scratchAdForward),
-          scratchAdForward
-        )
-        Cartesian3.normalize(scratchAdForward, scratchAdForward)
-
-        // adLeft = adUp × adForward
-        Cartesian3.cross(adUp, scratchAdForward, scratchAdLeft)
-        Cartesian3.normalize(scratchAdLeft, scratchAdLeft)
-
-        // 空投伞降微摆动（自然气流阻力仿真，摆幅约 2°）
-        const swayAngleRad = CesiumMath.toRadians(2.0 * Math.sin(activeAirdrop.elapsedSec * 2.2))
-        const swayQuat = Quaternion.fromAxisAngle(scratchAdForward, swayAngleRad, scratchRotQuat)
-
-        Matrix3.fromColumnMajorArray(
-          [
-            scratchAdForward.x,
-            scratchAdForward.y,
-            scratchAdForward.z,
-            scratchAdLeft.x,
-            scratchAdLeft.y,
-            scratchAdLeft.z,
-            adUp.x,
-            adUp.y,
-            adUp.z
-          ],
-          scratchMatrix3
-        )
-        let adOrient = Quaternion.fromRotationMatrix(scratchMatrix3, scratchOrientation)
-        adOrient = Quaternion.multiply(swayQuat, adOrient, adOrient)
-        const adRotMatrix = Matrix3.fromQuaternion(adOrient, scratchMatrix3)
-
-        // 电影级机位：空投后方 7 米、上方 8.5 米 (俯瞰降落伞与物资箱)
-        scratchLocalOffset.x = -7.0
-        scratchLocalOffset.y = 0
-        scratchLocalOffset.z = 8.5
-
-        const adWorldOffset = Matrix3.multiplyByVector(
-          adRotMatrix,
-          scratchLocalOffset,
-          scratchWorldOffset
-        )
-        const targetAdCamPos = Cartesian3.add(adPos, adWorldOffset, scratchCamPosition)
-
-        // 镜头朝向：向下偏俯视 -32° 对准地面与降落伞
-        const pitchRad = CesiumMath.toRadians(-32)
-        scratchLocalDir.x = Math.cos(pitchRad)
-        scratchLocalDir.y = 0
-        scratchLocalDir.z = Math.sin(pitchRad)
-
-        scratchLocalUp.x = -Math.sin(pitchRad)
-        scratchLocalUp.y = 0
-        scratchLocalUp.z = Math.cos(pitchRad)
-
-        const targetAdWorldDir = Matrix3.multiplyByVector(
-          adRotMatrix,
-          scratchLocalDir,
-          scratchWorldDir
-        )
-        const targetAdWorldUp = Matrix3.multiplyByVector(
-          adRotMatrix,
-          scratchLocalUp,
-          scratchWorldUp
-        )
-        Cartesian3.normalize(targetAdWorldDir, targetAdWorldDir)
-        Cartesian3.normalize(targetAdWorldUp, targetAdWorldUp)
-
         if (lastViewModeForCamera === 'free') {
           viewer.camera.lookAtTransform(Matrix4.IDENTITY)
           isCameraInitialized = false
         }
 
-        viewer.camera.setView({
-          destination: targetAdCamPos,
-          orientation: {
-            direction: targetAdWorldDir,
-            up: targetAdWorldUp
-          }
-        })
+        const rotMatrix = Matrix3.fromQuaternion(scratchLastOrientation, scratchMatrix3)
+        const seat = config.firstPerson.offset
+        scratchLocalOffset.x = seat.x
+        scratchLocalOffset.y = seat.y + GIS_ACTION_CONFIG.plane.airdrop.cockpitSideOffsetMeters
+        scratchLocalOffset.z = seat.z
+        Matrix3.multiplyByVector(rotMatrix, scratchLocalOffset, scratchWorldOffset)
+        const cockpitPos = Cartesian3.add(finalPos, scratchWorldOffset, scratchCamPosition)
+
+        const boxUp = Ellipsoid.WGS84.geodeticSurfaceNormal(activeAirdrop.position, scratchAdUp)
+        Cartesian3.multiplyByScalar(
+          boxUp,
+          GIS_ACTION_CONFIG.plane.airdrop.canopyHeightMeters * 0.5,
+          scratchAdForward
+        )
+        const aim = Cartesian3.add(activeAirdrop.position, scratchAdForward, scratchAdLeft)
+        Matrix3.getColumn(rotMatrix, 2, scratchAdUp)
+        Matrix3.getColumn(rotMatrix, 0, scratchAdForward)
+        lookFromCockpitAt(viewer, cockpitPos, aim, scratchAdUp, scratchAdForward)
       } else if (currentViewMode === 'free' && hasOrientation) {
         if (lastTrackedTarget !== 'vehicle') {
           lastTrackedTarget = 'vehicle'
@@ -926,6 +992,8 @@ export function RoamRunner() {
 
     return () => {
       removePreUpdateListener()
+      viewer.clock.multiplier = prevClockMultiplier
+      viewer.clock.shouldAnimate = false
       viewer.camera.lookAtTransform(Matrix4.IDENTITY)
       if (viewer.camera.frustum instanceof PerspectiveFrustum) {
         viewer.camera.frustum.near = prevNear
@@ -935,13 +1003,12 @@ export function RoamRunner() {
         entityRef.current = null
       }
       // 清理残留空投实体
-      airdropsRef.current.forEach((ad) => {
-        viewer.entities.remove(ad.entity)
-        viewer.entities.remove(ad.parachuteEntity)
+      airdropEntitiesRef.current.forEach((entity) => {
+        viewer.entities.remove(entity)
       })
+      airdropEntitiesRef.current = []
       airdropsRef.current = []
       setAirdropInfo(null)
-      viewer.clock.shouldAnimate = false
     }
   }, [
     viewer,

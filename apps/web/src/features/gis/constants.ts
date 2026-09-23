@@ -45,6 +45,12 @@ export const GIS_MODEL_PATHS = {
   pedestrian: '/models/人.glb',
   vehicle: '/models/car.glb',
   airplane: '/models/airplane.glb',
+  /**
+   * 空投。伞衣：Poly by Google，CC BY 3.0，https://poly.pizza/m/8otDbaIqkhU
+   * 木箱：Quaternius，CC0 1.0，https://poly.pizza/m/YAghI6GBls
+   * 已去掉伞下的跳伞员，木箱接在吊绳下。伞径约 11 米，原点在箱底。
+   */
+  airdrop: '/models/airdrop.glb',
   tree: '/models/tree.glb',
   building: '/models/building.glb',
   streetlight: '/models/路灯.glb',
@@ -152,12 +158,18 @@ export const GIS_ROAM_CONFIG = {
     /** 进近下滑俯角 (度) */
     descentPitchDeg: -4,
     clampToGround: false,
+    /**
+     * 模型原点到机腹/起落架底部的距离（米）。
+     * 滑行与低空时把原点抬到地形之上，避免机腹遁地。glTF 根节点缩放 2.5，机腹在局部上轴 -2.3。
+     */
+    gearHeightMeters: 6,
     label: '飞行漫游',
     headingCorrectionDeg: 0,
     freeOverviewDistanceMeters: 600,
     firstPerson: {
-      offset: { x: 11.5, y: 0.0, z: 4.2 },
-      pitchDeg: -4,
+      /** 驾驶舱略靠后、略低于机头上沿，俯视一点点机头 */
+      offset: { x: 8.5, y: 0.0, z: 2.6 },
+      pitchDeg: -12,
       headingDeg: 0,
       bobbing: null
     },
@@ -204,13 +216,19 @@ export const GIS_ACTION_CONFIG = {
     },
     rollTurn: {
       deltaHeadingDeg: 30,
-      bankRollDeg: 25,
+      /** 每 30° 偏航的基准时长（秒），实际时长按角度等比放大 */
       durationSec: 4.0
     },
     airdrop: {
       /** 空投物资箱下落重力终端速度 (m/s) */
       terminalVelocityMps: 15,
-      boxScale: 2.5
+      /** 伞衣中心相对箱底、沿模型上轴的高度（米），与 airdrop.glb 一致 */
+      canopyHeightMeters: 9.6,
+      /**
+       * 驾驶舱眼位再向左偏出机身（米）。
+       * 从侧窗看下落的空投，视线不被机身挡住。
+       */
+      cockpitSideOffsetMeters: 8
     }
   }
 } as const

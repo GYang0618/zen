@@ -15,7 +15,6 @@ import type { AppConfig, SecurityConfig, SwaggerConfig } from './config/index.js
 const COPILOT_JSON_BODY_LIMIT = '10mb'
 const DEFAULT_JSON_BODY_LIMIT = '100kb'
 
-
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,

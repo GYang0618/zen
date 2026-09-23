@@ -4,6 +4,7 @@ import { POSITION_MEMBER_PREVIEW_LIMIT } from '@zen/shared'
 import { PrismaService } from '../../infra/prisma/prisma.service.js'
 
 import type { JobProfileStatus, Prisma } from '@prisma/client'
+import type { PostStatisticsResponse } from './responses/post.response.js'
 
 export const JOB_PROFILE_LIST_INCLUDE = {
   _count: { select: { posts: true } },
@@ -233,5 +234,119 @@ export class PostRepository {
         include: POST_WITH_PROFILE_INCLUDE
       })
     })
+  }
+
+  async getStatistics(organizationId?: string): Promise<PostStatisticsResponse> {
+    const postWhere: Prisma.PostWhereInput = organizationId ? { organizationId } : {}
+    const userOrgWhere: Prisma.UserOrganizationWhereInput = {
+      postId: { not: null },
+      leftAt: null,
+      ...(organizationId ? { organizationId } : {})
+    }
+
+    const [
+      profileTotal,
+      profileStatusGroups,
+      profileLevelGroups,
+      profileFamilyGroups,
+      positionTotal,
+      positionStatusGroups,
+      planHeadcountAggregate,
+      actualHeadcount,
+      postsWithUsers
+    ] = await Promise.all([
+      this.prisma.jobProfile.count(),
+      this.prisma.jobProfile.groupBy({ by: ['status'], _count: true }),
+      this.prisma.jobProfile.groupBy({ by: ['level'], _count: true }),
+      this.prisma.jobProfile.groupBy({
+        by: ['family'],
+        where: { family: { not: null } },
+        _count: true
+      }),
+      this.prisma.post.count({ where: postWhere }),
+      this.prisma.post.groupBy({ by: ['status'], where: postWhere, _count: true }),
+      this.prisma.post.aggregate({
+        where: postWhere,
+        _sum: { headcount: true }
+      }),
+      this.prisma.userOrganization.count({ where: userOrgWhere }),
+      this.prisma.post.findMany({
+        where: postWhere,
+        select: {
+          headcount: true,
+          _count: {
+            select: {
+              users: { where: { leftAt: null } }
+            }
+          }
+        }
+      })
+    ])
+
+    let activeProfiles = 0
+    let disabledProfiles = 0
+    for (const g of profileStatusGroups) {
+      if (g.status === 'ACTIVE') activeProfiles = g._count
+      if (g.status === 'DISABLED') disabledProfiles = g._count
+    }
+
+    const byLevel: Record<string, number> = {}
+    for (const g of profileLevelGroups) {
+      byLevel[g.level] = g._count
+    }
+
+    const byFamily = profileFamilyGroups
+      .filter((g): g is typeof g & { family: string } => typeof g.family === 'string')
+      .map((g) => ({
+        family: g.family,
+        count: g._count
+      }))
+
+    let activePositions = 0
+    let frozenPositions = 0
+    for (const g of positionStatusGroups) {
+      if (g.status === 'ACTIVE') activePositions = g._count
+      if (g.status === 'FROZEN') frozenPositions = g._count
+    }
+
+    let understaffedCount = 0
+    let fullCount = 0
+    let overstaffedCount = 0
+    let vacantCount = 0
+
+    for (const p of postsWithUsers) {
+      const actual = p._count.users
+      if (actual === 0) {
+        vacantCount++
+      }
+      if (actual < p.headcount) {
+        understaffedCount++
+      } else if (actual === p.headcount) {
+        fullCount++
+      } else {
+        overstaffedCount++
+      }
+    }
+
+    return {
+      profiles: {
+        total: profileTotal,
+        active: activeProfiles,
+        disabled: disabledProfiles,
+        byLevel,
+        byFamily
+      },
+      positions: {
+        totalCount: positionTotal,
+        activeCount: activePositions,
+        frozenCount: frozenPositions,
+        totalPlanHeadcount: planHeadcountAggregate._sum.headcount ?? 0,
+        totalActualHeadcount: actualHeadcount,
+        understaffedCount,
+        fullCount,
+        overstaffedCount,
+        vacantCount
+      }
+    }
   }
 }

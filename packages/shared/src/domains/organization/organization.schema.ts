@@ -353,3 +353,46 @@ export type FindOrganizationsQuery = z.infer<typeof findOrganizationsQuerySchema
 export type OrganizationTypeCatalogResponse = z.infer<typeof organizationTypeCatalogResponseSchema>
 export type UpdateOrganizationTypeCatalog = z.infer<typeof updateOrganizationTypeCatalogSchema>
 export type ApplyOrganizationTypeTemplate = z.infer<typeof applyOrganizationTypeTemplateSchema>
+
+export const organizationStatisticsQuerySchema = z.object({
+  rootId: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe('按根/分支组织 ID 筛选统计子树；不传则统计当前用户有权访问的全部组织')
+})
+
+export const organizationStatisticsSchema = z.object({
+  total: z.number().int().nonnegative().describe('组织节点总数'),
+  byType: z.record(z.string(), z.number().int().nonnegative()).describe('按组织类型分布统计'),
+  structure: z.object({
+    rootCount: z.number().int().nonnegative().describe('根组织数（无父组织）'),
+    maxDepth: z.number().int().nonnegative().describe('组织树最大层级深度'),
+    hasLeaderCount: z.number().int().nonnegative().describe('已配置负责人的组织数'),
+    noLeaderCount: z.number().int().nonnegative().describe('未配置负责人的组织数')
+  }),
+  members: z.object({
+    totalMemberships: z.number().int().nonnegative().describe('组织在职任职记录总数'),
+    emptyOrgCount: z.number().int().nonnegative().describe('无任何直属在职成员的组织数'),
+    topOrgsByMembers: z
+      .array(
+        z.object({
+          id: z.string().describe('组织 ID'),
+          name: z.string().describe('组织名称'),
+          code: z.string().describe('组织编码'),
+          type: organizationTypeSchema.describe('组织类型'),
+          memberCount: z.number().int().nonnegative().describe('在职成员数')
+        })
+      )
+      .describe('直属在职人数前 5 的组织')
+  })
+})
+
+export const organizationStatisticsToolSchema = toolCallMetaSchema.extend(
+  organizationStatisticsQuerySchema.shape
+)
+
+export type OrganizationStatisticsQuery = z.input<typeof organizationStatisticsQuerySchema>
+export type OrganizationStatisticsResponse = z.infer<typeof organizationStatisticsSchema>
+export type OrganizationStatisticsTool = z.input<typeof organizationStatisticsToolSchema>

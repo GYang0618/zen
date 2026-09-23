@@ -3,6 +3,7 @@ import { Inject, Injectable } from '@nestjs/common'
 import { PrismaService } from '../../infra/prisma/prisma.service.js'
 
 import type { Prisma, UserStatusCode } from '@prisma/client'
+import type { UserStatisticsResponse } from './responses/user.response.js'
 
 export const USER_INCLUDE = {
   profile: true,
@@ -256,10 +257,7 @@ export class UserRepository {
     })
   }
 
-  replaceUserRoles(
-    userId: string,
-    roles: Array<{ roleId: string; isPrimary: boolean }>
-  ) {
+  replaceUserRoles(userId: string, roles: Array<{ roleId: string; isPrimary: boolean }>) {
     return this.prisma.$transaction([
       this.prisma.userRole.deleteMany({ where: { userId } }),
       ...(roles.length > 0
@@ -348,5 +346,108 @@ export class UserRepository {
         user: { deletedAt: null, id: { not: userId } }
       }
     })
+  }
+
+  async getStatistics(where?: Prisma.UserWhereInput): Promise<UserStatisticsResponse> {
+    const activeWhere: Prisma.UserWhereInput = { ...where, deletedAt: null }
+    const now = new Date()
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+
+    const [
+      total,
+      deletedCount,
+      statusGroups,
+      genderGroups,
+      lockedCount,
+      mfaEnabledCount,
+      mustChangePasswordCount,
+      assignedCount,
+      unassignedCount,
+      noRoleCount,
+      newUsersLast7Days,
+      newUsersLast30Days
+    ] = await Promise.all([
+      this.prisma.user.count({ where: activeWhere }),
+      this.prisma.user.count({ where: { deletedAt: { not: null } } }),
+      this.prisma.user.groupBy({
+        by: ['status'],
+        where: activeWhere,
+        _count: true
+      }),
+      this.prisma.userProfile.groupBy({
+        by: ['gender'],
+        where: { user: activeWhere },
+        _count: true
+      }),
+      this.prisma.user.count({ where: { ...activeWhere, isLocked: true } }),
+      this.prisma.userSecurity.count({
+        where: { mfaEnabled: true, user: activeWhere }
+      }),
+      this.prisma.userSecurity.count({
+        where: { mustChangePassword: true, user: activeWhere }
+      }),
+      this.prisma.user.count({
+        where: { ...activeWhere, organizations: { some: { leftAt: null } } }
+      }),
+      this.prisma.user.count({
+        where: { ...activeWhere, organizations: { none: { leftAt: null } } }
+      }),
+      this.prisma.user.count({
+        where: { ...activeWhere, roles: { none: {} } }
+      }),
+      this.prisma.user.count({
+        where: { ...activeWhere, createdAt: { gte: sevenDaysAgo } }
+      }),
+      this.prisma.user.count({
+        where: { ...activeWhere, createdAt: { gte: thirtyDaysAgo } }
+      })
+    ])
+
+    const byStatus = {
+      active: 0,
+      inactive: 0,
+      pending: 0,
+      suspended: 0
+    }
+    for (const g of statusGroups) {
+      const key = g.status.toLowerCase() as keyof typeof byStatus
+      if (key in byStatus) {
+        byStatus[key] = g._count
+      }
+    }
+
+    const byGender = {
+      male: 0,
+      female: 0,
+      unknown: 0
+    }
+    for (const g of genderGroups) {
+      const key = g.gender.toLowerCase() as keyof typeof byGender
+      if (key in byGender) {
+        byGender[key] = g._count
+      }
+    }
+
+    return {
+      total,
+      deletedCount,
+      byStatus,
+      byGender,
+      security: {
+        lockedCount,
+        mfaEnabledCount,
+        mustChangePasswordCount
+      },
+      assignment: {
+        assignedCount,
+        unassignedCount,
+        noRoleCount
+      },
+      recentTrends: {
+        newUsersLast7Days,
+        newUsersLast30Days
+      }
+    }
   }
 }

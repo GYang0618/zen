@@ -21,6 +21,7 @@ import type {
   CreateJobProfileDto,
   FindJobProfilesQueryDto,
   LinkOrganizationPositionDto,
+  PostStatisticsQueryDto,
   UpdateJobProfileDto,
   UpdateOrganizationPositionDto
 } from './dto/index.js'
@@ -28,7 +29,8 @@ import type {
   JobProfileDetailResponse,
   JobProfileResponse,
   JobProfilesPageResponse,
-  OrganizationPositionResponse
+  OrganizationPositionResponse,
+  PostStatisticsResponse
 } from './responses/post.response.js'
 
 @Injectable()
@@ -58,6 +60,10 @@ export class PostService {
       pagination: page.pagination,
       items: page.items.map(toJobProfileListItemResponse)
     }
+  }
+
+  async getStatistics(query?: PostStatisticsQueryDto): Promise<PostStatisticsResponse> {
+    return this.postRepo.getStatistics(query?.organizationId)
   }
 
   async findOne(id: string): Promise<JobProfileDetailResponse> {

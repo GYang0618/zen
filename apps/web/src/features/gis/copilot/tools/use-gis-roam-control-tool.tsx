@@ -58,7 +58,7 @@ const roamControlSchema = z.object({
     ])
     .optional()
     .describe(
-      '载具特定执行动作：jump（行人跳跃），pause_briefly（停留 3 秒后继续），lane_change_left（向左变道超车），lane_change_right（向右变道超车），airdrop（释放降落伞空投箱），pitch_up（仰角爬升，配合 deltaAltitudeMeters），pitch_down（俯冲进近，配合 deltaAltitudeMeters），roll_turn / roll_turn_left / roll_turn_right（倾斜横滚盘旋，配合 turnAngleDeg 与 turnDirection）'
+      '载具特定执行动作：jump（行人跳跃），pause_briefly（停留 3 秒后继续），lane_change_left（向左变道超车），lane_change_right（向右变道超车），airdrop（释放降落伞空投箱），pitch_up（仰角爬升，配合 deltaAltitudeMeters），pitch_down（俯冲进近，配合 deltaAltitudeMeters），roll_turn / roll_turn_left / roll_turn_right（绕机体上轴水平偏航盘旋，机头转向后回到航线，机翼保持水平；配合 turnAngleDeg 与 turnDirection）'
     ),
   playbackAction: z
     .enum(['pause', 'resume', 'restart', 'stop'])
@@ -70,7 +70,7 @@ const roamControlSchema = z.object({
     .enum(['vehicle', 'airdrop'])
     .optional()
     .describe(
-      '相机镜头追随观察目标：vehicle（跟随主飞机/载具），airdrop（第三人称俯视追随空投箱降落过程视角）'
+      '相机镜头观察目标：vehicle（跟随主飞机/载具），airdrop（从驾驶舱看向空投箱）'
     ),
   speedMultiplier: z
     .number()
@@ -82,7 +82,7 @@ export function useGisRoamControlTool() {
   useFrontendTool({
     name: 'gis_control_roam',
     description:
-      '实时控制当前三维 GIS 场景中正在运行的漫游状态。支持实时控制航速（通过 km/h 真实时速加速/减速/定速）、播放倍速（如 2x、4x、8x、16x 高速漫游）、实时控制行驶/飞行方向航向角、实时对漫游对象触发专属指令动作（行人跳跃、驻留3s；车辆左/右变道超车；飞机释放降落伞空投、动态高差爬升/俯冲、动态角度与方向横滚盘旋并加速）、切换观察视角（跟随客机 vs 跟踪空投箱降落过程），以及控制漫游的暂停/继续/重开/停止。',
+      '实时控制当前三维 GIS 场景中正在运行的漫游状态。支持实时控制航速（通过 km/h 真实时速加速/减速/定速）、播放倍速（如 2x、4x、8x、16x 高速漫游）、实时控制行驶/飞行方向航向角、实时对漫游对象触发专属指令动作（行人跳跃、驻留3s；车辆左/右变道超车；飞机释放降落伞空投、动态高差爬升/俯冲、绕上轴水平偏航盘旋后机头回到航线并加速）、切换观察视角（跟随客机 vs 从驾驶舱看向空投），以及控制漫游的暂停/继续/重开/停止。',
     parameters: roamControlSchema,
     handler: async ({
       speedAction,
@@ -287,10 +287,10 @@ export function useGisRoamControlTool() {
                 speedBoostKmh
               })
               results.push(
-                `飞机向${dirSign < 0 ? '左' : '右'}横滚倾斜盘旋 ${angleAbs}°${speedBoostKmh ? `，并推力加速 +${speedBoostKmh}km/h` : ''}`
+                `飞机向${dirSign < 0 ? '左' : '右'}偏航盘旋 ${angleAbs}°，机翼保持水平，结束后机头回到航线${speedBoostKmh ? `，并推力加速 +${speedBoostKmh}km/h` : ''}`
               )
             } else {
-              results.push('横滚盘旋指令仅适用于飞机空中飞行漫游')
+              results.push('偏航盘旋指令仅适用于飞机空中飞行漫游')
             }
             break
         }
@@ -311,7 +311,7 @@ export function useGisRoamControlTool() {
               Math.round(airdropInfo.altitudeMeters - airdropInfo.groundHeight)
             )
             results.push(
-              `已将镜头切至空投箱降落追随视角（当前高度：${Math.round(airdropInfo.altitudeMeters)}m，距地约 ${distToGround}m）`
+              `已从驾驶舱看向空投箱（当前高度：${Math.round(airdropInfo.altitudeMeters)}m，距地约 ${distToGround}m）`
             )
           }
         } else {

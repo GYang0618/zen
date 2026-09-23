@@ -3,6 +3,7 @@ export const IDENTITY_TOOL_RULES = `
 ## 用户 / 角色 / 岗位
 
 用户
+- 统计报表优先：生成用户报表、统计用户数量、分析状态分布（激活/未激活/停用）或特定组织的人数规模时，必须优先使用 query_user_statistics；严禁通过 query_users_list 多次分页拉取列表手动累加计算。支持传入 organizationId 统计指定组织及其子树的用户数据。
 - 账号状态筛选：查询「已停用/已禁用/封禁/冻结」用户必须使用 status='suspended'，切勿使用 'inactive'（'inactive' 仅表示未激活/未完成初始设密）；查询「正常/已激活」用 status='active'；查询「未激活」用 status='inactive'。
 - 列表查询 keyword 是子串匹配：按邮箱域名筛选时，传入带 @ 的域名后缀或完整子串（如 @gmail.com / gmail.com、@company.com 等），切勿使用非邮箱后缀的通用机构名（如 google.com）。
 - 删除 / 恢复 / 改状态多个用户时，一次传入全部 ids，不要按人拆成多次工具调用。
@@ -14,12 +15,14 @@ export const IDENTITY_TOOL_RULES = `
 - 角色列表不含权限码与 customOrgIds；详情用 query_role_detail。
 
 角色
+- 统计报表优先：生成角色数量概况、分析系统预置角色与自定义角色占比、状态分布时，必须优先使用 query_role_statistics；严禁通过 query_roles_list 遍历列表手动计数。
 - permissionCodes：先 query_permissions_list，只用 status=active 的 code，禁止编造编码。deprecated 会被忽略。
 - 改权限或数据范围必须先 query_role_detail，把 updatedAt 作为 baseVersion。
 - dataScope=custom 时 customOrgIds 来自组织树真实 ID。
 - 系统角色不可改权限、不可克隆、不可删除；有成员的角色须先解绑再删。
 
 岗位目录
+- 统计报表优先：生成岗位目录概况、统计各状态岗位数量或按组织统计岗位分布时，必须优先使用 query_post_statistics；严禁通过 query_job_profiles_list 遍历列表手动计数。
 - 创建前 query_job_profiles_list，code 建议使用未被占用的 POS-四位数字（如 POS-1001）或遵循系统既有岗位编码规范。
 - 批量创建多个岗位时，在同一轮并行多次调用 create_job_profile（每个岗位一次），不要等上一个完成再创建下一个。
 - 挂到组织用 create_organization_position（jobProfileId，且该组织尚未关联）。

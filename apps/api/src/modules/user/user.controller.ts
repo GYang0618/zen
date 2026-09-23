@@ -19,6 +19,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiTags
 } from '@nestjs/swagger'
 import { PermissionCode } from '@zen/shared'
@@ -35,6 +36,7 @@ import { findUsersQuerySchema } from './dto/find-users-query.dto.js'
 import { replaceUserOrganizationsSchema } from './dto/replace-user-organizations.dto.js'
 import { updateUserSchema } from './dto/update-user.dto.js'
 import { updateUsersStatusSchema } from './dto/update-users-status.dto.js'
+import { userStatisticsQuerySchema } from './dto/user-statistics-query.dto.js'
 import {
   ApiFindUsersQueryDocs,
   AssignUserRolesSuccessSwaggerDto,
@@ -47,7 +49,8 @@ import {
   UpdateUserSwaggerDto,
   UpdateUsersStatusSwaggerDto,
   UserListItemArraySuccessSwaggerDto,
-  UserListSuccessSwaggerDto
+  UserListSuccessSwaggerDto,
+  UserStatisticsSuccessSwaggerDto
 } from './swagger/index.js'
 import { UserService } from './user.service.js'
 
@@ -62,6 +65,7 @@ import type { FindUsersQueryDto } from './dto/find-users-query.dto.js'
 import type { ReplaceUserOrganizationsDto } from './dto/replace-user-organizations.dto.js'
 import type { UpdateUserDto } from './dto/update-user.dto.js'
 import type { UpdateUsersStatusDto } from './dto/update-users-status.dto.js'
+import type { UserStatisticsQueryDto } from './dto/user-statistics-query.dto.js'
 import type {
   AssignUserRolesResponse,
   CreateUserResponse,
@@ -69,7 +73,8 @@ import type {
   UpdateUserResponse,
   UserListItemResponse,
   UserListResponse,
-  UserResponse
+  UserResponse,
+  UserStatisticsResponse
 } from './responses/user.response.js'
 
 @ApiTags('用户管理')
@@ -111,6 +116,30 @@ export class UserController {
     @CurrentAuth() auth: AuthContext
   ): Promise<UserListResponse> {
     return this.userService.findAll(query, auth)
+  }
+
+  @Get('statistics')
+  @RequirePermission(PermissionCode.USER_LIST)
+  @ApiOperation({
+    summary: '获取用户聚合统计数据',
+    description:
+      '聚合统计用户总数、状态分布、性别分布、账号安全概况、组织与角色归属覆盖率及近 7/30 天新增趋势。支持按组织筛选。'
+  })
+  @ApiQuery({
+    name: 'organizationId',
+    required: false,
+    type: String,
+    description: '组织 ID，指定后仅统计该组织及其下属子树用户',
+    example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479'
+  })
+  @ApiOkResponse({ description: '查询成功', type: UserStatisticsSuccessSwaggerDto })
+  @ApiStandardErrorResponses()
+  @UsePipes(new ZodValidationPipe(userStatisticsQuerySchema, { types: ['query'] }))
+  getStatistics(
+    @Query() query: UserStatisticsQueryDto | undefined,
+    @CurrentAuth() auth: AuthContext
+  ): Promise<UserStatisticsResponse> {
+    return this.userService.getStatistics(query, auth)
   }
 
   @Get(':id')

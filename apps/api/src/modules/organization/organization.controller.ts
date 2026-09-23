@@ -29,6 +29,7 @@ import {
   linkOrganizationPositionSchema,
   mergeOrganizationSchema,
   organizationActivitiesQuerySchema,
+  organizationStatisticsQuerySchema,
   organizationTreeQuerySchema,
   updateOrganizationLeaderSchema,
   updateOrganizationPositionSchema,
@@ -49,6 +50,7 @@ import type {
   FindOrganizationsQueryDto,
   MergeOrganizationDto,
   OrganizationActivitiesQueryDto,
+  OrganizationStatisticsQueryDto,
   OrganizationTreeQueryDto,
   UpdateOrganizationDto,
   UpdateOrganizationLeaderDto,
@@ -56,6 +58,7 @@ import type {
   UpdateOrganizationTypeCatalogDto,
   UpdatePositionRolesDto
 } from './dto/index.js'
+import type { OrganizationStatisticsResponse } from './responses/organization.response.js'
 
 @ApiTags('组织管理')
 @ApiBearerAuth(ACCESS_TOKEN_AUTH)
@@ -93,6 +96,28 @@ export class OrganizationController {
   @ApiOperation({ summary: '获取本企业组织类型目录' })
   getTypeCatalog(@CurrentAuth() auth: AuthContext) {
     return this.organizationService.getTypeCatalog(auth)
+  }
+
+  @Get('statistics')
+  @RequirePermission(PermissionCode.ORG_LIST)
+  @ApiOperation({
+    summary: '获取组织架构聚合统计数据',
+    description:
+      '聚合统计组织节点总数、各类型分布、根组织与最大层级深度、负责人健全度及成员规模排行。支持按根节点筛选子树。'
+  })
+  @ApiQuery({
+    name: 'rootId',
+    required: false,
+    type: String,
+    description: '根组织 ID，指定后仅统计该组织及其所有子级组织',
+    example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479'
+  })
+  @UsePipes(new ZodValidationPipe(organizationStatisticsQuerySchema, { types: ['query'] }))
+  getStatistics(
+    @CurrentAuth() auth: AuthContext,
+    @Query() query?: OrganizationStatisticsQueryDto
+  ): Promise<OrganizationStatisticsResponse> {
+    return this.organizationService.getStatistics(auth, query)
   }
 
   @Patch('type-catalog')

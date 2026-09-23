@@ -40,7 +40,6 @@ export function SceneInteraction() {
       if (event.key === 'Escape') {
         if (activeTool !== 'none') {
           setActiveTool('none')
-          toast.info('已退出交互模式')
         }
       }
     }
@@ -89,7 +88,6 @@ export function SceneInteraction() {
           height,
           name: `航路点 ${useGisRoamStore.getState().waypoints.length + 1}`
         })
-        toast.success(`已添加漫游点 (${longitude}°, ${latitude}°)`)
         return
       }
 
@@ -97,13 +95,12 @@ export function SceneInteraction() {
       if (activeTool === 'marker') {
         const nextIndex = markersCount + 1
         const defaultName = `点位 ${nextIndex}`
-        const created = addMarker({
+        addMarker({
           name: defaultName,
           longitude,
           latitude,
           height
         })
-        toast.success(`已创建标记「${created.name}」，双击标签可修改名称`)
         return
       }
 

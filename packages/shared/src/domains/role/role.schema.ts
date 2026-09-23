@@ -285,6 +285,42 @@ export const roleMembersPageSchema = paged(roleMemberSchema)
 export const rolesQueryToolSchema = toolCallMetaSchema.extend(rolesQuerySchema.shape)
 export type RolesQueryTool = z.infer<typeof rolesQueryToolSchema>
 
+export const roleStatisticsSchema = z.object({
+  total: z.number().int().nonnegative().describe('角色总数'),
+  byKind: z.object({
+    system: z.number().int().nonnegative().describe('系统内置角色数'),
+    custom: z.number().int().nonnegative().describe('自定义角色数')
+  }),
+  byStatus: z.object({
+    active: z.number().int().nonnegative().describe('启用状态角色数'),
+    disabled: z.number().int().nonnegative().describe('禁用状态角色数'),
+    expired: z.number().int().nonnegative().describe('已过期角色数')
+  }),
+  byDataScope: z.object({
+    all: z.number().int().nonnegative().describe('全部数据权限角色数'),
+    organization: z.number().int().nonnegative().describe('组织及下级角色数'),
+    organization_only: z.number().int().nonnegative().describe('仅本组织角色数'),
+    self: z.number().int().nonnegative().describe('仅本人数据角色数'),
+    custom: z.number().int().nonnegative().describe('自定义数据范围角色数')
+  }),
+  binding: z.object({
+    assignedUserTotal: z.number().int().nonnegative().describe('已分配角色的独立用户总数'),
+    emptyRoleCount: z.number().int().nonnegative().describe('未分配任何用户的空置角色数'),
+    topRoles: z
+      .array(
+        z.object({
+          id: z.string().describe('角色 ID'),
+          name: z.string().describe('角色名称'),
+          code: z.string().describe('角色编码'),
+          userCount: z.number().int().nonnegative().describe('绑定用户数')
+        })
+      )
+      .describe('绑定用户数排名前 5 的角色')
+  })
+})
+
+export const roleStatisticsToolSchema = toolCallMetaSchema.extend({})
+
 export function deriveRoleEffectiveStatus(input: {
   kind: 'system' | 'custom'
   status: 'active' | 'disabled'

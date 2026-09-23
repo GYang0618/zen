@@ -6,6 +6,7 @@ import {
   createRoleSchema,
   deleteRolesSchema,
   pageQuerySchema,
+  roleStatisticsToolSchema,
   rolesQueryToolSchema,
   updateRoleSchema
 } from '@zen/shared'
@@ -22,6 +23,7 @@ import {
   roleControllerCreate,
   roleControllerFindAll,
   roleControllerFindOne,
+  roleControllerGetStatistics,
   roleControllerListMembers,
   roleControllerListPermissions,
   roleControllerRemoveMany,
@@ -254,8 +256,21 @@ export const deleteRolesTool = tool(
   }
 )
 
+export const getRoleStatisticsTool = tool(
+  async (_input, config) =>
+    executeApiCall(config, async (_context) => roleControllerGetStatistics()),
+  {
+    name: 'query_role_statistics',
+    description:
+      '查询角色多维度聚合统计数据（角色总量、系统/自定义种类分布、启用/禁用/过期状态分布、数据范围分布、空置角色数及绑定人数排名前 5 的热门角色）。' +
+      '生成权限配置概况、角色审计报表时优先使用本工具，严禁多次翻页遍历 query_roles_list 手动累加。',
+    schema: roleStatisticsToolSchema
+  }
+)
+
 export const roleTools = [
   getRolesTool,
+  getRoleStatisticsTool,
   createRoleTool,
   getRoleTool,
   updateRoleTool,

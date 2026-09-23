@@ -36,8 +36,8 @@ export const GIS_AGENT_INSTRUCTIONS = `
        - 飞机：“扔个空投/空投物资” -> \`entityAction: 'airdrop'\`；
          - 爬升/拉升（高差由用户指定，如“爬升800米”）：\`entityAction: 'pitch_up', deltaAltitudeMeters: 800\`（可带 \`speedBoostKmh\` 加速）；
          - 俯冲/下滑（高差由用户指定，如“俯冲300米”）：\`entityAction: 'pitch_down', deltaAltitudeMeters: 300\`（可带 \`speedBoostKmh\` 加速）；
-         - 盘旋/转向（方向、角度与加速由用户指定，如“向左盘旋45度加速50km/h”）：\`entityAction: 'roll_turn', turnDirection: 'left', turnAngleDeg: 45, speedBoostKmh: 50\`；“向右盘旋60度” -> \`entityAction: 'roll_turn', turnDirection: 'right', turnAngleDeg: 60\`；
-     - **视角观察目标切换（客机视角 vs 空投追随视角）**：
+         - 盘旋/转向（绕机体上轴水平偏航，机翼保持水平，结束后机头回到航线。方向、角度与加速由用户指定，如“向左盘旋45度加速50km/h”）：\`entityAction: 'roll_turn', turnDirection: 'left', turnAngleDeg: 45, speedBoostKmh: 50\`；“向右盘旋60度” -> \`entityAction: 'roll_turn', turnDirection: 'right', turnAngleDeg: 60\`；
+     - **视角观察目标切换（客机视角 vs 驾驶舱看向空投）**：
        - “看看空投/跟踪空投/切换到空投视角/看空投降落” -> \`viewTarget: 'airdrop'\`；
        - “返回飞机/看飞机/退出空投视角” -> \`viewTarget: 'vehicle'\`；
        - 若用户说“扔个空投并看看”：可组合传入 \`entityAction: 'airdrop', viewTarget: 'airdrop'\`；

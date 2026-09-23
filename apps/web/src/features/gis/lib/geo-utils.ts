@@ -329,7 +329,7 @@ export function createFlightTrajectory(waypoints: GisWaypoint[]) {
 
   const actualTotalLength = cumulativeDistances[cumulativeDistances.length - 1]
 
-  function sampleAtDistance(dist: number): FlightPathSample {
+  function sampleAtDistance(dist: number, result?: FlightPathSample): FlightPathSample {
     const clampedDist = Math.max(0, Math.min(actualTotalLength, dist))
     const progressFrac = actualTotalLength > 0 ? clampedDist / actualTotalLength : 0
     const profileS = progressFrac * S
@@ -356,13 +356,21 @@ export function createFlightTrajectory(waypoints: GisWaypoint[]) {
     const pA = full3DPositions[idx]
     const pB = full3DPositions[idx + 1]
 
-    const position = Cartesian3.lerp(pA, pB, t, new Cartesian3())
+    const position = Cartesian3.lerp(pA, pB, t, result?.position ?? new Cartesian3())
 
     // 基于节点平滑切线进行 C1 连续球面/线性过渡，彻底消除分段突变
     const tanA = full3DTangents[idx]
     const tanB = full3DTangents[idx + 1]
-    const forwardDir = Cartesian3.lerp(tanA, tanB, t, new Cartesian3())
+    const forwardDir = Cartesian3.lerp(tanA, tanB, t, result?.forwardDir ?? new Cartesian3())
     Cartesian3.normalize(forwardDir, forwardDir)
+
+    if (result) {
+      result.altitudeMeters = profile.altitude
+      result.pitchDeg = profile.pitchDeg
+      result.phase = profile.phase
+      result.targetSpeedKmh = profile.targetSpeedKmh
+      return result
+    }
 
     return {
       position,
@@ -441,7 +449,7 @@ export function createGroundTrajectory(waypoints: GisWaypoint[]) {
     groundTangents.push(tan)
   }
 
-  function sampleAtDistance(dist: number): GroundPathSample {
+  function sampleAtDistance(dist: number, result?: GroundPathSample): GroundPathSample {
     const clampedDist = Math.max(0, Math.min(totalDistance, dist))
 
     let low = 0
@@ -464,13 +472,17 @@ export function createGroundTrajectory(waypoints: GisWaypoint[]) {
     const pA = positions[idx]
     const pB = positions[idx + 1]
 
-    const position = Cartesian3.lerp(pA, pB, t, new Cartesian3())
+    const position = Cartesian3.lerp(pA, pB, t, result?.position ?? new Cartesian3())
 
     // 平滑插值切线矢量，消除地面每 10 米阶跃抖动
     const tanA = groundTangents[idx]
     const tanB = groundTangents[idx + 1]
-    const forwardDir = Cartesian3.lerp(tanA, tanB, t, new Cartesian3())
+    const forwardDir = Cartesian3.lerp(tanA, tanB, t, result?.forwardDir ?? new Cartesian3())
     Cartesian3.normalize(forwardDir, forwardDir)
+
+    if (result) {
+      return result
+    }
 
     return {
       position,

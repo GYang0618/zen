@@ -23,6 +23,7 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
       useSingleEndpoint={false}
       headers={headers}
       a2ui={{ catalog }}
+      enableInspector={false}
     >
       <CopilotRuntimeRegistrations />
       <AgentSharedRegistrations />

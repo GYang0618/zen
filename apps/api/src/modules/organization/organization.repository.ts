@@ -3,6 +3,7 @@ import { Inject, Injectable } from '@nestjs/common'
 import { PrismaService } from '../../infra/prisma/prisma.service.js'
 
 import type { Prisma } from '@prisma/client'
+import type { OrganizationStatisticsResponse } from './responses/organization.response.js'
 
 export const ORGANIZATION_INCLUDE = {
   leader: {
@@ -548,5 +549,104 @@ export class OrganizationRepository {
         })
       )
     )
+  }
+
+  async getStatistics(
+    where?: Prisma.OrganizationWhereInput,
+    rootId?: string
+  ): Promise<OrganizationStatisticsResponse> {
+    let scopeWhere: Prisma.OrganizationWhereInput = where ?? {}
+    if (rootId) {
+      const rootOrg = await this.prisma.organization.findUnique({
+        where: { id: rootId },
+        select: { id: true, path: true }
+      })
+      if (rootOrg) {
+        const rootPath = rootOrg.path ? `${rootOrg.path}/` : undefined
+        scopeWhere = {
+          AND: [
+            scopeWhere,
+            {
+              OR: [
+                { id: rootId },
+                ...(rootPath ? [{ path: { startsWith: rootPath } }] : [{ parentId: rootId }])
+              ]
+            }
+          ]
+        }
+      }
+    }
+
+    const [
+      total,
+      typeGroups,
+      rootCount,
+      maxLevelAggregate,
+      hasLeaderCount,
+      noLeaderCount,
+      totalMemberships,
+      emptyOrgCount,
+      topOrgs
+    ] = await Promise.all([
+      this.prisma.organization.count({ where: scopeWhere }),
+      this.prisma.organization.groupBy({ by: ['type'], where: scopeWhere, _count: true }),
+      this.prisma.organization.count({ where: { ...scopeWhere, parentId: null } }),
+      this.prisma.organization.aggregate({ where: scopeWhere, _max: { level: true } }),
+      this.prisma.organization.count({ where: { ...scopeWhere, leaderId: { not: null } } }),
+      this.prisma.organization.count({ where: { ...scopeWhere, leaderId: null } }),
+      this.prisma.userOrganization.count({
+        where: { leftAt: null, organization: scopeWhere }
+      }),
+      this.prisma.organization.count({
+        where: { ...scopeWhere, users: { none: { leftAt: null } } }
+      }),
+      this.prisma.organization.findMany({
+        where: scopeWhere,
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          type: true,
+          _count: {
+            select: {
+              users: { where: { leftAt: null } }
+            }
+          }
+        },
+        orderBy: {
+          users: { _count: 'desc' }
+        },
+        take: 5
+      })
+    ])
+
+    const byType: Record<string, number> = {}
+    for (const g of typeGroups) {
+      byType[g.type.toLowerCase()] = g._count
+    }
+
+    const topOrgsByMembers = topOrgs.map((org) => ({
+      id: org.id,
+      name: org.name,
+      code: org.code,
+      type: org.type.toLowerCase() as OrganizationStatisticsResponse['members']['topOrgsByMembers'][number]['type'],
+      memberCount: org._count.users
+    }))
+
+    return {
+      total,
+      byType,
+      structure: {
+        rootCount,
+        maxDepth: maxLevelAggregate._max.level ?? 1,
+        hasLeaderCount,
+        noLeaderCount
+      },
+      members: {
+        totalMemberships,
+        emptyOrgCount,
+        topOrgsByMembers
+      }
+    }
   }
 }

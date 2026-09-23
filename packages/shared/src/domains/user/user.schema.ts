@@ -315,6 +315,47 @@ export const usersQuerySchema = pageQuerySchema.extend({
 
 export const usersQueryToolSchema = toolCallMetaSchema.extend(usersQuerySchema.shape)
 
+export const userStatisticsQuerySchema = z.object({
+  organizationId: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe('按在职组织 ID 筛选统计范围；不传则统计当前用户有权访问的全部范围')
+})
+
+export const userStatisticsSchema = z.object({
+  total: z.number().int().nonnegative().describe('未删除用户总数'),
+  deletedCount: z.number().int().nonnegative().describe('已软删除用户数'),
+  byStatus: z.object({
+    active: z.number().int().nonnegative().describe('正常可用'),
+    inactive: z.number().int().nonnegative().describe('未完成激活流程'),
+    pending: z.number().int().nonnegative().describe('待审核'),
+    suspended: z.number().int().nonnegative().describe('已停用/禁用')
+  }),
+  byGender: z.object({
+    male: z.number().int().nonnegative().describe('男性'),
+    female: z.number().int().nonnegative().describe('女性'),
+    unknown: z.number().int().nonnegative().describe('未知')
+  }),
+  security: z.object({
+    lockedCount: z.number().int().nonnegative().describe('已锁定账号数'),
+    mfaEnabledCount: z.number().int().nonnegative().describe('已开启多因子认证数'),
+    mustChangePasswordCount: z.number().int().nonnegative().describe('需强制修改密码数')
+  }),
+  assignment: z.object({
+    assignedCount: z.number().int().nonnegative().describe('已分配组织归属用户数'),
+    unassignedCount: z.number().int().nonnegative().describe('未分配组织归属用户数'),
+    noRoleCount: z.number().int().nonnegative().describe('未绑定任何角色用户数')
+  }),
+  recentTrends: z.object({
+    newUsersLast7Days: z.number().int().nonnegative().describe('近 7 天新增用户数'),
+    newUsersLast30Days: z.number().int().nonnegative().describe('近 30 天新增用户数')
+  })
+})
+
+export const userStatisticsToolSchema = toolCallMetaSchema.extend(userStatisticsQuerySchema.shape)
+
 export const usersPageSchema = paged(userListItemSchema)
 
 export function getUserDisplayName(user: {

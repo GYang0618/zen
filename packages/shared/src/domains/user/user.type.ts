@@ -19,6 +19,9 @@ import type {
   userRoleListPreviewSchema,
   userRolePreviewSchema,
   userSchema,
+  userStatisticsQuerySchema,
+  userStatisticsSchema,
+  userStatisticsToolSchema,
   userStatusSchema,
   usersPageSchema,
   usersQuerySchema,
@@ -52,3 +55,6 @@ export type UsersPage = z.infer<typeof usersPageSchema>
 export type UsersSortBy = z.infer<typeof usersSortBySchema>
 export type UsersSortOrder = z.infer<typeof usersSortOrderSchema>
 export type UsersQueryTool = z.input<typeof usersQueryToolSchema>
+export type UserStatisticsResponse = z.infer<typeof userStatisticsSchema>
+export type UserStatisticsQuery = z.input<typeof userStatisticsQuerySchema>
+export type UserStatisticsTool = z.input<typeof userStatisticsToolSchema>

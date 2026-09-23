@@ -6,6 +6,7 @@ import {
   replaceUserOrganizationsSchema,
   updateUserSchema,
   updateUsersStatusSchema,
+  userStatisticsToolSchema,
   usersQueryToolSchema
 } from '@zen/shared'
 import { tool } from 'langchain'
@@ -19,6 +20,7 @@ import {
   userControllerCreate,
   userControllerFindAll,
   userControllerFindOne,
+  userControllerGetStatistics,
   userControllerRemoveMany,
   userControllerReplaceOrganizations,
   userControllerRestoreMany,
@@ -200,8 +202,28 @@ export const deleteUsersTool = tool(
   }
 )
 
+export const getUserStatisticsTool = tool(
+  async (input, config) => {
+    const { meta: _meta, ...query } = input
+    return executeApiCall(config, async (_context) =>
+      userControllerGetStatistics({
+        query
+      })
+    )
+  },
+  {
+    name: 'query_user_statistics',
+    description:
+      '查询用户多维度聚合统计数据（未删除总数、软删除数、状态分布、性别分布、账号锁定/MFA安全状况、组织与角色归属覆盖率及近 7/30 天新增趋势）。' +
+      '生成人员报表、账号状态概况、安全审计报表时优先使用本工具，严禁多次翻页遍历 query_users_list 手动累加。' +
+      '可传 organizationId 按特定组织筛选统计范围。',
+    schema: userStatisticsToolSchema
+  }
+)
+
 export const userTools = [
   getUsersTool,
+  getUserStatisticsTool,
   createUserTool,
   getUserTool,
   updateUserTool,

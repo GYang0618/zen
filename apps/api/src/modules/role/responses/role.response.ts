@@ -77,3 +77,5 @@ export type PermissionGroupResponse = {
   module: string
   permissions: PermissionResponse[]
 }
+
+export type { RoleStatisticsResponse } from '@zen/shared'

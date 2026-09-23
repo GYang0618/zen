@@ -66,6 +66,7 @@ import type {
   FindOrganizationsQueryDto,
   MergeOrganizationDto,
   OrganizationActivitiesQueryDto,
+  OrganizationStatisticsQueryDto,
   OrganizationTreeQueryDto,
   UpdateOrganizationDto,
   UpdateOrganizationLeaderDto,
@@ -78,6 +79,7 @@ import type {
   OrganizationListResponse,
   OrganizationMemberResponse,
   OrganizationResponse,
+  OrganizationStatisticsResponse,
   OrganizationTreeResponse,
   PositionResponse
 } from './responses/organization.response.js'
@@ -239,6 +241,14 @@ export class OrganizationService {
       pagination: page.pagination,
       items: page.items.map(toOrganizationResponse)
     }
+  }
+
+  async getStatistics(
+    auth: AuthContext,
+    query?: OrganizationStatisticsQueryDto
+  ): Promise<OrganizationStatisticsResponse> {
+    const scopeWhere = this.scope(auth)
+    return this.orgRepo.getStatistics(scopeWhere, query?.rootId)
   }
 
   async getTree(

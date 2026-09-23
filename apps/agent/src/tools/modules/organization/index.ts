@@ -7,6 +7,7 @@ import {
   linkOrganizationPositionSchema,
   mergeOrganizationSchema,
   organizationActivitiesQuerySchema,
+  organizationStatisticsToolSchema,
   organizationsQueryToolSchema,
   organizationTreeQueryToolSchema,
   updateOrganizationLeaderSchema,
@@ -29,6 +30,7 @@ import {
   organizationControllerDissolve,
   organizationControllerFindAll,
   organizationControllerFindOne,
+  organizationControllerGetStatistics,
   organizationControllerGetTree,
   organizationControllerGetTypeCatalog,
   organizationControllerListActivities,
@@ -442,9 +444,29 @@ export const listOrganizationActivitiesTool = tool(
   }
 )
 
+export const getOrganizationStatisticsTool = tool(
+  async (input, config) => {
+    const { meta: _meta, ...query } = input
+    return executeApiCall(config, async (_context) =>
+      organizationControllerGetStatistics({
+        query
+      })
+    )
+  },
+  {
+    name: 'query_organization_statistics',
+    description:
+      '查询组织架构多维度聚合统计数据（组织节点总数、各类型分布、根组织与最大层级深度、负责人健全度、无成员组织数及直属人数排名前 5 的部门）。' +
+      '生成组织架构分析、部门盘点报表时优先使用本工具，严禁多次翻页遍历 query_organizations_list 手动累加。' +
+      '可传 rootId 按特定根节点筛选子树范围。',
+    schema: organizationStatisticsToolSchema
+  }
+)
+
 export const organizationTools = [
   getOrganizationTreeTool,
   queryOrganizationsListTool,
+  getOrganizationStatisticsTool,
   getOrganizationTypeCatalogTool,
   updateOrganizationTypeCatalogTool,
   createOrganizationTool,

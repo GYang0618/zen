@@ -4,6 +4,7 @@ import { ROLE_MEMBER_PREVIEW_LIMIT } from '@zen/shared'
 import { PrismaService } from '../../infra/prisma/prisma.service.js'
 
 import type { Prisma } from '@prisma/client'
+import type { RoleStatisticsResponse } from './responses/role.response.js'
 
 export const ROLE_INCLUDE = {
   permissions: {
@@ -210,5 +211,110 @@ export class RoleRepository {
         customOrgIds: { has: orgId }
       }
     })
+  }
+
+  async getStatistics(): Promise<RoleStatisticsResponse> {
+    const now = new Date()
+    const [
+      total,
+      kindGroups,
+      statusGroups,
+      expired,
+      dataScopeGroups,
+      assignedUserTotal,
+      emptyRoleCount,
+      topRoleRecords
+    ] = await Promise.all([
+      this.prisma.role.count(),
+      this.prisma.role.groupBy({ by: ['kind'], _count: true }),
+      this.prisma.role.groupBy({ by: ['status'], _count: true }),
+      this.prisma.role.count({
+        where: {
+          expiresAt: { lte: now }
+        }
+      }),
+      this.prisma.role.groupBy({ by: ['dataScope'], _count: true }),
+      this.prisma.user.count({
+        where: {
+          deletedAt: null,
+          roles: { some: {} }
+        }
+      }),
+      this.prisma.role.count({
+        where: {
+          users: { none: {} }
+        }
+      }),
+      this.prisma.role.findMany({
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          _count: {
+            select: { users: true }
+          }
+        },
+        orderBy: {
+          users: { _count: 'desc' }
+        },
+        take: 5
+      })
+    ])
+
+    const byKind = {
+      system: 0,
+      custom: 0
+    }
+    for (const g of kindGroups) {
+      const key = g.kind.toLowerCase() as keyof typeof byKind
+      if (key in byKind) {
+        byKind[key] = g._count
+      }
+    }
+
+    const byStatus = {
+      active: 0,
+      disabled: 0,
+      expired
+    }
+    for (const g of statusGroups) {
+      const key = g.status.toLowerCase() as 'active' | 'disabled'
+      if (key in byStatus) {
+        byStatus[key] = g._count
+      }
+    }
+
+    const byDataScope = {
+      all: 0,
+      organization: 0,
+      organization_only: 0,
+      self: 0,
+      custom: 0
+    }
+    for (const g of dataScopeGroups) {
+      const key = g.dataScope.toLowerCase() as keyof typeof byDataScope
+      if (key in byDataScope) {
+        byDataScope[key] = g._count
+      }
+    }
+
+    const topRoles = topRoleRecords.map((r) => ({
+      id: r.id,
+      name: r.name,
+      code: r.code,
+      userCount: r._count.users
+    }))
+
+    return {
+      total,
+      byKind,
+      byStatus,
+      byDataScope,
+      binding: {
+        assignedUserTotal,
+        emptyRoleCount,
+        topRoles
+      }
+    }
   }
 }

@@ -13,11 +13,7 @@ import type {
   UserRolePreview,
   UserStatus
 } from '@zen/shared'
-import type {
-  RoleInfoResponse,
-  UserInfoResponse,
-  UserTheme
-} from './responses/user.response.js'
+import type { RoleInfoResponse, UserInfoResponse, UserTheme } from './responses/user.response.js'
 import type {
   UserBasicInfo,
   UserListWithDomain,
@@ -269,9 +265,7 @@ export function toUserListItemResponse(user: UserListWithDomain): UserListItem {
     isLocked: user.isLocked,
     lastActiveAt: audit?.lastActiveAt?.toISOString() ?? null,
     remark: profile?.remark ?? null,
-    roles: primaryRole
-      ? toRoleListPreview([{ ...primaryRole, isPrimary: true }])
-      : [],
+    roles: primaryRole ? toRoleListPreview([{ ...primaryRole, isPrimary: true }]) : [],
     organizations: primaryOrg
       ? [
           {
