@@ -12,7 +12,7 @@ import { formatCoordinates } from '../lib/geo-utils'
 import { useGisStore } from '../stores/gis'
 import { useGisRoamStore } from '../stores/gis-roam'
 
-import type { Cartesian2 } from 'cesium'
+import type { Cartesian2, Cartesian3 } from 'cesium'
 
 export function SceneInteraction() {
   const { viewer } = useCesium()
@@ -24,23 +24,15 @@ export function SceneInteraction() {
   const roamPhase = useGisRoamStore((state) => state.phase)
   const addWaypoint = useGisRoamStore((state) => state.addWaypoint)
 
-  // 鼠标光标状态管理：激活标记或拾取时显示 crosshair（加号）
+  // 鼠标光标状态管理：保持默认标准指针样式，避免十字加号突兀感
   useEffect(() => {
     const canvas = viewer.canvas
     if (!canvas) return
-
-    const isCrosshair =
-      activeTool === 'marker' || activeTool === 'picker' || roamPhase === 'picking'
-    if (isCrosshair) {
-      canvas.style.cursor = 'crosshair'
-    } else {
-      canvas.style.cursor = 'default'
-    }
-
+    canvas.style.cursor = 'default'
     return () => {
       canvas.style.cursor = 'default'
     }
-  }, [viewer, activeTool, roamPhase])
+  }, [viewer])
 
   // ESC 键退出激活模式
   useEffect(() => {
@@ -66,10 +58,19 @@ export function SceneInteraction() {
         return
       }
 
-      // 优先拾取场景表面精确交点，未命中则拾取地球椭球体
-      const cartesian =
-        scene.pickPosition(movement.position) ??
-        viewer.camera.pickEllipsoid(movement.position, scene.globe.ellipsoid)
+      // 优先拾取场景表面精确交点（安全捕获深度缓冲），未命中则拾取地球椭球体
+      let cartesian: Cartesian3 | undefined
+      try {
+        if (scene.pickPositionSupported) {
+          cartesian = scene.pickPosition(movement.position)
+        }
+      } catch {
+        // 捕获可能抛出的深度纹理读取异常，继续走椭球体回退
+      }
+
+      if (!cartesian) {
+        cartesian = viewer.camera.pickEllipsoid(movement.position, scene.globe.ellipsoid)
+      }
 
       if (!cartesian) {
         return
@@ -106,23 +107,30 @@ export function SceneInteraction() {
         return
       }
 
-      // 3. 坐标拾取模式：拾取坐标并自动复制到剪切板
+      // 3. 坐标拾取模式：弹出 Toast 提示并在消息中提供手动复制按钮
       if (activeTool === 'picker') {
         const coordText = `${longitude}, ${latitude}, ${height}`
         const readable = formatCoordinates(longitude, latitude, height)
 
-        if (navigator.clipboard?.writeText) {
-          navigator.clipboard.writeText(coordText).then(
-            () => {
-              toast.success(`坐标已复制到剪切板：${readable}`)
-            },
-            () => {
-              toast.info(`拾取坐标：${readable}`)
+        toast.info(`已拾取坐标：${readable}`, {
+          description: `经度: ${longitude}° | 纬度: ${latitude}° | 高程: ${height}m`,
+          action: {
+            label: '复制坐标',
+            onClick: () => {
+              if (navigator.clipboard?.writeText) {
+                navigator.clipboard.writeText(coordText).then(
+                  () => {
+                    toast.success(`已复制到剪切板：${coordText}`)
+                  },
+                  () => {
+                    toast.error('复制失败，请检查浏览器权限')
+                  }
+                )
+              }
             }
-          )
-        } else {
-          toast.info(`拾取坐标：${readable}`)
-        }
+          },
+          duration: 8000
+        })
       }
     }, ScreenSpaceEventType.LEFT_CLICK)
 

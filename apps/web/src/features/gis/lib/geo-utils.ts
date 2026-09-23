@@ -1,7 +1,15 @@
-import { Cartesian3 } from 'cesium'
+import {
+  BoundingSphere,
+  Cartesian3,
+  Cartographic,
+  Math as CesiumMath,
+  EllipsoidGeodesic,
+  HeadingPitchRange
+} from 'cesium'
 
 import { GIS_ROAM_THRESHOLDS } from '../constants'
 
+import type { Viewer } from 'cesium'
 import type { GisRoamVehicle, GisWaypoint } from '../stores/gis-roam'
 
 /**
@@ -88,6 +96,48 @@ export function toCartesian3(waypoint: GisWaypoint, altitudeOffset = 0): Cartesi
 }
 
 /**
+ * 沿地球椭球测地线（大圆弧）进行等高密集插值采样，
+ * 消除远距离直线割线造成的穿地/凹陷，保证航路点与空中轨迹线高度 100% 绝对一致
+ */
+export function sampleGeodesicPath(
+  waypoints: GisWaypoint[],
+  fixedAltitudeMeters: number,
+  maxStepMeters = 1000
+): Cartesian3[] {
+  if (waypoints.length < 2) return []
+
+  const result: Cartesian3[] = []
+
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    const startWp = waypoints[i]
+    const endWp = waypoints[i + 1]
+
+    const startCarto = Cartographic.fromDegrees(
+      startWp.longitude,
+      startWp.latitude,
+      fixedAltitudeMeters
+    )
+    const endCarto = Cartographic.fromDegrees(endWp.longitude, endWp.latitude, fixedAltitudeMeters)
+
+    const geodesic = new EllipsoidGeodesic(startCarto, endCarto)
+    const distance = geodesic.surfaceDistance
+
+    // 每段根据步长计算采样段数，至少 1 段
+    const steps = Math.max(1, Math.ceil(distance / maxStepMeters))
+
+    // 仅第一段从 0 开始推入，后续段从 1 开始推入以避免连续段的端点重复
+    const startStep = i === 0 ? 0 : 1
+    for (let s = startStep; s <= steps; s++) {
+      const fraction = s / steps
+      const carto = geodesic.interpolateUsingFraction(fraction, new Cartographic())
+      result.push(Cartesian3.fromRadians(carto.longitude, carto.latitude, fixedAltitudeMeters))
+    }
+  }
+
+  return result
+}
+
+/**
  * 格式化漫游预计剩余到达时间
  * 示例：
  * - 10s后到达
@@ -118,4 +168,19 @@ export function formatEstimatedArrivalTime(seconds: number): string {
     return `${hours}小时后到达`
   }
   return `${hours}小时${remMinutes}分钟后到达`
+}
+
+/**
+ * 平滑飞向并聚焦指定标记点位
+ */
+export function flyToMarker(
+  viewer: Viewer,
+  marker: { longitude: number; latitude: number; height?: number }
+) {
+  const target = Cartesian3.fromDegrees(marker.longitude, marker.latitude, marker.height ?? 0)
+  const sphere = new BoundingSphere(target, 120)
+  viewer.camera.flyToBoundingSphere(sphere, {
+    offset: new HeadingPitchRange(viewer.camera.heading, CesiumMath.toRadians(-40), 450),
+    duration: 1.2
+  })
 }

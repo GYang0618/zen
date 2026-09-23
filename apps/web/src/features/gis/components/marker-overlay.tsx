@@ -4,6 +4,7 @@ import { MapPin, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { useCesium } from '../cesium-provider'
+import { flyToMarker } from '../lib/geo-utils'
 import { useGisStore } from '../stores/gis'
 
 import type { GisMarker } from '../stores/gis'
@@ -18,15 +19,26 @@ function MarkerItem({
   marker,
   pos,
   onUpdateName,
-  onRemove
+  onRemove,
+  onLocate
 }: {
   marker: GisMarker
   pos: ScreenPos
   onUpdateName: (id: string, name: string) => void
   onRemove: (id: string) => void
+  onLocate: (marker: GisMarker) => void
 }) {
   const [isEditing, setIsEditing] = useState(false)
   const [tempName, setTempName] = useState(marker.name)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
+      }
+    }
+  }, [])
 
   const handleSubmit = () => {
     const trimmed = tempName.trim()
@@ -47,6 +59,31 @@ function MarkerItem({
     }
   }
 
+  const handleClickLabel = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (isEditing) return
+
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+
+    timerRef.current = setTimeout(() => {
+      onLocate(marker)
+      timerRef.current = null
+    }, 220)
+  }
+
+  const handleDoubleClickLabel = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+    setTempName(marker.name)
+    setIsEditing(true)
+  }
+
   if (!pos.visible) return null
 
   return (
@@ -58,57 +95,84 @@ function MarkerItem({
       }}
     >
       <div className="group flex flex-col items-center">
-        {/* 标签主体 */}
-        <div className="flex items-center gap-1.5 rounded-full border border-white/30 bg-background/85 px-2.5 py-1 text-xs font-medium text-foreground shadow-lg backdrop-blur-md transition-transform hover:scale-105 dark:border-white/10 dark:bg-background/80">
-          <MapPin className="size-3.5 shrink-0 text-primary" aria-hidden />
+        {/* 1. 高端毛玻璃科技 HUD 标签卡片 */}
+        <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-background/85 px-3 py-1.5 text-xs text-foreground shadow-[0_4px_20px_rgba(0,0,0,0.18),0_0_12px_rgba(56,189,248,0.2)] backdrop-blur-md transition-all hover:scale-105 hover:border-primary/60 hover:shadow-[0_4px_24px_rgba(0,0,0,0.25),0_0_18px_rgba(56,189,248,0.35)] dark:border-primary/40 dark:bg-zinc-950/85">
+          {/* 左侧发光定位 Pin 按钮 */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              onLocate(marker)
+            }}
+            title="点击快速定位到此点位"
+            className="flex size-5 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary hover:bg-primary/25 transition-colors focus:outline-none"
+          >
+            <MapPin className="size-3.5" aria-hidden />
+          </button>
 
-          {isEditing ? (
-            <Input
-              autoFocus
-              value={tempName}
-              onChange={(e) => setTempName(e.target.value)}
-              onBlur={handleSubmit}
-              onKeyDown={handleKeyDown}
-              className="h-5 w-24 border-primary/50 bg-background px-1 py-0 text-xs focus-visible:ring-1"
-            />
-          ) : (
-            <span
-              role="button"
-              tabIndex={0}
-              onDoubleClick={() => {
-                setTempName(marker.name)
-                setIsEditing(true)
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  setTempName(marker.name)
-                  setIsEditing(true)
-                }
-              }}
-              title="双击修改名称"
-              className="cursor-pointer truncate max-w-[120px] hover:text-primary transition-colors focus:outline-none"
-            >
-              {marker.name}
+          {/* 中部名称与微型坐标展示 */}
+          <div className="flex flex-col min-w-0 pr-1">
+            {isEditing ? (
+              <Input
+                autoFocus
+                value={tempName}
+                onChange={(e) => setTempName(e.target.value)}
+                onBlur={handleSubmit}
+                onKeyDown={handleKeyDown}
+                className="h-5 w-28 border-primary/50 bg-background px-1.5 py-0 text-xs focus-visible:ring-1"
+              />
+            ) : (
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={handleClickLabel}
+                onDoubleClick={handleDoubleClickLabel}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    setTempName(marker.name)
+                    setIsEditing(true)
+                  } else if (e.key === ' ') {
+                    onLocate(marker)
+                  }
+                }}
+                title="单击定位到该点位，双击修改名称"
+                className="max-w-32.5 truncate font-semibold text-xs text-foreground hover:text-primary transition-colors cursor-pointer focus:outline-none"
+              >
+                {marker.name}
+              </span>
+            )}
+            <span className="font-mono text-[9px] text-muted-foreground/80 leading-tight">
+              {marker.longitude.toFixed(4)}°, {marker.latitude.toFixed(4)}°
             </span>
-          )}
+          </div>
 
-          {/* 移除按钮 */}
+          {/* 右侧删除按钮（悬停浮现） */}
           <Button
             type="button"
             variant="ghost"
             size="icon-xs"
-            onClick={() => onRemove(marker.id)}
+            onClick={(e) => {
+              e.stopPropagation()
+              onRemove(marker.id)
+            }}
             title="删除此标记"
-            className="size-4 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+            className="size-4.5 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
           >
             <Trash2 className="size-3" />
           </Button>
         </div>
 
-        {/* 下方针尖指示小三角与脉冲点 */}
-        <div className="relative -mt-0.5 flex flex-col items-center">
-          <div className="size-0 border-x-4 border-x-transparent border-t-[6px] border-t-background/85 dark:border-t-background/80" />
-          <div className="size-1.5 rounded-full bg-primary ring-2 ring-background ring-offset-1 ring-offset-primary/30" />
+        {/* 2. 垂直发光引线针（连接 HUD 标签与地表锚点） */}
+        <div className="h-6 w-0.5 bg-linear-to-t from-primary via-primary/75 to-primary/25 shadow-[0_0_8px_var(--color-primary)]" />
+
+        {/* 3. 地表接触点动态涟漪脉冲光圈（消除浮空感，紧扣地面） */}
+        <div className="relative flex items-center justify-center">
+          {/* 动态扩散光环 */}
+          <span className="absolute size-4.5 rounded-full bg-primary/30 animate-ping opacity-75" />
+          {/* 静态微光外圈 */}
+          <span className="absolute size-3.5 rounded-full border border-primary/60 bg-primary/20 shadow-[0_0_8px_var(--color-primary)]" />
+          {/* 地面接触核心光核 */}
+          <span className="size-1.5 rounded-full bg-primary ring-2 ring-background shadow" />
         </div>
       </div>
     </div>
@@ -201,6 +265,7 @@ export function MarkerOverlay() {
             pos={pos}
             onUpdateName={updateMarkerName}
             onRemove={removeMarker}
+            onLocate={(m) => flyToMarker(viewer, m)}
           />
         )
       })}

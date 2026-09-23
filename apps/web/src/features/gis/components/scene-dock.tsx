@@ -11,7 +11,9 @@ import {
   TooltipTrigger
 } from '@zen/ui'
 import {
+  Compass,
   Crosshair,
+  Eye,
   Footprints,
   Layers,
   MapPin,
@@ -20,57 +22,94 @@ import {
   Plane,
   Play,
   Plus,
+  RotateCcw,
   Square,
   Timer,
   Trash2,
+  Video,
   X
 } from 'lucide-react'
 import { useEffect } from 'react'
+import { toast } from 'sonner'
 
-import { formatCoordinates, formatDistance, formatEstimatedArrivalTime } from '../lib/geo-utils'
+import { useCesium } from '../cesium-provider'
+import {
+  flyToMarker,
+  formatCoordinates,
+  formatDistance,
+  formatEstimatedArrivalTime
+} from '../lib/geo-utils'
 import { useGisStore } from '../stores/gis'
 import { useGisRoamStore } from '../stores/gis-roam'
 
 import type { GisToolType } from '../stores/gis'
 
 export function SceneDock() {
+  const { viewer } = useCesium()
   const activeTool = useGisStore((state) => state.activeTool)
   const setActiveTool = useGisStore((state) => state.setActiveTool)
   const markers = useGisStore((state) => state.markers)
   const removeMarker = useGisStore((state) => state.removeMarker)
   const clearMarkers = useGisStore((state) => state.clearMarkers)
 
-  const roamPhase = useGisRoamStore((state) => state.phase)
+  const phase = useGisRoamStore((state) => state.phase)
   const vehicleType = useGisRoamStore((state) => state.vehicleType)
+  const viewMode = useGisRoamStore((state) => state.viewMode)
+  const speedMultiplier = useGisRoamStore((state) => state.speedMultiplier)
   const totalDistanceMeters = useGisRoamStore((state) => state.totalDistanceMeters)
+  const remainingRealSeconds = useGisRoamStore((state) => state.remainingRealSeconds)
+  const roamProgress = useGisRoamStore((state) => state.roamProgress)
   const pauseRoam = useGisRoamStore((state) => state.pauseRoam)
   const resumeRoam = useGisRoamStore((state) => state.resumeRoam)
+  const restartRoam = useGisRoamStore((state) => state.restartRoam)
   const stopRoam = useGisRoamStore((state) => state.stopRoam)
-  const speedMultiplier = useGisRoamStore((state) => state.speedMultiplier)
+  const toggleViewMode = useGisRoamStore((state) => state.toggleViewMode)
   const speedUp = useGisRoamStore((state) => state.speedUp)
   const speedDown = useGisRoamStore((state) => state.speedDown)
   const resetSpeed = useGisRoamStore((state) => state.resetSpeed)
-  const remainingRealSeconds = useGisRoamStore((state) => state.remainingRealSeconds)
-  const roamProgress = useGisRoamStore((state) => state.roamProgress)
 
-  const isRoaming = roamPhase === 'roaming'
-  const isPaused = roamPhase === 'paused'
+  const isRoaming = phase === 'roaming'
+  const isPaused = phase === 'paused'
 
-  // 漫游快捷键：支持 [ 减速、] 加速、\ 重置为 1x
+  // 全局快捷键监听（空格暂停/继续，R 重新开始，V 切换视角，[ ] 倍速调节，\ 恢复原速）
   useEffect(() => {
     if (!isRoaming && !isPaused) return
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === ']' || e.key === '=') {
-        speedUp()
-      } else if (e.key === '[' || e.key === '-') {
+      // 避免在输入框中打字时误触发快捷键
+      const target = e.target as HTMLElement | null
+      if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA') return
+
+      if (e.code === 'Space') {
+        e.preventDefault()
+        if (isRoaming) pauseRoam()
+        else if (isPaused) resumeRoam()
+      } else if (e.key === 'r' || e.key === 'R') {
+        restartRoam()
+        toast.info('已重新开始漫游')
+      } else if (e.key === 'v' || e.key === 'V') {
+        toggleViewMode()
+      } else if (e.key === '[') {
         speedDown()
+      } else if (e.key === ']') {
+        speedUp()
       } else if (e.key === '\\') {
         resetSpeed()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isRoaming, isPaused, speedUp, speedDown, resetSpeed])
+  }, [
+    isRoaming,
+    isPaused,
+    toggleViewMode,
+    speedUp,
+    speedDown,
+    resetSpeed,
+    pauseRoam,
+    resumeRoam,
+    restartRoam
+  ])
 
   const toggleTool = (tool: GisToolType) => {
     if (activeTool === tool) {
@@ -84,7 +123,7 @@ export function SceneDock() {
     <TooltipProvider delay={150}>
       <div className="pointer-events-auto absolute bottom-6 left-1/2 z-20 -translate-x-1/2 select-none">
         {/* iOS 27 超轻奢未来毛玻璃药丸 Dock 容器 */}
-        <div className="relative flex items-center gap-1.5 rounded-full border border-white/30 bg-background/65 px-3 py-2 shadow-[0_16px_40px_0_rgba(0,0,0,0.18)] backdrop-blur-2xl transition-all duration-300 dark:border-white/10 dark:bg-background/45 dark:shadow-[0_20px_50px_0_rgba(0,0,0,0.55)] before:pointer-events-none before:absolute before:inset-x-6 before:top-0 before:h-[1px] before:bg-gradient-to-r before:from-transparent before:via-white/60 before:to-transparent">
+        <div className="relative flex items-center gap-1.5 rounded-full border border-white/30 bg-background/65 px-3 py-2 shadow-[0_16px_40px_0_rgba(0,0,0,0.18)] backdrop-blur-2xl transition-all duration-300 dark:border-white/10 dark:bg-background/45 dark:shadow-[0_20px_50px_0_rgba(0,0,0,0.55)] before:pointer-events-none before:absolute before:inset-x-6 before:top-0 before:h-px before:bg-linear-to-r before:from-transparent before:via-white/60 before:to-transparent">
           {/* 1. 标记工具 */}
           <Tooltip>
             <TooltipTrigger
@@ -113,7 +152,7 @@ export function SceneDock() {
             <TooltipContent side="top" className="text-xs">
               {activeTool === 'marker'
                 ? '已激活：点击地图打点，双击标签改名（按 Esc 或再点按钮退出）'
-                : '激活标记工具：鼠标变加号，在地图上放置标记点'}
+                : '激活标记工具：在地图上点击放置标记点'}
             </TooltipContent>
           </Tooltip>
 
@@ -144,8 +183,8 @@ export function SceneDock() {
             </TooltipTrigger>
             <TooltipContent side="top" className="text-xs">
               {activeTool === 'picker'
-                ? '已激活：点击地图拾取坐标并自动复制剪切板'
-                : '激活坐标拾取：点击地图拾取经纬度并复制'}
+                ? '已激活：点击地图拾取坐标，在提示框中可手动复制'
+                : '激活坐标拾取：点击地图拾取经纬度并在提示中复制'}
             </TooltipContent>
           </Tooltip>
 
@@ -210,21 +249,27 @@ export function SceneDock() {
                   {markers.map((marker, index) => (
                     <li
                       key={marker.id}
-                      className="flex items-center justify-between rounded-xl border border-border/50 bg-muted/40 px-2.5 py-1.5"
+                      className="group flex items-center justify-between rounded-xl border border-border/50 bg-muted/40 px-2.5 py-1.5 transition-colors hover:bg-muted/70"
                     >
-                      <div className="flex flex-col overflow-hidden pr-2">
-                        <span className="truncate font-medium text-foreground">
+                      <button
+                        type="button"
+                        onClick={() => flyToMarker(viewer, marker)}
+                        title="点击定位到该点位"
+                        className="flex flex-1 flex-col overflow-hidden pr-2 text-left focus:outline-none"
+                      >
+                        <span className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
                           {index + 1}. {marker.name}
                         </span>
                         <span className="truncate font-mono text-[10px] text-muted-foreground">
                           {formatCoordinates(marker.longitude, marker.latitude, marker.height)}
                         </span>
-                      </div>
+                      </button>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon-xs"
                         onClick={() => removeMarker(marker.id)}
+                        title="删除此标记"
                         className="size-5 shrink-0 text-muted-foreground hover:text-destructive"
                       >
                         <X className="size-3" />
@@ -270,6 +315,45 @@ export function SceneDock() {
                   </div>
                 )}
 
+                {/* 视角切换（第一人称 / 第三人称 / 自由视角） */}
+                <div className="ml-1 flex items-center border-l border-primary/25 pl-1.5">
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={toggleViewMode}
+                          className="h-6 rounded-full px-2 text-[10px] font-medium text-primary hover:bg-primary/20"
+                        />
+                      }
+                    >
+                      {viewMode === 'first_person' ? (
+                        <Eye className="mr-1 size-3" />
+                      ) : viewMode === 'third_person' ? (
+                        <Video className="mr-1 size-3" />
+                      ) : (
+                        <Compass className="mr-1 size-3" />
+                      )}
+                      <span>
+                        {viewMode === 'first_person'
+                          ? '第一人称'
+                          : viewMode === 'third_person'
+                            ? '第三人称'
+                            : '自由视角'}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">
+                      {viewMode === 'first_person'
+                        ? '当前为第一人称主观视角（前方露出车头/机头）。点击或按键盘 V 键切换为第三人称跟随视角'
+                        : viewMode === 'third_person'
+                          ? '当前为第三人称跟随视角。点击或按键盘 V 键切换为自由俯视视角'
+                          : '当前为自由视角（默认鸟瞰俯视，可使用鼠标随意旋转缩放拖拽）。点击或按键盘 V 键切换为第一人称视角'}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+
                 {/* 实时倍速调节 */}
                 <div className="ml-1 flex items-center gap-0.5 border-l border-primary/25 pl-1.5">
                   <Button
@@ -313,7 +397,7 @@ export function SceneDock() {
                       variant="ghost"
                       size="icon-xs"
                       onClick={pauseRoam}
-                      title="暂停漫游"
+                      title="暂停漫游（快捷键 空格）"
                       className="size-5 p-0 hover:bg-primary/20"
                     >
                       <Pause className="size-3" />
@@ -324,12 +408,26 @@ export function SceneDock() {
                       variant="ghost"
                       size="icon-xs"
                       onClick={resumeRoam}
-                      title="继续漫游"
+                      title="继续漫游（快捷键 空格）"
                       className="size-5 p-0 hover:bg-primary/20"
                     >
                       <Play className="size-3" />
                     </Button>
                   )}
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() => {
+                      restartRoam()
+                      toast.info('已重新开始漫游')
+                    }}
+                    title="重新开始漫游（从起点播放，快捷键 R）"
+                    className="size-5 p-0 hover:bg-primary/20 text-primary"
+                  >
+                    <RotateCcw className="size-3" />
+                  </Button>
 
                   <Button
                     type="button"
@@ -344,7 +442,7 @@ export function SceneDock() {
                 </div>
 
                 {/* 漫游细微进度条 */}
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-primary/20">
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-primary/20">
                   <div
                     className="h-full bg-primary transition-all duration-300 ease-out shadow-[0_0_6px_rgba(var(--primary),0.8)]"
                     style={{ width: `${Math.round(roamProgress * 100)}%` }}

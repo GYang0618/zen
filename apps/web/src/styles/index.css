@@ -12,6 +12,14 @@
   --primary-foreground: inherit;
 }
 
+/*
+ * CopilotKit 给 [data-copilotkit] 写了 background-color: var(--background)。
+ * Popup 外壳与内层同尺寸且无圆角，白底会从内层 md:rounded-2xl 的圆角外露出直角。
+ */
+div[data-copilotkit]:has([data-copilot-popup]) {
+  background-color: transparent;
+}
+
 @media (min-width: 768px) {
   /* 确保桌面端 CopilotPopup 容器相对于小宠物位置动态停靠 */
   div[data-copilotkit].cpk\:fixed.cpk\:z-\[1200\],

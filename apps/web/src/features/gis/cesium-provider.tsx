@@ -1,18 +1,29 @@
 import {
   ArcGisMapServerImageryProvider,
   Cartesian3,
+  Math as CesiumMath,
   Color,
+  EasingFunction,
   ImageryLayer,
   Ion,
   OpenStreetMapImageryProvider,
-  Viewer
+  Terrain,
+  Viewer,
+  WebMapTileServiceImageryProvider
 } from 'cesium'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
 import { SceneLoading } from './components/scene-loading'
-import { CESIUM_DEFAULT_TOKEN } from './constants'
+import {
+  CESIUM_DEFAULT_TOKEN,
+  GIS_GLOBAL_OVERVIEW_VIEW,
+  GIS_INITIAL_VIEW,
+  TIANDITU_SUBDOMAINS,
+  TIANDITU_TOKEN,
+  TIANDITU_WMTS_URLS
+} from './constants'
 
 Ion.defaultAccessToken = CESIUM_DEFAULT_TOKEN
 
@@ -27,7 +38,8 @@ const DEFAULT_VIEWER_OPTIONS: Viewer.ConstructorOptions = {
   navigationHelpButton: false,
   infoBox: false,
   selectionIndicator: false,
-  baseLayer: false // 禁用默认的 Bing Maps 请求（已退役且国内无法直连），由 setupBaseLayer 统一管理
+  baseLayerPicker: false, // 禁用地图选择器/pick器 (BaseLayerPicker)
+  baseLayer: false // 关闭默认底图，由 setupBaseLayer 统一接入天地图
 }
 
 export type CesiumContextValue = {
@@ -43,10 +55,41 @@ type CesiumProviderProps = {
 }
 
 /**
- * 异步初始化高可用全球影像底图
- * 优先采用免 Token、全球高速 CDN 的 ArcGIS 卫星影像；若失败自动降级为 OpenStreetMap
+ * 异步初始化天地图高可用全球影像底图及注记图层
+ * 优先采用国家地理信息公共服务平台（天地图）WMTS 影像及注记；若失败自动降级为 ArcGIS/OSM
  */
 async function setupBaseLayer(viewer: Viewer) {
+  try {
+    const imgProvider = new WebMapTileServiceImageryProvider({
+      url: `${TIANDITU_WMTS_URLS.imagery}?service=wmts&request=GetTile&version=1.0.0&LAYER=img&tileMatrixSet=w&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}&style=default&format=tiles&tk=${TIANDITU_TOKEN}`,
+      layer: 'img',
+      style: 'default',
+      format: 'tiles',
+      tileMatrixSetID: 'w',
+      subdomains: [...TIANDITU_SUBDOMAINS],
+      maximumLevel: 18
+    })
+
+    const ciaProvider = new WebMapTileServiceImageryProvider({
+      url: `${TIANDITU_WMTS_URLS.annotation}?service=wmts&request=GetTile&version=1.0.0&LAYER=cia&tileMatrixSet=w&TileMatrix={TileMatrix}&TileRow={TileRow}&TileCol={TileCol}&style=default&format=tiles&tk=${TIANDITU_TOKEN}`,
+      layer: 'cia',
+      style: 'default',
+      format: 'tiles',
+      tileMatrixSetID: 'w',
+      subdomains: [...TIANDITU_SUBDOMAINS],
+      maximumLevel: 18
+    })
+
+    if (!viewer.isDestroyed()) {
+      viewer.imageryLayers.removeAll()
+      viewer.imageryLayers.add(new ImageryLayer(imgProvider))
+      viewer.imageryLayers.add(new ImageryLayer(ciaProvider))
+      return
+    }
+  } catch (err) {
+    console.warn('[Cesium] 天地图底图加载失败，尝试降级为 ArcGIS 卫星影像:', err)
+  }
+
   try {
     const arcgisProvider = await ArcGisMapServerImageryProvider.fromUrl(
       'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer',
@@ -96,6 +139,10 @@ export function CesiumProvider({ children, options }: CesiumProviderProps) {
 
     const instance = new Viewer(container, {
       ...DEFAULT_VIEWER_OPTIONS,
+      terrain: Terrain.fromWorldTerrain({
+        requestWaterMask: true,
+        requestVertexNormals: true
+      }),
       creditContainer,
       ...optionsRef.current
     })
@@ -106,14 +153,21 @@ export function CesiumProvider({ children, options }: CesiumProviderProps) {
       bottomContainer.style.display = 'none'
     }
 
+    // 启用三维地形深度检测，保证山体起伏遮挡真实准确
+    instance.scene.globe.depthTestAgainstTerrain = true
+
     // 优化地球光照与大气渲染参数，保证地球清晰明亮、不发黑
     instance.scene.globe.baseColor = Color.fromCssColorString('#0f172a')
     instance.scene.globe.enableLighting = false
     instance.scene.globe.showGroundAtmosphere = true
 
-    // 默认视角：俯瞰全景（中国及欧亚大陆中心）
+    // 初始视角：先置于太空全景，等待场景就绪后以 flyTo 平滑俯冲定位至南京
     instance.camera.setView({
-      destination: Cartesian3.fromDegrees(108.5, 34.0, 14000000)
+      destination: Cartesian3.fromDegrees(
+        GIS_GLOBAL_OVERVIEW_VIEW.longitude,
+        GIS_GLOBAL_OVERVIEW_VIEW.latitude,
+        GIS_GLOBAL_OVERVIEW_VIEW.height
+      )
     })
 
     // 异步挂载高可用底图影像
@@ -124,6 +178,24 @@ export function CesiumProvider({ children, options }: CesiumProviderProps) {
     const removePostRender = instance.scene.postRender.addEventListener(() => {
       setIsReady(true)
       removePostRender()
+
+      // 场景首帧渲染就绪后，平滑 flyTo 飞行定位至南京初始视角
+      if (!instance.isDestroyed()) {
+        instance.camera.flyTo({
+          destination: Cartesian3.fromDegrees(
+            GIS_INITIAL_VIEW.longitude,
+            GIS_INITIAL_VIEW.latitude,
+            GIS_INITIAL_VIEW.height
+          ),
+          orientation: {
+            heading: CesiumMath.toRadians(GIS_INITIAL_VIEW.headingDeg),
+            pitch: CesiumMath.toRadians(GIS_INITIAL_VIEW.pitchDeg),
+            roll: CesiumMath.toRadians(GIS_INITIAL_VIEW.rollDeg)
+          },
+          duration: GIS_INITIAL_VIEW.flyDurationSec,
+          easingFunction: EasingFunction.QUADRATIC_IN_OUT
+        })
+      }
     })
 
     return () => {
@@ -131,6 +203,7 @@ export function CesiumProvider({ children, options }: CesiumProviderProps) {
       setIsReady(false)
       setViewer(null)
       if (!instance.isDestroyed()) {
+        instance.camera.cancelFlight()
         instance.destroy()
       }
     }

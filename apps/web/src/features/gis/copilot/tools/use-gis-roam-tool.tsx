@@ -34,6 +34,12 @@ const gisRoamSchema = z.object({
     .optional()
     .describe(
       '漫游载具类型，默认 auto（根据总距离自动推断：<=2km步行、2km~100km车辆、>100km飞机空中漫游）'
+    ),
+  viewMode: z
+    .enum(['first_person', 'third_person'])
+    .optional()
+    .describe(
+      '漫游视角模式：first_person（第一人称主观视角：车辆前行可看车头，飞机可看机头，步行真实模拟步态起伏），third_person（第三人称跟随视角），若省略默认按当前状态或第一人称启动'
     )
 })
 
@@ -51,9 +57,9 @@ export function useGisRoamTool() {
   useFrontendTool({
     name: 'gis_roam',
     description:
-      '启动三维 GIS 场景漫游。优先使用消息中指定的点位或场景中用户已打下的标记点；若未指定且无标记点，将调出拾取面板由用户在地图上点选。工具根据全路径长度自动匹配适用的漫游载具（2km内人物步行贴地、2km~100km车辆巡航贴地、100km以上飞机空中飞行）。',
+      '启动三维 GIS 场景漫游。优先使用消息中指定的点位或场景中用户已打下的标记点；若未指定且无标记点，将调出拾取面板由用户在地图上点选。支持第一人称（沉浸式座舱/车头/机头/步态起伏）与第三人称跟随视角。工具根据全路径长度自动匹配适用的漫游载具（2km内人物步行贴地、2km~100km车辆巡航贴地、100km以上飞机空中飞行）。',
     parameters: gisRoamSchema,
-    handler: async ({ waypoints, vehicle }) => {
+    handler: async ({ waypoints, vehicle, viewMode }) => {
       let path = normalizeWaypoints(waypoints)
 
       // 1. 若参数未提供足够点位，优先使用全局标记点列表
@@ -89,7 +95,8 @@ export function useGisRoamTool() {
       // 4. 启动漫游
       useGisRoamStore.getState().startRoam(path, {
         vehicleType: selectedVehicle,
-        totalDistanceMeters
+        totalDistanceMeters,
+        viewMode
       })
 
       const vehicleLabel =
@@ -99,11 +106,15 @@ export function useGisRoamTool() {
             ? '车辆巡航（贴地）'
             : '飞机飞行（空中）'
 
+      const currentMode = viewMode ?? useGisRoamStore.getState().viewMode
+      const viewModeLabel = currentMode === 'first_person' ? '第一人称' : '第三人称'
+
       return {
         status: 'success',
-        message: `已开始三维漫游。总航程：${formatDistance(totalDistanceMeters)}，航路点：${path.length} 个，匹配载具：${vehicleLabel}。`,
+        message: `已开始三维漫游。视角：${viewModeLabel}，总航程：${formatDistance(totalDistanceMeters)}，航路点：${path.length} 个，匹配载具：${vehicleLabel}。`,
         totalDistance: totalDistanceMeters,
         vehicle: selectedVehicle,
+        viewMode: currentMode,
         waypointsCount: path.length
       }
     },

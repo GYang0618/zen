@@ -1,3 +1,4 @@
+import { ROLE_ICON_COLOR_VALUES } from '@zen/shared'
 import {
   Avatar,
   AvatarFallback,
@@ -23,8 +24,12 @@ import {
 import { statusConfig } from '@/features/system/users/data/data'
 
 import type { RendererProps } from '@copilotkit/a2ui-renderer'
-import type { JobProfileIcon, JobProfileIconColor, RoleIcon } from '@zen/shared'
+import type { JobProfileIcon, JobProfileIconColor, RoleIcon, RoleIconColor } from '@zen/shared'
 import type { IconName } from 'lucide-react/dynamic'
+
+function isRoleIconColor(color: string | null | undefined): color is RoleIconColor {
+  return color != null && ROLE_ICON_COLOR_VALUES.some((value) => value === color)
+}
 
 // 1. UserCard
 export interface A2uiUserCardProps {
@@ -76,7 +81,7 @@ export function UserCard({ props }: RendererProps<A2uiUserCardProps>) {
           </div>
         </div>
         {status ? (
-          <Badge variant={status.variant} className="text-[11px]">
+          <Badge variant="outline" className={cn('text-[11px]', status.className)}>
             {status.label}
           </Badge>
         ) : null}
@@ -141,20 +146,7 @@ export function RoleCard({ props }: RendererProps<A2uiRoleCardProps>) {
     ? roleEffectiveStatusConfig[role.effectiveStatus]
     : undefined
   const iconColorClass = getRoleIconColorClassName(
-    role.iconColor as
-      | 'amber'
-      | 'blue'
-      | 'cyan'
-      | 'emerald'
-      | 'indigo'
-      | 'orange'
-      | 'purple'
-      | 'rose'
-      | 'slate'
-      | 'teal'
-      | 'violet'
-      | null
-      | undefined
+    isRoleIconColor(role.iconColor) ? role.iconColor : undefined
   )
 
   return (
@@ -178,7 +170,7 @@ export function RoleCard({ props }: RendererProps<A2uiRoleCardProps>) {
           </div>
         </div>
         {effectiveStatus ? (
-          <Badge variant={effectiveStatus.variant} className="text-[11px]">
+          <Badge variant="outline" className={cn('text-[11px]', effectiveStatus.className)}>
             {effectiveStatus.label}
           </Badge>
         ) : null}
@@ -252,7 +244,7 @@ export function PostCard({ props }: RendererProps<A2uiPostCardProps>) {
           </div>
         </div>
         {status ? (
-          <Badge variant={status.variant} className="text-[11px]">
+          <Badge variant="outline" className={cn('text-[11px]', status.className)}>
             {status.label}
           </Badge>
         ) : null}

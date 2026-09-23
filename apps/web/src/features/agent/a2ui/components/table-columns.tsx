@@ -1,17 +1,7 @@
 'use no memo'
 
 import { createColumnHelper } from '@tanstack/react-table'
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-  Badge,
-  cn,
-  Progress,
-  ProgressIndicator,
-  ProgressTrack,
-  ProgressValue
-} from '@zen/ui'
+import { Avatar, AvatarFallback, AvatarImage, Badge, cn, Progress } from '@zen/ui'
 import { Calendar, Hash } from 'lucide-react'
 import { DynamicIcon } from 'lucide-react/dynamic'
 
@@ -97,13 +87,9 @@ export function createColumnsFromDefinitions(
           case 'progress': {
             const num = Math.min(100, Math.max(0, Number(value) || 0))
             return (
-              <div className={cn('flex items-center gap-2 min-w-24', alignClass)}>
-                <Progress value={num} className="h-2 w-16">
-                  <ProgressTrack className="h-1.5 w-full">
-                    <ProgressIndicator className="h-full bg-primary" />
-                  </ProgressTrack>
-                </Progress>
-                <ProgressValue className="font-mono text-xs tabular-nums">{num}%</ProgressValue>
+              <div className={cn('flex min-w-24 items-center gap-2', alignClass)}>
+                <Progress value={num} className="w-16" />
+                <span className="font-mono text-xs text-muted-foreground tabular-nums">{num}%</span>
               </div>
             )
           }
