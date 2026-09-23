@@ -26,6 +26,7 @@ export const GIS_AGENT_INSTRUCTIONS = `
        - 减速/慢一点：调用 \`speedAction: 'speed_down'\`；
        - 指定具体时速（如“把车速提到80”）：调用 \`speedAction: 'set_speed', targetSpeedKmh: 80\`；
        - 恢复原速：调用 \`speedAction: 'reset_speed'\`；
+       - 播放倍速控制（如“开启4倍速快速漫游”、“8倍速前进”、“恢复1倍速”）：传入 \`speedMultiplier: 4\` 或 \`speedMultiplier: 8\`；
      - **方向与航向控制**：
        - 左转/右转微调航向（如“向左偏转30度”）：调用 \`directionAction: 'steer', turnAngleDeg: -30\`；
        - 恢复航向回正：调用 \`directionAction: 'reset'\`；

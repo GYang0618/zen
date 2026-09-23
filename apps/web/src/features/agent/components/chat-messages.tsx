@@ -19,7 +19,8 @@ import { Fragment, useMemo } from 'react'
 
 import { useChatAgent } from '../context/chat-agent-context'
 import { useAgentRetry } from '../hooks/use-agent-retry'
-import { A2UI_ACTIVITY_TYPE, isA2UIToolCall } from '../lib/a2ui-tools'
+import { useCanvasGenerationPending } from '../hooks/use-canvas-generation-pending'
+import { A2UI_ACTIVITY_TYPE, isA2UIToolCall, turnHasInProgressA2uiActivity } from '../lib/a2ui-tools'
 import {
   getInlineStandardToolCalls,
   groupMessagesIntoTurns,
@@ -32,7 +33,7 @@ import {
 } from '../lib/group-tool-calls'
 import { useAgentChatInputStore } from '../stores/agent-chat-input'
 import { ChatAssistantActions } from './chat-assistant-actions'
-import { ChatCanvasBadge } from './chat-canvas-badge'
+import { ChatCanvasBadge, ChatCanvasGeneratingBadge } from './chat-canvas-badge'
 import { ChatPendingMessage } from './chat-pending-message'
 import { ChatUserActions } from './chat-user-actions'
 import { ChatWorkTrace } from './chat-work-trace'
@@ -123,6 +124,13 @@ export function AssistantMessageItem({
   const showGenerativeSlot = Boolean(
     turnGenerativeTools?.shouldRender && turnGenerativeTools.toolCalls.length > 0
   )
+  const waitingForCanvas =
+    isRunning && isLastAssistant && hasContent && !showA2uiSlot && !showGenerativeSlot
+  const canvasActivityPending = Boolean(
+    message.id && turnHasInProgressA2uiActivity(messages, message.id)
+  )
+  const canvasTextSettled = useCanvasGenerationPending(content, waitingForCanvas)
+  const showCanvasPending = waitingForCanvas && (canvasActivityPending || canvasTextSettled)
 
   const hasInlineTools = inlineStandardToolCalls.length > 0
   const showStreamingPlaceholder = Boolean(!hasContent && isStreaming && showWorkingPlaceholder)
@@ -167,6 +175,7 @@ export function AssistantMessageItem({
           </div>
         )}
       </MessageContent>
+      {showCanvasPending && <ChatCanvasGeneratingBadge />}
       {showA2uiSlot && turnA2uiTools && (
         <ChatCanvasBadge toolCalls={turnA2uiTools.toolCalls} messages={messages as never} />
       )}

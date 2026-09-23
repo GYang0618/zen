@@ -202,9 +202,8 @@ export function createFlightTrajectory(waypoints: GisWaypoint[]) {
   if (waypoints.length < 2) return null
 
   // 1. 采集地面基准大圆测地采样点
-  const groundCartos: Cartographic[] = []
-  let totalDistance = 0
-  const segmentDistances: number[] = []
+  const groundSamples: { carto: Cartographic; dist: number }[] = []
+  let accumulatedDist = 0
 
   for (let i = 0; i < waypoints.length - 1; i++) {
     const p1 = waypoints[i]
@@ -213,8 +212,6 @@ export function createFlightTrajectory(waypoints: GisWaypoint[]) {
     const c2 = Cartographic.fromDegrees(p2.longitude, p2.latitude, p2.height ?? 0)
     const geodesic = new EllipsoidGeodesic(c1, c2)
     const dist = geodesic.surfaceDistance
-    segmentDistances.push(dist)
-    totalDistance += dist
 
     const steps = Math.max(2, Math.ceil(dist / 200)) // 每 200 米密集采样
     const startStep = i === 0 ? 0 : 1
@@ -222,11 +219,13 @@ export function createFlightTrajectory(waypoints: GisWaypoint[]) {
       const frac = s / steps
       const carto = geodesic.interpolateUsingFraction(frac, new Cartographic())
       carto.height = (p1.height ?? 0) + ((p2.height ?? 0) - (p1.height ?? 0)) * frac
-      groundCartos.push(carto)
+      const sampleDist = accumulatedDist + dist * frac
+      groundSamples.push({ carto, dist: sampleDist })
     }
+    accumulatedDist += dist
   }
 
-  const S = Math.max(100, totalDistance)
+  const S = Math.max(100, accumulatedDist)
   // 巡航高度自适应：长航程(>=80km)真实客机 9,000 米巡航，短航程按安全爬升坡度平滑缩放
   const cruiseAltitude = S >= 80000 ? 9000 : Math.min(9000, Math.max(1200, S * 0.08))
 
@@ -297,12 +296,10 @@ export function createFlightTrajectory(waypoints: GisWaypoint[]) {
   const full3DPositions: Cartesian3[] = []
   const cumulativeDistances: number[] = [0]
 
-  for (let i = 0; i < groundCartos.length; i++) {
-    const frac = i / (groundCartos.length - 1)
-    const s = frac * S
-    const { altitude } = getAltitudeAndPitch(s)
-    const carto = groundCartos[i]
-    const p3d = Cartesian3.fromRadians(carto.longitude, carto.latitude, altitude)
+  for (let i = 0; i < groundSamples.length; i++) {
+    const sample = groundSamples[i]
+    const { altitude } = getAltitudeAndPitch(sample.dist)
+    const p3d = Cartesian3.fromRadians(sample.carto.longitude, sample.carto.latitude, altitude)
     full3DPositions.push(p3d)
 
     if (i > 0) {

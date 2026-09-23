@@ -1,18 +1,21 @@
 import {
-  BoundingSphere,
+  CallbackPositionProperty,
   CallbackProperty,
   Cartesian3,
   Cartographic,
   Math as CesiumMath,
   Color,
+  ConstantPositionProperty,
   ConstantProperty,
   Ellipsoid,
   HeadingPitchRange,
   HeightReference,
   Matrix3,
+  Matrix4,
   PerspectiveFrustum,
   PolylineGlowMaterialProperty,
-  Quaternion
+  Quaternion,
+  Transforms
 } from 'cesium'
 import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
@@ -36,7 +39,7 @@ function getModelUri(vehicle: GisRoamVehicle): string {
   }
 }
 
-// 模块级预分配运算临时变量，严禁在 preRender 逐帧循环中创建垃圾对象
+// 模块级预分配运算临时变量，严禁在逐帧循环中创建垃圾对象
 const scratchPosition = new Cartesian3()
 const scratchOrientation = new Quaternion()
 const scratchLastOrientation = new Quaternion()
@@ -58,6 +61,7 @@ const scratchRotQuat = new Quaternion()
 const scratchAdForward = new Cartesian3()
 const scratchAdUp = new Cartesian3()
 const scratchAdLeft = new Cartesian3()
+const scratchMatrix4 = new Matrix4()
 
 interface ActiveActionRuntime {
   action: GisRoamAction
@@ -165,34 +169,7 @@ export function RoamRunner() {
     }
   }, [viewer, phase, waypoints, vehicleType])
 
-  // 2. 自由视角切换时，平滑飞行至默认高空鸟瞰视角
-  const lastViewModeRef = useRef(viewMode)
-  useEffect(() => {
-    const prevMode = lastViewModeRef.current
-    lastViewModeRef.current = viewMode
-
-    if (!isActive) return
-    if (viewMode !== 'free' || prevMode === 'free') return
-    if (!entityRef.current) return
-
-    const currentPos = scratchPosition
-    if (Cartesian3.equals(currentPos, Cartesian3.ZERO)) return
-
-    const config = GIS_ROAM_CONFIG[vehicleType]
-    const overviewDist = config.freeOverviewDistanceMeters
-
-    const sphere = new BoundingSphere(currentPos, overviewDist)
-    viewer.camera.flyToBoundingSphere(sphere, {
-      offset: new HeadingPitchRange(
-        viewer.camera.heading,
-        CesiumMath.toRadians(-55),
-        overviewDist * 1.8
-      ),
-      duration: 1.2
-    })
-  }, [viewer, viewMode, isActive, vehicleType])
-
-  // 视角切换时同步模型可见性：步行第一人称隐藏自身模型，避免视口穿模
+  // 2. 视角切换时同步模型可见性：步行第一人称隐藏自身模型，避免视口穿模
   useEffect(() => {
     if (entityRef.current?.model) {
       const hidePedestrian = vehicleType === 'walk' && viewMode === 'first_person'
@@ -202,7 +179,11 @@ export function RoamRunner() {
 
   // 3. 核心物理动力学模拟与逐帧运行引擎
   useEffect(() => {
+    // 显式引用 restartCount，当点击重新漫游时驱动动力学积分与相机状态机完全重置
+    void restartCount
+
     if (!isActive || waypoints.length < 2) {
+      viewer.camera.lookAtTransform(Matrix4.IDENTITY)
       if (entityRef.current) {
         viewer.entities.remove(entityRef.current)
         entityRef.current = null
@@ -236,9 +217,6 @@ export function RoamRunner() {
     let lastViewModeForCamera = viewModeRef.current
     let lastTrackedTarget: 'vehicle' | 'airdrop' = 'vehicle'
     let lastReportedAirdropAlt = -1
-    const smoothCamPos = new Cartesian3()
-    const smoothCamDir = new Cartesian3()
-    const smoothCamUp = new Cartesian3()
     let currentFlightPhase: GisFlightPhase = isAir ? 'taxi_start' : 'cruise'
 
     const simPosition = new Cartesian3()
@@ -256,7 +234,7 @@ export function RoamRunner() {
 
     // 创建动态回调驱动的模型实体
     const roamEntity = viewer.entities.add({
-      position: new CallbackProperty(() => simPosition, false),
+      position: new CallbackPositionProperty(() => simPosition, false),
       orientation: new CallbackProperty(() => simOrientation, false),
       model: {
         uri: modelUri,
@@ -283,29 +261,23 @@ export function RoamRunner() {
       viewer.camera.frustum.near = 0.1
     }
 
-    // 若初始就是自由视角，平滑俯冲到全景鸟瞰视角
-    if (viewModeRef.current === 'free') {
-      const overviewDist = config.freeOverviewDistanceMeters
-      const sphere = new BoundingSphere(simPosition, overviewDist)
-      viewer.camera.flyToBoundingSphere(sphere, {
-        offset: new HeadingPitchRange(
-          viewer.camera.heading,
-          CesiumMath.toRadians(-55),
-          overviewDist * 1.8
-        ),
-        duration: 1.2
-      })
-    }
-
     // 实时动作状态机
     let runtimeAction: ActiveActionRuntime | null = null
     let lastReportedSec = -1
+    let lastReportedKmh = -1
+    let lastStateUpdateTime = 0
 
     // 逐帧物理积分与相机追踪
-    const onPreRenderListener = () => {
+    const onPreUpdateListener = () => {
       const now = performance.now()
-      const dt = Math.min(0.1, Math.max(0.001, (now - lastFrameTime) / 1000))
+      const rawDt = Math.min(0.1, Math.max(0.001, (now - lastFrameTime) / 1000))
       lastFrameTime = now
+
+      const multiplier = Math.max(
+        0.1,
+        Math.min(32, useGisRoamStore.getState().speedMultiplier || 1)
+      )
+      const dt = rawDt * multiplier
 
       const currentPhase = useGisRoamStore.getState().phase
       const isPausedNow = currentPhase === 'paused'
@@ -325,9 +297,9 @@ export function RoamRunner() {
         samplePitchDeg = sample.pitchDeg
         Cartesian3.clone(sample.forwardDir, baseDir)
 
-        // 若处于滑跑阶段，自动匹配起飞或减速速度
+        // 若处于滑跑阶段，自动匹配起飞或减速速度，并支持用户手动加速
         if (currentFlightPhase === 'taxi_start') {
-          targetKmh = sample.targetSpeedKmh
+          targetKmh = Math.max(sample.targetSpeedKmh, useGisRoamStore.getState().targetSpeedKmh)
         } else if (currentFlightPhase === 'taxi_end') {
           targetKmh = sample.targetSpeedKmh
         }
@@ -368,14 +340,14 @@ export function RoamRunner() {
           const groundH = waypoints[0].height ?? 0
 
           const boxEntity = viewer.entities.add({
-            position: new ConstantProperty(dropPos),
+            position: new ConstantPositionProperty(dropPos),
             box: {
               dimensions: new Cartesian3(2.5, 2.5, 2.5),
               material: Color.ORANGE
             }
           })
           const chuteEntity = viewer.entities.add({
-            position: new ConstantProperty(
+            position: new ConstantPositionProperty(
               Cartesian3.add(dropPos, new Cartesian3(0, 0, 3.5), new Cartesian3())
             ),
             cylinder: {
@@ -640,17 +612,17 @@ export function RoamRunner() {
         isOrientationInitialized = true
       } else {
         // 临界阻尼四元数平滑 (1 - e^(-16 * dt))，高灵敏度同时彻底平抑微小角速度毛刺
-        const orientAlpha = 1.0 - Math.exp(-16.0 * dt)
+        const orientAlpha = 1.0 - Math.exp(-16.0 * Math.min(0.2, dt))
         Quaternion.slerp(simOrientation, finalOrient, orientAlpha, simOrientation)
       }
 
       Quaternion.clone(simOrientation, scratchLastOrientation)
       hasOrientation = true
 
-      // 3. 模型车轮/骨骼动画与物理速度联动：转速与当前真实时速无缝成正比
+      // 3. 模型车轮/骨骼动画与物理速度联动：转速与当前真实时速无缝成正比，叠加播放倍速
       const baseCruiseKmh = vehicleType === 'vehicle' ? 7.7 : Math.max(1, config.cruiseSpeedKmh)
       const speedRatio = Math.max(0.01, (currentSpeedMps * 3.6) / baseCruiseKmh)
-      viewer.clock.multiplier = speedRatio
+      viewer.clock.multiplier = speedRatio * multiplier
       viewer.clock.shouldAnimate = !isPausedNow && currentSpeedMps > 0.05
 
       // 4. 空投箱伞降物理更新
@@ -676,8 +648,8 @@ export function RoamRunner() {
               Ellipsoid.WGS84,
               ad.position
             )
-            ad.entity.position = new ConstantProperty(ad.position)
-            ad.parachuteEntity.position = new ConstantProperty(
+            ad.entity.position = new ConstantPositionProperty(ad.position)
+            ad.parachuteEntity.position = new ConstantPositionProperty(
               Cartesian3.add(ad.position, new Cartesian3(0, 0, 3.5), scratchWorldOffset)
             )
 
@@ -803,28 +775,58 @@ export function RoamRunner() {
         Cartesian3.normalize(targetAdWorldDir, targetAdWorldDir)
         Cartesian3.normalize(targetAdWorldUp, targetAdWorldUp)
 
-        if (!isCameraInitialized) {
-          Cartesian3.clone(targetAdCamPos, smoothCamPos)
-          Cartesian3.clone(targetAdWorldDir, smoothCamDir)
-          Cartesian3.clone(targetAdWorldUp, smoothCamUp)
-          isCameraInitialized = true
-        } else {
-          const camAlpha = 1.0 - Math.exp(-12.0 * dt)
-          Cartesian3.lerp(smoothCamPos, targetAdCamPos, camAlpha, smoothCamPos)
-          Cartesian3.lerp(smoothCamDir, targetAdWorldDir, camAlpha, smoothCamDir)
-          Cartesian3.lerp(smoothCamUp, targetAdWorldUp, camAlpha, smoothCamUp)
-          Cartesian3.normalize(smoothCamDir, smoothCamDir)
-          Cartesian3.normalize(smoothCamUp, smoothCamUp)
+        if (lastViewModeForCamera === 'free') {
+          viewer.camera.lookAtTransform(Matrix4.IDENTITY)
+          isCameraInitialized = false
         }
 
         viewer.camera.setView({
-          destination: smoothCamPos,
+          destination: targetAdCamPos,
           orientation: {
-            direction: smoothCamDir,
-            up: smoothCamUp
+            direction: targetAdWorldDir,
+            up: targetAdWorldUp
           }
         })
+      } else if (currentViewMode === 'free' && hasOrientation) {
+        if (lastTrackedTarget !== 'vehicle') {
+          lastTrackedTarget = 'vehicle'
+          isCameraInitialized = false
+        }
+
+        const transform = Transforms.eastNorthUpToFixedFrame(
+          finalPos,
+          Ellipsoid.WGS84,
+          scratchMatrix4
+        )
+
+        if (lastViewModeForCamera !== 'free' || !isCameraInitialized) {
+          lastViewModeForCamera = 'free'
+          isCameraInitialized = true
+          // 初次切入自由视角：以模型中心为锚点，设定俯视环视距离与仰俯角
+          const overviewDist = config.freeOverviewDistanceMeters
+          const initialOffset = new HeadingPitchRange(
+            viewer.camera.heading,
+            CesiumMath.toRadians(-35),
+            overviewDist
+          )
+          viewer.camera.lookAtTransform(transform, initialOffset)
+        } else {
+          // 连续帧平移动态中心，锁定模型在屏幕中央，完全保留用户实时鼠标 360° 环绕角度与滚轮缩放距离
+          const localOffset = Cartesian3.clone(viewer.camera.position, scratchLocalOffset)
+          const dist = Cartesian3.magnitude(localOffset)
+          if (dist < 1.0 || Number.isNaN(dist)) {
+            localOffset.x = -config.freeOverviewDistanceMeters * 0.7
+            localOffset.y = 0
+            localOffset.z = config.freeOverviewDistanceMeters * 0.7
+          }
+          viewer.camera.lookAtTransform(transform, localOffset)
+        }
       } else if (currentViewMode !== 'free' && hasOrientation) {
+        if (lastViewModeForCamera === 'free') {
+          // 从自由环视切回常规第一/第三人称时释放局部锁定系
+          viewer.camera.lookAtTransform(Matrix4.IDENTITY)
+          isCameraInitialized = false
+        }
         if (lastTrackedTarget !== 'vehicle') {
           lastTrackedTarget = 'vehicle'
           isCameraInitialized = false
@@ -887,26 +889,11 @@ export function RoamRunner() {
         Cartesian3.normalize(targetWorldDir, targetWorldDir)
         Cartesian3.normalize(targetWorldUp, targetWorldUp)
 
-        if (!isCameraInitialized) {
-          Cartesian3.clone(targetCamPos, smoothCamPos)
-          Cartesian3.clone(targetWorldDir, smoothCamDir)
-          Cartesian3.clone(targetWorldUp, smoothCamUp)
-          isCameraInitialized = true
-        } else {
-          // 临界阻尼平滑跟踪，消除地形瓦片碰撞微阶跃与视口高频震颤
-          const camAlpha = 1.0 - Math.exp(-14.0 * dt)
-          Cartesian3.lerp(smoothCamPos, targetCamPos, camAlpha, smoothCamPos)
-          Cartesian3.lerp(smoothCamDir, targetWorldDir, camAlpha, smoothCamDir)
-          Cartesian3.lerp(smoothCamUp, targetWorldUp, camAlpha, smoothCamUp)
-          Cartesian3.normalize(smoothCamDir, smoothCamDir)
-          Cartesian3.normalize(smoothCamUp, smoothCamUp)
-        }
-
         viewer.camera.setView({
-          destination: smoothCamPos,
+          destination: targetCamPos,
           orientation: {
-            direction: smoothCamDir,
-            up: smoothCamUp
+            direction: targetWorldDir,
+            up: targetWorldUp
           }
         })
       }
@@ -914,12 +901,18 @@ export function RoamRunner() {
       // 6. 定期同步物理时速与预计剩余到达时间至 Store
       const remainingDist = Math.max(0, totalDistance - distanceTraveled)
       const currentKmh = Math.round(currentSpeedMps * 3.6)
+      const effectiveSpeedMps = currentSpeedMps * multiplier
       const remainingRealSec =
-        currentSpeedMps > 0.1 ? Math.round(remainingDist / currentSpeedMps) : 9999
+        effectiveSpeedMps > 0.1 ? Math.round(remainingDist / effectiveSpeedMps) : 9999
       const progress = Math.min(1, Math.max(0, distanceTraveled / totalDistance))
 
-      if (remainingRealSec !== lastReportedSec) {
+      if (
+        (currentKmh !== lastReportedKmh || remainingRealSec !== lastReportedSec) &&
+        (now - lastStateUpdateTime > 100 || currentKmh === Math.round(targetKmh) || isPausedNow)
+      ) {
+        lastReportedKmh = currentKmh
         lastReportedSec = remainingRealSec
+        lastStateUpdateTime = now
         updatePhysicsState({
           currentSpeedKmh: currentKmh,
           remainingRealSeconds: remainingRealSec,
@@ -929,10 +922,11 @@ export function RoamRunner() {
       }
     }
 
-    const removePreRenderListener = viewer.scene.preRender.addEventListener(onPreRenderListener)
+    const removePreUpdateListener = viewer.scene.preUpdate.addEventListener(onPreUpdateListener)
 
     return () => {
-      removePreRenderListener()
+      removePreUpdateListener()
+      viewer.camera.lookAtTransform(Matrix4.IDENTITY)
       if (viewer.camera.frustum instanceof PerspectiveFrustum) {
         viewer.camera.frustum.near = prevNear
       }
@@ -954,24 +948,13 @@ export function RoamRunner() {
     isActive,
     waypoints,
     vehicleType,
+    restartCount,
     stopRoam,
     clearAction,
     updatePhysicsState,
     setViewTarget,
     setAirdropInfo
   ])
-
-  // 4. 重新开始漫游重置
-  const prevRestartCount = useRef(restartCount)
-  useEffect(() => {
-    if (restartCount > prevRestartCount.current && entityRef.current) {
-      prevRestartCount.current = restartCount
-      useGisRoamStore.getState().startRoam(waypoints, {
-        vehicleType,
-        viewMode: viewModeRef.current
-      })
-    }
-  }, [restartCount, waypoints, vehicleType])
 
   return null
 }

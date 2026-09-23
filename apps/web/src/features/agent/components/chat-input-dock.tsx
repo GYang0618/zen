@@ -24,11 +24,11 @@ export function ChatInputDock({
     <div
       ref={ref}
       className={cn(
-        'absolute inset-x-0 bottom-0 z-10 w-full px-6',
+        'absolute inset-x-0 bottom-0 z-10 w-full px-6 pb-4',
         showEmptyGreeting && 'bottom-1/2 translate-y-1/2'
       )}
     >
-      <div className="@5xl/content:mx-auto @5xl/content:w-full @5xl/content:max-w-5xl relative pb-4">
+      <div className="@5xl/content:mx-auto @5xl/content:w-full @5xl/content:max-w-5xl relative">
         {showEmptyGreeting && <ChatGreeting threadId={threadId} className="relative z-10" />}
         <ChatInput
           className="relative z-10"
@@ -37,9 +37,6 @@ export function ChatInputDock({
           loading={loading}
           threadId={threadId}
         />
-        <div className="pointer-events-none absolute inset-0 z-0 w-full">
-          <div className="h-full w-full bg-background backdrop-blur-xl mask-[linear-gradient(to_top,black_50%,transparent_85%)] [-webkit-mask-image:linear-gradient(to_top,black_50%,transparent_85%)] [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none" />
-        </div>
       </div>
     </div>
   )

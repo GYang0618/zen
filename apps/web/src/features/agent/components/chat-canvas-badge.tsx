@@ -71,6 +71,21 @@ export function ChatCanvasBadge({ toolCalls, messages }: ChatCanvasBadgeProps) {
   )
 }
 
+const CANVAS_GENERATING_TITLE = '画布'
+
+export function ChatCanvasGeneratingBadge() {
+  return (
+    <ItemGroup className="my-1.5 gap-2" role="status" aria-live="polite" aria-busy="true">
+      <CanvasBadgeItem
+        title={CANVAS_GENERATING_TITLE}
+        hasResult={false}
+        isActive={false}
+        onOpen={() => undefined}
+      />
+    </ItemGroup>
+  )
+}
+
 interface CanvasBadgeItemProps {
   title: string
   hasResult: boolean

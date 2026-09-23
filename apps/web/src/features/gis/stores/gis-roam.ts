@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-import { GIS_ROAM_CONFIG, GIS_ROAM_MIN_WAYPOINTS } from '../constants'
+import { GIS_ROAM_CONFIG, GIS_ROAM_MIN_WAYPOINTS, GIS_ROAM_SPEED_MULTIPLIERS } from '../constants'
 
 import type { GisRoamViewMode } from '../constants'
 
@@ -108,9 +108,10 @@ type GisRoamState = {
     roamProgress: number
     flightPhase?: GisFlightPhase
   }) => void
-  /** 兼容旧接口 */
+  /** 漫游播放物理倍速（0.5x, 1x, 2x, 4x, 8x, 16x） */
   speedMultiplier: number
   setSpeedMultiplier: (multiplier: number) => void
+  cycleSpeedMultiplier: () => void
   updateRoamProgress: (remainingRealSeconds: number, roamProgress: number) => void
 }
 
@@ -231,8 +232,12 @@ export const useGisRoamStore = create<GisRoamState>((set, get) => ({
   },
 
   restartRoam: () => {
-    const { phase, vehicleType } = get()
-    if (phase === 'roaming' || phase === 'paused') {
+    const { phase, vehicleType, waypoints } = get()
+    if (
+      phase === 'roaming' ||
+      phase === 'paused' ||
+      (phase === 'idle' && waypoints.length >= GIS_ROAM_MIN_WAYPOINTS)
+    ) {
       const config = GIS_ROAM_CONFIG[vehicleType]
       set((state) => ({
         phase: 'roaming',
@@ -246,6 +251,7 @@ export const useGisRoamStore = create<GisRoamState>((set, get) => ({
         verticalOffsetMeters: 0,
         activeAction: null,
         flightPhase: vehicleType === 'plane' ? 'taxi_start' : undefined,
+        remainingRealSeconds: null,
         restartCount: state.restartCount + 1
       }))
     }
@@ -339,21 +345,25 @@ export const useGisRoamStore = create<GisRoamState>((set, get) => ({
   },
 
   updatePhysicsState: ({ currentSpeedKmh, remainingRealSeconds, roamProgress, flightPhase }) => {
-    const config = GIS_ROAM_CONFIG[get().vehicleType]
-    const speedMultiplier = Math.max(0.1, currentSpeedKmh / Math.max(1, config.cruiseSpeedKmh))
     set({
       currentSpeedKmh,
       remainingRealSeconds,
       roamProgress,
-      flightPhase,
-      speedMultiplier
+      flightPhase
     })
   },
 
-  /** 兼容旧接口 */
   setSpeedMultiplier: (multiplier) => {
-    const config = GIS_ROAM_CONFIG[get().vehicleType]
-    get().setTargetSpeedKmh(config.cruiseSpeedKmh * multiplier)
+    const validMultiplier = Math.max(0.1, Math.min(32, multiplier))
+    set({ speedMultiplier: validMultiplier })
+  },
+
+  cycleSpeedMultiplier: () => {
+    const presets = GIS_ROAM_SPEED_MULTIPLIERS
+    const current = get().speedMultiplier
+    const currentIndex = presets.indexOf(current as (typeof presets)[number])
+    const nextIndex = currentIndex === -1 ? 1 : (currentIndex + 1) % presets.length
+    set({ speedMultiplier: presets[nextIndex] })
   },
 
   updateRoamProgress: (remainingRealSeconds, roamProgress) => {

@@ -335,7 +335,7 @@ export function ChatInput({
       <div
         ref={wrapperRef}
         className={cn(
-          'w-full overflow-hidden bg-background dark:bg-input/30 shadow-sm transition-[border-radius] duration-200',
+          'relative w-full overflow-hidden border border-white/25 bg-popover shadow-sm backdrop-blur-2xl backdrop-saturate-150 transition-[border-radius] duration-200 before:pointer-events-none before:absolute before:inset-x-8 before:top-0 before:z-10 before:h-px before:bg-linear-to-r before:from-transparent before:via-white/55 before:to-transparent supports-backdrop-filter:bg-background/55 dark:border-white/10 dark:supports-backdrop-filter:bg-background/55 [@media(prefers-reduced-transparency:reduce)]:border-border [@media(prefers-reduced-transparency:reduce)]:bg-popover [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none [@media(prefers-reduced-transparency:reduce)]:before:hidden',
           isMultiline ? 'rounded-4xl' : 'rounded-full'
         )}
       >

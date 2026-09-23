@@ -71,19 +71,24 @@ const roamControlSchema = z.object({
     .optional()
     .describe(
       '相机镜头追随观察目标：vehicle（跟随主飞机/载具），airdrop（第三人称俯视追随空投箱降落过程视角）'
-    )
+    ),
+  speedMultiplier: z
+    .number()
+    .optional()
+    .describe('漫游播放倍速因子，如 0.5、1、2、4、8、16 等，用于快速倍速漫游')
 })
 
 export function useGisRoamControlTool() {
   useFrontendTool({
     name: 'gis_control_roam',
     description:
-      '实时控制当前三维 GIS 场景中正在运行的漫游状态。支持实时控制航速（通过 km/h 真实时速加速/减速/定速）、实时控制行驶/飞行方向航向角、实时对漫游对象触发专属指令动作（行人跳跃、驻留3s；车辆左/右变道超车；飞机释放降落伞空投、动态高差爬升/俯冲、动态角度与方向横滚盘旋并加速）、切换观察视角（跟随客机 vs 跟踪空投箱降落过程），以及控制漫游的暂停/继续/重开/停止。',
+      '实时控制当前三维 GIS 场景中正在运行的漫游状态。支持实时控制航速（通过 km/h 真实时速加速/减速/定速）、播放倍速（如 2x、4x、8x、16x 高速漫游）、实时控制行驶/飞行方向航向角、实时对漫游对象触发专属指令动作（行人跳跃、驻留3s；车辆左/右变道超车；飞机释放降落伞空投、动态高差爬升/俯冲、动态角度与方向横滚盘旋并加速）、切换观察视角（跟随客机 vs 跟踪空投箱降落过程），以及控制漫游的暂停/继续/重开/停止。',
     parameters: roamControlSchema,
     handler: async ({
       speedAction,
       targetSpeedKmh,
       speedBoostKmh,
+      speedMultiplier,
       directionAction,
       turnDirection,
       turnAngleDeg,
@@ -103,6 +108,12 @@ export function useGisRoamControlTool() {
       }
 
       const results: string[] = []
+
+      // 1. 播放倍速控制
+      if (typeof speedMultiplier === 'number') {
+        roamStore.setSpeedMultiplier(speedMultiplier)
+        results.push(`漫游播放倍速已设定为 ${speedMultiplier}x`)
+      }
 
       // 1. 播放状态控制
       if (playbackAction) {
@@ -129,33 +140,51 @@ export function useGisRoamControlTool() {
       }
 
       // 2. 速度与加速度控制
-      if (speedAction) {
+      const effectiveSpeedAction =
+        speedAction ??
+        (typeof targetSpeedKmh === 'number'
+          ? 'set_speed'
+          : typeof speedBoostKmh === 'number'
+            ? 'speed_up'
+            : undefined)
+
+      if (effectiveSpeedAction) {
         const config = GIS_ROAM_CONFIG[vehicleType]
-        switch (speedAction) {
-          case 'set_speed':
-            if (typeof targetSpeedKmh === 'number') {
-              roamStore.setTargetSpeedKmh(targetSpeedKmh)
+        switch (effectiveSpeedAction) {
+          case 'set_speed': {
+            const speed = targetSpeedKmh ?? roamStore.targetSpeedKmh + (speedBoostKmh ?? 0)
+            roamStore.setTargetSpeedKmh(speed)
+            results.push(
+              `目标时速已设定为 ${speed} km/h（当前时速 ${currentSpeedKmh} km/h，正以 ${config.accelerationMps2} m/s² 平滑加减速过渡）`
+            )
+            break
+          }
+          case 'speed_up': {
+            if (typeof speedBoostKmh === 'number') {
+              roamStore.setTargetSpeedKmh(roamStore.targetSpeedKmh + speedBoostKmh)
               results.push(
-                `目标时速已设定为 ${targetSpeedKmh} km/h（当前时速 ${currentSpeedKmh} km/h，正以 ${config.accelerationMps2} m/s² 平滑加减速过渡）`
+                `已加速 ${speedBoostKmh} km/h，新目标时速：${useGisRoamStore.getState().targetSpeedKmh} km/h`
+              )
+            } else {
+              roamStore.speedUp()
+              results.push(
+                `已加速一个步长（+${config.speedStepKmh} km/h），新目标时速：${useGisRoamStore.getState().targetSpeedKmh} km/h`
               )
             }
             break
-          case 'speed_up':
-            roamStore.speedUp()
-            results.push(
-              `已加速一个步长（+${config.speedStepKmh} km/h），新目标时速：${useGisRoamStore.getState().targetSpeedKmh} km/h`
-            )
-            break
-          case 'speed_down':
+          }
+          case 'speed_down': {
             roamStore.speedDown()
             results.push(
               `已减速一个步长（-${config.speedStepKmh} km/h），新目标时速：${useGisRoamStore.getState().targetSpeedKmh} km/h`
             )
             break
-          case 'reset_speed':
+          }
+          case 'reset_speed': {
             roamStore.resetSpeed()
             results.push(`已恢复标准巡航时速（${config.cruiseSpeedKmh} km/h）`)
             break
+          }
         }
       }
 

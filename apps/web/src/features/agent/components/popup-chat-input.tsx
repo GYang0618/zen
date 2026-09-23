@@ -196,7 +196,7 @@ export function PopupChatInput({
     >
       <div
         className={cn(
-          'w-full overflow-hidden border border-border/40 bg-background shadow-sm transition-[border-radius] duration-200 dark:bg-input/30',
+          'w-full overflow-hidden border border-border bg-popover shadow-sm transition-[border-radius] duration-200',
           isMultiline ? 'rounded-3xl' : 'rounded-full'
         )}
       >

@@ -72,13 +72,13 @@ export const GIS_ROAM_CONFIG = {
     cruiseSpeedKmh: 5.0,
     speedMps: 5.0 / 3.6,
     /** 固定起步/加速物理加速度 (m/s²) */
-    accelerationMps2: 1.2,
+    accelerationMps2: 1.5,
     /** 固定刹车/减速物理减速度 (m/s²) */
-    decelerationMps2: 1.5,
+    decelerationMps2: 2.0,
     /** 手动调节速度单步步长 (km/h) */
-    speedStepKmh: 1.0,
+    speedStepKmh: 2.0,
     minSpeedKmh: 2.0,
-    maxSpeedKmh: 15.0,
+    maxSpeedKmh: 20.0,
     altitudeOffset: 0,
     clampToGround: true,
     label: '步行漫游',
@@ -101,14 +101,14 @@ export const GIS_ROAM_CONFIG = {
     /** 城市车辆巡航时速：60.0 km/h (约 16.67 m/s) */
     cruiseSpeedKmh: 60.0,
     speedMps: 60.0 / 3.6,
-    /** 固定起步/加速物理加速度 (m/s²)：家用车平稳推背感约 2.5 m/s² */
-    accelerationMps2: 2.5,
-    /** 固定刹车/减速物理减速度 (m/s²)：常规制动约 3.5 m/s² */
-    decelerationMps2: 3.5,
+    /** 固定起步/加速物理加速度 (m/s²)：家用车平稳推背感约 3.5 m/s² */
+    accelerationMps2: 3.5,
+    /** 固定刹车/减速物理减速度 (m/s²)：常规制动约 4.5 m/s² */
+    decelerationMps2: 4.5,
     /** 手动调节速度单步步长 (km/h) */
-    speedStepKmh: 10.0,
+    speedStepKmh: 20.0,
     minSpeedKmh: 10.0,
-    maxSpeedKmh: 160.0,
+    maxSpeedKmh: 180.0,
     altitudeOffset: 0,
     clampToGround: true,
     label: '车辆巡航',
@@ -131,14 +131,14 @@ export const GIS_ROAM_CONFIG = {
     /** 民航客机真实巡航飞行时速：800.0 km/h (约 222.2 m/s) */
     cruiseSpeedKmh: 800.0,
     speedMps: 800.0 / 3.6,
-    /** 固定起步/爬升加速度 (m/s²)：民航客机起飞滑跑加速度约 1.5 m/s² */
-    accelerationMps2: 1.5,
+    /** 固定起步/爬升加速度 (m/s²)：民航客机起飞滑跑加速度约 2.5 m/s² */
+    accelerationMps2: 2.5,
     /** 固定降速/滑跑减速度 (m/s²) */
-    decelerationMps2: 1.2,
+    decelerationMps2: 2.0,
     /** 手动调节速度单步步长 (km/h) */
-    speedStepKmh: 50.0,
+    speedStepKmh: 100.0,
     minSpeedKmh: 200.0,
-    maxSpeedKmh: 950.0,
+    maxSpeedKmh: 1200.0,
     /** 真实民航客机标准巡航高程（米）：通常 8,000m ~ 10,000m (FL300) */
     altitudeOffset: 9000,
     /** 起飞离地抬头速度 Vr (km/h) */
@@ -214,3 +214,6 @@ export const GIS_ACTION_CONFIG = {
     }
   }
 } as const
+
+/** 漫游播放倍速可选预设 */
+export const GIS_ROAM_SPEED_MULTIPLIERS = [0.5, 1, 2, 4, 8, 16] as const

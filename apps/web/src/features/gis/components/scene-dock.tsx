@@ -29,13 +29,14 @@ import {
   Timer,
   Trash2,
   Video,
-  X
+  X,
+  Zap
 } from 'lucide-react'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
 
 import { useCesium } from '../cesium-provider'
-import { GIS_ROAM_CONFIG } from '../constants'
+import { GIS_ROAM_CONFIG, GIS_ROAM_SPEED_MULTIPLIERS } from '../constants'
 import {
   flyToMarker,
   formatCoordinates,
@@ -77,11 +78,14 @@ export function SceneDock() {
   const viewTarget = useGisRoamStore((state) => state.viewTarget)
   const setViewTarget = useGisRoamStore((state) => state.setViewTarget)
   const airdropInfo = useGisRoamStore((state) => state.airdropInfo)
+  const speedMultiplier = useGisRoamStore((state) => state.speedMultiplier)
+  const setSpeedMultiplier = useGisRoamStore((state) => state.setSpeedMultiplier)
+  const cycleSpeedMultiplier = useGisRoamStore((state) => state.cycleSpeedMultiplier)
 
   const isRoaming = phase === 'roaming'
   const isPaused = phase === 'paused'
 
-  // 全局快捷键监听（空格暂停/继续，R 重新开始，V 切换视角，[ ] 倍速调节，\ 恢复原速）
+  // 全局快捷键监听（空格暂停/继续，R 重新开始，V 切换视角，M 切换倍速，[ ] 时速微调，\ 恢复原速）
   useEffect(() => {
     if (!isRoaming && !isPaused) return
 
@@ -99,6 +103,10 @@ export function SceneDock() {
         toast.info('已重新开始漫游')
       } else if (e.key === 'v' || e.key === 'V') {
         toggleViewMode()
+      } else if (e.key === 'm' || e.key === 'M') {
+        cycleSpeedMultiplier()
+        const nextRate = useGisRoamStore.getState().speedMultiplier
+        toast.info(`漫游倍速：${nextRate}x`)
       } else if (e.key === '[') {
         speedDown()
       } else if (e.key === ']') {
@@ -118,7 +126,8 @@ export function SceneDock() {
     resetSpeed,
     pauseRoam,
     resumeRoam,
-    restartRoam
+    restartRoam,
+    cycleSpeedMultiplier
   ])
 
   const toggleTool = (tool: GisToolType) => {
@@ -131,9 +140,9 @@ export function SceneDock() {
 
   return (
     <TooltipProvider delay={150}>
-      <div className="pointer-events-auto absolute bottom-6 left-1/2 z-20 -translate-x-1/2 select-none">
+      <div className="pointer-events-auto absolute bottom-6 left-1/2 z-20 max-w-[calc(100vw-2rem)] -translate-x-1/2 select-none">
         {/* iOS 27 超轻奢未来毛玻璃药丸 Dock 容器 */}
-        <div className="relative flex items-center gap-1.5 rounded-full border border-white/30 bg-background/65 px-3 py-2 shadow-[0_16px_40px_0_rgba(0,0,0,0.18)] backdrop-blur-2xl transition-all duration-300 dark:border-white/10 dark:bg-background/45 dark:shadow-[0_20px_50px_0_rgba(0,0,0,0.55)] before:pointer-events-none before:absolute before:inset-x-6 before:top-0 before:h-px before:bg-linear-to-r before:from-transparent before:via-white/60 before:to-transparent">
+        <div className="relative flex shrink-0 flex-nowrap items-center gap-1.5 whitespace-nowrap rounded-full border border-white/30 bg-background/65 px-3 py-2 shadow-[0_16px_40px_0_rgba(0,0,0,0.18)] backdrop-blur-2xl transition-all duration-300 dark:border-white/10 dark:bg-background/45 dark:shadow-[0_20px_50px_0_rgba(0,0,0,0.55)] before:pointer-events-none before:absolute before:inset-x-6 before:top-0 before:h-px before:bg-linear-to-r before:from-transparent before:via-white/60 before:to-transparent">
           {/* 1. 标记工具 */}
           <Tooltip>
             <TooltipTrigger
@@ -143,7 +152,7 @@ export function SceneDock() {
                   variant="ghost"
                   size="sm"
                   onClick={() => toggleTool('marker')}
-                  className={`relative h-9 rounded-full px-3 text-xs font-medium transition-all duration-200 ${
+                  className={`relative h-9 shrink-0 rounded-full px-3 text-xs font-medium whitespace-nowrap transition-all duration-200 ${
                     activeTool === 'marker'
                       ? 'bg-primary/20 text-primary shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_0_12px_rgba(var(--primary),0.35)] ring-1 ring-primary/40'
                       : 'text-foreground/80 hover:bg-white/25 dark:hover:bg-white/10'
@@ -152,11 +161,11 @@ export function SceneDock() {
               }
             >
               <MapPin
-                className={`mr-1.5 size-4 ${activeTool === 'marker' ? 'text-primary' : ''}`}
+                className={`mr-1.5 size-4 shrink-0 ${activeTool === 'marker' ? 'text-primary' : ''}`}
               />
-              <span>标记点位</span>
+              <span className="shrink-0 whitespace-nowrap">标记点位</span>
               {activeTool === 'marker' && (
-                <span className="ml-1.5 size-1.5 animate-ping rounded-full bg-primary" />
+                <span className="ml-1.5 size-1.5 shrink-0 animate-ping rounded-full bg-primary" />
               )}
             </TooltipTrigger>
             <TooltipContent side="top" className="text-xs">
@@ -175,7 +184,7 @@ export function SceneDock() {
                   variant="ghost"
                   size="sm"
                   onClick={() => toggleTool('picker')}
-                  className={`relative h-9 rounded-full px-3 text-xs font-medium transition-all duration-200 ${
+                  className={`relative h-9 shrink-0 rounded-full px-3 text-xs font-medium whitespace-nowrap transition-all duration-200 ${
                     activeTool === 'picker'
                       ? 'bg-primary/20 text-primary shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_0_12px_rgba(var(--primary),0.35)] ring-1 ring-primary/40'
                       : 'text-foreground/80 hover:bg-white/25 dark:hover:bg-white/10'
@@ -184,11 +193,11 @@ export function SceneDock() {
               }
             >
               <Crosshair
-                className={`mr-1.5 size-4 ${activeTool === 'picker' ? 'text-primary' : ''}`}
+                className={`mr-1.5 size-4 shrink-0 ${activeTool === 'picker' ? 'text-primary' : ''}`}
               />
-              <span>坐标拾取</span>
+              <span className="shrink-0 whitespace-nowrap">坐标拾取</span>
               {activeTool === 'picker' && (
-                <span className="ml-1.5 size-1.5 animate-ping rounded-full bg-primary" />
+                <span className="ml-1.5 size-1.5 shrink-0 animate-ping rounded-full bg-primary" />
               )}
             </TooltipTrigger>
             <TooltipContent side="top" className="text-xs">
@@ -198,7 +207,7 @@ export function SceneDock() {
             </TooltipContent>
           </Tooltip>
 
-          <Separator orientation="vertical" className="mx-1 h-5 bg-border/60" />
+          <Separator orientation="vertical" className="mx-1 h-5 shrink-0 bg-border/60" />
 
           {/* 3. 标记点列表与全局上下文管理 */}
           <Popover>
@@ -208,16 +217,16 @@ export function SceneDock() {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="relative h-9 rounded-full px-3 text-xs text-foreground/80 hover:bg-white/25 dark:hover:bg-white/10"
+                  className="relative h-9 shrink-0 rounded-full px-3 text-xs text-foreground/80 whitespace-nowrap hover:bg-white/25 dark:hover:bg-white/10"
                 />
               }
             >
-              <Layers className="mr-1.5 size-4" />
-              <span>标记列表</span>
+              <Layers className="mr-1.5 size-4 shrink-0" />
+              <span className="shrink-0 whitespace-nowrap">标记列表</span>
               {markers.length > 0 && (
                 <Badge
                   variant="secondary"
-                  className="ml-1.5 h-4 min-w-4 rounded-full px-1 text-[10px] leading-none"
+                  className="ml-1.5 h-4 min-w-4 shrink-0 rounded-full px-1 text-[10px] leading-none whitespace-nowrap"
                 >
                   {markers.length}
                 </Badge>
@@ -294,14 +303,14 @@ export function SceneDock() {
           {/* 4. 漫游进行时的浮动控制 */}
           {(isRoaming || isPaused) && (
             <>
-              <Separator orientation="vertical" className="mx-1 h-5 bg-border/60" />
-              <div className="relative flex items-center gap-1.5 overflow-hidden rounded-full bg-primary/10 px-2.5 py-1 text-xs text-primary ring-1 ring-primary/30">
+              <Separator orientation="vertical" className="mx-1 h-5 shrink-0 bg-border/60" />
+              <div className="relative flex shrink-0 flex-nowrap items-center gap-1.5 whitespace-nowrap rounded-full bg-primary/10 px-2.5 py-1 text-xs text-primary ring-1 ring-primary/30">
                 {vehicleType === 'plane' ? (
-                  <Plane className="size-3.5 animate-pulse" />
+                  <Plane className="size-3.5 shrink-0 animate-pulse" />
                 ) : (
-                  <Footprints className="size-3.5 animate-pulse" />
+                  <Footprints className="size-3.5 shrink-0 animate-pulse" />
                 )}
-                <span className="font-medium text-[11px]">
+                <span className="shrink-0 whitespace-nowrap font-medium text-[11px]">
                   {vehicleType === 'walk'
                     ? '步行漫游中'
                     : vehicleType === 'vehicle'
@@ -309,7 +318,7 @@ export function SceneDock() {
                       : '飞机飞行中'}
                 </span>
                 {totalDistanceMeters > 0 && (
-                  <span className="font-mono text-[10px] opacity-80">
+                  <span className="shrink-0 whitespace-nowrap font-mono text-[10px] opacity-80">
                     ({formatDistance(totalDistanceMeters)})
                   </span>
                 )}
@@ -317,16 +326,18 @@ export function SceneDock() {
                 {/* 实时预计到达时间（ETA） */}
                 {typeof remainingRealSeconds === 'number' && (
                   <div
-                    className="flex items-center gap-1 rounded-full bg-primary/20 px-2 py-0.5 font-mono text-[10px] font-semibold text-primary shadow-[inset_0_1px_1px_rgba(255,255,255,0.25)] ring-1 ring-primary/30"
+                    className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-primary/20 px-2 py-0.5 font-mono text-[10px] font-semibold text-primary shadow-[inset_0_1px_1px_rgba(255,255,255,0.25)] ring-1 ring-primary/30"
                     title={`当前漫游进度：${Math.round(roamProgress * 100)}%`}
                   >
                     <Timer className="size-3 shrink-0 animate-pulse text-primary" />
-                    <span>{formatEstimatedArrivalTime(remainingRealSeconds)}</span>
+                    <span className="shrink-0 whitespace-nowrap">
+                      {formatEstimatedArrivalTime(remainingRealSeconds)}
+                    </span>
                   </div>
                 )}
 
                 {/* 视角切换（第一人称 / 第三人称 / 自由视角） */}
-                <div className="ml-1 flex items-center border-l border-primary/25 pl-1.5">
+                <div className="ml-1 flex shrink-0 items-center border-l border-primary/25 pl-1.5 whitespace-nowrap">
                   <Tooltip>
                     <TooltipTrigger
                       render={
@@ -335,18 +346,18 @@ export function SceneDock() {
                           variant="ghost"
                           size="sm"
                           onClick={toggleViewMode}
-                          className="h-6 rounded-full px-2 text-[10px] font-medium text-primary hover:bg-primary/20"
+                          className="h-6 shrink-0 rounded-full px-2 text-[10px] font-medium text-primary whitespace-nowrap hover:bg-primary/20"
                         />
                       }
                     >
                       {viewMode === 'first_person' ? (
-                        <Eye className="mr-1 size-3" />
+                        <Eye className="mr-1 size-3 shrink-0" />
                       ) : viewMode === 'third_person' ? (
-                        <Video className="mr-1 size-3" />
+                        <Video className="mr-1 size-3 shrink-0" />
                       ) : (
-                        <Compass className="mr-1 size-3" />
+                        <Compass className="mr-1 size-3 shrink-0" />
                       )}
-                      <span>
+                      <span className="shrink-0 whitespace-nowrap">
                         {viewMode === 'first_person'
                           ? '第一人称'
                           : viewMode === 'third_person'
@@ -366,7 +377,7 @@ export function SceneDock() {
 
                 {/* 飞机飞行阶段标签 */}
                 {vehicleType === 'plane' && flightPhase && (
-                  <span className="rounded-full bg-primary/25 px-1.5 py-0.5 text-[9px] font-semibold text-primary">
+                  <span className="shrink-0 whitespace-nowrap rounded-full bg-primary/25 px-1.5 py-0.5 text-[9px] font-semibold text-primary">
                     {flightPhase === 'taxi_start'
                       ? '起飞滑跑'
                       : flightPhase === 'climb'
@@ -399,7 +410,7 @@ export function SceneDock() {
                         ? '当前正在跟踪空投箱降落。点击返回客机主视角'
                         : '检测到空投正在降落！点击切入第三人称俯视追随视角'
                     }
-                    className={`h-6 rounded-full border px-2 text-[10px] font-medium transition-all ${
+                    className={`h-6 shrink-0 rounded-full border px-2 text-[10px] font-medium whitespace-nowrap transition-all ${
                       viewTarget === 'airdrop'
                         ? 'border-amber-500/50 bg-amber-500/20 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.3)] hover:bg-amber-500/30'
                         : 'border-primary/40 bg-primary/15 text-primary hover:bg-primary/25 animate-pulse'
@@ -407,8 +418,8 @@ export function SceneDock() {
                   >
                     {viewTarget === 'airdrop' ? (
                       <>
-                        <Plane className="mr-1 size-3" />
-                        <span>
+                        <Plane className="mr-1 size-3 shrink-0" />
+                        <span className="shrink-0 whitespace-nowrap">
                           返回飞机 (距地
                           {Math.max(
                             0,
@@ -419,8 +430,8 @@ export function SceneDock() {
                       </>
                     ) : (
                       <>
-                        <span className="mr-1 text-xs">🪂</span>
-                        <span>
+                        <span className="mr-1 text-xs shrink-0">🪂</span>
+                        <span className="shrink-0 whitespace-nowrap">
                           跟踪空投 (距地
                           {Math.max(
                             0,
@@ -434,7 +445,7 @@ export function SceneDock() {
                 )}
 
                 {/* 实时物理时速 (km/h) 调节与加速度仪表 */}
-                <div className="ml-1 flex items-center gap-0.5 border-l border-primary/25 pl-1.5">
+                <div className="ml-1 flex shrink-0 items-center gap-0.5 border-l border-primary/25 pl-1.5 whitespace-nowrap">
                   <Button
                     type="button"
                     variant="ghost"
@@ -442,26 +453,28 @@ export function SceneDock() {
                     onClick={speedDown}
                     disabled={targetSpeedKmh <= GIS_ROAM_CONFIG[vehicleType].minSpeedKmh}
                     title={`减速（步长 -${GIS_ROAM_CONFIG[vehicleType].speedStepKmh} km/h，快捷键 [）`}
-                    className="size-5 p-0 hover:bg-primary/20 text-primary"
+                    className="size-5 shrink-0 p-0 hover:bg-primary/20 text-primary"
                   >
-                    <Minus className="size-2.5" />
+                    <Minus className="size-2.5 shrink-0" />
                   </Button>
 
                   <button
                     type="button"
                     onClick={resetSpeed}
                     title={`当前物理时速：${currentSpeedKmh} km/h，目标时速：${targetSpeedKmh} km/h。点击恢复巡航时速（${GIS_ROAM_CONFIG[vehicleType].cruiseSpeedKmh} km/h，快捷键 \\）`}
-                    className="flex items-center gap-1 px-1 font-mono text-[10px] font-semibold text-primary hover:underline"
+                    className="flex shrink-0 items-center gap-1 px-1 font-mono text-[10px] font-semibold text-primary whitespace-nowrap hover:underline"
                   >
-                    <Gauge className="size-2.5 opacity-70" />
-                    <span>{currentSpeedKmh}</span>
+                    <Gauge className="size-2.5 shrink-0 opacity-70" />
+                    <span className="shrink-0 whitespace-nowrap">{currentSpeedKmh}</span>
                     {Math.abs(currentSpeedKmh - targetSpeedKmh) > 1 && (
-                      <span className="text-[9px] opacity-75">
+                      <span className="shrink-0 whitespace-nowrap text-[9px] opacity-75">
                         {currentSpeedKmh < targetSpeedKmh ? '↑' : '↓'}
                         {targetSpeedKmh}
                       </span>
                     )}
-                    <span className="text-[9px] opacity-70 font-normal">km/h</span>
+                    <span className="shrink-0 whitespace-nowrap text-[9px] opacity-70 font-normal">
+                      km/h
+                    </span>
                   </button>
 
                   <Button
@@ -471,11 +484,59 @@ export function SceneDock() {
                     onClick={speedUp}
                     disabled={targetSpeedKmh >= GIS_ROAM_CONFIG[vehicleType].maxSpeedKmh}
                     title={`加速（步长 +${GIS_ROAM_CONFIG[vehicleType].speedStepKmh} km/h，快捷键 ]）`}
-                    className="size-5 p-0 hover:bg-primary/20 text-primary"
+                    className="size-5 shrink-0 p-0 hover:bg-primary/20 text-primary"
                   >
-                    <Plus className="size-2.5" />
+                    <Plus className="size-2.5 shrink-0" />
                   </Button>
                 </div>
+
+                {/* 漫游播放倍速调节 (0.5x, 1x, 2x, 4x, 8x, 16x) */}
+                <Popover>
+                  <PopoverTrigger
+                    render={
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        title={`漫游播放倍速：${speedMultiplier}x（点击切换倍速，快捷键 M）`}
+                        className="ml-0.5 h-6 shrink-0 rounded-full border border-primary/30 bg-primary/10 px-1.5 text-[10px] font-mono font-semibold text-primary whitespace-nowrap hover:bg-primary/25"
+                      />
+                    }
+                  >
+                    <Zap className="mr-0.5 size-2.5 shrink-0 fill-primary text-primary" />
+                    <span className="shrink-0 whitespace-nowrap">{speedMultiplier}x</span>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    side="top"
+                    align="center"
+                    className="w-44 rounded-2xl border-white/25 bg-background/90 p-2 shadow-2xl backdrop-blur-xl dark:border-white/10"
+                  >
+                    <div className="pb-1.5 text-center text-xs font-semibold text-foreground">
+                      ⚡ 漫游播放倍速
+                    </div>
+                    <div className="grid grid-cols-3 gap-1">
+                      {GIS_ROAM_SPEED_MULTIPLIERS.map((rate) => (
+                        <Button
+                          key={`speed-mult-${rate}`}
+                          type="button"
+                          variant={speedMultiplier === rate ? 'default' : 'ghost'}
+                          size="sm"
+                          onClick={() => {
+                            setSpeedMultiplier(rate)
+                            toast.success(`已切换至 ${rate}x 倍速漫游`)
+                          }}
+                          className={`h-6 text-xs font-mono ${
+                            speedMultiplier === rate
+                              ? 'bg-primary text-primary-foreground'
+                              : 'hover:bg-primary/20 hover:text-primary'
+                          }`}
+                        >
+                          {rate}x
+                        </Button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
 
                 {/* 载具特技与实时指令操作面板 */}
                 <Popover>
@@ -485,12 +546,12 @@ export function SceneDock() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="ml-1 h-6 rounded-full border border-primary/30 bg-primary/15 px-2 text-[10px] font-medium text-primary hover:bg-primary/25"
+                        className="ml-1 h-6 shrink-0 rounded-full border border-primary/30 bg-primary/15 px-2 text-[10px] font-medium text-primary whitespace-nowrap hover:bg-primary/25"
                       />
                     }
                   >
-                    <Sparkles className="mr-1 size-3 animate-spin text-primary" />
-                    <span>
+                    <Sparkles className="mr-1 size-3 shrink-0 animate-spin text-primary" />
+                    <span className="shrink-0 whitespace-nowrap">
                       {activeAction
                         ? activeAction.type === 'jump'
                           ? '跳跃中'
@@ -712,7 +773,7 @@ export function SceneDock() {
                   </PopoverContent>
                 </Popover>
 
-                <div className="ml-1 flex items-center gap-1 border-l border-primary/25 pl-1.5">
+                <div className="ml-1 flex shrink-0 items-center gap-1 border-l border-primary/25 pl-1.5 whitespace-nowrap">
                   {isRoaming ? (
                     <Button
                       type="button"
@@ -720,9 +781,9 @@ export function SceneDock() {
                       size="icon-xs"
                       onClick={pauseRoam}
                       title="暂停漫游（快捷键 空格）"
-                      className="size-5 p-0 hover:bg-primary/20"
+                      className="size-5 shrink-0 p-0 hover:bg-primary/20"
                     >
-                      <Pause className="size-3" />
+                      <Pause className="size-3 shrink-0" />
                     </Button>
                   ) : (
                     <Button
@@ -731,9 +792,9 @@ export function SceneDock() {
                       size="icon-xs"
                       onClick={resumeRoam}
                       title="继续漫游（快捷键 空格）"
-                      className="size-5 p-0 hover:bg-primary/20"
+                      className="size-5 shrink-0 p-0 hover:bg-primary/20"
                     >
-                      <Play className="size-3" />
+                      <Play className="size-3 shrink-0" />
                     </Button>
                   )}
 
@@ -746,9 +807,9 @@ export function SceneDock() {
                       toast.info('已重新开始漫游')
                     }}
                     title="重新开始漫游（从起点播放，快捷键 R）"
-                    className="size-5 p-0 hover:bg-primary/20 text-primary"
+                    className="size-5 shrink-0 p-0 hover:bg-primary/20 text-primary"
                   >
-                    <RotateCcw className="size-3" />
+                    <RotateCcw className="size-3 shrink-0" />
                   </Button>
 
                   <Button
@@ -757,9 +818,9 @@ export function SceneDock() {
                     size="icon-xs"
                     onClick={stopRoam}
                     title="停止漫游"
-                    className="size-5 p-0 hover:bg-destructive/20 hover:text-destructive"
+                    className="size-5 shrink-0 p-0 hover:bg-destructive/20 hover:text-destructive"
                   >
-                    <Square className="size-3" />
+                    <Square className="size-3 shrink-0" />
                   </Button>
                 </div>
 
