@@ -1,5 +1,14 @@
 import { Button, cn } from '@zen/ui'
-import { Dices, Eye, EyeDashed, Palette, Pipette, SlidersHorizontal, Smile } from 'lucide-react'
+import {
+  Dices,
+  Eye,
+  EyeDashed,
+  Palette,
+  Pipette,
+  ScanEye,
+  SlidersHorizontal,
+  Smile
+} from 'lucide-react'
 import { toast } from 'sonner'
 
 import { PRESET_PET_COLORS } from '../constants/colors'
@@ -25,44 +34,36 @@ export function PetsGlobalToolbar() {
     ...(globalConfig.eyeParams ?? {})
   }
 
-  const handleSetColor = (colorMode: 'theme' | 'preset', customColor?: string, label?: string) => {
+  const handleSetColor = (colorMode: 'theme' | 'preset', customColor?: string) => {
     batchUpdateAll({ colorMode, customColor })
-    toast.success(`已为全部宠物应用${label ?? '色彩'}模式`)
   }
 
   const handleSetCustomColor = (hex: string) => {
     batchUpdateAll({ colorMode: 'custom', customColor: hex })
-    toast.success(`已为全部宠物应用自定义色彩: ${hex.toUpperCase()}`)
   }
 
-  const handleSetEyeShape = (shape: PetEyeShape, label: string) => {
+  const handleSetEyeShape = (shape: PetEyeShape) => {
     batchUpdateAll({ eyeShape: shape })
-    toast.success(`已为全部宠物切换眼睛形状: ${label}`)
   }
 
-  const handleSetEmotion = (emotion: PetEmotion, label: string) => {
+  const handleSetEmotion = (emotion: PetEmotion) => {
     batchUpdateAll({ emotionMode: 'fixed', fixedEmotion: emotion })
-    toast.success(`已为全部宠物切换表情: ${label}`)
   }
 
   const handleRandomEmotion = () => {
     batchUpdateAll({ emotionMode: 'random', randomEmotionInterval: 3 })
-    toast.success('已开启全部宠物自主随机表情轮换')
   }
 
-  const handleSetGaze = (vector: [number, number], label: string) => {
+  const handleSetGaze = (vector: [number, number]) => {
     batchUpdateAll({ gazeMode: 'fixed', fixedGaze: vector })
-    toast.success(`已为全部宠物固定视向: ${label}`)
   }
 
   const handleFollowGaze = () => {
     batchUpdateAll({ gazeMode: 'follow' })
-    toast.success('已恢复全部宠物自由视线跟随')
   }
 
   const handleRandomGaze = () => {
     batchUpdateAll({ gazeMode: 'random', randomGazeInterval: 2.5 })
-    toast.success('已开启全部宠物自主东张西望')
   }
 
   const applyCapsulePreset = (presetKey: 'subtle' | 'tall') => {
@@ -91,7 +92,7 @@ export function PetsGlobalToolbar() {
             variant={globalConfig.colorMode === 'theme' ? 'default' : 'outline'}
             size="sm"
             className="h-7 rounded-xl text-xs gap-1.5 cursor-pointer font-medium"
-            onClick={() => handleSetColor('theme', undefined, '默认品牌色')}
+            onClick={() => handleSetColor('theme')}
           >
             <span className="size-2.5 rounded-full border border-primary-foreground/40 bg-primary inline-block" />
             <span>跟随系统品牌色</span>
@@ -105,7 +106,7 @@ export function PetsGlobalToolbar() {
                 <button
                   key={c.id}
                   type="button"
-                  onClick={() => handleSetColor('preset', c.hex, c.label)}
+                  onClick={() => handleSetColor('preset', c.hex)}
                   title={c.label}
                   className={cn(
                     'size-5 rounded-full border transition-all cursor-pointer hover:scale-115 active:scale-95',
@@ -158,12 +159,10 @@ export function PetsGlobalToolbar() {
 
       {/* 2. 维度一：眼睛形状 */}
       <div className="flex items-center gap-2 overflow-x-auto text-xs py-0.5">
-        <div className="flex items-center gap-1.5 shrink-0">
-          <span className="font-mono text-xs font-semibold text-primary">1. 眼睛形状:</span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono font-medium">
-            (默认是微胶囊眼)
-          </span>
-        </div>
+        <span className="flex items-center gap-1 shrink-0 font-mono text-xs font-semibold text-muted-foreground mr-1">
+          <Eye className="size-3.5 text-primary" />
+          <span>眼睛形状:</span>
+        </span>
         <div className="flex items-center gap-1.5 shrink-0">
           {EYE_SHAPES_CATALOG.map((item) => {
             const isActive = activeShape === item.id
@@ -171,7 +170,7 @@ export function PetsGlobalToolbar() {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => handleSetEyeShape(item.id, item.label)}
+                onClick={() => handleSetEyeShape(item.id)}
                 className={cn(
                   'shrink-0 rounded-xl px-2.5 py-1 text-xs transition-all cursor-pointer border flex items-center gap-1',
                   isActive
@@ -179,7 +178,6 @@ export function PetsGlobalToolbar() {
                     : 'border-border/60 bg-background/50 hover:bg-muted/60 text-muted-foreground hover:text-foreground'
                 )}
               >
-                <span>{item.emoji}</span>
                 <span>{item.label}</span>
               </button>
             )
@@ -199,7 +197,7 @@ export function PetsGlobalToolbar() {
       <div className="flex items-center gap-2 overflow-x-auto text-xs py-0.5 border-t border-border/40 pt-2 dark:border-white/5">
         <span className="flex items-center gap-1 shrink-0 font-mono text-xs font-semibold text-muted-foreground mr-1">
           <Smile className="size-3.5 text-primary" />
-          <span>2. 表情状态:</span>
+          <span>表情状态:</span>
         </span>
 
         {EMOTIONS_CATALOG.map((item) => {
@@ -210,7 +208,7 @@ export function PetsGlobalToolbar() {
             <button
               key={item.id}
               type="button"
-              onClick={() => handleSetEmotion(item.id, item.label)}
+              onClick={() => handleSetEmotion(item.id)}
               className={cn(
                 'shrink-0 rounded-xl px-2.5 py-1 text-xs transition-all cursor-pointer border flex items-center gap-1',
                 isActive
@@ -238,37 +236,37 @@ export function PetsGlobalToolbar() {
       {/* 5. 透视视向方位栏 */}
       <div className="flex items-center gap-2 overflow-x-auto text-xs pt-2 border-t border-border/40 dark:border-white/5">
         <span className="flex items-center gap-1 shrink-0 font-mono text-xs font-medium text-muted-foreground mr-1">
-          <Eye className="size-3.5 text-primary" />
+          <ScanEye className="size-3.5 text-primary" />
           <span>透视视向:</span>
         </span>
 
         <button
           type="button"
-          onClick={() => handleSetGaze([0, 0], '正视')}
+          onClick={() => handleSetGaze([0, 0])}
           className="shrink-0 rounded-xl px-2.5 py-1 text-xs border border-border/60 bg-background/50 hover:bg-muted/60 text-muted-foreground hover:text-foreground cursor-pointer"
         >
           正视
         </button>
         <button
           type="button"
-          onClick={() => handleSetGaze([-1, 0], '左看 (左小右大)')}
+          onClick={() => handleSetGaze([-1, 0])}
           className="shrink-0 rounded-xl px-2.5 py-1 text-xs border border-border/60 bg-background/50 hover:bg-muted/60 text-muted-foreground hover:text-foreground cursor-pointer"
         >
           左看
         </button>
         <button
           type="button"
-          onClick={() => handleSetGaze([1, 0], '右看 (左大右小)')}
+          onClick={() => handleSetGaze([1, 0])}
           className="shrink-0 rounded-xl px-2.5 py-1 text-xs border border-border/60 bg-background/50 hover:bg-muted/60 text-muted-foreground hover:text-foreground cursor-pointer"
         >
           右看
         </button>
         <button
           type="button"
-          onClick={() => handleSetGaze([0.85, -0.85], '右上')}
+          onClick={() => handleSetGaze([0.85, -0.85])}
           className="shrink-0 rounded-xl px-2.5 py-1 text-xs border border-border/60 bg-background/50 hover:bg-muted/60 text-muted-foreground hover:text-foreground cursor-pointer"
         >
-          右上 ↗
+          右上
         </button>
 
         <Button
@@ -313,7 +311,7 @@ function ShapeRefineSection({
     <div className="flex items-center gap-4 overflow-x-auto text-xs py-1.5 px-3 rounded-2xl bg-muted/30 border border-border/40 dark:bg-white/3">
       <div className="flex items-center gap-1 shrink-0 text-primary font-mono text-[11px] font-medium">
         <SlidersHorizontal className="size-3" />
-        <span>⚙️ 眼型细化:</span>
+        <span>眼型细化:</span>
       </div>
 
       <div className="flex items-center gap-4 flex-wrap">
@@ -333,20 +331,6 @@ function ShapeRefineSection({
                 className="w-24 accent-primary"
               />
               <span className="font-mono text-primary w-8">{eyeParams.capsule.height}</span>
-              <button
-                type="button"
-                onClick={() => onApplyCapsulePreset('subtle')}
-                className="px-2 py-0.5 rounded-md bg-muted/60 hover:bg-primary/20 text-[10px] text-primary cursor-pointer"
-              >
-                设为微胶囊
-              </button>
-              <button
-                type="button"
-                onClick={() => onApplyCapsulePreset('tall')}
-                className="px-2 py-0.5 rounded-md bg-muted/60 hover:bg-primary/20 text-[10px] text-foreground cursor-pointer"
-              >
-                设为长胶囊
-              </button>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground">宽度:</span>
@@ -363,6 +347,21 @@ function ShapeRefineSection({
               />
               <span className="font-mono text-primary w-8">{eyeParams.capsule.width}</span>
             </div>
+
+            <button
+              type="button"
+              onClick={() => onApplyCapsulePreset('subtle')}
+              className="px-2 py-0.5 rounded-md bg-muted/60 hover:bg-primary/20 text-[10px] text-primary cursor-pointer"
+            >
+              微胶囊
+            </button>
+            <button
+              type="button"
+              onClick={() => onApplyCapsulePreset('tall')}
+              className="px-2 py-0.5 rounded-md bg-muted/60 hover:bg-primary/20 text-[10px] text-foreground cursor-pointer"
+            >
+              长胶囊
+            </button>
           </>
         )}
 

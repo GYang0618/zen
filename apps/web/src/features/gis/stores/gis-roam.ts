@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-import { GIS_ROAM_MIN_WAYPOINTS } from '../constants'
+import { GIS_ROAM_CONFIG, GIS_ROAM_MIN_WAYPOINTS } from '../constants'
 
 import type { GisRoamViewMode } from '../constants'
 
@@ -15,15 +15,57 @@ export type GisRoamVehicle = 'walk' | 'vehicle' | 'plane'
 
 export type GisRoamPhase = 'idle' | 'collecting' | 'picking' | 'roaming' | 'paused'
 
-export const GIS_ROAM_SPEED_LEVELS = [0.25, 0.5, 1, 2, 4, 8, 16] as const
+export type GisFlightPhase = 'taxi_start' | 'climb' | 'cruise' | 'descent' | 'taxi_end' | 'stopped'
+
+export type GisRoamAction =
+  | { type: 'jump' }
+  | { type: 'pause_briefly'; durationSeconds?: number }
+  | { type: 'lane_change_left'; speedBoostKmh?: number }
+  | { type: 'lane_change_right'; speedBoostKmh?: number }
+  | { type: 'airdrop' }
+  | { type: 'pitch_up'; deltaAltitude?: number; speedBoostKmh?: number; durationSec?: number }
+  | { type: 'pitch_down'; deltaAltitude?: number; speedBoostKmh?: number; durationSec?: number }
+  | {
+      type: 'roll_turn'
+      deltaHeadingDeg: number
+      bankRollDeg?: number
+      speedBoostKmh?: number
+      durationSec?: number
+    }
+
+export type GisRoamViewTarget = 'vehicle' | 'airdrop'
+
+export type GisAirdropInfo = {
+  isDescending: boolean
+  altitudeMeters: number
+  groundHeight: number
+  etaSeconds: number
+}
 
 type GisRoamState = {
   phase: GisRoamPhase
   waypoints: GisWaypoint[]
   vehicleType: GisRoamVehicle
   viewMode: GisRoamViewMode
+  /** 当前相机观察主体：主载具还是空投物资箱 */
+  viewTarget: GisRoamViewTarget
+  /** 当前活跃空投箱状态信息 */
+  airdropInfo: GisAirdropInfo | null
   totalDistanceMeters: number
-  speedMultiplier: number
+  /** 实时物理瞬时时速 (km/h)，从 0 开始平滑起步 */
+  currentSpeedKmh: number
+  /** 用户或 AI 设定的目标时速 (km/h) */
+  targetSpeedKmh: number
+  /** 临时航向偏转角 (度)，支持方向转向控制 */
+  headingOffsetDeg: number
+  /** 横向变道平移位移 (米) */
+  lateralOffsetMeters: number
+  /** 垂向位移 (米，如跳跃、爬升) */
+  verticalOffsetMeters: number
+  /** 当前正在执行的特定动作指令 */
+  activeAction: GisRoamAction | null
+  /** 飞机当前飞行生命周期阶段 */
+  flightPhase?: GisFlightPhase
   remainingRealSeconds: number | null
   roamProgress: number
   restartCount: number
@@ -41,6 +83,7 @@ type GisRoamState = {
       vehicleType?: GisRoamVehicle
       totalDistanceMeters?: number
       viewMode?: GisRoamViewMode
+      targetSpeedKmh?: number
     }
   ) => void
   pauseRoam: () => void
@@ -49,10 +92,25 @@ type GisRoamState = {
   stopRoam: () => void
   setViewMode: (viewMode: GisRoamViewMode) => void
   toggleViewMode: () => void
-  setSpeedMultiplier: (multiplier: number) => void
+  setViewTarget: (target: GisRoamViewTarget) => void
+  setAirdropInfo: (info: GisAirdropInfo | null) => void
+  setTargetSpeedKmh: (speedKmh: number) => void
   speedUp: () => void
   speedDown: () => void
   resetSpeed: () => void
+  turnDirection: (deltaDeg: number) => void
+  resetDirection: () => void
+  triggerAction: (action: GisRoamAction) => void
+  clearAction: () => void
+  updatePhysicsState: (params: {
+    currentSpeedKmh: number
+    remainingRealSeconds: number
+    roamProgress: number
+    flightPhase?: GisFlightPhase
+  }) => void
+  /** 兼容旧接口 */
+  speedMultiplier: number
+  setSpeedMultiplier: (multiplier: number) => void
   updateRoamProgress: (remainingRealSeconds: number, roamProgress: number) => void
 }
 
@@ -65,7 +123,16 @@ export const useGisRoamStore = create<GisRoamState>((set, get) => ({
   waypoints: [],
   vehicleType: 'walk',
   viewMode: 'first_person',
+  viewTarget: 'vehicle',
+  airdropInfo: null,
   totalDistanceMeters: 0,
+  currentSpeedKmh: 0,
+  targetSpeedKmh: GIS_ROAM_CONFIG.walk.cruiseSpeedKmh,
+  headingOffsetDeg: 0,
+  lateralOffsetMeters: 0,
+  verticalOffsetMeters: 0,
+  activeAction: null,
+  flightPhase: undefined,
   speedMultiplier: 1,
   remainingRealSeconds: null,
   roamProgress: 0,
@@ -129,13 +196,25 @@ export const useGisRoamStore = create<GisRoamState>((set, get) => ({
   startRoam: (waypoints, options) => {
     if (waypoints.length < GIS_ROAM_MIN_WAYPOINTS) return
     get().resolveCollection?.(null)
+    const selectedVehicle = options?.vehicleType ?? 'walk'
+    const config = GIS_ROAM_CONFIG[selectedVehicle]
     set({
       resolveCollection: null,
       waypoints,
-      vehicleType: options?.vehicleType ?? 'walk',
+      vehicleType: selectedVehicle,
       viewMode: options?.viewMode ?? get().viewMode,
+      viewTarget: 'vehicle',
+      airdropInfo: null,
       totalDistanceMeters: options?.totalDistanceMeters ?? 0,
-      phase: 'roaming'
+      currentSpeedKmh: 0, // 统一从 0 km/h 真实起步加速
+      targetSpeedKmh: options?.targetSpeedKmh ?? config.cruiseSpeedKmh,
+      headingOffsetDeg: 0,
+      lateralOffsetMeters: 0,
+      verticalOffsetMeters: 0,
+      activeAction: null,
+      flightPhase: selectedVehicle === 'plane' ? 'taxi_start' : undefined,
+      phase: 'roaming',
+      roamProgress: 0
     })
   },
 
@@ -152,11 +231,21 @@ export const useGisRoamStore = create<GisRoamState>((set, get) => ({
   },
 
   restartRoam: () => {
-    const { phase } = get()
+    const { phase, vehicleType } = get()
     if (phase === 'roaming' || phase === 'paused') {
+      const config = GIS_ROAM_CONFIG[vehicleType]
       set((state) => ({
         phase: 'roaming',
         roamProgress: 0,
+        currentSpeedKmh: 0,
+        targetSpeedKmh: config.cruiseSpeedKmh,
+        viewTarget: 'vehicle',
+        airdropInfo: null,
+        headingOffsetDeg: 0,
+        lateralOffsetMeters: 0,
+        verticalOffsetMeters: 0,
+        activeAction: null,
+        flightPhase: vehicleType === 'plane' ? 'taxi_start' : undefined,
         restartCount: state.restartCount + 1
       }))
     }
@@ -166,7 +255,15 @@ export const useGisRoamStore = create<GisRoamState>((set, get) => ({
     if (get().phase === 'roaming' || get().phase === 'paused') {
       set({
         phase: 'idle',
+        currentSpeedKmh: 0,
         speedMultiplier: 1,
+        viewTarget: 'vehicle',
+        airdropInfo: null,
+        headingOffsetDeg: 0,
+        lateralOffsetMeters: 0,
+        verticalOffsetMeters: 0,
+        activeAction: null,
+        flightPhase: undefined,
         remainingRealSeconds: null,
         roamProgress: 0,
         restartCount: 0
@@ -192,25 +289,71 @@ export const useGisRoamStore = create<GisRoamState>((set, get) => ({
     })
   },
 
-  setSpeedMultiplier: (multiplier) => {
-    set({ speedMultiplier: Math.max(0.25, Math.min(32, multiplier)) })
+  setViewTarget: (viewTarget) => {
+    set({ viewTarget })
+  },
+
+  setAirdropInfo: (airdropInfo) => {
+    set({ airdropInfo })
+  },
+
+  setTargetSpeedKmh: (speedKmh) => {
+    const config = GIS_ROAM_CONFIG[get().vehicleType]
+    const clamped = Math.max(config.minSpeedKmh, Math.min(config.maxSpeedKmh, speedKmh))
+    set({ targetSpeedKmh: clamped })
   },
 
   speedUp: () => {
-    const current = get().speedMultiplier
-    const next = GIS_ROAM_SPEED_LEVELS.find((lvl) => lvl > current) ?? current * 2
-    set({ speedMultiplier: Math.min(32, next) })
+    const { targetSpeedKmh, vehicleType } = get()
+    const config = GIS_ROAM_CONFIG[vehicleType]
+    const nextSpeed = Math.min(config.maxSpeedKmh, targetSpeedKmh + config.speedStepKmh)
+    set({ targetSpeedKmh: nextSpeed })
   },
 
   speedDown: () => {
-    const current = get().speedMultiplier
-    const reversed = [...GIS_ROAM_SPEED_LEVELS].reverse()
-    const prev = reversed.find((lvl) => lvl < current) ?? current / 2
-    set({ speedMultiplier: Math.max(0.25, prev) })
+    const { targetSpeedKmh, vehicleType } = get()
+    const config = GIS_ROAM_CONFIG[vehicleType]
+    const prevSpeed = Math.max(config.minSpeedKmh, targetSpeedKmh - config.speedStepKmh)
+    set({ targetSpeedKmh: prevSpeed })
   },
 
   resetSpeed: () => {
-    set({ speedMultiplier: 1 })
+    const config = GIS_ROAM_CONFIG[get().vehicleType]
+    set({ targetSpeedKmh: config.cruiseSpeedKmh })
+  },
+
+  turnDirection: (deltaDeg) => {
+    set((state) => ({ headingOffsetDeg: state.headingOffsetDeg + deltaDeg }))
+  },
+
+  resetDirection: () => {
+    set({ headingOffsetDeg: 0 })
+  },
+
+  triggerAction: (action) => {
+    set({ activeAction: action })
+  },
+
+  clearAction: () => {
+    set({ activeAction: null })
+  },
+
+  updatePhysicsState: ({ currentSpeedKmh, remainingRealSeconds, roamProgress, flightPhase }) => {
+    const config = GIS_ROAM_CONFIG[get().vehicleType]
+    const speedMultiplier = Math.max(0.1, currentSpeedKmh / Math.max(1, config.cruiseSpeedKmh))
+    set({
+      currentSpeedKmh,
+      remainingRealSeconds,
+      roamProgress,
+      flightPhase,
+      speedMultiplier
+    })
+  },
+
+  /** 兼容旧接口 */
+  setSpeedMultiplier: (multiplier) => {
+    const config = GIS_ROAM_CONFIG[get().vehicleType]
+    get().setTargetSpeedKmh(config.cruiseSpeedKmh * multiplier)
   },
 
   updateRoamProgress: (remainingRealSeconds, roamProgress) => {

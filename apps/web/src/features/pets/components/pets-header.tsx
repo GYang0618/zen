@@ -1,5 +1,5 @@
 import { Badge, Button, Input } from '@zen/ui'
-import { EyeDashed, RotateCcw, Search } from 'lucide-react'
+import { RotateCcw, Search } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { usePetsStore } from '../stores/use-pets-store'
@@ -12,17 +12,11 @@ interface PetsHeaderProps {
 export function PetsHeader({ totalCount, customizedCount }: PetsHeaderProps) {
   const searchQuery = usePetsStore((s) => s.searchQuery)
   const setSearchQuery = usePetsStore((s) => s.setSearchQuery)
-  const triggerGlobalBlink = usePetsStore((s) => s.triggerGlobalBlink)
   const resetAll = usePetsStore((s) => s.resetAll)
 
   const handleResetAll = () => {
     resetAll()
     toast.success('已恢复全部宠物的默认预设')
-  }
-
-  const handleBlink = () => {
-    triggerGlobalBlink()
-    toast.info('✨ 触发仿生眨眼')
   }
 
   return (
@@ -66,17 +60,6 @@ export function PetsHeader({ totalCount, customizedCount }: PetsHeaderProps) {
             className="h-9 pl-8 text-xs rounded-xl"
           />
         </div>
-
-        {/* 触发眨眼测试 */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleBlink}
-          className="gap-1.5 rounded-xl border-primary/30 bg-primary/10 text-primary hover:bg-primary/20"
-        >
-          <EyeDashed className="size-3.5" />
-          <span>眨眼</span>
-        </Button>
 
         {/* 恢复全部 */}
         {customizedCount > 0 && (

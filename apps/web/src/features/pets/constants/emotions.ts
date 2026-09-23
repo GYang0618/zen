@@ -45,7 +45,6 @@ export interface EyeShapeMeta {
   id: PetEyeShape
   label: string
   shortLabel: string
-  emoji: string
   description: string
 }
 
@@ -53,44 +52,38 @@ export interface EyeShapeMeta {
 export const EYE_SHAPES_CATALOG: readonly EyeShapeMeta[] = [
   {
     id: 'capsule',
-    label: '胶囊眼 (微胶囊默认)',
+    label: '胶囊眼',
     shortLabel: '微胶囊眼',
-    emoji: '💊',
     description: '经典微胶囊宽高比 (15×19)，亦可切换为修长长胶囊'
   },
   {
     id: 'dot',
     label: '正圆豆豆眼',
     shortLabel: '豆豆眼',
-    emoji: '⚫',
     description: '极简圆润正圆，单一直径纯粹掌控'
   },
   {
     id: 'sparkle',
     label: '高光双瞳眼',
     shortLabel: '高光双瞳',
-    emoji: '✨',
     description: '漫画级拟真双高光反射斑，灵气生动'
   },
   {
     id: 'cat',
     label: '猫咪梭形眼',
     shortLabel: '猫咪梭形',
-    emoji: '🐱',
     description: '优雅猫眼梭形轮廓，弧度尖锐微收'
   },
   {
     id: 'cyber-bar',
     label: '数码横条眼',
     shortLabel: '数码横条',
-    emoji: '➖',
     description: '复古未来主义机甲感，圆角横长条晶体'
   },
   {
     id: 'squircle',
     label: '像素方圆眼',
     shortLabel: '像素方圆',
-    emoji: '⏹️',
     description: '等边极简超椭圆，工业像素方圆几何美感'
   }
 ]

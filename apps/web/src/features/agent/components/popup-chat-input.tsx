@@ -6,7 +6,7 @@ import { Mic, Paperclip, Send, Square } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
-import { useAgentPopupContext } from '../context/agent-popup-context'
+import { usePopupAgent } from '../context/popup-agent-context'
 import { useAgentChatInputStore } from '../stores/agent-chat-input'
 
 import type { CopilotChatInputProps } from '@copilotkit/react-core/v2'
@@ -26,7 +26,7 @@ export function PopupChatInput({
   className
 }: CopilotChatInputProps) {
   const configuration = useCopilotChatConfiguration()
-  const popupContext = useAgentPopupContext()
+  const { threadId } = usePopupAgent()
   const labels = configuration?.labels
 
   const [internalValue, setInternalValue] = useState('')
@@ -39,15 +39,13 @@ export function PopupChatInput({
   const clearEditDraft = useAgentChatInputStore((state) => state.clearEditDraft)
   const markThreadRunning = useAgentChatInputStore((state) => state.markThreadRunning)
 
-  const currentThreadId = popupContext?.threadId ?? configuration?.threadId ?? 'popup-thread'
-
   // 同步当前会话运行状态到全局 store，驱动悬浮球小宠物的思考动效
   useEffect(() => {
-    markThreadRunning(currentThreadId, isRunning)
+    markThreadRunning(threadId, isRunning)
     return () => {
-      markThreadRunning(currentThreadId, false)
+      markThreadRunning(threadId, false)
     }
-  }, [currentThreadId, isRunning, markThreadRunning])
+  }, [threadId, isRunning, markThreadRunning])
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const singleLineHeightRef = useRef<number | null>(null)

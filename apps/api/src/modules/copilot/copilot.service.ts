@@ -8,11 +8,17 @@ import {
 } from '@copilotkit/runtime/v2'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
-import { A2UI_SURFACE_TOOL_NAME, getZenA2uiInlineCatalog, ZEN_A2UI_CATALOG_ID } from '@zen/shared'
+import {
+  A2UI_SURFACE_TOOL_NAME,
+  DEFAULT_AGENT_ID,
+  getZenA2uiInlineCatalog,
+  PAGE_AGENT_ID,
+  ZEN_A2UI_CATALOG_ID
+} from '@zen/shared'
 
 import { AuthContextService } from '../../common/auth/auth-context.service.js'
 import { CONFIG_NAMESPACES } from '../../config/index.js'
-import { defaultAgent, planAgent } from './agents.js'
+import { defaultAgent, pageAgent } from './agents.js'
 import { CopilotThreadService } from './copilot-thread.service.js'
 import { extractBearerToken } from './copilot-token.util.js'
 import {
@@ -80,18 +86,19 @@ export class CopilotService implements OnModuleInit {
         }
 
         return {
-          default: defaultAgent({
+          [DEFAULT_AGENT_ID]: defaultAgent({
             deploymentUrl,
             accessToken: token ?? undefined,
             auth
           }),
-          plan: planAgent({
+          [PAGE_AGENT_ID]: pageAgent({
             deploymentUrl,
             accessToken: token ?? undefined
           })
         }
       },
       a2ui: {
+        agents: [DEFAULT_AGENT_ID],
         injectA2UITool: true,
         a2uiToolNames: [A2UI_SURFACE_TOOL_NAME],
         defaultCatalogId: ZEN_A2UI_CATALOG_ID,

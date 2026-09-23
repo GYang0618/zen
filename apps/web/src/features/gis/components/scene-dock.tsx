@@ -15,6 +15,7 @@ import {
   Crosshair,
   Eye,
   Footprints,
+  Gauge,
   Layers,
   MapPin,
   Minus,
@@ -23,6 +24,7 @@ import {
   Play,
   Plus,
   RotateCcw,
+  Sparkles,
   Square,
   Timer,
   Trash2,
@@ -33,6 +35,7 @@ import { useEffect } from 'react'
 import { toast } from 'sonner'
 
 import { useCesium } from '../cesium-provider'
+import { GIS_ROAM_CONFIG } from '../constants'
 import {
   flyToMarker,
   formatCoordinates,
@@ -55,7 +58,10 @@ export function SceneDock() {
   const phase = useGisRoamStore((state) => state.phase)
   const vehicleType = useGisRoamStore((state) => state.vehicleType)
   const viewMode = useGisRoamStore((state) => state.viewMode)
-  const speedMultiplier = useGisRoamStore((state) => state.speedMultiplier)
+  const currentSpeedKmh = useGisRoamStore((state) => state.currentSpeedKmh)
+  const targetSpeedKmh = useGisRoamStore((state) => state.targetSpeedKmh)
+  const flightPhase = useGisRoamStore((state) => state.flightPhase)
+  const activeAction = useGisRoamStore((state) => state.activeAction)
   const totalDistanceMeters = useGisRoamStore((state) => state.totalDistanceMeters)
   const remainingRealSeconds = useGisRoamStore((state) => state.remainingRealSeconds)
   const roamProgress = useGisRoamStore((state) => state.roamProgress)
@@ -67,6 +73,10 @@ export function SceneDock() {
   const speedUp = useGisRoamStore((state) => state.speedUp)
   const speedDown = useGisRoamStore((state) => state.speedDown)
   const resetSpeed = useGisRoamStore((state) => state.resetSpeed)
+  const triggerAction = useGisRoamStore((state) => state.triggerAction)
+  const viewTarget = useGisRoamStore((state) => state.viewTarget)
+  const setViewTarget = useGisRoamStore((state) => state.setViewTarget)
+  const airdropInfo = useGisRoamStore((state) => state.airdropInfo)
 
   const isRoaming = phase === 'roaming'
   const isPaused = phase === 'paused'
@@ -354,15 +364,84 @@ export function SceneDock() {
                   </Tooltip>
                 </div>
 
-                {/* 实时倍速调节 */}
+                {/* 飞机飞行阶段标签 */}
+                {vehicleType === 'plane' && flightPhase && (
+                  <span className="rounded-full bg-primary/25 px-1.5 py-0.5 text-[9px] font-semibold text-primary">
+                    {flightPhase === 'taxi_start'
+                      ? '起飞滑跑'
+                      : flightPhase === 'climb'
+                        ? '仰角爬升'
+                        : flightPhase === 'cruise'
+                          ? '万米巡航'
+                          : flightPhase === 'descent'
+                            ? '进近下滑'
+                            : flightPhase === 'taxi_end'
+                              ? '着陆滑跑'
+                              : '终点停机'}
+                  </span>
+                )}
+
+                {/* 空投箱追随视角切换药丸按钮 */}
+                {airdropInfo?.isDescending && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const next = viewTarget === 'airdrop' ? 'vehicle' : 'airdrop'
+                      setViewTarget(next)
+                      toast.info(
+                        next === 'airdrop' ? '已切至空投箱降落追随视角' : '已返回客机主视角'
+                      )
+                    }}
+                    title={
+                      viewTarget === 'airdrop'
+                        ? '当前正在跟踪空投箱降落。点击返回客机主视角'
+                        : '检测到空投正在降落！点击切入第三人称俯视追随视角'
+                    }
+                    className={`h-6 rounded-full border px-2 text-[10px] font-medium transition-all ${
+                      viewTarget === 'airdrop'
+                        ? 'border-amber-500/50 bg-amber-500/20 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.3)] hover:bg-amber-500/30'
+                        : 'border-primary/40 bg-primary/15 text-primary hover:bg-primary/25 animate-pulse'
+                    }`}
+                  >
+                    {viewTarget === 'airdrop' ? (
+                      <>
+                        <Plane className="mr-1 size-3" />
+                        <span>
+                          返回飞机 (距地
+                          {Math.max(
+                            0,
+                            Math.round(airdropInfo.altitudeMeters - airdropInfo.groundHeight)
+                          )}
+                          m)
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="mr-1 text-xs">🪂</span>
+                        <span>
+                          跟踪空投 (距地
+                          {Math.max(
+                            0,
+                            Math.round(airdropInfo.altitudeMeters - airdropInfo.groundHeight)
+                          )}
+                          m)
+                        </span>
+                      </>
+                    )}
+                  </Button>
+                )}
+
+                {/* 实时物理时速 (km/h) 调节与加速度仪表 */}
                 <div className="ml-1 flex items-center gap-0.5 border-l border-primary/25 pl-1.5">
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon-xs"
                     onClick={speedDown}
-                    disabled={speedMultiplier <= 0.25}
-                    title="漫游减速（快捷键 [）"
+                    disabled={targetSpeedKmh <= GIS_ROAM_CONFIG[vehicleType].minSpeedKmh}
+                    title={`减速（步长 -${GIS_ROAM_CONFIG[vehicleType].speedStepKmh} km/h，快捷键 [）`}
                     className="size-5 p-0 hover:bg-primary/20 text-primary"
                   >
                     <Minus className="size-2.5" />
@@ -371,10 +450,18 @@ export function SceneDock() {
                   <button
                     type="button"
                     onClick={resetSpeed}
-                    title="点击恢复 1.0x 正常速度（快捷键 \\）"
-                    className="px-1 font-mono text-[10px] font-semibold text-primary hover:underline"
+                    title={`当前物理时速：${currentSpeedKmh} km/h，目标时速：${targetSpeedKmh} km/h。点击恢复巡航时速（${GIS_ROAM_CONFIG[vehicleType].cruiseSpeedKmh} km/h，快捷键 \\）`}
+                    className="flex items-center gap-1 px-1 font-mono text-[10px] font-semibold text-primary hover:underline"
                   >
-                    {speedMultiplier}x
+                    <Gauge className="size-2.5 opacity-70" />
+                    <span>{currentSpeedKmh}</span>
+                    {Math.abs(currentSpeedKmh - targetSpeedKmh) > 1 && (
+                      <span className="text-[9px] opacity-75">
+                        {currentSpeedKmh < targetSpeedKmh ? '↑' : '↓'}
+                        {targetSpeedKmh}
+                      </span>
+                    )}
+                    <span className="text-[9px] opacity-70 font-normal">km/h</span>
                   </button>
 
                   <Button
@@ -382,13 +469,248 @@ export function SceneDock() {
                     variant="ghost"
                     size="icon-xs"
                     onClick={speedUp}
-                    disabled={speedMultiplier >= 32}
-                    title="漫游加速（快捷键 ]）"
+                    disabled={targetSpeedKmh >= GIS_ROAM_CONFIG[vehicleType].maxSpeedKmh}
+                    title={`加速（步长 +${GIS_ROAM_CONFIG[vehicleType].speedStepKmh} km/h，快捷键 ]）`}
                     className="size-5 p-0 hover:bg-primary/20 text-primary"
                   >
                     <Plus className="size-2.5" />
                   </Button>
                 </div>
+
+                {/* 载具特技与实时指令操作面板 */}
+                <Popover>
+                  <PopoverTrigger
+                    render={
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="ml-1 h-6 rounded-full border border-primary/30 bg-primary/15 px-2 text-[10px] font-medium text-primary hover:bg-primary/25"
+                      />
+                    }
+                  >
+                    <Sparkles className="mr-1 size-3 animate-spin text-primary" />
+                    <span>
+                      {activeAction
+                        ? activeAction.type === 'jump'
+                          ? '跳跃中'
+                          : activeAction.type === 'pause_briefly'
+                            ? '驻留中'
+                            : activeAction.type === 'lane_change_left'
+                              ? '左变道超车'
+                              : activeAction.type === 'lane_change_right'
+                                ? '右变道超车'
+                                : activeAction.type === 'airdrop'
+                                  ? '空投释放'
+                                  : activeAction.type === 'pitch_up'
+                                    ? '俯冲爬升'
+                                    : activeAction.type === 'pitch_down'
+                                      ? '进近下滑'
+                                      : '盘旋中'
+                        : '实时指令'}
+                    </span>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    side="top"
+                    align="center"
+                    className={`${vehicleType === 'plane' ? 'w-64' : 'w-56'} rounded-2xl border-white/25 bg-background/90 p-2.5 shadow-2xl backdrop-blur-xl dark:border-white/10`}
+                  >
+                    <div className="pb-1.5 text-xs font-semibold text-foreground">
+                      {vehicleType === 'walk'
+                        ? '行人实时指令'
+                        : vehicleType === 'vehicle'
+                          ? '车辆驾驶指令'
+                          : '客机飞行指令'}
+                    </div>
+                    <div className="grid grid-cols-1 gap-1 text-xs">
+                      {vehicleType === 'walk' && (
+                        <>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              triggerAction({ type: 'jump' })
+                              toast.info('行人起跳！')
+                            }}
+                            className="h-7 justify-start text-xs text-foreground/80 hover:bg-primary/10 hover:text-primary"
+                          >
+                            <span>🦘 垂直跳跃 (抛物线落地)</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              triggerAction({ type: 'pause_briefly', durationSeconds: 3 })
+                              toast.info('行人原地驻留 3 秒')
+                            }}
+                            className="h-7 justify-start text-xs text-foreground/80 hover:bg-primary/10 hover:text-primary"
+                          >
+                            <span>⏱️ 原地驻留 3 秒后继续</span>
+                          </Button>
+                        </>
+                      )}
+
+                      {vehicleType === 'vehicle' && (
+                        <>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              triggerAction({ type: 'lane_change_left' })
+                              toast.info('启动向左变道超车！')
+                            }}
+                            className="h-7 justify-start text-xs text-foreground/80 hover:bg-primary/10 hover:text-primary"
+                          >
+                            <span>🚗⬅️ 向左变道超车并回归</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              triggerAction({ type: 'lane_change_right' })
+                              toast.info('启动向右变道超车！')
+                            }}
+                            className="h-7 justify-start text-xs text-foreground/80 hover:bg-primary/10 hover:text-primary"
+                          >
+                            <span>🚗➡️ 向右变道超车并回归</span>
+                          </Button>
+                        </>
+                      )}
+
+                      {vehicleType === 'plane' && (
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              triggerAction({ type: 'airdrop' })
+                            }}
+                            className="h-7 justify-start text-xs text-foreground/80 hover:bg-primary/10 hover:text-primary"
+                          >
+                            <span>📦 投掷空投物资箱 (带降落伞)</span>
+                          </Button>
+
+                          {/* 仰角爬升与高差选择 */}
+                          <div className="flex flex-col gap-1 rounded-xl bg-white/5 p-1.5 border border-white/10">
+                            <span className="text-[11px] font-medium text-foreground/75">
+                              ✈️ 仰角爬升（指定高差）
+                            </span>
+                            <div className="grid grid-cols-3 gap-1">
+                              {[200, 500, 1000].map((alt) => (
+                                <Button
+                                  key={`climb-${alt}`}
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    triggerAction({
+                                      type: 'pitch_up',
+                                      deltaAltitude: alt,
+                                      speedBoostKmh: 50
+                                    })
+                                    toast.info(`机头仰起，爬升 +${alt}m（推力加速 +50km/h）`)
+                                  }}
+                                  className="h-6 px-1 text-[11px] hover:bg-primary/20 hover:text-primary"
+                                >
+                                  +{alt}m
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* 下滑俯冲与高差选择 */}
+                          <div className="flex flex-col gap-1 rounded-xl bg-white/5 p-1.5 border border-white/10">
+                            <span className="text-[11px] font-medium text-foreground/75">
+                              ✈️ 俯冲下滑（指定高差）
+                            </span>
+                            <div className="grid grid-cols-3 gap-1">
+                              {[200, 500, 1000].map((alt) => (
+                                <Button
+                                  key={`dive-${alt}`}
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    triggerAction({
+                                      type: 'pitch_down',
+                                      deltaAltitude: alt,
+                                      speedBoostKmh: 30
+                                    })
+                                    toast.info(`机头下俯，俯冲 -${alt}m`)
+                                  }}
+                                  className="h-6 px-1 text-[11px] hover:bg-primary/20 hover:text-primary"
+                                >
+                                  -{alt}m
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* 左倾盘旋角度 */}
+                          <div className="flex flex-col gap-1 rounded-xl bg-white/5 p-1.5 border border-white/10">
+                            <span className="text-[11px] font-medium text-foreground/75">
+                              🔄 左倾盘旋（指定角度并加速）
+                            </span>
+                            <div className="grid grid-cols-4 gap-1">
+                              {[15, 30, 45, 60].map((deg) => (
+                                <Button
+                                  key={`roll-left-${deg}`}
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    triggerAction({
+                                      type: 'roll_turn',
+                                      deltaHeadingDeg: -deg,
+                                      speedBoostKmh: 50
+                                    })
+                                    toast.info(`向左横滚盘旋 ${deg}°（推力加速 +50km/h）`)
+                                  }}
+                                  className="h-6 px-0.5 text-[11px] hover:bg-primary/20 hover:text-primary"
+                                >
+                                  左{deg}°
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* 右倾盘旋角度 */}
+                          <div className="flex flex-col gap-1 rounded-xl bg-white/5 p-1.5 border border-white/10">
+                            <span className="text-[11px] font-medium text-foreground/75">
+                              🔄 右倾盘旋（指定角度并加速）
+                            </span>
+                            <div className="grid grid-cols-4 gap-1">
+                              {[15, 30, 45, 60].map((deg) => (
+                                <Button
+                                  key={`roll-right-${deg}`}
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    triggerAction({
+                                      type: 'roll_turn',
+                                      deltaHeadingDeg: deg,
+                                      speedBoostKmh: 50
+                                    })
+                                    toast.info(`向右横滚盘旋 ${deg}°（推力加速 +50km/h）`)
+                                  }}
+                                  className="h-6 px-0.5 text-[11px] hover:bg-primary/20 hover:text-primary"
+                                >
+                                  右{deg}°
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
 
                 <div className="ml-1 flex items-center gap-1 border-l border-primary/25 pl-1.5">
                   {isRoaming ? (

@@ -10,14 +10,15 @@ import {
   AGENT_USER_ID_CONFIGURABLE_KEY,
   DEFAULT_AGENT_GRAPH_ID,
   DEFAULT_AGENT_RUN_BUDGET,
-  DEFAULT_AGENT_VERSIONS
+  DEFAULT_AGENT_VERSIONS,
+  PAGE_AGENT_GRAPH_ID
 } from '@zen/shared'
 
 import type { AuthContext } from '@zen/shared'
 
 const agents = {
   default: { graphId: DEFAULT_AGENT_GRAPH_ID },
-  plan: { graphId: 'plan_agent' }
+  page: { graphId: PAGE_AGENT_GRAPH_ID }
 } as const
 
 export const defaultAgent = ({
@@ -63,7 +64,7 @@ export const defaultAgent = ({
   })
 }
 
-export const planAgent = ({
+export const pageAgent = ({
   deploymentUrl,
   accessToken
 }: {
@@ -72,7 +73,7 @@ export const planAgent = ({
 }) =>
   new LangGraphAgent({
     deploymentUrl,
-    graphId: agents.plan.graphId,
+    graphId: agents.page.graphId,
     emitInterruptOutcome: true,
     ...(accessToken ? { propertyHeaders: { Authorization: `Bearer ${accessToken}` } } : {})
   })

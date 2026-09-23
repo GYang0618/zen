@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Sparkles } from 'lucide-react'
+import { Cat } from 'lucide-react'
 
 import { PetsGallery } from '@/features/pets'
 
@@ -7,7 +7,7 @@ export const Route = createFileRoute('/_authenticated/ai/pets')({
   component: PetsGallery,
   staticData: {
     title: '宠物中心',
-    icon: Sparkles,
+    icon: Cat,
     order: 4
   }
 })

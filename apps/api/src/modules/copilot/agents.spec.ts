@@ -4,10 +4,11 @@ import {
   copilotToolResultSchema,
   DEFAULT_AGENT_GRAPH_ID,
   DEFAULT_AGENT_RUN_BUDGET,
-  defaultAgentRunBudgetSchema
+  defaultAgentRunBudgetSchema,
+  PAGE_AGENT_GRAPH_ID
 } from '@zen/shared'
 
-import { defaultAgent, planAgent } from './agents.js'
+import { defaultAgent, pageAgent } from './agents.js'
 
 describe('Copilot agent registration', () => {
   it('default agent 使用 default_agent 和统一运行预算', () => {
@@ -30,10 +31,10 @@ describe('Copilot agent registration', () => {
     })
   })
 
-  it('Popup 的 plan agent 不注入 Default Agent 运行预算', () => {
-    const agent = planAgent({ deploymentUrl: 'http://langgraph.test' })
+  it('页面辅助 agent 不注入 Default Agent 运行预算', () => {
+    const agent = pageAgent({ deploymentUrl: 'http://langgraph.test' })
 
-    expect(agent.graphId).toBe('plan_agent')
+    expect(agent.graphId).toBe(PAGE_AGENT_GRAPH_ID)
     expect(agent.assistantConfig).toBeUndefined()
   })
 })

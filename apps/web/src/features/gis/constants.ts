@@ -65,26 +65,31 @@ export const GIS_ROAM_MIN_WAYPOINTS = 2
 /** 漫游视角类型：第一人称（主观驾驶/视线，露出车头/机头）、第三人称（跟随视角）与自由视角（默认高空俯视，可自由旋转拖拽） */
 export type GisRoamViewMode = 'first_person' | 'third_person' | 'free'
 
-/** 漫游速度参数（米/秒）与多视角配置 */
+/** 漫游速度与动力学物理参数（km/h、加减速度）与多视角配置 */
 export const GIS_ROAM_CONFIG = {
   walk: {
-    /** 真实自然步行航速：约 1.4 m/s (5.0 km/h) */
-    speedMps: 1.4,
+    /** 真实自然步行巡航时速：5.0 km/h (约 1.39 m/s) */
+    cruiseSpeedKmh: 5.0,
+    speedMps: 5.0 / 3.6,
+    /** 固定起步/加速物理加速度 (m/s²) */
+    accelerationMps2: 1.2,
+    /** 固定刹车/减速物理减速度 (m/s²) */
+    decelerationMps2: 1.5,
+    /** 手动调节速度单步步长 (km/h) */
+    speedStepKmh: 1.0,
+    minSpeedKmh: 2.0,
+    maxSpeedKmh: 15.0,
     altitudeOffset: 0,
     clampToGround: true,
     label: '步行漫游',
-    /** 局部朝向校准（模型物理资产已转正为 glTF 的 +Z 轴，与 Cesium 原生 VelocityOrientation 100% 对齐） */
     headingCorrectionDeg: 0,
-    /** 自由视角默认鸟瞰距离（米） */
     freeOverviewDistanceMeters: 40,
-    /** 第一人称（行人人眼高度 1.70m 平视前方，模型自动隐藏，视野开阔平稳零遮挡） */
     firstPerson: {
       offset: { x: 0.0, y: 0.0, z: 1.7 },
       pitchDeg: -2,
       headingDeg: 0,
       bobbing: null
     },
-    /** 第三人称（经典游戏级背后追随视角，清晰观察人物全身行走动作） */
     thirdPerson: {
       offset: { x: -5.0, y: 0.0, z: 2.8 },
       pitchDeg: -12,
@@ -93,23 +98,28 @@ export const GIS_ROAM_CONFIG = {
     }
   },
   vehicle: {
-    /** 城市车辆平稳巡航航速：15 m/s (54 km/h) */
-    speedMps: 15,
+    /** 城市车辆巡航时速：60.0 km/h (约 16.67 m/s) */
+    cruiseSpeedKmh: 60.0,
+    speedMps: 60.0 / 3.6,
+    /** 固定起步/加速物理加速度 (m/s²)：家用车平稳推背感约 2.5 m/s² */
+    accelerationMps2: 2.5,
+    /** 固定刹车/减速物理减速度 (m/s²)：常规制动约 3.5 m/s² */
+    decelerationMps2: 3.5,
+    /** 手动调节速度单步步长 (km/h) */
+    speedStepKmh: 10.0,
+    minSpeedKmh: 10.0,
+    maxSpeedKmh: 160.0,
     altitudeOffset: 0,
     clampToGround: true,
     label: '车辆巡航',
-    /** 局部朝向校准（car.glb 资产原生车头对齐 glTF 的 +Z 轴，与 Cesium VelocityOrientation 完美对齐） */
     headingCorrectionDeg: 0,
-    /** 自由视角默认鸟瞰距离（米） */
     freeOverviewDistanceMeters: 35,
-    /** 第一人称（真实左驾座舱驾驶视线：位于方向盘后方，透过前风挡平视俯瞰机盖与前方路面） */
     firstPerson: {
       offset: { x: 0.3, y: 0.45, z: 1.15 },
       pitchDeg: -3,
       headingDeg: 0,
       bobbing: null
     },
-    /** 第三人称（经典 GTA/赛车游戏近距追尾跟车视角，近距清晰饱览整车流线轮廓与四轮姿态） */
     thirdPerson: {
       offset: { x: -6.5, y: 0.0, z: 2.1 },
       pitchDeg: -7,
@@ -118,28 +128,89 @@ export const GIS_ROAM_CONFIG = {
     }
   },
   plane: {
-    /** 巡航飞行速度：160 m/s (576 km/h) */
-    speedMps: 160,
-    altitudeOffset: 600,
+    /** 民航客机真实巡航飞行时速：800.0 km/h (约 222.2 m/s) */
+    cruiseSpeedKmh: 800.0,
+    speedMps: 800.0 / 3.6,
+    /** 固定起步/爬升加速度 (m/s²)：民航客机起飞滑跑加速度约 1.5 m/s² */
+    accelerationMps2: 1.5,
+    /** 固定降速/滑跑减速度 (m/s²) */
+    decelerationMps2: 1.2,
+    /** 手动调节速度单步步长 (km/h) */
+    speedStepKmh: 50.0,
+    minSpeedKmh: 200.0,
+    maxSpeedKmh: 950.0,
+    /** 真实民航客机标准巡航高程（米）：通常 8,000m ~ 10,000m (FL300) */
+    altitudeOffset: 9000,
+    /** 起飞离地抬头速度 Vr (km/h) */
+    takeoffSpeedKmh: 280,
+    /** 进近下滑接地速度 (km/h) */
+    landingSpeedKmh: 250,
+    /** 地面滑行时速 (km/h) */
+    taxiSpeedKmh: 30,
+    /** 起飞爬升仰角 (度) */
+    climbPitchDeg: 12,
+    /** 进近下滑俯角 (度) */
+    descentPitchDeg: -4,
     clampToGround: false,
     label: '飞行漫游',
-    /** 局部朝向校准（airplane.glb 资产原生对齐 glTF 的 +Z 轴） */
     headingCorrectionDeg: 0,
-    /** 自由视角默认鸟瞰距离（米） */
     freeOverviewDistanceMeters: 600,
-    /** 第一人称（飞行员真实座舱视线：位于风挡玻璃正后方，视线平稳无抖动，下方平视微露机鼻） */
     firstPerson: {
       offset: { x: 11.5, y: 0.0, z: 4.2 },
       pitchDeg: -4,
       headingDeg: 0,
       bobbing: null
     },
-    /** 第三人称（空中航拍追尾跟飞视角：拉远拉高，整架大型干线客机与双发翼展全貌一览无遗） */
     thirdPerson: {
       offset: { x: -75.0, y: 0.0, z: 24.0 },
       pitchDeg: -12,
       headingDeg: 0,
       bobbing: null
+    }
+  }
+} as const
+
+/** 漫游实时指令与动作参数 */
+export const GIS_ACTION_CONFIG = {
+  /** 行人动作 */
+  walk: {
+    jump: {
+      durationSec: 0.8,
+      maxHeightMeters: 0.8
+    },
+    pause: {
+      durationSec: 3.0
+    }
+  },
+  /** 车辆动作 */
+  vehicle: {
+    laneChange: {
+      /** 单车道横移距离（米） */
+      lateralOffsetMeters: 3.5,
+      /** 变道变出耗时 (秒) */
+      shiftDurationSec: 1.5,
+      /** 超车巡航耗时 (秒) */
+      holdDurationSec: 2.0,
+      /** 变道超车临时提速 (km/h) */
+      overtakeSpeedBoostKmh: 15.0
+    }
+  },
+  /** 飞机动作 */
+  plane: {
+    diveClimb: {
+      deltaAltitudeMeters: 500,
+      pitchAngleDeg: 15,
+      durationSec: 5.0
+    },
+    rollTurn: {
+      deltaHeadingDeg: 30,
+      bankRollDeg: 25,
+      durationSec: 4.0
+    },
+    airdrop: {
+      /** 空投物资箱下落重力终端速度 (m/s) */
+      terminalVelocityMps: 15,
+      boxScale: 2.5
     }
   }
 } as const

@@ -6,13 +6,10 @@ import {
   CopilotChatUserMessage,
   CopilotPopup as CopilotkitPopup,
   CopilotModalHeader,
-  randomUUID,
-  useCopilotChatConfiguration,
-  useCopilotKit
+  useCopilotChatConfiguration
 } from '@copilotkit/react-core/v2'
 import { Button, cn, Tooltip, TooltipContent, TooltipTrigger } from '@zen/ui'
 import { MessageCirclePlus, X } from 'lucide-react'
-import { useCallback, useContext, useMemo, useState } from 'react'
 
 import { AgentBackgroundRunner } from './components/agent-background-runner'
 import { AgentLauncherButton } from './components/agent-launcher-button'
@@ -24,8 +21,7 @@ import {
 } from './components/chat-messages'
 import { PopupChatInput } from './components/popup-chat-input'
 import { PopupChatRegistrations } from './components/registrations'
-import { AgentPopupContext } from './context/agent-popup-context'
-import { useAgentChatInputStore } from './stores/agent-chat-input'
+import { POPUP_AGENT_ID, PopupAgentProvider, usePopupAgent } from './context/popup-agent-context'
 
 import type {
   CopilotChatAssistantMessageProps,
@@ -82,7 +78,7 @@ const PopupInput = Object.assign(PopupChatInput, CopilotChatInput)
 
 const PopupHeader = Object.assign(function PopupHeader() {
   const configuration = useCopilotChatConfiguration()
-  const popupContext = useContext(AgentPopupContext)
+  const { onNewThread } = usePopupAgent()
 
   return (
     <div className="flex items-center justify-end gap-1 px-3 pt-2.5 pb-1 select-none">
@@ -94,7 +90,7 @@ const PopupHeader = Object.assign(function PopupHeader() {
               variant="ghost"
               size="icon"
               className="size-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
-              onClick={popupContext?.onNewThread}
+              onClick={onNewThread}
               aria-label="新建对话"
             />
           }
@@ -134,12 +130,12 @@ function PopupWelcomeScreen({
   suggestionView?: React.ReactNode
   className?: string
 }) {
-  const popupContext = useContext(AgentPopupContext)
+  const { threadId } = usePopupAgent()
 
   return (
     <div className={cn('flex h-full flex-col justify-between', className)}>
       <div className="flex flex-1 flex-col items-center justify-center px-4">
-        <ChatGreeting threadId={popupContext?.threadId} className="pb-0" />
+        <ChatGreeting threadId={threadId} className="pb-0" />
       </div>
       <div className="w-full">
         {suggestionView}
@@ -149,38 +145,24 @@ function PopupWelcomeScreen({
   )
 }
 
-export function AgentPopup() {
-  const { copilotkit } = useCopilotKit()
-  const [threadId, setThreadId] = useState(() => randomUUID())
-
-  const handleNewThread = useCallback(() => {
-    const nextThreadId = randomUUID()
-    setThreadId(nextThreadId)
-    const agent = copilotkit.getAgent('plan')
-    if (agent) {
-      agent.threadId = nextThreadId
-      agent.setMessages([])
-    }
-    useAgentChatInputStore.getState().clearEditDraft()
-    useAgentChatInputStore.getState().triggerNewThread()
-  }, [copilotkit])
-
-  const contextValue = useMemo(
-    () => ({ threadId, onNewThread: handleNewThread }),
-    [threadId, handleNewThread]
-  )
+function PopupChat() {
+  const { threadId } = usePopupAgent()
 
   return (
-    <AgentPopupContext.Provider value={contextValue}>
+    <>
       <PopupChatRegistrations />
-      <AgentBackgroundRunner activeThreadId={threadId} agentId="plan" />
+      <AgentBackgroundRunner activeThreadId={threadId} agentId={POPUP_AGENT_ID} />
+      {/*
+        threadId 保持非显式，欢迎页才会出现，也不会去后端拉取历史。
+        这一层不写 isModalDefaultOpen 时库默认打开，StrictMode 会把该状态同步给内层，盖掉 CopilotPopup 的 defaultOpen={false}。
+      */}
       <CopilotChatConfigurationProvider
         threadId={threadId}
         hasExplicitThreadId={false}
         isModalDefaultOpen={false}
       >
         <CopilotkitPopup
-          agentId="plan"
+          agentId={POPUP_AGENT_ID}
           defaultOpen={false}
           clickOutsideToClose
           width={POPUP_WIDTH_PX}
@@ -203,6 +185,14 @@ export function AgentPopup() {
           }}
         />
       </CopilotChatConfigurationProvider>
-    </AgentPopupContext.Provider>
+    </>
+  )
+}
+
+export function AgentPopup() {
+  return (
+    <PopupAgentProvider>
+      <PopupChat />
+    </PopupAgentProvider>
   )
 }

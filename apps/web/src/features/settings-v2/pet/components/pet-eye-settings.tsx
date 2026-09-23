@@ -107,10 +107,6 @@ export function PetEyeSettings() {
                   </span>
                 )}
 
-                <div className="my-2 text-2xl transition-transform group-hover:scale-110">
-                  {shapeItem.emoji}
-                </div>
-
                 <div className="w-full">
                   <div className="font-medium text-foreground text-xs">{shapeItem.shortLabel}</div>
                   <div

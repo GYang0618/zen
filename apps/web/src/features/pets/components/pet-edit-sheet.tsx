@@ -190,11 +190,8 @@ export function PetEditSheet() {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                1. 眼睛形状 (Eye Shape)
+                眼睛形状 (Eye Shape)
               </Label>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono font-medium">
-                默认微胶囊眼
-              </span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
@@ -212,7 +209,6 @@ export function PetEditSheet() {
                         : 'border-border/60 bg-background hover:bg-muted/40'
                     )}
                   >
-                    <span className="text-sm">{item.emoji}</span>
                     <span className="line-clamp-1">{item.shortLabel}</span>
                   </button>
                 )
@@ -234,13 +230,8 @@ export function PetEditSheet() {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                2. 表情动作 (Emotion)
+                表情动作 (Emotion)
               </Label>
-              <span className="text-[11px] text-muted-foreground">
-                {config.emotionMode === 'fixed'
-                  ? '固定表情'
-                  : `每 ${config.randomEmotionInterval ?? 4}s 随机切换`}
-              </span>
             </div>
 
             <div className="flex rounded-xl bg-muted/50 p-1 border border-border/50">
@@ -292,7 +283,7 @@ export function PetEditSheet() {
             ) : (
               <div className="rounded-2xl border border-border/60 bg-muted/20 p-3 space-y-2">
                 <span className="text-[11px] text-muted-foreground">随机切换时间间隔：</span>
-                <div className="flex gap-2">
+                <div className="flex gap-2 mt-1">
                   {[2, 3, 4, 6, 8].map((sec) => (
                     <Button
                       key={sec}
@@ -368,7 +359,6 @@ export function PetEditSheet() {
 
             {config.gazeMode === 'fixed' && (
               <div className="rounded-2xl border border-border/60 bg-muted/20 p-3 space-y-2">
-                <span className="text-[11px] text-muted-foreground">选择固定透视方向：</span>
                 <div className="grid grid-cols-3 gap-1.5">
                   {GAZE_PRESETS.map((preset) => {
                     const isSelected =
@@ -387,7 +377,6 @@ export function PetEditSheet() {
                             : 'border-border/60 bg-background hover:bg-muted/40'
                         )}
                       >
-                        <span className="font-mono">{preset.shortLabel}</span>
                         <span>{preset.label}</span>
                       </button>
                     )
@@ -441,12 +430,10 @@ function SheetShapeRefineBox({
 }) {
   return (
     <div className="rounded-2xl border border-border/60 bg-muted/20 p-3 space-y-2 text-xs">
-      <span className="text-[11px] font-medium text-primary">⚙️ 当前眼型细化参数微调：</span>
-
       {activeShape === 'capsule' && (
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-muted-foreground">长度(高度):</span>
+            <span className="text-muted-foreground">长度:</span>
             <input
               type="range"
               min="14"

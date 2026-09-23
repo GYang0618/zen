@@ -48,8 +48,17 @@ export const DEFAULT_AGENT_VERSIONS = {
   toolSchema: 'default-agent-tools-v1'
 } as const
 
-/** 供运行时识别默认 Chat，避免误把 Popup 的 plan Agent 套用默认策略。 */
+/** 全局对话的运行时 agent id。A2UI 只注入这个 agent。 */
+export const DEFAULT_AGENT_ID = 'default'
+
+/** 当前模块页面与公共能力的辅助 agent 运行时 id。 */
+export const PAGE_AGENT_ID = 'page'
+
+/** 供运行时识别默认 Chat，避免误把页面辅助 Agent 套用默认策略。 */
 export const DEFAULT_AGENT_GRAPH_ID = 'default_agent'
+
+/** 页面辅助 Agent 的 LangGraph graph id。 */
+export const PAGE_AGENT_GRAPH_ID = 'page_agent'
 
 /** 动态 A2UI Surface 工具名（当前） */
 export const A2UI_SURFACE_TOOL_NAME = 'render_a2ui' as const

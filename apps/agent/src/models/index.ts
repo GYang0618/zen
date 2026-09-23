@@ -11,5 +11,5 @@ export function createModel(options: QwenModelOptions = {}) {
   })
 }
 
-/** Popup/plan Agent 的既有模型实例，保持其运行参数不变。 */
+/** 页面辅助 Agent 的既有模型实例，保持其运行参数不变。 */
 export const qwenModel = createModel()

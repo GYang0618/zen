@@ -40,6 +40,12 @@ const gisRoamSchema = z.object({
     .optional()
     .describe(
       '漫游视角模式：first_person（第一人称主观视角：车辆前行可看车头，飞机可看机头，步行真实模拟步态起伏），third_person（第三人称跟随视角），若省略默认按当前状态或第一人称启动'
+    ),
+  targetSpeedKmh: z
+    .number()
+    .optional()
+    .describe(
+      '指定目标巡航时速（km/h）。若省略自动使用该载具的标准巡航时速（步行 5 km/h，车辆 60 km/h，飞机 800 km/h）。漫游统一从 0 km/h 起步平滑加速至该目标速度'
     )
 })
 
@@ -59,7 +65,7 @@ export function useGisRoamTool() {
     description:
       '启动三维 GIS 场景漫游。优先使用消息中指定的点位或场景中用户已打下的标记点；若未指定且无标记点，将调出拾取面板由用户在地图上点选。支持第一人称（沉浸式座舱/车头/机头/步态起伏）与第三人称跟随视角。工具根据全路径长度自动匹配适用的漫游载具（2km内人物步行贴地、2km~100km车辆巡航贴地、100km以上飞机空中飞行）。',
     parameters: gisRoamSchema,
-    handler: async ({ waypoints, vehicle, viewMode }) => {
+    handler: async ({ waypoints, vehicle, viewMode, targetSpeedKmh }) => {
       let path = normalizeWaypoints(waypoints)
 
       // 1. 若参数未提供足够点位，优先使用全局标记点列表
@@ -96,7 +102,8 @@ export function useGisRoamTool() {
       useGisRoamStore.getState().startRoam(path, {
         vehicleType: selectedVehicle,
         totalDistanceMeters,
-        viewMode
+        viewMode,
+        targetSpeedKmh
       })
 
       const vehicleLabel =
@@ -104,17 +111,19 @@ export function useGisRoamTool() {
           ? '人物步行（贴地）'
           : selectedVehicle === 'vehicle'
             ? '车辆巡航（贴地）'
-            : '飞机飞行（空中）'
+            : '客机飞行（空中飞行包线）'
 
       const currentMode = viewMode ?? useGisRoamStore.getState().viewMode
       const viewModeLabel = currentMode === 'first_person' ? '第一人称' : '第三人称'
+      const speed = targetSpeedKmh ?? useGisRoamStore.getState().targetSpeedKmh
 
       return {
         status: 'success',
-        message: `已开始三维漫游。视角：${viewModeLabel}，总航程：${formatDistance(totalDistanceMeters)}，航路点：${path.length} 个，匹配载具：${vehicleLabel}。`,
+        message: `已开始三维漫游。视角：${viewModeLabel}，总航程：${formatDistance(totalDistanceMeters)}，航路点：${path.length} 个，匹配载具：${vehicleLabel}，目标时速：${speed} km/h（以真实物理加速度平滑起步）。`,
         totalDistance: totalDistanceMeters,
         vehicle: selectedVehicle,
         viewMode: currentMode,
+        targetSpeedKmh: speed,
         waypointsCount: path.length
       }
     },

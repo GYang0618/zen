@@ -184,3 +184,306 @@ export function flyToMarker(
     duration: 1.2
   })
 }
+
+export type FlightPathSample = {
+  position: Cartesian3
+  forwardDir: Cartesian3
+  altitudeMeters: number
+  pitchDeg: number
+  phase: import('../stores/gis-roam').GisFlightPhase
+  targetSpeedKmh: number
+}
+
+/**
+ * 客机全生命周期飞行包线轨迹生成器：
+ * 起点滑行 (Taxi) -> 仰角爬升 (Climb) -> 万米巡航 (Cruise) -> 进近下滑 (Descent) -> 贴地滑跑 (Taxi) -> 终点停稳
+ */
+export function createFlightTrajectory(waypoints: GisWaypoint[]) {
+  if (waypoints.length < 2) return null
+
+  // 1. 采集地面基准大圆测地采样点
+  const groundCartos: Cartographic[] = []
+  let totalDistance = 0
+  const segmentDistances: number[] = []
+
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    const p1 = waypoints[i]
+    const p2 = waypoints[i + 1]
+    const c1 = Cartographic.fromDegrees(p1.longitude, p1.latitude, p1.height ?? 0)
+    const c2 = Cartographic.fromDegrees(p2.longitude, p2.latitude, p2.height ?? 0)
+    const geodesic = new EllipsoidGeodesic(c1, c2)
+    const dist = geodesic.surfaceDistance
+    segmentDistances.push(dist)
+    totalDistance += dist
+
+    const steps = Math.max(2, Math.ceil(dist / 200)) // 每 200 米密集采样
+    const startStep = i === 0 ? 0 : 1
+    for (let s = startStep; s <= steps; s++) {
+      const frac = s / steps
+      const carto = geodesic.interpolateUsingFraction(frac, new Cartographic())
+      carto.height = (p1.height ?? 0) + ((p2.height ?? 0) - (p1.height ?? 0)) * frac
+      groundCartos.push(carto)
+    }
+  }
+
+  const S = Math.max(100, totalDistance)
+  // 巡航高度自适应：长航程(>=80km)真实客机 9,000 米巡航，短航程按安全爬升坡度平滑缩放
+  const cruiseAltitude = S >= 80000 ? 9000 : Math.min(9000, Math.max(1200, S * 0.08))
+
+  // 划分六阶段航程里程界标
+  const dTaxiStart = Math.min(2500, S * 0.07)
+  const dClimb = Math.min(20000, S * 0.22)
+  const s1 = dTaxiStart
+  const s2 = s1 + dClimb
+
+  const dTaxiEnd = Math.min(2500, S * 0.07)
+  const dDescent = Math.min(20000, S * 0.22)
+  const s4 = Math.max(s2 + 100, S - dTaxiEnd)
+  const s3 = Math.max(s2 + 50, s4 - dDescent)
+
+  const startH = waypoints[0].height ?? 0
+  const endH = waypoints[waypoints.length - 1].height ?? 0
+
+  function getAltitudeAndPitch(s: number) {
+    if (s <= s1) {
+      const t = s1 > 0 ? s / s1 : 0
+      return {
+        altitude: startH,
+        pitchDeg: 0,
+        phase: 'taxi_start' as const,
+        targetSpeedKmh: 30 + (280 - 30) * t
+      }
+    }
+    if (s <= s2) {
+      const t = (s - s1) / Math.max(1, s2 - s1)
+      const hCurve = t * t * (3 - 2 * t)
+      const pitchCurve = Math.sin(t * Math.PI) * 12 // 抬头仰角爬升至 +12°
+      return {
+        altitude: startH + (cruiseAltitude - startH) * hCurve,
+        pitchDeg: pitchCurve,
+        phase: 'climb' as const,
+        targetSpeedKmh: 280 + (800 - 280) * t
+      }
+    }
+    if (s <= s3) {
+      return {
+        altitude: cruiseAltitude,
+        pitchDeg: 0,
+        phase: 'cruise' as const,
+        targetSpeedKmh: 800
+      }
+    }
+    if (s <= s4) {
+      const t = (s - s3) / Math.max(1, s4 - s3)
+      const hCurve = 1 - t * t * (3 - 2 * t)
+      const pitchCurve = -Math.sin(t * Math.PI) * 4 // 下滑道进近下俯至 -4°
+      return {
+        altitude: endH + (cruiseAltitude - endH) * hCurve,
+        pitchDeg: pitchCurve,
+        phase: 'descent' as const,
+        targetSpeedKmh: 800 - (800 - 250) * t
+      }
+    }
+    const t = (s - s4) / Math.max(1, S - s4)
+    return {
+      altitude: endH,
+      pitchDeg: 0,
+      phase: 'taxi_end' as const,
+      targetSpeedKmh: Math.max(0, 250 * (1 - t))
+    }
+  }
+
+  // 构建带真 3D 高度的离散采样轨迹
+  const full3DPositions: Cartesian3[] = []
+  const cumulativeDistances: number[] = [0]
+
+  for (let i = 0; i < groundCartos.length; i++) {
+    const frac = i / (groundCartos.length - 1)
+    const s = frac * S
+    const { altitude } = getAltitudeAndPitch(s)
+    const carto = groundCartos[i]
+    const p3d = Cartesian3.fromRadians(carto.longitude, carto.latitude, altitude)
+    full3DPositions.push(p3d)
+
+    if (i > 0) {
+      const segLen = Cartesian3.distance(full3DPositions[i - 1], p3d)
+      cumulativeDistances.push(cumulativeDistances[i - 1] + segLen)
+    }
+  }
+
+  // 预先计算平滑连续的节点切线矢量（基于前后点中心差分，消除线段连接点处的朝向突变）
+  const full3DTangents: Cartesian3[] = []
+  for (let i = 0; i < full3DPositions.length; i++) {
+    const tan = new Cartesian3()
+    if (i === 0) {
+      Cartesian3.subtract(full3DPositions[1], full3DPositions[0], tan)
+    } else if (i === full3DPositions.length - 1) {
+      Cartesian3.subtract(
+        full3DPositions[full3DPositions.length - 1],
+        full3DPositions[full3DPositions.length - 2],
+        tan
+      )
+    } else {
+      Cartesian3.subtract(full3DPositions[i + 1], full3DPositions[i - 1], tan)
+    }
+    Cartesian3.normalize(tan, tan)
+    full3DTangents.push(tan)
+  }
+
+  const actualTotalLength = cumulativeDistances[cumulativeDistances.length - 1]
+
+  function sampleAtDistance(dist: number): FlightPathSample {
+    const clampedDist = Math.max(0, Math.min(actualTotalLength, dist))
+    const progressFrac = actualTotalLength > 0 ? clampedDist / actualTotalLength : 0
+    const profileS = progressFrac * S
+    const profile = getAltitudeAndPitch(profileS)
+
+    // 二分查找对应线段
+    let low = 0
+    let high = cumulativeDistances.length - 1
+    while (low <= high) {
+      const mid = (low + high) >> 1
+      if (cumulativeDistances[mid] < clampedDist) {
+        low = mid + 1
+      } else {
+        high = mid - 1
+      }
+    }
+
+    const idx = Math.max(0, Math.min(full3DPositions.length - 2, low - 1))
+    const d0 = cumulativeDistances[idx]
+    const d1 = cumulativeDistances[idx + 1]
+    const segLen = Math.max(0.001, d1 - d0)
+    const t = Math.max(0, Math.min(1, (clampedDist - d0) / segLen))
+
+    const pA = full3DPositions[idx]
+    const pB = full3DPositions[idx + 1]
+
+    const position = Cartesian3.lerp(pA, pB, t, new Cartesian3())
+
+    // 基于节点平滑切线进行 C1 连续球面/线性过渡，彻底消除分段突变
+    const tanA = full3DTangents[idx]
+    const tanB = full3DTangents[idx + 1]
+    const forwardDir = Cartesian3.lerp(tanA, tanB, t, new Cartesian3())
+    Cartesian3.normalize(forwardDir, forwardDir)
+
+    return {
+      position,
+      forwardDir,
+      altitudeMeters: profile.altitude,
+      pitchDeg: profile.pitchDeg,
+      phase: profile.phase,
+      targetSpeedKmh: profile.targetSpeedKmh
+    }
+  }
+
+  return {
+    totalDistance: actualTotalLength,
+    positions: full3DPositions,
+    sampleAtDistance
+  }
+}
+
+export type GroundPathSample = {
+  position: Cartesian3
+  forwardDir: Cartesian3
+}
+
+/**
+ * 地面漫游（步行/车辆）路径采样器：
+ * 支持按弧长 $s$ 瞬时获取精准坐标与切线前进矢量
+ */
+export function createGroundTrajectory(waypoints: GisWaypoint[]) {
+  if (waypoints.length < 2) return null
+
+  const positions: Cartesian3[] = []
+  const cumulativeDistances: number[] = [0]
+
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    const p1 = waypoints[i]
+    const p2 = waypoints[i + 1]
+    const h1 = p1.height ?? 0
+    const h2 = p2.height ?? 0
+    const c1 = Cartographic.fromDegrees(p1.longitude, p1.latitude, h1)
+    const c2 = Cartographic.fromDegrees(p2.longitude, p2.latitude, h2)
+    const geodesic = new EllipsoidGeodesic(c1, c2)
+    const dist = geodesic.surfaceDistance
+
+    const steps = Math.max(2, Math.ceil(dist / 10)) // 每 10 米精细插值
+    const startStep = i === 0 ? 0 : 1
+
+    for (let s = startStep; s <= steps; s++) {
+      const frac = s / steps
+      const carto = geodesic.interpolateUsingFraction(frac, new Cartographic())
+      const currentH = h1 + (h2 - h1) * frac
+      const p3d = Cartesian3.fromRadians(carto.longitude, carto.latitude, currentH)
+      positions.push(p3d)
+
+      const lastIdx = positions.length - 1
+      if (lastIdx > 0) {
+        const segLen = Cartesian3.distance(positions[lastIdx - 1], p3d)
+        cumulativeDistances.push(cumulativeDistances[cumulativeDistances.length - 1] + segLen)
+      }
+    }
+  }
+
+  const totalDistance = cumulativeDistances[cumulativeDistances.length - 1]
+
+  // 预先计算平滑连续的节点切线矢量（中心差分）
+  const groundTangents: Cartesian3[] = []
+  for (let i = 0; i < positions.length; i++) {
+    const tan = new Cartesian3()
+    if (i === 0) {
+      Cartesian3.subtract(positions[1], positions[0], tan)
+    } else if (i === positions.length - 1) {
+      Cartesian3.subtract(positions[positions.length - 1], positions[positions.length - 2], tan)
+    } else {
+      Cartesian3.subtract(positions[i + 1], positions[i - 1], tan)
+    }
+    Cartesian3.normalize(tan, tan)
+    groundTangents.push(tan)
+  }
+
+  function sampleAtDistance(dist: number): GroundPathSample {
+    const clampedDist = Math.max(0, Math.min(totalDistance, dist))
+
+    let low = 0
+    let high = cumulativeDistances.length - 1
+    while (low <= high) {
+      const mid = (low + high) >> 1
+      if (cumulativeDistances[mid] < clampedDist) {
+        low = mid + 1
+      } else {
+        high = mid - 1
+      }
+    }
+
+    const idx = Math.max(0, Math.min(positions.length - 2, low - 1))
+    const d0 = cumulativeDistances[idx]
+    const d1 = cumulativeDistances[idx + 1]
+    const segLen = Math.max(0.001, d1 - d0)
+    const t = Math.max(0, Math.min(1, (clampedDist - d0) / segLen))
+
+    const pA = positions[idx]
+    const pB = positions[idx + 1]
+
+    const position = Cartesian3.lerp(pA, pB, t, new Cartesian3())
+
+    // 平滑插值切线矢量，消除地面每 10 米阶跃抖动
+    const tanA = groundTangents[idx]
+    const tanB = groundTangents[idx + 1]
+    const forwardDir = Cartesian3.lerp(tanA, tanB, t, new Cartesian3())
+    Cartesian3.normalize(forwardDir, forwardDir)
+
+    return {
+      position,
+      forwardDir
+    }
+  }
+
+  return {
+    totalDistance,
+    positions,
+    sampleAtDistance
+  }
+}

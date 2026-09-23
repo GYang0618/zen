@@ -1,4 +1,3 @@
-import { useUserGenerativeUI } from '../generative-ui/user'
 import { useUserHumanInTheLoop } from '../hitl'
 import {
   useDefaultRender,
@@ -15,7 +14,6 @@ import { useAppearanceTool } from '../tools'
 export function AgentSharedRegistrations() {
   useAppearanceTool()
   useDefaultRender()
-  useUserGenerativeUI()
   return null
 }
 
