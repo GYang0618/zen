@@ -1,7 +1,6 @@
-import { Alert, AlertDescription, AlertTitle, Input, Label } from '@zen/ui'
+import { Alert, AlertDescription, AlertTitle, Input, Label, toast } from '@zen/ui'
 import { AlertTriangle } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 
@@ -43,16 +42,19 @@ export function PostsMultiDeleteDialog({
       {
         onSuccess: (result) => {
           if (result.failedCount === 0) {
-            toast.success(`已删除 ${result.successCount} 个岗位`)
+            toast.add({ title: `已删除 ${result.successCount} 个岗位`, type: 'success' })
           } else {
-            toast.warning(`已删除 ${result.successCount} 个岗位，${result.failedCount} 个失败`)
+            toast.add({
+              title: `已删除 ${result.successCount} 个岗位，${result.failedCount} 个失败`,
+              type: 'warning'
+            })
           }
           setValue('')
           onOpenChange(false)
           onDeleted()
         },
         onError: (error) => {
-          toast.error(error instanceof Error ? error.message : '删除失败')
+          toast.add({ title: error instanceof Error ? error.message : '删除失败', type: 'error' })
         }
       }
     )

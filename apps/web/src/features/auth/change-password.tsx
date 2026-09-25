@@ -1,7 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
-import { Button, Field, FieldGroup, FieldLabel } from '@zen/ui'
+import { Button, Field, FieldGroup, FieldLabel, toast } from '@zen/ui'
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import { PasswordInput, ProfileDropdown, Search, ThemeSwitch } from '@/components'
 import { Header, Main } from '@/components/layouts'
@@ -45,10 +44,13 @@ export function ChangePasswordPage() {
                 newPassword
               })
               clearMustChangePassword()
-              toast.success('密码已更新')
+              toast.add({ title: '密码已更新', type: 'success' })
               navigate({ to: '/', replace: true })
             } catch (error) {
-              toast.error(error instanceof Error ? error.message : '修改失败')
+              toast.add({
+                title: error instanceof Error ? error.message : '修改失败',
+                type: 'error'
+              })
             } finally {
               setPending(false)
             }

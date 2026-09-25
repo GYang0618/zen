@@ -9,11 +9,11 @@ import {
   FieldGroup,
   FieldLabel,
   FieldSeparator,
-  Input
+  Input,
+  toast
 } from '@zen/ui'
 import { Loader2, LogIn } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { PasswordInput } from '@/components'
@@ -50,9 +50,10 @@ export function SignInForm() {
     mustChangePassword?: boolean
     user: { nickname: string | null; username: string }
   }) => {
-    toast.success(`欢迎回来，${session.user.nickname || session.user.username}👋🎉`, {
-      duration: 2000,
-      position: 'top-center'
+    toast.add({
+      title: `欢迎回来，${session.user.nickname || session.user.username}👋🎉`,
+      type: 'success',
+      timeout: 2000
     })
     if (session.mustChangePassword) {
       navigate({ to: '/change-password', replace: true })
@@ -70,7 +71,7 @@ export function SignInForm() {
       onSuccess: (result) => {
         if (isAuthMfaChallenge(result)) {
           setMfaToken(result.mfaToken)
-          toast.message('请输入 MFA 验证码')
+          toast.add({ title: '请输入 MFA 验证码' })
           return
         }
         finishLogin(result)
@@ -88,7 +89,7 @@ export function SignInForm() {
             { mfaToken, code: mfaCode.trim() },
             {
               onSuccess: finishLogin,
-              onError: (err) => toast.error(err.message || '验证失败')
+              onError: (err) => toast.add({ title: err.message || '验证失败', type: 'error' })
             }
           )
         }}

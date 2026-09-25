@@ -4,12 +4,15 @@ import {
   Cartographic,
   Math as CesiumMath,
   EllipsoidGeodesic,
-  HeadingPitchRange
+  HeadingPitchRange,
+  sampleTerrainMostDetailed
 } from 'cesium'
 
-import { GIS_ROAM_THRESHOLDS } from '../constants'
+import { GIS_ROAM_CONFIG, GIS_ROAM_THRESHOLDS } from '../constants'
+import { deployedObjectBoundingSphere } from './build-deploy-tileset'
 
 import type { Viewer } from 'cesium'
+import type { GisDeployedObject } from '../stores/gis'
 import type { GisRoamVehicle, GisWaypoint } from '../stores/gis-roam'
 
 /**
@@ -170,19 +173,63 @@ export function formatEstimatedArrivalTime(seconds: number): string {
   return `${hours}小时${remMinutes}分钟后到达`
 }
 
+export type FlyToMarkerOptions = {
+  /** 飞行动画结束且未被新的飞行打断时调用 */
+  onComplete?: () => void
+  /** 飞行被取消或被下一次飞行动画替换时调用 */
+  onCancel?: () => void
+}
+
 /**
  * 平滑飞向并聚焦指定标记点位
  */
 export function flyToMarker(
   viewer: Viewer,
-  marker: { longitude: number; latitude: number; height?: number }
+  marker: { longitude: number; latitude: number; height?: number },
+  options?: FlyToMarkerOptions
 ) {
   const target = Cartesian3.fromDegrees(marker.longitude, marker.latitude, marker.height ?? 0)
   const sphere = new BoundingSphere(target, 120)
   viewer.camera.flyToBoundingSphere(sphere, {
     offset: new HeadingPitchRange(viewer.camera.heading, CesiumMath.toRadians(-40), 450),
-    duration: 1.2
+    duration: 1.2,
+    complete: options?.onComplete,
+    cancel: options?.onCancel
   })
+}
+
+/** 按模型世界包围球取景，使整个模型落在画面内并进入 3D Tiles 加载范围。 */
+export function flyToDeployedObject(viewer: Viewer, object: GisDeployedObject) {
+  const sphere = deployedObjectBoundingSphere(object)
+  viewer.camera.flyToBoundingSphere(sphere, {
+    offset: new HeadingPitchRange(viewer.camera.heading, CesiumMath.toRadians(-35), 0),
+    duration: 1.5
+  })
+}
+
+/**
+ * 采样指定经纬度的地形高程（米）。地形不可用时回退地球表面高度，再不行则返回 0。
+ */
+export async function sampleGroundHeight(
+  viewer: Viewer,
+  longitude: number,
+  latitude: number
+): Promise<number> {
+  const cartographic = Cartographic.fromDegrees(longitude, latitude)
+
+  try {
+    const [sampled] = await sampleTerrainMostDetailed(viewer.terrainProvider, [cartographic])
+    if (sampled && Number.isFinite(sampled.height)) {
+      return sampled.height
+    }
+  } catch {
+    const globeHeight = viewer.scene.globe.getHeight(Cartographic.fromDegrees(longitude, latitude))
+    if (typeof globeHeight === 'number' && Number.isFinite(globeHeight)) {
+      return globeHeight
+    }
+  }
+
+  return 0
 }
 
 export type FlightPathSample = {
@@ -194,12 +241,25 @@ export type FlightPathSample = {
   targetSpeedKmh: number
 }
 
+type FlightTrajectoryOptions = {
+  /** airliner：客机起降包线。patrol：歼-20 全程平飞巡检。 */
+  profile?: 'airliner' | 'patrol'
+  /** patrol 时叠在航路点高程上的巡检高度（米） */
+  cruiseAltitudeMeters?: number
+}
+
 /**
- * 客机全生命周期飞行包线轨迹生成器：
- * 起点滑行 (Taxi) -> 仰角爬升 (Climb) -> 万米巡航 (Cruise) -> 进近下滑 (Descent) -> 贴地滑跑 (Taxi) -> 终点停稳
+ * 空中轨迹生成器。
+ * 客机：起点滑行 -> 仰角爬升 -> 万米巡航 -> 进近下滑 -> 贴地滑跑。
+ * 歼-20 巡检：全程保持巡检高度平飞，不进入滑跑和进近。
  */
-export function createFlightTrajectory(waypoints: GisWaypoint[]) {
+export function createFlightTrajectory(
+  waypoints: GisWaypoint[],
+  options?: FlightTrajectoryOptions
+) {
   if (waypoints.length < 2) return null
+
+  const isPatrol = options?.profile === 'patrol'
 
   // 1. 采集地面基准大圆测地采样点
   const groundSamples: { carto: Cartographic; dist: number }[] = []
@@ -226,8 +286,13 @@ export function createFlightTrajectory(waypoints: GisWaypoint[]) {
   }
 
   const S = Math.max(100, accumulatedDist)
+  const patrolAltitude = options?.cruiseAltitudeMeters ?? GIS_ROAM_CONFIG.fighter.altitudeOffset
   // 巡航高度自适应：长航程(>=80km)真实客机 9,000 米巡航，短航程按安全爬升坡度平滑缩放
-  const cruiseAltitude = S >= 80000 ? 9000 : Math.min(9000, Math.max(1200, S * 0.08))
+  const cruiseAltitude = isPatrol
+    ? patrolAltitude
+    : S >= 80000
+      ? 9000
+      : Math.min(9000, Math.max(1200, S * 0.08))
 
   // 划分六阶段航程里程界标
   const dTaxiStart = Math.min(2500, S * 0.07)
@@ -243,7 +308,15 @@ export function createFlightTrajectory(waypoints: GisWaypoint[]) {
   const startH = waypoints[0].height ?? 0
   const endH = waypoints[waypoints.length - 1].height ?? 0
 
-  function getAltitudeAndPitch(s: number) {
+  function getAltitudeAndPitch(s: number, surfaceHeight: number) {
+    if (isPatrol) {
+      return {
+        altitude: surfaceHeight + patrolAltitude,
+        pitchDeg: 0,
+        phase: 'patrol' as const,
+        targetSpeedKmh: GIS_ROAM_CONFIG.fighter.cruiseSpeedKmh
+      }
+    }
     if (s <= s1) {
       const t = s1 > 0 ? s / s1 : 0
       return {
@@ -298,7 +371,7 @@ export function createFlightTrajectory(waypoints: GisWaypoint[]) {
 
   for (let i = 0; i < groundSamples.length; i++) {
     const sample = groundSamples[i]
-    const { altitude } = getAltitudeAndPitch(sample.dist)
+    const { altitude } = getAltitudeAndPitch(sample.dist, sample.carto.height)
     const p3d = Cartesian3.fromRadians(sample.carto.longitude, sample.carto.latitude, altitude)
     full3DPositions.push(p3d)
 
@@ -333,7 +406,6 @@ export function createFlightTrajectory(waypoints: GisWaypoint[]) {
     const clampedDist = Math.max(0, Math.min(actualTotalLength, dist))
     const progressFrac = actualTotalLength > 0 ? clampedDist / actualTotalLength : 0
     const profileS = progressFrac * S
-    const profile = getAltitudeAndPitch(profileS)
 
     // 二分查找对应线段
     let low = 0
@@ -352,6 +424,9 @@ export function createFlightTrajectory(waypoints: GisWaypoint[]) {
     const d1 = cumulativeDistances[idx + 1]
     const segLen = Math.max(0.001, d1 - d0)
     const t = Math.max(0, Math.min(1, (clampedDist - d0) / segLen))
+    const surfaceA = groundSamples[idx]?.carto.height ?? 0
+    const surfaceB = groundSamples[idx + 1]?.carto.height ?? surfaceA
+    const profile = getAltitudeAndPitch(profileS, surfaceA + (surfaceB - surfaceA) * t)
 
     const pA = full3DPositions[idx]
     const pB = full3DPositions[idx + 1]
@@ -387,6 +462,17 @@ export function createFlightTrajectory(waypoints: GisWaypoint[]) {
     positions: full3DPositions,
     sampleAtDistance
   }
+}
+
+/**
+ * 歼-20 空中巡检轨迹：全程保持巡检高度平飞，不走客机的滑跑、爬升和进近包线。
+ * 航路点高度视为地表高程，再叠加上巡检高度。
+ */
+export function createPatrolTrajectory(waypoints: GisWaypoint[]) {
+  return createFlightTrajectory(waypoints, {
+    profile: 'patrol',
+    cruiseAltitudeMeters: GIS_ROAM_CONFIG.fighter.altitudeOffset
+  })
 }
 
 export type GroundPathSample = {

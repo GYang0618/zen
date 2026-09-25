@@ -11,11 +11,18 @@ export type GisWaypoint = {
   name?: string
 }
 
-export type GisRoamVehicle = 'walk' | 'vehicle' | 'plane'
+export type GisRoamVehicle = 'walk' | 'vehicle' | 'plane' | 'fighter'
 
 export type GisRoamPhase = 'idle' | 'collecting' | 'picking' | 'roaming' | 'paused'
 
-export type GisFlightPhase = 'taxi_start' | 'climb' | 'cruise' | 'descent' | 'taxi_end' | 'stopped'
+export type GisFlightPhase =
+  | 'taxi_start'
+  | 'climb'
+  | 'cruise'
+  | 'descent'
+  | 'taxi_end'
+  | 'stopped'
+  | 'patrol'
 
 export type GisRoamAction =
   | { type: 'jump' }
@@ -30,6 +37,15 @@ export type GisRoamAction =
       /** 水平偏航角（度）。负数为向左，正数为向右。动作结束时回到 0，机头重新贴航线。 */
       deltaHeadingDeg: number
       speedBoostKmh?: number
+      durationSec?: number
+    }
+  | {
+      type: 'roll_axis'
+      /**
+       * 压坡度（度）。负数为左压坡度（左翼低），正数为右压坡度（右翼低）。
+       * 压到该坡度后保持，机头不离开航线。0 为改平。
+       */
+      bankDeg: number
       durationSec?: number
     }
 
@@ -117,6 +133,12 @@ type GisRoamState = {
 
 function isCollectingPhase(phase: GisRoamPhase): boolean {
   return phase === 'collecting' || phase === 'picking'
+}
+
+function initialFlightPhase(vehicle: GisRoamVehicle): GisFlightPhase | undefined {
+  if (vehicle === 'plane') return 'taxi_start'
+  if (vehicle === 'fighter') return 'patrol'
+  return undefined
 }
 
 export const useGisRoamStore = create<GisRoamState>((set, get) => ({
@@ -213,7 +235,7 @@ export const useGisRoamStore = create<GisRoamState>((set, get) => ({
       lateralOffsetMeters: 0,
       verticalOffsetMeters: 0,
       activeAction: null,
-      flightPhase: selectedVehicle === 'plane' ? 'taxi_start' : undefined,
+      flightPhase: initialFlightPhase(selectedVehicle),
       phase: 'roaming',
       roamProgress: 0
     })
@@ -250,7 +272,7 @@ export const useGisRoamStore = create<GisRoamState>((set, get) => ({
         lateralOffsetMeters: 0,
         verticalOffsetMeters: 0,
         activeAction: null,
-        flightPhase: vehicleType === 'plane' ? 'taxi_start' : undefined,
+        flightPhase: initialFlightPhase(vehicleType),
         remainingRealSeconds: null,
         restartCount: state.restartCount + 1
       }))

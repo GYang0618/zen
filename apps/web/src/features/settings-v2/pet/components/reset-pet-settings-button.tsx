@@ -1,6 +1,5 @@
-import { Button } from '@zen/ui'
+import { Button, toast } from '@zen/ui'
 import { RotateCcw } from 'lucide-react'
-import { toast } from 'sonner'
 
 import {
   DEFAULT_AGENT_PET_EYE_SHAPE,
@@ -41,7 +40,7 @@ export function ResetPetSettingsButton() {
   const handleReset = () => {
     if (isDefault) return
     resetToDefaults()
-    toast.success('已恢复宠物默认设置')
+    toast.add({ title: '已恢复宠物默认设置', type: 'success' })
   }
 
   return (

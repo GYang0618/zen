@@ -1,10 +1,9 @@
 'use no memo'
 
 import { PermissionCode } from '@zen/shared'
-import { Button, Tooltip, TooltipContent, TooltipTrigger } from '@zen/ui'
+import { Button, Tooltip, TooltipContent, TooltipTrigger, toast } from '@zen/ui'
 import { Ban, Power, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import { Can } from '@/components/auth/can'
 import { BulkActionsToolbar } from '@/components/data-table'
@@ -43,16 +42,20 @@ export function PostsBulkActions({
       {
         onSuccess: (result) => {
           if (result.failedCount === 0) {
-            toast.success(`已${actionText} ${result.successCount} 个岗位`)
+            toast.add({ title: `已${actionText} ${result.successCount} 个岗位`, type: 'success' })
           } else {
-            toast.warning(
-              `已${actionText} ${result.successCount} 个岗位，${result.failedCount} 个失败`
-            )
+            toast.add({
+              title: `已${actionText} ${result.successCount} 个岗位，${result.failedCount} 个失败`,
+              type: 'warning'
+            })
           }
           onClearSelection()
         },
         onError: (error) => {
-          toast.error(error instanceof Error ? error.message : `${actionText}失败`)
+          toast.add({
+            title: error instanceof Error ? error.message : `${actionText}失败`,
+            type: 'error'
+          })
         }
       }
     )

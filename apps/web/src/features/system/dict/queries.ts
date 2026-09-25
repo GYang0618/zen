@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { toast } from '@zen/ui'
 
 import { dictApi } from './api'
 
@@ -23,9 +23,9 @@ export function useCreateDictType() {
     mutationFn: (data: CreateDictType) => dictApi.createType(data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: dictKeys.all })
-      toast.success('字典类型已创建')
+      toast.add({ title: '字典类型已创建', type: 'success' })
     },
-    onError: (error: Error) => toast.error(error.message || '创建失败')
+    onError: (error: Error) => toast.add({ title: error.message || '创建失败', type: 'error' })
   })
 }
 
@@ -35,8 +35,8 @@ export function useCreateDictItem() {
     mutationFn: (data: CreateDictItem) => dictApi.createItem(data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: dictKeys.all })
-      toast.success('字典项已创建')
+      toast.add({ title: '字典项已创建', type: 'success' })
     },
-    onError: (error: Error) => toast.error(error.message || '创建失败')
+    onError: (error: Error) => toast.add({ title: error.message || '创建失败', type: 'error' })
   })
 }

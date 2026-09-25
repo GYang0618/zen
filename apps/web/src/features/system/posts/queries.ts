@@ -5,7 +5,7 @@ import {
   useQuery,
   useQueryClient
 } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { toast } from '@zen/ui'
 
 import { CARD_PAGE_SIZE, getNextPageParam } from '@/lib/infinite-list'
 
@@ -71,9 +71,9 @@ export function useCreateJobProfileMutation() {
     mutationFn: (data: CreateJobProfile) => postApi.create(data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: postKeys.all })
-      toast.success('岗位已创建')
+      toast.add({ title: '岗位已创建', type: 'success' })
     },
-    onError: (error: Error) => toast.error(error.message || '创建失败')
+    onError: (error: Error) => toast.add({ title: error.message || '创建失败', type: 'error' })
   })
 }
 
@@ -83,9 +83,9 @@ export function useUpdateJobProfileMutation() {
     mutationFn: ({ id, data }: { id: string; data: UpdateJobProfile }) => postApi.update(id, data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: postKeys.all })
-      toast.success('岗位已更新')
+      toast.add({ title: '岗位已更新', type: 'success' })
     },
-    onError: (error: Error) => toast.error(error.message || '更新失败')
+    onError: (error: Error) => toast.add({ title: error.message || '更新失败', type: 'error' })
   })
 }
 
@@ -95,9 +95,9 @@ export function useDisableJobProfileMutation() {
     mutationFn: (id: string) => postApi.disable(id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: postKeys.all })
-      toast.success('岗位已停用')
+      toast.add({ title: '岗位已停用', type: 'success' })
     },
-    onError: (error: Error) => toast.error(error.message || '停用失败')
+    onError: (error: Error) => toast.add({ title: error.message || '停用失败', type: 'error' })
   })
 }
 
@@ -118,9 +118,9 @@ export function useDeleteJobProfileMutation() {
     mutationFn: (id: string) => postApi.remove(id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: postKeys.all })
-      toast.success('岗位已删除')
+      toast.add({ title: '岗位已删除', type: 'success' })
     },
-    onError: (error: Error) => toast.error(error.message || '删除失败')
+    onError: (error: Error) => toast.add({ title: error.message || '删除失败', type: 'error' })
   })
 }
 

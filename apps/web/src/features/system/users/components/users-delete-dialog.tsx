@@ -1,9 +1,8 @@
 'use client'
 
-import { Alert, AlertDescription, AlertTitle, Input, Label } from '@zen/ui'
+import { Alert, AlertDescription, AlertTitle, Input, Label, toast } from '@zen/ui'
 import { AlertTriangle } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 
@@ -33,12 +32,12 @@ export function UsersDeleteDialog({ open, onOpenChange, currentRow }: UserDelete
       { ids: [currentRow.id] },
       {
         onSuccess: () => {
-          toast.success('用户删除成功')
+          toast.add({ title: '用户删除成功', type: 'success' })
           setValue('')
           onOpenChange(false)
         },
         onError: (error) => {
-          toast.error(error instanceof Error ? error.message : '删除失败')
+          toast.add({ title: error instanceof Error ? error.message : '删除失败', type: 'error' })
         }
       }
     )

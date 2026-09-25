@@ -1,4 +1,4 @@
-import { toast } from 'sonner'
+import { toast } from '@zen/ui'
 
 import {
   ORGANIZATION_GRAPH_NODE_HEIGHT,
@@ -17,7 +17,7 @@ export function exportOrganizationGraphToPng(
   rankdir: OrganizationGraphRankdir = 'TB'
 ) {
   if (nodes.length === 0) {
-    toast.error('当前图谱为空，无法导出')
+    toast.add({ title: '当前图谱为空，无法导出', type: 'error' })
     return
   }
 
@@ -50,7 +50,7 @@ export function exportOrganizationGraphToPng(
   canvas.height = Math.round(totalHeight * scale)
   const ctx = canvas.getContext('2d')
   if (!ctx) {
-    toast.error('无法创建图形上下文')
+    toast.add({ title: '无法创建图形上下文', type: 'error' })
     return
   }
 
@@ -214,7 +214,7 @@ export function exportOrganizationGraphToPng(
   // 6. 导出图片
   canvas.toBlob((blob) => {
     if (!blob) {
-      toast.error('导出图片生成失败')
+      toast.add({ title: '导出图片生成失败', type: 'error' })
       return
     }
     const url = URL.createObjectURL(blob)
@@ -223,7 +223,7 @@ export function exportOrganizationGraphToPng(
     link.download = `企业组织架构图_${new Date().toISOString().slice(0, 10)}.png`
     link.click()
     URL.revokeObjectURL(url)
-    toast.success('组织架构图高清 PNG 导出成功')
+    toast.add({ title: '组织架构图高清 PNG 导出成功', type: 'success' })
   }, 'image/png')
 }
 

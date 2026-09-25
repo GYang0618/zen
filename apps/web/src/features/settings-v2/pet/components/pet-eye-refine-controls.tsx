@@ -1,6 +1,5 @@
-import { Button } from '@zen/ui'
+import { Button, toast } from '@zen/ui'
 import { RotateCcw, Sliders } from 'lucide-react'
-import { toast } from 'sonner'
 
 import { useAgentPetStore } from '@/features/agent'
 import { CAPSULE_PRESETS, DEFAULT_EYE_PARAMS, EYE_SHAPES_CATALOG } from '@/features/pets'
@@ -67,7 +66,7 @@ export function PetEyeRefineControls() {
   const handleResetShape = () => {
     if (isShapeDefault) return
     resetEyeParams(eyeShape)
-    toast.success(`已重置【${currentEyeMeta.shortLabel}】细化参数为默认`)
+    toast.add({ title: `已重置【${currentEyeMeta.shortLabel}】细化参数为默认`, type: 'success' })
   }
 
   const updateParam = <K extends PetEyeShape>(

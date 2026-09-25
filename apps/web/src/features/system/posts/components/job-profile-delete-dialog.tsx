@@ -1,7 +1,6 @@
-import { Alert, AlertDescription, AlertTitle, Button, Input, Label } from '@zen/ui'
+import { Alert, AlertDescription, AlertTitle, Button, Input, Label, toast } from '@zen/ui'
 import { AlertTriangle, ShieldAlert } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 
@@ -48,7 +47,7 @@ export function JobProfileDeleteDialog({
       { id: currentRow.id, data: { status: 'disabled' } },
       {
         onSuccess: () => {
-          toast.success('岗位已停用，存量编制履历完好保留')
+          toast.add({ title: '岗位已停用，存量编制履历完好保留', type: 'success' })
           onOpenChange(false)
         }
       }

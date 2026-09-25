@@ -6,11 +6,11 @@ import {
   SheetDescription,
   SheetFooter,
   SheetHeader,
-  SheetTitle
+  SheetTitle,
+  toast
 } from '@zen/ui'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { toast } from 'sonner'
 
 import { Can } from '@/components/auth/can'
 import { ConfirmDialog } from '@/components/confirm-dialog'
@@ -103,7 +103,7 @@ export function AssignUserRolesDialog({ open, onOpenChange, user }: AssignUserRo
       notifyAccessChange(user.id, '角色已更新')
       onOpenChange(false)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : '分配角色失败')
+      toast.add({ title: error instanceof Error ? error.message : '分配角色失败', type: 'error' })
     }
   }
 

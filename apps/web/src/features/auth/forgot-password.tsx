@@ -1,7 +1,6 @@
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Button, Field, FieldGroup, FieldLabel, Input } from '@zen/ui'
+import { Button, Field, FieldGroup, FieldLabel, Input, toast } from '@zen/ui'
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import { authApi } from '@/features/auth/api'
 
@@ -18,7 +17,7 @@ export function ForgotPasswordForm() {
         setPending(true)
         try {
           const result = await authApi.forgotPassword(email.trim())
-          toast.success('若邮箱存在，重置指引已发出')
+          toast.add({ title: '若邮箱存在，重置指引已发出', type: 'success' })
           if (result.resetToken) {
             navigate({
               to: '/reset-password',
@@ -29,7 +28,7 @@ export function ForgotPasswordForm() {
           }
           navigate({ to: '/sign-in' })
         } catch (error) {
-          toast.error(error instanceof Error ? error.message : '请求失败')
+          toast.add({ title: error instanceof Error ? error.message : '请求失败', type: 'error' })
         } finally {
           setPending(false)
         }

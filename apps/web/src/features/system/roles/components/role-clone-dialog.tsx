@@ -22,11 +22,11 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-  Textarea
+  Textarea,
+  toast
 } from '@zen/ui'
 import { CalendarIcon, Copy, Info, Loader2, ShieldCheck, UserX } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { useCloneRoleMutation } from '@/features/system/roles/mutations'
@@ -131,7 +131,10 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
       },
       {
         onSuccess: (cloned) => {
-          toast.success(`å·²åºäºã${currentRow.name}ãåéåºæ°è§è²ã${cloned.name}ã`)
+          toast.add({
+            title: `å·²åºäºã${currentRow.name}ãåéåºæ°è§è²ã${cloned.name}ã`,
+            type: 'success'
+          })
           onOpenChange(false)
         },
         onError: (error) => {
@@ -146,7 +149,7 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
             }))
             return
           }
-          toast.error(message)
+          toast.add({ title: message, type: 'error' })
         }
       }
     )

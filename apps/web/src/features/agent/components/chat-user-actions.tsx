@@ -1,7 +1,6 @@
-import { cn, MessageAction, MessageActions } from '@zen/ui'
+import { cn, MessageAction, MessageActions, toast } from '@zen/ui'
 import { Check, Copy, Pencil } from 'lucide-react'
 import { useCallback, useState } from 'react'
-import { toast } from 'sonner'
 
 import { useAgentChatInputStore } from '../stores/agent-chat-input'
 
@@ -18,16 +17,16 @@ export function ChatUserActions({ text, className }: ChatUserActionsProps) {
     try {
       await navigator.clipboard.writeText(text)
       setCopied(true)
-      toast.success('复制成功')
+      toast.add({ title: '复制成功', type: 'success' })
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      toast.error('复制失败')
+      toast.add({ title: '复制失败', type: 'error' })
     }
   }, [text])
 
   const handleEdit = useCallback(() => {
     setEditDraft(text)
-    toast.info('已填入输入框')
+    toast.add({ title: '已填入输入框', type: 'info' })
   }, [setEditDraft, text])
 
   return (

@@ -5,11 +5,11 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle
+  DialogTitle,
+  toast
 } from '@zen/ui'
 import { Check, Copy } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import { PRESET_PETS } from '../constants/pets-data'
 import { usePetsStore } from '../stores/use-pets-store'
@@ -26,10 +26,10 @@ export function PetCodeModal() {
     try {
       await navigator.clipboard.writeText(pet.rawSvg)
       setCopied(true)
-      toast.success('SVG 源码已复制到剪贴板')
+      toast.add({ title: 'SVG 源码已复制到剪贴板', type: 'success' })
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      toast.error('复制失败，请手动选择复制')
+      toast.add({ title: '复制失败，请手动选择复制', type: 'error' })
     }
   }
 

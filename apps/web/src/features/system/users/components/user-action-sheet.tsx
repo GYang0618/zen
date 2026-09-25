@@ -20,11 +20,11 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-  Textarea
+  Textarea,
+  toast
 } from '@zen/ui'
 import { Check, Loader2, UserRoundPlus } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { genderOptions } from '../data/data'
@@ -154,7 +154,8 @@ export function UserActionSheet({ currentRow, open, onOpenChange }: UserActionSh
         onSuccess: (result) => {
           setCreatedResult(result)
         },
-        onError: (error) => toast.error(error instanceof Error ? error.message : '创建失败')
+        onError: (error) =>
+          toast.add({ title: error instanceof Error ? error.message : '创建失败', type: 'error' })
       }
     )
   }
@@ -175,10 +176,11 @@ export function UserActionSheet({ currentRow, open, onOpenChange }: UserActionSh
       },
       {
         onSuccess: () => {
-          toast.success('用户资料已更新')
+          toast.add({ title: '用户资料已更新', type: 'success' })
           onOpenChange(false)
         },
-        onError: (error) => toast.error(error instanceof Error ? error.message : '更新失败')
+        onError: (error) =>
+          toast.add({ title: error instanceof Error ? error.message : '更新失败', type: 'error' })
       }
     )
   }

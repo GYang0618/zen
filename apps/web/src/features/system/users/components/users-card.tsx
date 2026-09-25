@@ -1,8 +1,7 @@
 import { Link } from '@tanstack/react-router'
-import { Badge, Button, Card, CardAction, CardContent, CardHeader, cn } from '@zen/ui'
+import { Badge, Button, Card, CardAction, CardContent, CardHeader, cn, toast } from '@zen/ui'
 import { CopyIcon } from 'lucide-react'
 import { DynamicIcon } from 'lucide-react/dynamic'
-import { toast } from 'sonner'
 
 import { getRoleIconColorClassName } from '@/features/system/roles/data/data'
 import { preventSelectionNavigation, toggleListItemFromCardClick } from '@/hooks'
@@ -27,9 +26,9 @@ type UsersCardProps = ListSelectionActionProps & {
 async function copyText(value: string, successLabel: string) {
   try {
     await navigator.clipboard.writeText(value)
-    toast.success(`已复制${successLabel}`)
+    toast.add({ title: `已复制${successLabel}`, type: 'success' })
   } catch {
-    toast.error('复制失败，请手动选择')
+    toast.add({ title: '复制失败，请手动选择', type: 'error' })
   }
 }
 

@@ -11,11 +11,11 @@ import {
   DialogTitle,
   Field,
   FieldError,
-  FieldLabel
+  FieldLabel,
+  toast
 } from '@zen/ui'
 import { AlertTriangle, Building2, GitMerge } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { toast } from 'sonner'
 
 import { useMergeOrganization, useOrganizationTree } from '../queries'
 import { OrganizationParentSelect } from './organization-parent-select'
@@ -80,11 +80,11 @@ export function OrganizationMergeDialog({
           targetOrganizationId: targetOrgId
         }
       })
-      toast.success(`成功将「${sourceOrganization.name}」合并入目标组织`)
+      toast.add({ title: `成功将「${sourceOrganization.name}」合并入目标组织`, type: 'success' })
       onSuccess?.()
       handleOpenChange(false)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '组织合并失败')
+      toast.add({ title: err instanceof Error ? err.message : '组织合并失败', type: 'error' })
     }
   }
 

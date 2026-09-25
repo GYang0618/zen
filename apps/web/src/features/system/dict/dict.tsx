@@ -18,11 +18,11 @@ import {
   FieldLabel,
   Input,
   ScrollArea,
-  Skeleton
+  Skeleton,
+  toast
 } from '@zen/ui'
 import { BookMarked, Plus } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import { ProfileDropdown, Search, ThemeSwitch } from '@/components'
 import { Can } from '@/components/auth/can'
@@ -224,11 +224,14 @@ export function DictPage() {
               onClick={async () => {
                 const parsed = createDictTypeSchema.safeParse({ code: typeCode, name: typeName })
                 if (!parsed.success) {
-                  toast.error(parsed.error.issues[0]?.message ?? '表单校验失败')
+                  toast.add({
+                    title: parsed.error.issues[0]?.message ?? '表单校验失败',
+                    type: 'error'
+                  })
                   return
                 }
                 await createType.mutateAsync(parsed.data)
-                toast.success('字典类型已创建')
+                toast.add({ title: '字典类型已创建', type: 'success' })
                 setTypeOpen(false)
                 setTypeCode('')
                 setTypeName('')
@@ -283,11 +286,14 @@ export function DictPage() {
                   value: itemValue
                 })
                 if (!parsed.success) {
-                  toast.error(parsed.error.issues[0]?.message ?? '表单校验失败')
+                  toast.add({
+                    title: parsed.error.issues[0]?.message ?? '表单校验失败',
+                    type: 'error'
+                  })
                   return
                 }
                 await createItem.mutateAsync(parsed.data)
-                toast.success('字典项已创建')
+                toast.add({ title: '字典项已创建', type: 'success' })
                 setItemOpen(false)
                 setItemLabel('')
                 setItemValue('')

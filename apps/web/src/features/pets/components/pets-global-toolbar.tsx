@@ -1,4 +1,4 @@
-import { Button, cn } from '@zen/ui'
+import { Button, cn, toast } from '@zen/ui'
 import {
   Dices,
   Eye,
@@ -9,7 +9,6 @@ import {
   SlidersHorizontal,
   Smile
 } from 'lucide-react'
-import { toast } from 'sonner'
 
 import { PRESET_PET_COLORS } from '../constants/colors'
 import {
@@ -71,11 +70,13 @@ export function PetsGlobalToolbar() {
     updateGlobalEyeParam('capsule', 'width', preset.width)
     updateGlobalEyeParam('capsule', 'height', preset.height)
     updateGlobalEyeParam('capsule', 'rxFactor', preset.rxFactor)
-    toast.success(
-      presetKey === 'subtle'
-        ? '已还原胶囊眼为默认微胶囊 (15 × 19)'
-        : '已配置胶囊眼为修长胶囊 (14.5 × 36)'
-    )
+    toast.add({
+      title:
+        presetKey === 'subtle'
+          ? '已还原胶囊眼为默认微胶囊 (15 × 19)'
+          : '已配置胶囊眼为修长胶囊 (14.5 × 36)',
+      type: 'success'
+    })
   }
 
   return (

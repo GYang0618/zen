@@ -3,7 +3,7 @@ import { z } from 'zod'
 
 import { emptyToolRender } from '@/components/ai/empty-tool-render'
 
-import { GIS_ROAM_MIN_WAYPOINTS } from '../../constants'
+import { formatRoamVehiclePurposeGuide, GIS_ROAM_MIN_WAYPOINTS } from '../../constants'
 import {
   calculateTotalPathDistance,
   formatDistance,
@@ -27,13 +27,13 @@ const gisRoamSchema = z.object({
     .array(pointSchema)
     .optional()
     .describe(
-      `有序漫游航路点列表（至少 ${GIS_ROAM_MIN_WAYPOINTS} 个）。若用户在对话中给出了点位或引用了标记点，请传入此参数；若用户未提供，请省略此参数，系统将自动使用已标记的点位或弹出点位拾取面板引导用户点选。`
+      `有序漫游航路点列表（至少 ${GIS_ROAM_MIN_WAYPOINTS} 个）。仅在用户明确要求漫游时传入。单点定位不要传这个参数，应改用 gis_locate。若用户未提供航路点，请省略此参数。`
     ),
   vehicle: z
-    .enum(['auto', 'walk', 'vehicle', 'plane'])
+    .enum(['auto', 'walk', 'vehicle', 'plane', 'fighter'])
     .optional()
     .describe(
-      '漫游载具类型，默认 auto（根据总距离自动推断：<=2km步行、2km~100km车辆、>100km飞机空中漫游）'
+      `漫游载具。用户点了模型名，或只说了用途、没点名时，按用途传入对应值，不要传 auto。用途对照：${formatRoamVehiclePurposeGuide()}。驾驶默认是汽车，除非同时在说飞机、客机、战机、巡检或巡逻。两者都没有时才传 auto 或省略，再按距离选：<=2km 步行、2km~100km 汽车、>100km 客机。歼-20 不会因距离被自动选中。`
     ),
   viewMode: z
     .enum(['first_person', 'third_person'])
@@ -45,7 +45,7 @@ const gisRoamSchema = z.object({
     .number()
     .optional()
     .describe(
-      '指定目标巡航时速（km/h）。若省略自动使用该载具的标准巡航时速（步行 5 km/h，车辆 60 km/h，飞机 800 km/h）。漫游统一从 0 km/h 起步平滑加速至该目标速度'
+      '指定目标巡航时速（km/h）。若省略自动使用该载具的标准巡航时速（步行 5 km/h，车辆 60 km/h，客机 800 km/h，歼-20 巡检 900 km/h）。漫游统一从 0 km/h 起步平滑加速至该目标速度'
     )
 })
 
@@ -62,14 +62,22 @@ function normalizeWaypoints(waypoints: z.infer<typeof gisRoamSchema>['waypoints'
 export function useGisRoamTool() {
   useFrontendTool({
     name: 'gis_roam',
-    description:
-      '启动三维 GIS 场景漫游。优先使用消息中指定的点位或场景中用户已打下的标记点；若未指定且无标记点，将调出拾取面板由用户在地图上点选。支持第一人称（沉浸式座舱/车头/机头/步态起伏）与第三人称跟随视角。工具根据全路径长度自动匹配适用的漫游载具（2km内人物步行贴地、2km~100km车辆巡航贴地、100km以上飞机空中飞行）。',
+    description: `沿至少两个航路点启动三维漫游。仅当用户明确要求漫游、巡航、沿路径前往时调用。用户只说定位、飞到、跳转、看一下或前往某一个地点时，禁止调用本工具，必须改用 gis_locate。不要为了定位编造第二个航路点。没点名载具时按用途选 vehicle，不要交给 auto：${formatRoamVehiclePurposeGuide()}。`,
     parameters: gisRoamSchema,
     handler: async ({ waypoints, vehicle, viewMode, targetSpeedKmh }) => {
-      let path = normalizeWaypoints(waypoints)
+      const provided = normalizeWaypoints(waypoints)
 
-      // 1. 若参数未提供足够点位，优先使用全局标记点列表
-      if (path.length < GIS_ROAM_MIN_WAYPOINTS) {
+      if (provided.length > 0 && provided.length < GIS_ROAM_MIN_WAYPOINTS) {
+        return {
+          status: 'error',
+          message: `只收到 ${provided.length} 个点，不能启动漫游。单点定位请改用 gis_locate，不要把定位请求当成漫游。`
+        }
+      }
+
+      let path = provided
+
+      // 未传航路点时，才使用场景里已有的标记点
+      if (path.length === 0) {
         const storedMarkers = useGisStore.getState().markers
         if (storedMarkers.length >= GIS_ROAM_MIN_WAYPOINTS) {
           path = storedMarkers.map((m) => ({
@@ -111,7 +119,9 @@ export function useGisRoamTool() {
           ? '人物步行（贴地）'
           : selectedVehicle === 'vehicle'
             ? '车辆巡航（贴地）'
-            : '客机飞行（空中飞行包线）'
+            : selectedVehicle === 'fighter'
+              ? '歼-20 空中巡检（1500 米平飞）'
+              : '客机飞行（空中飞行包线）'
 
       const currentMode = viewMode ?? useGisRoamStore.getState().viewMode
       const viewModeLabel = currentMode === 'first_person' ? '第一人称' : '第三人称'
@@ -129,6 +139,10 @@ export function useGisRoamTool() {
     },
     render: ({ status, args }) => {
       const provided = normalizeWaypoints(args?.waypoints)
+      if (provided.length > 0 && provided.length < GIS_ROAM_MIN_WAYPOINTS) {
+        return emptyToolRender()
+      }
+
       const storedMarkers = useGisStore.getState().markers
       const hasEnough =
         provided.length >= GIS_ROAM_MIN_WAYPOINTS || storedMarkers.length >= GIS_ROAM_MIN_WAYPOINTS

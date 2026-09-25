@@ -23,7 +23,8 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-  Separator
+  Separator,
+  toast
 } from '@zen/ui'
 import {
   ArrowRightLeft,
@@ -39,7 +40,6 @@ import {
   X
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { toast } from 'sonner'
 
 import { useOrganizationDetail, useOrganizationMembers } from '../queries'
 import { OrganizationAddMemberDialog } from './organization-add-member-dialog'
@@ -66,15 +66,15 @@ async function copyMemberContact(
 ) {
   const text = value?.trim()
   if (!text) {
-    toast.error(options.emptyMessage)
+    toast.add({ title: options.emptyMessage, type: 'error' })
     return
   }
 
   try {
     await navigator.clipboard.writeText(text)
-    toast.success(`已复制${options.successLabel}：${text}`)
+    toast.add({ title: `已复制${options.successLabel}：${text}`, type: 'success' })
   } catch {
-    toast.error('复制失败，请手动选择')
+    toast.add({ title: '复制失败，请手动选择', type: 'error' })
   }
 }
 
@@ -104,7 +104,7 @@ function accountStatusLabel(status: OrganizationMember['accountStatus']): string
 
 function exportMembersToCsv(members: OrganizationMember[], orgName?: string) {
   if (members.length === 0) {
-    toast.info('当前没有可导出的成员数据')
+    toast.add({ title: '当前没有可导出的成员数据', type: 'info' })
     return
   }
 
@@ -132,7 +132,7 @@ function exportMembersToCsv(members: OrganizationMember[], orgName?: string) {
   link.download = `${orgName ?? '组织'}成员花名册_${new Date().toISOString().slice(0, 10)}.csv`
   link.click()
   URL.revokeObjectURL(url)
-  toast.success(`已成功导出 ${members.length} 条成员记录`)
+  toast.add({ title: `已成功导出 ${members.length} 条成员记录`, type: 'success' })
 }
 
 export function OrganizationMembers({ organizationId }: { organizationId: string }) {

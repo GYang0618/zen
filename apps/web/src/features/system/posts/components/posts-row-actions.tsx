@@ -7,10 +7,10 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
+  toast
 } from '@zen/ui'
 import { Ban, CheckSquare, MoreHorizontal, Pencil, Power, Trash2 } from 'lucide-react'
-import { toast } from 'sonner'
 
 import { Can } from '@/components/auth/can'
 
@@ -90,9 +90,12 @@ export function PostsRowActions({
                   updateStatus(
                     { ids: [item.id], status: 'active' },
                     {
-                      onSuccess: () => toast.success('岗位已启用'),
+                      onSuccess: () => toast.add({ title: '岗位已启用', type: 'success' }),
                       onError: (error) =>
-                        toast.error(error instanceof Error ? error.message : '启用失败')
+                        toast.add({
+                          title: error instanceof Error ? error.message : '启用失败',
+                          type: 'error'
+                        })
                     }
                   )
                 }}

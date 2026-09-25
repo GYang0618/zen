@@ -16,11 +16,11 @@ import {
   ItemDescription,
   ItemGroup,
   ItemMedia,
-  ItemTitle
+  ItemTitle,
+  toast
 } from '@zen/ui'
 import { Shield, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import { Can } from '@/components/auth/can'
 import { ConfirmDialog } from '@/components/confirm-dialog'
@@ -58,7 +58,11 @@ export function UserRolesCard({ user, onAssign }: UserRolesCardProps) {
           notifyAccessChange(user.id, '主角色已更新')
           setPendingPrimary(undefined)
         },
-        onError: (error) => toast.error(error instanceof Error ? error.message : '更新主角色失败')
+        onError: (error) =>
+          toast.add({
+            title: error instanceof Error ? error.message : '更新主角色失败',
+            type: 'error'
+          })
       }
     )
   }

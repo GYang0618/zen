@@ -19,11 +19,11 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-  Textarea
+  Textarea,
+  toast
 } from '@zen/ui'
 import { CalendarIcon, Loader2, UserShield } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { useCreateRoleMutation, useUpdateRoleMutation } from '@/features/system/roles/mutations'
@@ -159,7 +159,7 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
       },
       {
         onSuccess: (created) => {
-          toast.success(`成功新建角色「${created.name}」`)
+          toast.add({ title: `成功新建角色「${created.name}」`, type: 'success' })
           onOpenChange(false)
           form.reset(createRoleFormValues())
         }
@@ -197,7 +197,7 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
       },
       {
         onSuccess: (updated) => {
-          toast.success(`已更新角色「${updated.name}」`)
+          toast.add({ title: `已更新角色「${updated.name}」`, type: 'success' })
           onOpenChange(false)
         }
       }

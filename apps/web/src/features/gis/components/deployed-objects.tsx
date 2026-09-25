@@ -1,122 +1,133 @@
-import {
-  Cartesian3,
-  Color,
-  HeightReference,
-  HorizontalOrigin,
-  NearFarScalar,
-  VerticalOrigin
-} from 'cesium'
+import { Cesium3DTileset } from 'cesium'
 import { useEffect, useRef } from 'react'
 
 import { useCesium } from '../cesium-provider'
-import { GIS_MODEL_PATHS } from '../constants'
+import { GIS_DEPLOY_LOD } from '../constants'
+import {
+  buildDeployTileset,
+  createTilesetBlobUrl,
+  GIS_DEPLOY_TILESET_REVISION
+} from '../lib/build-deploy-tileset'
 import { useGisStore } from '../stores/gis'
 
-import type { Entity } from 'cesium'
-import type { GisDeployedCategory } from '../stores/gis'
+import type { Viewer } from 'cesium'
+import type { GisDeployedObject } from '../stores/gis'
 
-function getCategoryModelUri(category: GisDeployedCategory): string {
-  switch (category) {
-    case 'tree':
-      return GIS_MODEL_PATHS.tree
-    case 'building':
-      return GIS_MODEL_PATHS.building
-    case 'streetlight':
-      return GIS_MODEL_PATHS.streetlight
-    case 'traffic_sign':
-      return GIS_MODEL_PATHS.trafficSign
-  }
-}
-
-function getCategoryColor(category: GisDeployedCategory): Color {
-  switch (category) {
-    case 'tree':
-      return Color.fromCssColorString('#22c55e')
-    case 'building':
-      return Color.fromCssColorString('#6366f1')
-    case 'streetlight':
-      return Color.fromCssColorString('#f59e0b')
-    case 'traffic_sign':
-      return Color.fromCssColorString('#ef4444')
-  }
+type CellTileset = {
+  tileset: Cesium3DTileset
+  url: string
+  signature: string
 }
 
 export function DeployedObjects() {
   const { viewer } = useCesium()
   const deployedObjects = useGisStore((state) => state.deployedObjects)
-  const entitiesMapRef = useRef<Map<string, Entity>>(new Map())
+  const cellsRef = useRef<Map<string, CellTileset>>(new Map())
+  const generationRef = useRef<Map<string, number>>(new Map())
 
   useEffect(() => {
-    const currentMap = entitiesMapRef.current
-    const incomingIds = new Set(deployedObjects.map((o) => o.id))
+    const cells = cellsRef.current
+    const generations = generationRef.current
+    let active = true
 
-    // 移除已删除的对象
-    for (const [id, entity] of currentMap.entries()) {
-      if (!incomingIds.has(id)) {
-        viewer.entities.remove(entity)
-        currentMap.delete(id)
-      }
-    }
+    void syncDeployCells(viewer, cells, generations, groupByCell(deployedObjects), () => active)
 
-    // 添加新增的对象
-    for (const obj of deployedObjects) {
-      if (!currentMap.has(obj.id)) {
-        const position = Cartesian3.fromDegrees(obj.longitude, obj.latitude, obj.height)
-        const modelUri = obj.modelUri || getCategoryModelUri(obj.category)
-        const color = getCategoryColor(obj.category)
-
-        const entity = viewer.entities.add({
-          name: obj.name,
-          position,
-          model: {
-            uri: modelUri,
-            minimumPixelSize: 32,
-            maximumScale: 50,
-            scale: obj.scale ?? 1.0,
-            heightReference: HeightReference.CLAMP_TO_GROUND
-          },
-          // 降级兜底展示（模型未就绪时）
-          point: {
-            pixelSize: 8,
-            color,
-            outlineColor: Color.WHITE,
-            outlineWidth: 2,
-            heightReference: HeightReference.CLAMP_TO_GROUND,
-            scaleByDistance: new NearFarScalar(1.5e2, 1.5, 8.0e6, 0.5)
-          },
-          label: {
-            text: obj.name,
-            font: '12px PingFang SC, sans-serif',
-            fillColor: Color.WHITE,
-            outlineColor: Color.BLACK,
-            outlineWidth: 2,
-            style: 2,
-            verticalOrigin: VerticalOrigin.BOTTOM,
-            horizontalOrigin: HorizontalOrigin.CENTER,
-            pixelOffset: { x: 0, y: -16 } as unknown as Cartesian3,
-            heightReference: HeightReference.CLAMP_TO_GROUND,
-            distanceDisplayCondition: {
-              near: 0,
-              far: 2000
-            } as unknown as import('cesium').DistanceDisplayCondition
-          }
-        })
-
-        currentMap.set(obj.id, entity)
-      }
+    return () => {
+      active = false
     }
   }, [viewer, deployedObjects])
 
-  // 组件卸载时清理所有实体
   useEffect(() => {
+    const cells = cellsRef.current
     return () => {
-      const currentMap = entitiesMapRef.current
-      for (const entity of currentMap.values()) {
-        viewer.entities.remove(entity)
-      }
-      currentMap.clear()
+      releaseCells(viewer, cells)
     }
   }, [viewer])
 
   return null
+}
+
+function groupByCell(objects: GisDeployedObject[]): Map<string, GisDeployedObject[]> {
+  const groups = new Map<string, GisDeployedObject[]>()
+  for (const object of objects) {
+    const list = groups.get(object.cellId) ?? []
+    list.push(object)
+    groups.set(object.cellId, list)
+  }
+  return groups
+}
+
+async function syncDeployCells(
+  viewer: Viewer,
+  cells: Map<string, CellTileset>,
+  generations: Map<string, number>,
+  groups: Map<string, GisDeployedObject[]>,
+  isActive: () => boolean
+): Promise<void> {
+  dropRemovedCells(viewer, cells, groups)
+  await Promise.all(
+    [...groups.entries()].map(([cellId, objects]) =>
+      upsertCell(viewer, cells, generations, cellId, objects, isActive)
+    )
+  )
+}
+
+function dropRemovedCells(
+  viewer: Viewer,
+  cells: Map<string, CellTileset>,
+  groups: Map<string, GisDeployedObject[]>
+): void {
+  for (const [cellId, entry] of cells.entries()) {
+    if (groups.has(cellId)) continue
+    removeCell(viewer, entry)
+    cells.delete(cellId)
+  }
+}
+
+async function upsertCell(
+  viewer: Viewer,
+  cells: Map<string, CellTileset>,
+  generations: Map<string, number>,
+  cellId: string,
+  objects: GisDeployedObject[],
+  isActive: () => boolean
+): Promise<void> {
+  const signature = `${GIS_DEPLOY_TILESET_REVISION}:${objects.map((object) => object.id).join('|')}`
+  if (cells.get(cellId)?.signature === signature) return
+
+  const token = (generations.get(cellId) ?? 0) + 1
+  generations.set(cellId, token)
+  const url = createTilesetBlobUrl(buildDeployTileset(objects))
+
+  try {
+    const tileset = await Cesium3DTileset.fromUrl(url, {
+      maximumScreenSpaceError: GIS_DEPLOY_LOD.maximumScreenSpaceError
+    })
+    if (!isActive() || generations.get(cellId) !== token || viewer.isDestroyed()) {
+      viewer.scene.primitives.remove(tileset)
+      URL.revokeObjectURL(url)
+      return
+    }
+    const previous = cells.get(cellId)
+    if (previous) removeCell(viewer, previous)
+    viewer.scene.primitives.add(tileset)
+    cells.set(cellId, { tileset, url, signature })
+  } catch (error) {
+    URL.revokeObjectURL(url)
+    console.error(`[GIS] 部署格子 ${cellId} 的 3D Tiles 加载失败`, error)
+  }
+}
+
+function removeCell(viewer: Viewer, entry: CellTileset): void {
+  if (!viewer.isDestroyed()) {
+    viewer.scene.primitives.remove(entry.tileset)
+  }
+  URL.revokeObjectURL(entry.url)
+}
+
+function releaseCells(viewer: Viewer, cells: Map<string, CellTileset>): void {
+  for (const entry of cells.values()) {
+    removeCell(viewer, entry)
+  }
+  cells.clear()
 }

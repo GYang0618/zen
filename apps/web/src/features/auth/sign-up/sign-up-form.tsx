@@ -9,10 +9,10 @@ import {
   FieldLabel,
   FieldSeparator,
   Input,
-  sleep
+  sleep,
+  toast
 } from '@zen/ui'
 import { Loader2 } from 'lucide-react'
-import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { useSignUpMutation } from '../mutations'
@@ -68,7 +68,6 @@ export function SignUpForm() {
       onSuccess: () => {
         toast.promise(sleep(1000), {
           loading: '账户创建成功！自动登录中...',
-          position: 'top-center',
           success: () => {
             navigate({ to: '/' })
             return '登录成功，欢迎加入我们👏'

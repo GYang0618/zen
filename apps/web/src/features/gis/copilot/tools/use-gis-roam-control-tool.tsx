@@ -58,7 +58,7 @@ const roamControlSchema = z.object({
     ])
     .optional()
     .describe(
-      '载具特定执行动作：jump（行人跳跃），pause_briefly（停留 3 秒后继续），lane_change_left（向左变道超车），lane_change_right（向右变道超车），airdrop（释放降落伞空投箱），pitch_up（仰角爬升，配合 deltaAltitudeMeters），pitch_down（俯冲进近，配合 deltaAltitudeMeters），roll_turn / roll_turn_left / roll_turn_right（绕机体上轴水平偏航盘旋，机头转向后回到航线，机翼保持水平；配合 turnAngleDeg 与 turnDirection）'
+      '载具特定执行动作：jump（行人跳跃），pause_briefly（停留 3 秒后继续），lane_change_left（向左变道超车），lane_change_right（向右变道超车），airdrop（客机释放降落伞空投箱），pitch_up（仰角爬升，客机或歼-20，配合 deltaAltitudeMeters），pitch_down（俯冲，客机或歼-20，配合 deltaAltitudeMeters），roll_turn / roll_turn_left / roll_turn_right（客机：水平偏航后回到航线，机翼保持水平。歼-20 不转弯：左压、左压坡度用 turnDirection: left；右压、右压坡度用 turnDirection: right；turnAngleDeg 用用户说的角度，如左压30度传 30，右压75度传 75。改平传 turnAngleDeg: 0）'
     ),
   playbackAction: z
     .enum(['pause', 'resume', 'restart', 'stop'])
@@ -69,9 +69,7 @@ const roamControlSchema = z.object({
   viewTarget: z
     .enum(['vehicle', 'airdrop'])
     .optional()
-    .describe(
-      '相机镜头观察目标：vehicle（跟随主飞机/载具），airdrop（从驾驶舱看向空投箱）'
-    ),
+    .describe('相机镜头观察目标：vehicle（跟随主飞机/载具），airdrop（从驾驶舱看向空投箱）'),
   speedMultiplier: z
     .number()
     .optional()
@@ -242,31 +240,31 @@ export function useGisRoamControlTool() {
             }
             break
           case 'pitch_up':
-            if (vehicleType === 'plane') {
-              const alt = deltaAltitudeMeters ?? 500
+            if (vehicleType === 'plane' || vehicleType === 'fighter') {
+              const alt = deltaAltitudeMeters ?? (vehicleType === 'fighter' ? 400 : 500)
               roamStore.triggerAction({ type: 'pitch_up', deltaAltitude: alt, speedBoostKmh })
               results.push(
-                `飞机机头仰起，执行爬升动作（+${alt}m${speedBoostKmh ? `，并推力加速 +${speedBoostKmh}km/h` : ''}）`
+                `${vehicleType === 'fighter' ? '歼-20' : '客机'}机头仰起，执行爬升动作（+${alt}m${speedBoostKmh ? `，并推力加速 +${speedBoostKmh}km/h` : ''}）`
               )
             } else {
-              results.push('爬升指令仅适用于飞机空中飞行漫游')
+              results.push('爬升指令仅适用于客机或歼-20 空中漫游')
             }
             break
           case 'pitch_down':
-            if (vehicleType === 'plane') {
-              const alt = deltaAltitudeMeters ?? 500
+            if (vehicleType === 'plane' || vehicleType === 'fighter') {
+              const alt = deltaAltitudeMeters ?? (vehicleType === 'fighter' ? 400 : 500)
               roamStore.triggerAction({ type: 'pitch_down', deltaAltitude: alt, speedBoostKmh })
               results.push(
-                `飞机机头下俯，执行俯冲进近动作（-${alt}m${speedBoostKmh ? `，并推力加速 +${speedBoostKmh}km/h` : ''}）`
+                `${vehicleType === 'fighter' ? '歼-20' : '客机'}机头下俯，执行俯冲动作（-${alt}m${speedBoostKmh ? `，并推力加速 +${speedBoostKmh}km/h` : ''}）`
               )
             } else {
-              results.push('俯冲指令仅适用于飞机空中飞行漫游')
+              results.push('俯冲指令仅适用于客机或歼-20 空中漫游')
             }
             break
           case 'roll_turn':
           case 'roll_turn_left':
           case 'roll_turn_right':
-            if (vehicleType === 'plane') {
+            if (vehicleType === 'plane' || vehicleType === 'fighter') {
               let dirSign = 1
               if (entityAction === 'roll_turn_left') {
                 dirSign = -1
@@ -281,16 +279,25 @@ export function useGisRoamControlTool() {
               }
               const angleAbs = Math.abs(turnAngleDeg ?? 30)
               const finalTurnDeg = dirSign * angleAbs
-              roamStore.triggerAction({
-                type: 'roll_turn',
-                deltaHeadingDeg: finalTurnDeg,
-                speedBoostKmh
-              })
-              results.push(
-                `飞机向${dirSign < 0 ? '左' : '右'}偏航盘旋 ${angleAbs}°，机翼保持水平，结束后机头回到航线${speedBoostKmh ? `，并推力加速 +${speedBoostKmh}km/h` : ''}`
-              )
+              if (vehicleType === 'fighter') {
+                roamStore.triggerAction({ type: 'roll_axis', bankDeg: finalTurnDeg })
+                results.push(
+                  finalTurnDeg === 0
+                    ? '歼-20 已改平，机翼回到水平'
+                    : `歼-20 ${dirSign < 0 ? '左压坡度' : '右压坡度'} ${angleAbs}°，机头不离航线，${dirSign < 0 ? '左翼低、右翼高' : '右翼低、左翼高'}`
+                )
+              } else {
+                roamStore.triggerAction({
+                  type: 'roll_turn',
+                  deltaHeadingDeg: finalTurnDeg,
+                  speedBoostKmh
+                })
+                results.push(
+                  `飞机向${dirSign < 0 ? '左' : '右'}偏航盘旋 ${angleAbs}°，机翼保持水平，结束后机头回到航线${speedBoostKmh ? `，并推力加速 +${speedBoostKmh}km/h` : ''}`
+                )
+              }
             } else {
-              results.push('偏航盘旋指令仅适用于飞机空中飞行漫游')
+              results.push('转弯盘旋指令仅适用于客机或歼-20 空中漫游')
             }
             break
         }
@@ -316,7 +323,9 @@ export function useGisRoamControlTool() {
           }
         } else {
           roamStore.setViewTarget('vehicle')
-          results.push(`已将镜头切回${vehicleType === 'plane' ? '客机' : '载具'}主视角`)
+          results.push(
+            `已将镜头切回${vehicleType === 'fighter' ? '歼-20' : vehicleType === 'plane' ? '客机' : '载具'}主视角`
+          )
         }
       }
 

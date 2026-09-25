@@ -18,11 +18,11 @@ import {
   SelectGroup,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
+  toast
 } from '@zen/ui'
 import { ArrowRight, Briefcase, Building2, Users } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { toast } from 'sonner'
 
 import { useBatchTransferMembers, useOrganizationPositions, useOrganizationTree } from '../queries'
 import { OrganizationParentSelect } from './organization-parent-select'
@@ -82,11 +82,11 @@ export function OrganizationBatchTransferDialog({
         targetOrganizationId: targetOrgId,
         targetPostId: targetPosId === 'none' ? null : targetPosId
       })
-      toast.success(`成功调动 ${selectedMembers.length} 名成员`)
+      toast.add({ title: `成功调动 ${selectedMembers.length} 名成员`, type: 'success' })
       onSuccess?.()
       handleOpenChange(false)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '批量调动成员失败')
+      toast.add({ title: err instanceof Error ? err.message : '批量调动成员失败', type: 'error' })
     }
   }
 

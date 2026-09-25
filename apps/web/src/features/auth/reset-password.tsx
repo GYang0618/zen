@@ -8,11 +8,11 @@ import {
   Field,
   FieldGroup,
   FieldLabel,
-  Input
+  Input,
+  toast
 } from '@zen/ui'
 import { Mail } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import { PasswordInput } from '@/components'
 import { authApi } from '@/features/auth/api'
@@ -34,23 +34,26 @@ export function ResetPasswordForm() {
         event.preventDefault()
         const parsed = userPasswordSchema.safeParse(password)
         if (!parsed.success) {
-          toast.error(parsed.error.issues[0]?.message ?? '密码不符合要求')
+          toast.add({ title: parsed.error.issues[0]?.message ?? '密码不符合要求', type: 'error' })
           return
         }
 
         setPending(true)
         try {
           if (isInviteMock) {
-            toast.success('模拟：密码已设置。接入邮箱后将写入服务器并取消首次登录改密。')
+            toast.add({
+              title: '模拟：密码已设置。接入邮箱后将写入服务器并取消首次登录改密。',
+              type: 'success'
+            })
             navigate({ to: '/sign-in', replace: true })
             return
           }
 
           await authApi.resetPassword(token.trim(), password)
-          toast.success('密码已设置，请重新登录')
+          toast.add({ title: '密码已设置，请重新登录', type: 'success' })
           navigate({ to: '/sign-in', replace: true })
         } catch (error) {
-          toast.error(error instanceof Error ? error.message : '设置失败')
+          toast.add({ title: error instanceof Error ? error.message : '设置失败', type: 'error' })
         } finally {
           setPending(false)
         }

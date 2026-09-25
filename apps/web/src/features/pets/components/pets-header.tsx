@@ -1,6 +1,5 @@
-import { Badge, Button, Input } from '@zen/ui'
+import { Badge, Button, Input, toast } from '@zen/ui'
 import { RotateCcw, Search } from 'lucide-react'
-import { toast } from 'sonner'
 
 import { usePetsStore } from '../stores/use-pets-store'
 
@@ -16,7 +15,7 @@ export function PetsHeader({ totalCount, customizedCount }: PetsHeaderProps) {
 
   const handleResetAll = () => {
     resetAll()
-    toast.success('已恢复全部宠物的默认预设')
+    toast.add({ title: '已恢复全部宠物的默认预设', type: 'success' })
   }
 
   return (

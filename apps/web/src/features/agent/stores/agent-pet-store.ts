@@ -142,9 +142,7 @@ export const useAgentPetStore = create<AgentPetState>()(
         return {
           ...currentState,
           ...p,
-          eyeParams: p.eyeParams
-            ? { ...DEFAULT_EYE_PARAMS, ...p.eyeParams }
-            : DEFAULT_EYE_PARAMS
+          eyeParams: p.eyeParams ? { ...DEFAULT_EYE_PARAMS, ...p.eyeParams } : DEFAULT_EYE_PARAMS
         }
       }
     }
@@ -158,4 +156,3 @@ if (typeof window !== 'undefined') {
     }
   })
 }
-

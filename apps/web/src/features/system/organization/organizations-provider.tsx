@@ -1,6 +1,5 @@
-import { useDialogState } from '@zen/ui'
+import { toast, useDialogState } from '@zen/ui'
 import { createContext, useContext, useMemo, useState } from 'react'
-import { toast } from 'sonner'
 
 import {
   useChangeOrganizationParent,
@@ -152,7 +151,7 @@ export function OrganizationsProvider({
         id: activeId,
         data: { parentId: validation.destinationParentId }
       })
-      toast.success('组织已移动')
+      toast.add({ title: '组织已移动', type: 'success' })
       return true
     } catch {
       return false

@@ -7,7 +7,8 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
+  toast
 } from '@zen/ui'
 import {
   Ellipsis as DotsHorizontalIcon,
@@ -20,7 +21,6 @@ import {
   UserCheck,
   UserPen
 } from 'lucide-react'
-import { toast } from 'sonner'
 
 import { Can } from '@/components/auth/can'
 
@@ -49,7 +49,10 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
       { ids: [user.id], status: nextStatus },
       {
         onSuccess: () => {
-          toast.success(nextStatus === 'active' ? '用户已激活' : '用户已停用')
+          toast.add({
+            title: nextStatus === 'active' ? '用户已激活' : '用户已停用',
+            type: 'success'
+          })
         }
       }
     )
@@ -102,7 +105,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
               disabled={isUnlocking}
               onClick={() => {
                 unlockUser(user.id, {
-                  onSuccess: () => toast.success('账号已解锁')
+                  onSuccess: () => toast.add({ title: '账号已解锁', type: 'success' })
                 })
               }}
             >

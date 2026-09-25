@@ -6,6 +6,8 @@ import {
   CopilotChatUserMessage,
   CopilotPopup as CopilotkitPopup,
   CopilotModalHeader,
+  UseAgentUpdate,
+  useAgent,
   useCopilotChatConfiguration
 } from '@copilotkit/react-core/v2'
 import { Button, cn, Tooltip, TooltipContent, TooltipTrigger } from '@zen/ui'
@@ -33,6 +35,19 @@ import type { ChatMessageLike } from './components/chat-messages'
 const POPUP_WIDTH_PX = 440
 const POPUP_HEIGHT_PX = 650
 
+/**
+ * CopilotKit 的消息 memo 只在「当前消息是最后一条」时才把 isRunning 变化传进来。
+ * 推理或回复后面一旦跟上工具卡片，回合结束时这里的 isRunning 会停在 true，
+ * 「思考中」就不会收掉。运行状态改从 agent 订阅读取。
+ */
+function usePopupRunActive() {
+  const { agent } = useAgent({
+    updates: [UseAgentUpdate.OnRunStatusChanged],
+    throttleMs: 0
+  })
+  return agent.isRunning
+}
+
 const PopupUserMessage = Object.assign(function PopupUserMessage({
   message
 }: CopilotChatUserMessageProps) {
@@ -42,9 +57,9 @@ const PopupUserMessage = Object.assign(function PopupUserMessage({
 const PopupAssistantMessage = Object.assign(function PopupAssistantMessage({
   message,
   messages = [],
-  isRunning = false,
   onRegenerate
 }: CopilotChatAssistantMessageProps) {
+  const isRunning = usePopupRunActive()
   const isLastAssistant = messages.findLast((m) => m.role === 'assistant')?.id === message.id
   return (
     <AssistantMessageItem
@@ -54,6 +69,7 @@ const PopupAssistantMessage = Object.assign(function PopupAssistantMessage({
       isLastAssistant={isLastAssistant}
       includeInlineTools
       showWorkingPlaceholder
+      showCanvas={false}
       onRetry={onRegenerate ? () => onRegenerate(message) : undefined}
     />
   )
@@ -61,10 +77,12 @@ const PopupAssistantMessage = Object.assign(function PopupAssistantMessage({
 
 const PopupReasoningMessage = Object.assign(function PopupReasoningMessage({
   message,
-  messages = [],
-  isRunning = false
+  messages = []
 }: CopilotChatReasoningMessageProps) {
-  const isLatest = messages.findLast((m) => m.role === 'reasoning')?.id === message.id
+  const isRunning = usePopupRunActive()
+  // 后面一旦出现回复或工具结果，这次思考就已经结束。
+  // 不能拿「最后一条推理」判断，否则目录卡片之后的思考会一直停在思考中。
+  const isLatest = messages.at(-1)?.id === message.id
   return (
     <ReasoningMessageItem
       message={message as ChatMessageLike}

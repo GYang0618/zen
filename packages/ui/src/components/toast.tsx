@@ -212,11 +212,11 @@ export {
   ToastClose,
   ToastContent,
   ToastDescription,
-  Toaster as BaseToaster,
+  Toaster,
   ToastPortal,
   ToastProvider,
   ToastTitle,
   ToastViewport,
-  toast as baseToast,
+  toast,
   useToastManager
 }

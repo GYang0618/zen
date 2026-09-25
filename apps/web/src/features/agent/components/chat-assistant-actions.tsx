@@ -1,7 +1,6 @@
-import { cn, MessageAction, MessageActions } from '@zen/ui'
+import { cn, MessageAction, MessageActions, toast } from '@zen/ui'
 import { Check, Copy, Link2, RefreshCw } from 'lucide-react'
 import { useCallback, useState } from 'react'
-import { toast } from 'sonner'
 
 interface ChatAssistantActionsProps {
   content: string
@@ -23,10 +22,10 @@ export function ChatAssistantActions({
     try {
       await navigator.clipboard.writeText(content)
       setCopied(true)
-      toast.success('复制成功')
+      toast.add({ title: '复制成功', type: 'success' })
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      toast.error('复制失败')
+      toast.add({ title: '复制失败', type: 'error' })
     }
   }, [content])
 
@@ -34,10 +33,10 @@ export function ChatAssistantActions({
     try {
       await navigator.clipboard.writeText(window.location.href)
       setLinkCopied(true)
-      toast.success('链接已复制')
+      toast.add({ title: '链接已复制', type: 'success' })
       setTimeout(() => setLinkCopied(false), 2000)
     } catch {
-      toast.error('复制链接失败')
+      toast.add({ title: '复制链接失败', type: 'error' })
     }
   }, [])
 

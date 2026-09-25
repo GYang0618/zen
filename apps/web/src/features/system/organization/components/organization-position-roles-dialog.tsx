@@ -13,11 +13,11 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-  ScrollArea
+  ScrollArea,
+  toast
 } from '@zen/ui'
 import { Check, Info, Search, ShieldCheck } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { toast } from 'sonner'
 
 import { useRolesQuery } from '@/features/system/roles/queries'
 
@@ -83,10 +83,13 @@ export function OrganizationPositionRolesDialog({
           roleIds: selectedRoleIds
         }
       })
-      toast.success(`成功更新「${position.name}」的基准角色配置`)
+      toast.add({ title: `成功更新「${position.name}」的基准角色配置`, type: 'success' })
       onOpenChange(false)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '更新岗位基准角色失败')
+      toast.add({
+        title: err instanceof Error ? err.message : '更新岗位基准角色失败',
+        type: 'error'
+      })
     }
   }
 

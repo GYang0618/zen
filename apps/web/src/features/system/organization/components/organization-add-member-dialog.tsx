@@ -20,11 +20,11 @@ import {
   ItemMedia,
   ItemTitle,
   Label,
-  ScrollArea
+  ScrollArea,
+  toast
 } from '@zen/ui'
 import { Search } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { toast } from 'sonner'
 
 import { useAddOrganizationMember, useOrganizationUserOptions } from '../queries'
 
@@ -119,7 +119,7 @@ export function OrganizationAddMemberDialog({
 
   const handleSubmit = async () => {
     if (selectedIds.length === 0) {
-      toast.error('请至少选择一名用户')
+      toast.add({ title: '请至少选择一名用户', type: 'error' })
       return
     }
 

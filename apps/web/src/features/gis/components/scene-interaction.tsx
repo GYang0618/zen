@@ -1,11 +1,12 @@
+import { toast } from '@zen/ui'
 import {
   Cartographic,
   Math as CesiumMath,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType
 } from 'cesium'
+import { Copy } from 'lucide-react'
 import { useEffect } from 'react'
-import { toast } from 'sonner'
 
 import { useCesium } from '../cesium-provider'
 import { formatCoordinates } from '../lib/geo-utils'
@@ -109,24 +110,27 @@ export function SceneInteraction() {
         const coordText = `${longitude}, ${latitude}, ${height}`
         const readable = formatCoordinates(longitude, latitude, height)
 
-        toast.info(`已拾取坐标：${readable}`, {
+        toast.add({
+          title: `已拾取坐标：${readable}`,
           description: `经度: ${longitude}° | 纬度: ${latitude}° | 高程: ${height}m`,
-          action: {
-            label: '复制坐标',
+          type: 'info',
+          timeout: 0,
+          actionProps: {
+            'aria-label': '复制坐标',
+            children: <Copy className="size-3.5" aria-hidden />,
             onClick: () => {
               if (navigator.clipboard?.writeText) {
                 navigator.clipboard.writeText(coordText).then(
                   () => {
-                    toast.success(`已复制到剪切板：${coordText}`)
+                    toast.add({ title: `已复制到剪切板：${coordText}`, type: 'success' })
                   },
                   () => {
-                    toast.error('复制失败，请检查浏览器权限')
+                    toast.add({ title: '复制失败，请检查浏览器权限', type: 'error' })
                   }
                 )
               }
             }
-          },
-          duration: 8000
+          }
         })
       }
     }, ScreenSpaceEventType.LEFT_CLICK)

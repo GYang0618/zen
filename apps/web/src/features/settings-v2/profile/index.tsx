@@ -9,11 +9,11 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-  Textarea
+  Textarea,
+  toast
 } from '@zen/ui'
 import { CalendarIcon, Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
 
 import { authApi } from '@/features/auth/api'
 import { uploadWithIntent } from '@/lib/storage-upload'
@@ -116,12 +116,14 @@ export function SettingsProfile() {
       }
 
       setAvatarRemoved(false)
-      toast.success('已保存')
+      toast.add({ title: '已保存', type: 'success' })
     } catch (error) {
       if (stage === 'patch') return
-      toast.error(
-        error instanceof Error ? error.message : stage === 'upload' ? '头像上传失败' : '保存失败'
-      )
+      toast.add({
+        title:
+          error instanceof Error ? error.message : stage === 'upload' ? '头像上传失败' : '保存失败',
+        type: 'error'
+      })
     } finally {
       setSubmitting(false)
     }

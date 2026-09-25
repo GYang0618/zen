@@ -1,7 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@zen/ui'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, toast } from '@zen/ui'
 import { AlertTriangle } from 'lucide-react'
-import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { FileUploader } from '@/components/file-uploader'
@@ -47,10 +46,10 @@ export function FilesDialogs({ accept }: { accept?: string }) {
             accept={accept}
             multiple
             onSuccess={() => {
-              toast.success('上传成功')
+              toast.add({ title: '上传成功', type: 'success' })
               void queryClient.invalidateQueries({ queryKey: filesQueryKeys.all })
             }}
-            onError={(error) => toast.error(error.message)}
+            onError={(error) => toast.add({ title: error.message, type: 'error' })}
           />
         </DialogContent>
       </Dialog>
@@ -86,11 +85,11 @@ export function FilesDialogs({ accept }: { accept?: string }) {
           handleConfirm={() => {
             deleteFile.mutate(currentRow.id, {
               onSuccess: () => {
-                toast.success('已移入回收站')
+                toast.add({ title: '已移入回收站', type: 'success' })
                 close()
                 closePreview()
               },
-              onError: (error) => toast.error(error.message)
+              onError: (error) => toast.add({ title: error.message, type: 'error' })
             })
           }}
         />
@@ -108,10 +107,10 @@ export function FilesDialogs({ accept }: { accept?: string }) {
           handleConfirm={() => {
             restoreFile.mutate(currentRow.id, {
               onSuccess: () => {
-                toast.success('已恢复')
+                toast.add({ title: '已恢复', type: 'success' })
                 close()
               },
-              onError: (error) => toast.error(error.message)
+              onError: (error) => toast.add({ title: error.message, type: 'error' })
             })
           }}
         />
@@ -135,11 +134,11 @@ export function FilesDialogs({ accept }: { accept?: string }) {
           handleConfirm={() => {
             purgeFile.mutate(currentRow.id, {
               onSuccess: () => {
-                toast.success('已彻底删除')
+                toast.add({ title: '已彻底删除', type: 'success' })
                 close()
                 closePreview()
               },
-              onError: (error) => toast.error(error.message)
+              onError: (error) => toast.add({ title: error.message, type: 'error' })
             })
           }}
         />

@@ -16,7 +16,8 @@ import {
   Input,
   Label,
   RadioGroup,
-  RadioGroupItem
+  RadioGroupItem,
+  toast
 } from '@zen/ui'
 import {
   AlertTriangle,
@@ -28,7 +29,6 @@ import {
   Users
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { toast } from 'sonner'
 
 import { useDeleteOrganization, useDissolveOrganization } from '../queries'
 import { collectDescendantIds } from '../utils'
@@ -114,7 +114,7 @@ export function OrganizationDeleteDialog({
     const destinationId = clearMembersOnly ? null : targetOrgId.trim() || null
 
     if (hasMembers && !clearMembersOnly && !destinationId) {
-      toast.error('请选择在岗成员的接收组织，或选择直接清空部门任职')
+      toast.add({ title: '请选择在岗成员的接收组织，或选择直接清空部门任职', type: 'error' })
       return
     }
 

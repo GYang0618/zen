@@ -19,8 +19,8 @@ vi.mock('./client', () => ({
   }
 }))
 
-vi.mock('sonner', () => ({
-  toast: { error: vi.fn() }
+vi.mock('@zen/ui', () => ({
+  toast: { add: vi.fn() }
 }))
 
 function makeJwt(expSeconds: number): string {

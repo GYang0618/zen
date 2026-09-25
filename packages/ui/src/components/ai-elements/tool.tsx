@@ -21,10 +21,7 @@ import type { ComponentProps, ReactNode } from 'react'
 export type ToolProps = ComponentProps<typeof Collapsible>
 
 export const Tool = ({ className, ...props }: ToolProps) => (
-  <Collapsible
-    className={cn('group not-prose w-full rounded-md border', className)}
-    {...props}
-  />
+  <Collapsible className={cn('group not-prose w-full rounded-md border', className)} {...props} />
 )
 
 export type ToolPart = ToolUIPart | DynamicToolUIPart

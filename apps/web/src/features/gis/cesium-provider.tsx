@@ -1,9 +1,7 @@
 import {
   ArcGisMapServerImageryProvider,
   Cartesian3,
-  Math as CesiumMath,
   Color,
-  EasingFunction,
   ImageryLayer,
   Ion,
   OpenStreetMapImageryProvider,
@@ -19,11 +17,11 @@ import { SceneLoading } from './components/scene-loading'
 import {
   CESIUM_DEFAULT_TOKEN,
   GIS_GLOBAL_OVERVIEW_VIEW,
-  GIS_INITIAL_VIEW,
   TIANDITU_SUBDOMAINS,
   TIANDITU_TOKEN,
   TIANDITU_WMTS_URLS
 } from './constants'
+import { flyToInitialView } from './lib/fly-to-initial-view'
 
 Ion.defaultAccessToken = CESIUM_DEFAULT_TOKEN
 
@@ -43,7 +41,7 @@ const DEFAULT_VIEWER_OPTIONS: Viewer.ConstructorOptions = {
 }
 
 export type CesiumContextValue = {
-  viewer: Viewer
+  viewer: Viewer | null
 }
 
 const CesiumContext = createContext<CesiumContextValue | null>(null)
@@ -179,22 +177,8 @@ export function CesiumProvider({ children, options }: CesiumProviderProps) {
       setIsReady(true)
       removePostRender()
 
-      // 场景首帧渲染就绪后，平滑 flyTo 飞行定位至南京初始视角
       if (!instance.isDestroyed()) {
-        instance.camera.flyTo({
-          destination: Cartesian3.fromDegrees(
-            GIS_INITIAL_VIEW.longitude,
-            GIS_INITIAL_VIEW.latitude,
-            GIS_INITIAL_VIEW.height
-          ),
-          orientation: {
-            heading: CesiumMath.toRadians(GIS_INITIAL_VIEW.headingDeg),
-            pitch: CesiumMath.toRadians(GIS_INITIAL_VIEW.pitchDeg),
-            roll: CesiumMath.toRadians(GIS_INITIAL_VIEW.rollDeg)
-          },
-          duration: GIS_INITIAL_VIEW.flyDurationSec,
-          easingFunction: EasingFunction.QUADRATIC_IN_OUT
-        })
+        flyToInitialView(instance)
       }
     })
 
@@ -209,32 +193,32 @@ export function CesiumProvider({ children, options }: CesiumProviderProps) {
     }
   }, [])
 
-  const value = useMemo(() => (viewer ? { viewer } : null), [viewer])
+  const value = useMemo(() => ({ viewer }), [viewer])
 
   return (
-    <div className="relative flex-1 size-full min-h-0 overflow-hidden">
-      <div
-        ref={containerRef}
-        className="absolute inset-0"
-        role="application"
-        aria-label="Cesium GIS 三维场景"
-      />
-      <SceneLoading active={!isReady} />
-      {value ? (
-        <CesiumContext value={value}>
+    <CesiumContext value={value}>
+      <div className="relative flex-1 size-full min-h-0 overflow-hidden">
+        <div
+          ref={containerRef}
+          className="absolute inset-0"
+          role="application"
+          aria-label="Cesium GIS 三维场景"
+        />
+        <SceneLoading active={!isReady} />
+        {viewer ? (
           <div className="pointer-events-none absolute inset-0 z-10">{children}</div>
-        </CesiumContext>
-      ) : null}
-    </div>
+        ) : null}
+      </div>
+    </CesiumContext>
   )
 }
 
 export function useCesium() {
   const context = useContext(CesiumContext)
 
-  if (!context) {
+  if (!context?.viewer) {
     throw new Error('useCesium has to be used within <CesiumProvider>')
   }
 
-  return context
+  return { viewer: context.viewer }
 }

@@ -20,7 +20,11 @@ import { Fragment, useMemo } from 'react'
 import { useChatAgent } from '../context/chat-agent-context'
 import { useAgentRetry } from '../hooks/use-agent-retry'
 import { useCanvasGenerationPending } from '../hooks/use-canvas-generation-pending'
-import { A2UI_ACTIVITY_TYPE, isA2UIToolCall, turnHasInProgressA2uiActivity } from '../lib/a2ui-tools'
+import {
+  A2UI_ACTIVITY_TYPE,
+  isA2UIToolCall,
+  turnHasInProgressA2uiActivity
+} from '../lib/a2ui-tools'
 import {
   getInlineStandardToolCalls,
   groupMessagesIntoTurns,
@@ -82,6 +86,8 @@ export interface AssistantMessageItemProps {
   isLastAssistant: boolean
   includeInlineTools?: boolean
   showWorkingPlaceholder?: boolean
+  /** 为 false 时不展示画布生成态和画布入口。Popup 没有右侧画布。 */
+  showCanvas?: boolean
   onRetry?: () => void
 }
 
@@ -92,6 +98,7 @@ export function AssistantMessageItem({
   isLastAssistant,
   includeInlineTools = true,
   showWorkingPlaceholder = false,
+  showCanvas = true,
   onRetry
 }: AssistantMessageItemProps) {
   const isStopped = useAgentChatInputStore((state) =>
@@ -125,7 +132,12 @@ export function AssistantMessageItem({
     turnGenerativeTools?.shouldRender && turnGenerativeTools.toolCalls.length > 0
   )
   const waitingForCanvas =
-    isRunning && isLastAssistant && hasContent && !showA2uiSlot && !showGenerativeSlot
+    showCanvas &&
+    isRunning &&
+    isLastAssistant &&
+    hasContent &&
+    !showA2uiSlot &&
+    !showGenerativeSlot
   const canvasActivityPending = Boolean(
     message.id && turnHasInProgressA2uiActivity(messages, message.id)
   )
@@ -176,7 +188,7 @@ export function AssistantMessageItem({
         )}
       </MessageContent>
       {showCanvasPending && <ChatCanvasGeneratingBadge />}
-      {showA2uiSlot && turnA2uiTools && (
+      {showCanvas && showA2uiSlot && turnA2uiTools && (
         <ChatCanvasBadge toolCalls={turnA2uiTools.toolCalls} messages={messages as never} />
       )}
       {showGenerativeSlot && turnGenerativeTools && (

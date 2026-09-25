@@ -15,11 +15,11 @@ import {
   ItemContent,
   ItemGroup,
   ItemMedia,
-  ItemTitle
+  ItemTitle,
+  toast
 } from '@zen/ui'
 import { Building2 } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import { Can } from '@/components/auth/can'
 import { ConfirmDialog } from '@/components/confirm-dialog'
@@ -66,7 +66,11 @@ export function UserOrganizationsCard({ user, onAssign }: UserOrganizationsCardP
           notifyAccessChange(user.id, '主职组织已更新')
           setPendingPrimary(undefined)
         },
-        onError: (error) => toast.error(error instanceof Error ? error.message : '更新主职失败')
+        onError: (error) =>
+          toast.add({
+            title: error instanceof Error ? error.message : '更新主职失败',
+            type: 'error'
+          })
       }
     )
   }

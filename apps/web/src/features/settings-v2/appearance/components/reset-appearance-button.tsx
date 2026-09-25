@@ -1,6 +1,5 @@
-import { Button } from '@zen/ui'
+import { Button, toast } from '@zen/ui'
 import { RotateCcw } from 'lucide-react'
-import { toast } from 'sonner'
 
 import { useResetAppearance } from '@/hooks'
 
@@ -10,7 +9,7 @@ export function ResetAppearanceButton() {
   const handleReset = () => {
     if (isDefault) return
     resetAppearance()
-    toast.success('已恢复系统默认外观')
+    toast.add({ title: '已恢复系统默认外观', type: 'success' })
   }
 
   return (

@@ -5,10 +5,10 @@ import {
   SelectGroup,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
+  toast
 } from '@zen/ui'
 import { RotateCcw } from 'lucide-react'
-import { toast } from 'sonner'
 
 import { DEFAULT_SCENARIO_EMOTIONS, useAgentPetStore } from '@/features/agent'
 import { EMOTIONS_CATALOG } from '@/features/pets'
@@ -80,7 +80,7 @@ export function PetScenarioEmotions() {
   const handleResetScenarios = () => {
     if (isScenarioDefault) return
     resetScenarioEmotions()
-    toast.success('已恢复各场景默认表情')
+    toast.add({ title: '已恢复各场景默认表情', type: 'success' })
   }
 
   return (

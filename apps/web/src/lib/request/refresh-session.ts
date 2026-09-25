@@ -1,5 +1,5 @@
 import { isAxiosError } from '@zen/request'
-import { toast } from 'sonner'
+import { toast } from '@zen/ui'
 
 import { useAuthStore } from '@/stores'
 
@@ -117,7 +117,7 @@ export function resetRefreshAuthSessionForTests(): void {
 export function notifyRefreshFailure(error: unknown, isLeader: boolean): void {
   if (!isLeader) return
   const message = error instanceof Error ? error.message : fallbackMessage(undefined)
-  toast.error(message)
+  toast.add({ title: message, type: 'error' })
 }
 
 function handleVisibilityChange() {

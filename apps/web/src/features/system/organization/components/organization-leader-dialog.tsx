@@ -14,11 +14,11 @@ import {
   FieldDescription,
   FieldGroup,
   FieldLabel,
-  Input
+  Input,
+  toast
 } from '@zen/ui'
 import { Loader2, Mail, Phone, UserRound } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { toast } from 'sonner'
 
 import { useOrganizations } from '../organizations-provider'
 import { OrganizationLeaderSelect } from './organization-leader-select'
@@ -70,7 +70,7 @@ export function OrganizationLeaderDialog({
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!leaderId) {
-      toast.error('请选择负责人')
+      toast.add({ title: '请选择负责人', type: 'error' })
       return
     }
 

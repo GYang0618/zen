@@ -22,7 +22,8 @@ import {
   Separator,
   Tooltip,
   TooltipContent,
-  TooltipTrigger
+  TooltipTrigger,
+  toast
 } from '@zen/ui'
 import {
   Ban,
@@ -35,7 +36,6 @@ import {
   Trash2
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { toast } from 'sonner'
 
 import { Can } from '@/components/auth/can'
 
@@ -368,15 +368,16 @@ export function OrganizationTree({ className }: { className?: string } = {}) {
 
     if (!validation.isValid) {
       if (validation.reason !== 'same-organization') {
-        toast.error(
-          getOrganizationDropRejectionMessage(
+        toast.add({
+          title: getOrganizationDropRejectionMessage(
             snapshot,
             activeId,
             overId,
             validation.reason,
             catalog
-          )
-        )
+          ),
+          type: 'error'
+        })
       }
       return
     }

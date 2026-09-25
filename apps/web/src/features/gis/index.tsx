@@ -5,6 +5,8 @@ import { useLayout } from '@/context/layout-provider'
 
 import { CesiumProvider } from './cesium-provider'
 import { DeployedObjects } from './components/deployed-objects'
+import { EntityPickController } from './components/entity-pick-controller'
+import { LocateFlashMarker } from './components/locate-flash-marker'
 import { MarkerOverlay } from './components/marker-overlay'
 import { RoamRunner } from './components/roam-runner'
 import { SceneDock } from './components/scene-dock'
@@ -24,13 +26,15 @@ export function CesiumScreen() {
         className={cn('h-full flex flex-1 flex-col p-0 ', variant !== 'sidebar' && 'rounded-xl')}
       >
         <div className="relative flex-1 size-full min-h-0">
-          <SceneHeader />
           <CesiumProvider>
+            <SceneHeader />
             <Copilot />
             <SceneInteraction />
+            <EntityPickController />
             <DeployedObjects />
             <RoamRunner />
             <MarkerOverlay />
+            <LocateFlashMarker />
             <SceneDock />
           </CesiumProvider>
         </div>

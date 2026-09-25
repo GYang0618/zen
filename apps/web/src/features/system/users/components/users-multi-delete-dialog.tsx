@@ -1,9 +1,8 @@
 'use no memo'
 
-import { Alert, AlertDescription, AlertTitle, Input, Label } from '@zen/ui'
+import { Alert, AlertDescription, AlertTitle, Input, Label, toast } from '@zen/ui'
 import { AlertTriangle } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components'
 
@@ -36,7 +35,7 @@ export function UsersMultiDeleteDialog({
 
   const handleDelete = () => {
     if (value.trim() !== CONFIRM_WORD) {
-      toast.error(`Please type "${CONFIRM_WORD}" to confirm.`)
+      toast.add({ title: `Please type "${CONFIRM_WORD}" to confirm.`, type: 'error' })
       return
     }
 
@@ -48,10 +47,10 @@ export function UsersMultiDeleteDialog({
           setValue('')
           onOpenChange(false)
           onDeleted()
-          toast.success(`已删除 ${users.length} 个用户`)
+          toast.add({ title: `已删除 ${users.length} 个用户`, type: 'success' })
         },
         onError: (error) => {
-          toast.error(error instanceof Error ? error.message : '删除失败')
+          toast.add({ title: error instanceof Error ? error.message : '删除失败', type: 'error' })
         }
       }
     )

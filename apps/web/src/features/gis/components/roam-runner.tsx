@@ -20,7 +20,12 @@ import { useEffect, useRef } from 'react'
 
 import { useCesium } from '../cesium-provider'
 import { GIS_ACTION_CONFIG, GIS_MODEL_PATHS, GIS_ROAM_CONFIG } from '../constants'
-import { createFlightTrajectory, createGroundTrajectory } from '../lib/geo-utils'
+import { createDc10Articulation } from '../lib/dc10-articulation'
+import {
+  createFlightTrajectory,
+  createGroundTrajectory,
+  createPatrolTrajectory
+} from '../lib/geo-utils'
 import { useGisRoamStore } from '../stores/gis-roam'
 
 import type { Entity, Viewer } from 'cesium'
@@ -35,7 +40,13 @@ function getModelUri(vehicle: GisRoamVehicle): string {
       return GIS_MODEL_PATHS.vehicle
     case 'plane':
       return GIS_MODEL_PATHS.airplane
+    case 'fighter':
+      return GIS_MODEL_PATHS.fighter
   }
+}
+
+function isAirVehicle(vehicle: GisRoamVehicle): boolean {
+  return vehicle === 'plane' || vehicle === 'fighter'
 }
 
 // 模块级预分配运算临时变量，严禁在逐帧循环中创建垃圾对象
@@ -57,9 +68,12 @@ const scratchLeft = new Cartesian3()
 const scratchLateralVec = new Cartesian3()
 const scratchVerticalVec = new Cartesian3()
 const scratchRotQuat = new Quaternion()
-/** 机体局部轴：+Y 左、+Z 上。偏航绕上轴，俯仰绕左轴。 */
+/** 机体局部轴：+X 前、+Y 左、+Z 上。偏航绕上轴，俯仰绕左轴，坡度绕前轴。 */
+const modelAxisForward = new Cartesian3(1, 0, 0)
 const modelAxisLeft = new Cartesian3(0, 1, 0)
 const modelAxisUp = new Cartesian3(0, 0, 1)
+const scratchPrevForward = new Cartesian3()
+const scratchTurnAxis = new Cartesian3()
 const scratchAdForward = new Cartesian3()
 const scratchAdUp = new Cartesian3()
 const scratchAdLeft = new Cartesian3()
@@ -75,6 +89,54 @@ const scratchFlightSample: FlightPathSample = {
 const scratchGroundSample: GroundPathSample = {
   position: new Cartesian3(),
   forwardDir: new Cartesian3()
+}
+
+/** 车轮枢轴绕局部 +X 转。与 glTF Wheel_Roll 同轴，转角由行驶距离决定。 */
+const vehicleWheelSpin = {
+  translation: new Cartesian3(0, 0, 0),
+  rotation: new Quaternion(),
+  scale: new Cartesian3(1, 1, 1)
+}
+const vehicleWheelNodes = liveNodeTransformations({
+  Wheel_FL_Pivot: vehicleWheelSpin,
+  Wheel_FR_Pivot: vehicleWheelSpin,
+  Wheel_BL_Pivot: vehicleWheelSpin,
+  Wheel_BR_Pivot: vehicleWheelSpin
+})
+
+/**
+ * ModelGraphics 会把 nodeTransformations 收成 PropertyBag，并按对象的键当成节点名。
+ * 整包 CallbackProperty 的键是内部字段，关节不会被应用到模型。
+ * 每个平移、旋转、缩放单独用回调读当前姿态，Cesium 才会每帧取样。
+ */
+function liveNodeTransformations(
+  nodes: Record<string, { translation: Cartesian3; rotation: Quaternion; scale: Cartesian3 }>
+) {
+  return Object.fromEntries(
+    Object.entries(nodes).map(([name, pose]) => [
+      name,
+      {
+        translation: new CallbackProperty((_time, result) => {
+          return Cartesian3.clone(
+            pose.translation,
+            result instanceof Cartesian3 ? result : new Cartesian3()
+          )
+        }, false),
+        rotation: new CallbackProperty((_time, result) => {
+          return Quaternion.clone(
+            pose.rotation,
+            result instanceof Quaternion ? result : new Quaternion()
+          )
+        }, false),
+        scale: new CallbackProperty((_time, result) => {
+          return Cartesian3.clone(
+            pose.scale,
+            result instanceof Cartesian3 ? result : new Cartesian3()
+          )
+        }, false)
+      }
+    ])
+  )
 }
 
 /** 空投模型的上轴对齐当地法线。glTF 的 +Y 经 Cesium 轴修正后是模型 +Z。 */
@@ -199,6 +261,8 @@ interface ActiveActionRuntime {
   action: GisRoamAction
   elapsedSec: number
   startSpeedBoost?: number
+  /** 绕航线滚转开始时的坡度，用来平滑转到目标坡度 */
+  startBankDeg?: number
 }
 
 interface AirdropEntityRuntime {
@@ -249,10 +313,13 @@ export function RoamRunner() {
       return
     }
 
-    const isAir = vehicleType === 'plane'
+    const isAir = isAirVehicle(vehicleType)
     let positions: Cartesian3[] = []
 
-    if (isAir) {
+    if (vehicleType === 'fighter') {
+      const patrolTraj = createPatrolTrajectory(waypoints)
+      positions = patrolTraj?.positions ?? []
+    } else if (isAir) {
       const flightTraj = createFlightTrajectory(waypoints)
       positions = flightTraj?.positions ?? []
     } else {
@@ -277,6 +344,8 @@ export function RoamRunner() {
 
     if (!routePolylineRef.current) {
       routePolylineRef.current = viewer.entities.add({
+        id: 'gis_roam_route',
+        name: '漫游路线',
         polyline: {
           positions,
           width,
@@ -329,11 +398,16 @@ export function RoamRunner() {
 
     const config = GIS_ROAM_CONFIG[vehicleType]
     const modelUri = getModelUri(vehicleType)
-    const isAir = vehicleType === 'plane'
+    const isFighter = vehicleType === 'fighter'
+    const isAir = isAirVehicle(vehicleType)
 
     // 构建路径积分轨迹
     const groundTraj = !isAir ? createGroundTrajectory(waypoints) : null
-    const flightTraj = isAir ? createFlightTrajectory(waypoints) : null
+    const flightTraj = isFighter
+      ? createPatrolTrajectory(waypoints)
+      : isAir
+        ? createFlightTrajectory(waypoints)
+        : null
 
     const totalDistance = isAir
       ? (flightTraj?.totalDistance ?? 0)
@@ -350,7 +424,10 @@ export function RoamRunner() {
     let lastViewModeForCamera = viewModeRef.current
     let lastTrackedTarget: 'vehicle' | 'airdrop' = 'vehicle'
     let lastReportedAirdropAlt = -1
-    let currentFlightPhase: GisFlightPhase = isAir ? 'taxi_start' : 'cruise'
+    let currentFlightPhase: GisFlightPhase = isFighter ? 'patrol' : isAir ? 'taxi_start' : 'cruise'
+    let bankDeg = 0
+    let heldBankDeg = 0
+    let hasPrevForward = false
 
     const simPosition = new Cartesian3()
     const simOrientation = new Quaternion()
@@ -365,17 +442,29 @@ export function RoamRunner() {
     }
     Cartesian3.clone(simPosition, scratchPosition)
 
+    const planeArticulation = vehicleType === 'plane' ? createDc10Articulation() : null
+
     // 创建动态回调驱动的模型实体
     const roamEntity = viewer.entities.add({
+      id: `gis_roam_${vehicleType}`,
+      name: config.label,
       position: new CallbackPositionProperty(() => simPosition, false),
       orientation: new CallbackProperty(() => simOrientation, false),
       model: {
         uri: modelUri,
         minimumPixelSize: 64,
         maximumScale: 100,
-        scale: 1.0,
-        runAnimations: true,
+        scale: 'modelScale' in config ? config.modelScale : 1,
+        // 车辆轮转由行驶距离写入枢轴，不用时钟动画，否则匀速时转速不跟随时速。
+        // 客机的起落架和风扇在同一段一次性动画里，跟着时钟播会在滑跑时收起起落架。
+        runAnimations: vehicleType === 'walk',
         clampAnimations: false,
+        nodeTransformations:
+          vehicleType === 'vehicle'
+            ? vehicleWheelNodes
+            : planeArticulation
+              ? liveNodeTransformations(planeArticulation.nodes)
+              : undefined,
         // 运动模型禁止 CLAMP_TO_GROUND。Cesium 贴地会把经纬度量化到地形瓦片网格后再覆盖平移，
         // 模型会钉在格子上再跳到下一格；速度越快、瓦片越粗，步长越大。高度在模拟循环里逐帧写入。
         heightReference: HeightReference.NONE
@@ -444,11 +533,8 @@ export function RoamRunner() {
         Cartesian3.clone(sample.forwardDir, baseDir)
       }
 
-      // 如果暂停，目标速度设为 0 平滑制动；如果在动作驻留中也制动
+      // 暂停只冻结当前时速，不把目标打成 0。继续时从暂停前的速度接着积分。
       let effectiveTargetMps = targetKmh / 3.6
-      if (isPausedNow) {
-        effectiveTargetMps = 0
-      }
 
       // 动作处理逻辑 (跳跃 / 驻留 / 变道超车 / 俯冲爬升 / 旋转30度 / 空投)
       const currentActionFromStore = useGisRoamStore.getState().activeAction
@@ -458,7 +544,8 @@ export function RoamRunner() {
       ) {
         runtimeAction = {
           action: currentActionFromStore,
-          elapsedSec: 0
+          elapsedSec: 0,
+          startBankDeg: heldBankDeg
         }
         // 若为变道超车，临时增加提速推力
         if (
@@ -471,13 +558,15 @@ export function RoamRunner() {
           runtimeAction.startSpeedBoost = boost / 3.6
         }
         // 若为空投指令，立即生成空投物资箱物理实体
-        if (currentActionFromStore.type === 'airdrop' && isAir) {
+        if (currentActionFromStore.type === 'airdrop' && vehicleType === 'plane') {
           const dropPos = Cartesian3.clone(simPosition, new Cartesian3())
           const orientation = new Quaternion()
           const groundH = waypoints[0].height ?? 0
           syncAirdropOrientation(dropPos, orientation)
 
           const dropEntity = viewer.entities.add({
+            id: `gis_airdrop_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+            name: '空投',
             position: new CallbackPositionProperty(() => dropPos, false),
             orientation: new CallbackProperty(() => orientation, false),
             model: {
@@ -507,6 +596,7 @@ export function RoamRunner() {
       let actionVerticalOffsetM = 0
       let actionPitchDeg = 0
       let actionYawDeg = 0
+      const actionRollDeg = 0
 
       if (runtimeAction) {
         runtimeAction.elapsedSec += dt
@@ -568,7 +658,10 @@ export function RoamRunner() {
           case 'pitch_down': {
             const isUp = runtimeAction.action.type === 'pitch_up'
             const sign = isUp ? 1 : -1
-            const cfg = GIS_ACTION_CONFIG.plane.diveClimb
+            const cfg = isFighter
+              ? GIS_ACTION_CONFIG.fighter.diveClimb
+              : GIS_ACTION_CONFIG.plane.diveClimb
+            const pitchCap = isFighter ? 40 : 25
             const duration = runtimeAction.action.durationSec ?? cfg.durationSec
             const deltaH = runtimeAction.action.deltaAltitude ?? cfg.deltaAltitudeMeters
             const boostKmh = runtimeAction.action.speedBoostKmh ?? 0
@@ -578,7 +671,7 @@ export function RoamRunner() {
               // 垂直高差正弦平滑过渡
               actionVerticalOffsetM = sign * deltaH * Math.sin(normT * Math.PI)
               // 俯仰角根据高差动态成比例调整
-              const maxPitch = Math.min(25, Math.max(8, (deltaH / 500) * cfg.pitchAngleDeg))
+              const maxPitch = Math.min(pitchCap, Math.max(8, (deltaH / 500) * cfg.pitchAngleDeg))
               actionPitchDeg = sign * maxPitch * Math.sin(normT * Math.PI)
               if (boostKmh > 0) {
                 effectiveTargetMps += (boostKmh / 3.6) * Math.sin(normT * Math.PI)
@@ -612,6 +705,25 @@ export function RoamRunner() {
             }
             break
           }
+          case 'roll_axis': {
+            const cfg = GIS_ACTION_CONFIG.fighter.rollAxis
+            const duration = runtimeAction.action.durationSec ?? cfg.durationSec
+            const startBank = runtimeAction.startBankDeg ?? 0
+            const targetBank = Math.max(
+              -cfg.maxBankDeg,
+              Math.min(cfg.maxBankDeg, runtimeAction.action.bankDeg)
+            )
+            if (t <= duration) {
+              const s = t / duration
+              const curve = s * s * (3 - 2 * s)
+              heldBankDeg = startBank + (targetBank - startBank) * curve
+            } else {
+              heldBankDeg = targetBank
+              runtimeAction = null
+              clearAction()
+            }
+            break
+          }
           case 'airdrop': {
             // 空投指令已在触发时刻释放，在此清除
             runtimeAction = null
@@ -621,16 +733,26 @@ export function RoamRunner() {
         }
       }
 
-      // 平滑加速度数值积分
-      if (currentSpeedMps < effectiveTargetMps) {
-        currentSpeedMps = Math.min(effectiveTargetMps, currentSpeedMps + accel * dt)
-      } else if (currentSpeedMps > effectiveTargetMps) {
-        currentSpeedMps = Math.max(effectiveTargetMps, currentSpeedMps - decel * dt)
+      // 暂停时不积分，时速保持按下暂停那一帧的值
+      if (!isPausedNow) {
+        if (currentSpeedMps < effectiveTargetMps) {
+          currentSpeedMps = Math.min(effectiveTargetMps, currentSpeedMps + accel * dt)
+        } else if (currentSpeedMps > effectiveTargetMps) {
+          currentSpeedMps = Math.max(effectiveTargetMps, currentSpeedMps - decel * dt)
+        }
       }
 
       // 漫游步进距离累加
       if (!isPausedNow && currentSpeedMps > 0) {
         distanceTraveled += currentSpeedMps * dt
+      }
+      if (planeArticulation && isAir) {
+        planeArticulation.update(
+          currentFlightPhase,
+          isPausedNow ? 0 : dt,
+          currentSpeedMps,
+          !isPausedNow && currentSpeedMps > 0.05
+        )
       }
 
       // 抵达终点判定
@@ -674,21 +796,57 @@ export function RoamRunner() {
       const finalPos = Cartesian3.add(rawPos, scratchLateralVec, simPosition)
       if (config.clampToGround) {
         lastTerrainHeight = clampCartesianToTerrain(viewer.scene.globe, finalPos, lastTerrainHeight)
-      } else if (vehicleType === 'plane') {
+        if (
+          'originLiftMeters' in config &&
+          config.originLiftMeters > 0 &&
+          lastTerrainHeight !== undefined
+        ) {
+          const carto = Cartographic.fromCartesian(finalPos, Ellipsoid.WGS84, scratchCartographic)
+          if (carto) {
+            carto.height += config.originLiftMeters
+            Cartesian3.fromRadians(
+              carto.longitude,
+              carto.latitude,
+              carto.height,
+              Ellipsoid.WGS84,
+              finalPos
+            )
+          }
+        }
+      } else if (isAir) {
+        const clearance = isFighter
+          ? GIS_ROAM_CONFIG.fighter.altitudeOffset
+          : GIS_ROAM_CONFIG.plane.gearHeightMeters
         lastTerrainHeight = liftAboveTerrain(
           viewer.scene.globe,
           finalPos,
-          GIS_ROAM_CONFIG.plane.gearHeightMeters,
+          clearance,
           lastTerrainHeight
         )
       }
       Cartesian3.add(finalPos, scratchVerticalVec, finalPos)
       Cartesian3.clone(finalPos, scratchPosition)
 
-      // 姿态旋转复合：先对齐航线，再绕机体轴偏航 / 俯仰。
-      // 后乘是局部轴旋转：偏航绕上轴（机尾摆动），俯仰绕左轴。盘旋不绕前轴横滚。
+      // 姿态旋转复合：先对齐航线，再绕机体轴偏航 / 俯仰 / 坡度。
+      // 后乘是局部轴旋转：偏航绕上轴，俯仰绕左轴。歼-20 转弯再绕前轴压坡。
       const totalPitch = samplePitchDeg + actionPitchDeg
       const totalYaw = useGisRoamStore.getState().headingOffsetDeg + actionYawDeg
+
+      let pathBankDeg = 0
+      if (isFighter && hasPrevForward && dt > 0 && currentSpeedMps > 30) {
+        Cartesian3.cross(scratchPrevForward, forwardT, scratchTurnAxis)
+        const sinTurn = Cartesian3.dot(scratchTurnAxis, scratchUp)
+        const omega = Math.asin(Math.max(-1, Math.min(1, sinTurn))) / dt
+        const coordBank = Math.atan2(currentSpeedMps * omega, 9.81)
+        pathBankDeg = CesiumMath.toDegrees(Math.max(-1.05, Math.min(1.05, -coordBank)))
+      }
+      if (isFighter) {
+        const bankAlpha = 1 - Math.exp(-4 * Math.min(0.2, dt))
+        bankDeg += (pathBankDeg - bankDeg) * bankAlpha
+        Cartesian3.clone(forwardT, scratchPrevForward)
+        hasPrevForward = true
+      }
+      const totalRoll = bankDeg + heldBankDeg + actionRollDeg
 
       // 基础正交矩阵
       Matrix3.fromColumnMajorArray(
@@ -714,11 +872,11 @@ export function RoamRunner() {
         finalOrient = Quaternion.multiply(finalOrient, scratchRotQuat, finalOrient)
       }
       if (Math.abs(totalPitch) > 0.01) {
-        Quaternion.fromAxisAngle(
-          modelAxisLeft,
-          CesiumMath.toRadians(-totalPitch),
-          scratchRotQuat
-        )
+        Quaternion.fromAxisAngle(modelAxisLeft, CesiumMath.toRadians(-totalPitch), scratchRotQuat)
+        finalOrient = Quaternion.multiply(finalOrient, scratchRotQuat, finalOrient)
+      }
+      if (Math.abs(totalRoll) > 0.05) {
+        Quaternion.fromAxisAngle(modelAxisForward, CesiumMath.toRadians(totalRoll), scratchRotQuat)
         finalOrient = Quaternion.multiply(finalOrient, scratchRotQuat, finalOrient)
       }
 
@@ -744,18 +902,34 @@ export function RoamRunner() {
         roamModelPrimitive = findRoamModel(viewer, roamEntity)
       }
       if (roamModelPrimitive) {
+        Quaternion.clone(simOrientation, scratchOrientation)
+        if (Math.abs(config.headingCorrectionDeg) > 0.01) {
+          Quaternion.fromAxisAngle(
+            modelAxisUp,
+            CesiumMath.toRadians(-config.headingCorrectionDeg),
+            scratchRotQuat
+          )
+          Quaternion.multiply(scratchOrientation, scratchRotQuat, scratchOrientation)
+        }
         Matrix4.fromRotationTranslation(
-          Matrix3.fromQuaternion(simOrientation, scratchMatrix3),
+          Matrix3.fromQuaternion(scratchOrientation, scratchMatrix3),
           simPosition,
           roamModelPrimitive.modelMatrix
         )
       }
 
-      // 3. 模型车轮/骨骼动画与物理速度联动：转速与当前真实时速无缝成正比，叠加播放倍速
-      const baseCruiseKmh = vehicleType === 'vehicle' ? 7.7 : Math.max(1, config.cruiseSpeedKmh)
-      const speedRatio = Math.max(0.01, (currentSpeedMps * 3.6) / baseCruiseKmh)
-      viewer.clock.multiplier = speedRatio * multiplier
-      viewer.clock.shouldAnimate = !isPausedNow && currentSpeedMps > 0.05
+      // 3. 车轮转角 = 行驶距离 / 半径，暂停时距离不动，转速与地面速度一致。
+      if (vehicleType === 'vehicle') {
+        const spinAngle = distanceTraveled / GIS_ROAM_CONFIG.vehicle.wheelRadiusMeters
+        Quaternion.fromAxisAngle(Cartesian3.UNIT_X, spinAngle, vehicleWheelSpin.rotation)
+        viewer.clock.multiplier = 1
+        viewer.clock.shouldAnimate = false
+      } else {
+        const baseCruiseKmh = Math.max(1, config.cruiseSpeedKmh)
+        const speedRatio = Math.max(0.01, (currentSpeedMps * 3.6) / baseCruiseKmh)
+        viewer.clock.multiplier = speedRatio * multiplier
+        viewer.clock.shouldAnimate = !isPausedNow && currentSpeedMps > 0.05
+      }
 
       // 4. 空投箱伞降物理更新
       let latestAirdropInfo: {

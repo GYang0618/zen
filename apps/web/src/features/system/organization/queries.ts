@@ -5,8 +5,8 @@ import {
   enabledRootOrganizationTypes,
   getCatalogTypeLabel
 } from '@zen/shared'
+import { toast } from '@zen/ui'
 import { useMemo } from 'react'
-import { toast } from 'sonner'
 
 import { postKeys } from '@/features/system/posts/queries'
 import { userApi } from '@/features/system/users/api'
@@ -177,9 +177,9 @@ export function useUpdateOrganizationTypeCatalog() {
     mutationFn: (data: UpdateOrganizationTypeCatalog) => organizationApi.updateTypeCatalog(data),
     onSuccess: async (response) => {
       queryClient.setQueryData(organizationKeys.typeCatalog(), response)
-      toast.success('组织类型已更新')
+      toast.add({ title: '组织类型已更新', type: 'success' })
     },
-    onError: (error: Error) => toast.error(error.message || '更新失败')
+    onError: (error: Error) => toast.add({ title: error.message || '更新失败', type: 'error' })
   })
 }
 
@@ -239,9 +239,9 @@ export function useCreateOrganization() {
     mutationFn: (data: CreateOrganization) => organizationApi.create(data),
     onSuccess: async () => {
       await invalidateOrganizationQueries(queryClient)
-      toast.success('组织已创建')
+      toast.add({ title: '组织已创建', type: 'success' })
     },
-    onError: (error: Error) => toast.error(error.message || '创建失败')
+    onError: (error: Error) => toast.add({ title: error.message || '创建失败', type: 'error' })
   })
 }
 
@@ -252,9 +252,9 @@ export function useUpdateOrganization() {
       organizationApi.update(id, data),
     onSuccess: async (_data, variables) => {
       await invalidateOrganizationQueries(queryClient, variables.id)
-      toast.success('组织已更新')
+      toast.add({ title: '组织已更新', type: 'success' })
     },
-    onError: (error: Error) => toast.error(error.message || '更新失败')
+    onError: (error: Error) => toast.add({ title: error.message || '更新失败', type: 'error' })
   })
 }
 
@@ -264,9 +264,9 @@ export function useDeleteOrganization() {
     mutationFn: (id: string) => organizationApi.remove(id),
     onSuccess: async () => {
       await invalidateOrganizationQueries(queryClient)
-      toast.success('组织已删除')
+      toast.add({ title: '组织已删除', type: 'success' })
     },
-    onError: (error: Error) => toast.error(error.message || '删除失败')
+    onError: (error: Error) => toast.add({ title: error.message || '删除失败', type: 'error' })
   })
 }
 
@@ -277,9 +277,9 @@ export function useDissolveOrganization() {
       organizationApi.dissolve(id, data),
     onSuccess: async () => {
       await invalidateOrganizationQueries(queryClient)
-      toast.success('组织已解散')
+      toast.add({ title: '组织已解散', type: 'success' })
     },
-    onError: (error: Error) => toast.error(error.message || '解散失败')
+    onError: (error: Error) => toast.add({ title: error.message || '解散失败', type: 'error' })
   })
 }
 
@@ -290,9 +290,9 @@ export function useMergeOrganization() {
       organizationApi.merge(id, data),
     onSuccess: async () => {
       await invalidateOrganizationQueries(queryClient)
-      toast.success('组织已合并')
+      toast.add({ title: '组织已合并', type: 'success' })
     },
-    onError: (error: Error) => toast.error(error.message || '合并失败')
+    onError: (error: Error) => toast.add({ title: error.message || '合并失败', type: 'error' })
   })
 }
 
@@ -303,9 +303,9 @@ export function useUpdateOrganizationLeader() {
       organizationApi.updateLeader(id, data),
     onSuccess: async (_data, variables) => {
       await invalidateOrganizationQueries(queryClient, variables.id)
-      toast.success('负责人已更新')
+      toast.add({ title: '负责人已更新', type: 'success' })
     },
-    onError: (error: Error) => toast.error(error.message || '更新失败')
+    onError: (error: Error) => toast.add({ title: error.message || '更新失败', type: 'error' })
   })
 }
 
@@ -317,7 +317,7 @@ export function useChangeOrganizationParent() {
     onSuccess: async (_data, variables) => {
       await invalidateOrganizationQueries(queryClient, variables.id)
     },
-    onError: (error: Error) => toast.error(error.message || '移动失败')
+    onError: (error: Error) => toast.add({ title: error.message || '移动失败', type: 'error' })
   })
 }
 
@@ -341,7 +341,7 @@ export function useAddOrganizationMember(organizationId: string) {
         added.length > 1 ? `已添加 ${added.length} 名成员` : '成员已添加'
       )
     },
-    onError: (error: Error) => toast.error(error.message || '添加失败')
+    onError: (error: Error) => toast.add({ title: error.message || '添加失败', type: 'error' })
   })
 }
 
@@ -357,7 +357,7 @@ export function useRemoveOrganizationMember(organizationId: string) {
       })
       notifyAccessChange(userId, '成员已移除')
     },
-    onError: (error: Error) => toast.error(error.message || '移除失败')
+    onError: (error: Error) => toast.add({ title: error.message || '移除失败', type: 'error' })
   })
 }
 
@@ -369,9 +369,9 @@ export function useCreateOrganizationPosition(organizationId: string) {
     onSuccess: async () => {
       await invalidateOrganizationPositionQueries(queryClient, organizationId)
       await queryClient.invalidateQueries({ queryKey: postKeys.all })
-      toast.success('岗位已关联')
+      toast.add({ title: '岗位已关联', type: 'success' })
     },
-    onError: (error: Error) => toast.error(error.message || '关联失败')
+    onError: (error: Error) => toast.add({ title: error.message || '关联失败', type: 'error' })
   })
 }
 
@@ -382,9 +382,9 @@ export function useRemoveOrganizationPosition(organizationId: string) {
     onSuccess: async () => {
       await invalidateOrganizationPositionQueries(queryClient, organizationId)
       await queryClient.invalidateQueries({ queryKey: postKeys.all })
-      toast.success('已取消岗位关联')
+      toast.add({ title: '已取消岗位关联', type: 'success' })
     },
-    onError: (error: Error) => toast.error(error.message || '取消关联失败')
+    onError: (error: Error) => toast.add({ title: error.message || '取消关联失败', type: 'error' })
   })
 }
 
@@ -398,9 +398,9 @@ export function useBatchTransferMembers(organizationId: string) {
       if (variables.targetOrganizationId !== organizationId) {
         await invalidateOrganizationQueries(queryClient, variables.targetOrganizationId)
       }
-      toast.success('成员已批量调动')
+      toast.add({ title: '成员已批量调动', type: 'success' })
     },
-    onError: (error: Error) => toast.error(error.message || '调动失败')
+    onError: (error: Error) => toast.add({ title: error.message || '调动失败', type: 'error' })
   })
 }
 
@@ -411,8 +411,8 @@ export function useUpdatePositionRoles(organizationId: string) {
       organizationApi.updatePositionRoles(organizationId, positionId, data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: organizationKeys.positions(organizationId) })
-      toast.success('岗位基准角色已更新')
+      toast.add({ title: '岗位基准角色已更新', type: 'success' })
     },
-    onError: (error: Error) => toast.error(error.message || '更新角色失败')
+    onError: (error: Error) => toast.add({ title: error.message || '更新角色失败', type: 'error' })
   })
 }

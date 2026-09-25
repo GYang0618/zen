@@ -17,7 +17,8 @@ import {
   Tabs,
   TabsContent,
   TabsList,
-  TabsTrigger
+  TabsTrigger,
+  toast
 } from '@zen/ui'
 import {
   ArrowLeft,
@@ -33,7 +34,6 @@ import {
 } from 'lucide-react'
 import { DynamicIcon } from 'lucide-react/dynamic'
 import { useEffect, useMemo, useState } from 'react'
-import { toast } from 'sonner'
 
 import { Can } from '@/components/auth/can'
 import { AppHeader, Main } from '@/components/layouts'
@@ -179,28 +179,29 @@ function RoleDetailContent({ role }: { role: Role }) {
 
   const handleStatusToggle = (checked: boolean) => {
     if (locked) {
-      toast.error('系统角色状态不可修改')
+      toast.add({ title: '系统角色状态不可修改', type: 'error' })
       return
     }
     updateRole(
       { id: role.id, data: { status: checked ? 'active' : 'disabled' } },
       {
-        onSuccess: () => toast.success(checked ? '角色已激活' : '角色已冻结')
+        onSuccess: () =>
+          toast.add({ title: checked ? '角色已激活' : '角色已冻结', type: 'success' })
       }
     )
   }
 
   const handleSave = () => {
     if (matrixLocked && permissionsDirty) {
-      toast.error('超级管理员角色权限矩阵不可修改')
+      toast.add({ title: '超级管理员角色权限矩阵不可修改', type: 'error' })
       return
     }
     if (locked && scopeDirty) {
-      toast.error('系统角色数据范围不可修改')
+      toast.add({ title: '系统角色数据范围不可修改', type: 'error' })
       return
     }
     if (draftScope === 'custom' && draftCustomOrgIds.length === 0) {
-      toast.error('自定义数据范围时至少选择一个组织')
+      toast.add({ title: '自定义数据范围时至少选择一个组织', type: 'error' })
       return
     }
 
@@ -246,21 +247,21 @@ function RoleDetailContent({ role }: { role: Role }) {
     }
 
     if (tasks.length === 0) {
-      toast.message('没有需要保存的变更')
+      toast.add({ title: '没有需要保存的变更' })
       return
     }
 
     Promise.all(tasks)
       .then(() => {
-        toast.success('角色配置已保存')
+        toast.add({ title: '角色配置已保存', type: 'success' })
       })
       .catch((error: unknown) => {
         const message = error instanceof Error ? error.message : '保存失败'
         if (message.includes('冲突') || message.includes('409') || message.includes('版本')) {
-          toast.error('配置已被他人更新，请刷新后重试')
+          toast.add({ title: '配置已被他人更新，请刷新后重试', type: 'error' })
           return
         }
-        toast.error(message)
+        toast.add({ title: message, type: 'error' })
       })
   }
 

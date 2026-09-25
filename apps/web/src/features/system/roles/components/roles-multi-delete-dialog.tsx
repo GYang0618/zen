@@ -1,7 +1,6 @@
-import { Alert, AlertDescription, AlertTitle, Input, Label } from '@zen/ui'
+import { Alert, AlertDescription, AlertTitle, Input, Label, toast } from '@zen/ui'
 import { AlertTriangle } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { useDeleteRolesMutation } from '@/features/system/roles/mutations'
@@ -41,13 +40,13 @@ export function RolesMultiDeleteDialog({
       items.map((item) => item.id),
       {
         onSuccess: () => {
-          toast.success(`已删除 ${items.length} 个角色`)
+          toast.add({ title: `已删除 ${items.length} 个角色`, type: 'success' })
           setValue('')
           onOpenChange(false)
           onDeleted()
         },
         onError: (error) => {
-          toast.error(error instanceof Error ? error.message : '删除失败')
+          toast.add({ title: error instanceof Error ? error.message : '删除失败', type: 'error' })
         }
       }
     )

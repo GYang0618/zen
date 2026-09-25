@@ -1,5 +1,4 @@
 import {
-  Badge,
   Button,
   Popover,
   PopoverContent,
@@ -16,7 +15,6 @@ import {
   Eye,
   Footprints,
   Gauge,
-  Layers,
   MapPin,
   Minus,
   Pause,
@@ -27,33 +25,24 @@ import {
   Sparkles,
   Square,
   Timer,
-  Trash2,
   Video,
-  X,
   Zap
 } from 'lucide-react'
 import { useEffect } from 'react'
 
-import { useCesium } from '../cesium-provider'
 import { GIS_ROAM_CONFIG, GIS_ROAM_SPEED_MULTIPLIERS } from '../constants'
-import {
-  flyToMarker,
-  formatCoordinates,
-  formatDistance,
-  formatEstimatedArrivalTime
-} from '../lib/geo-utils'
+import { formatDistance, formatEstimatedArrivalTime } from '../lib/geo-utils'
 import { useGisStore } from '../stores/gis'
 import { useGisRoamStore } from '../stores/gis-roam'
+import { EntityPickTool } from './entity-pick-tool'
+import { LocateTool } from './locate-tool'
+import { SceneListTool } from './scene-list-tool'
 
 import type { GisToolType } from '../stores/gis'
 
 export function SceneDock() {
-  const { viewer } = useCesium()
   const activeTool = useGisStore((state) => state.activeTool)
   const setActiveTool = useGisStore((state) => state.setActiveTool)
-  const markers = useGisStore((state) => state.markers)
-  const removeMarker = useGisStore((state) => state.removeMarker)
-  const clearMarkers = useGisStore((state) => state.clearMarkers)
 
   const phase = useGisRoamStore((state) => state.phase)
   const vehicleType = useGisRoamStore((state) => state.vehicleType)
@@ -203,105 +192,20 @@ export function SceneDock() {
             </TooltipContent>
           </Tooltip>
 
+          <EntityPickTool />
+
+          <LocateTool />
+
           <Separator orientation="vertical" className="mx-1 h-5 shrink-0 bg-border/60" />
 
-          {/* 3. 标记点列表与全局上下文管理 */}
-          <Popover>
-            <PopoverTrigger
-              render={
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="relative h-9 shrink-0 rounded-full px-3 text-xs text-foreground/80 whitespace-nowrap hover:bg-white/25 dark:hover:bg-white/10"
-                />
-              }
-            >
-              <Layers className="mr-1.5 size-4 shrink-0" />
-              <span className="shrink-0 whitespace-nowrap">标记列表</span>
-              {markers.length > 0 && (
-                <Badge
-                  variant="secondary"
-                  className="ml-1.5 h-4 min-w-4 shrink-0 rounded-full px-1 text-[10px] leading-none whitespace-nowrap"
-                >
-                  {markers.length}
-                </Badge>
-              )}
-            </PopoverTrigger>
-
-            <PopoverContent
-              side="top"
-              align="center"
-              className="w-80 rounded-2xl border-white/25 bg-background/85 p-3 shadow-2xl backdrop-blur-xl dark:border-white/10"
-            >
-              <div className="flex items-center justify-between pb-2">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-xs text-foreground">全局标记点列表</span>
-                  <Badge variant="outline" className="text-[10px]">
-                    {markers.length} 个
-                  </Badge>
-                </div>
-                {markers.length > 0 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-xs"
-                    onClick={clearMarkers}
-                    title="清空所有标记"
-                    className="size-6 text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="size-3.5" />
-                  </Button>
-                )}
-              </div>
-
-              {markers.length === 0 ? (
-                <div className="py-6 text-center text-muted-foreground text-xs">
-                  暂无标记点，可点击「标记点位」在场景中打点
-                </div>
-              ) : (
-                <ul className="max-h-48 space-y-1.5 overflow-y-auto pr-1 text-xs">
-                  {markers.map((marker, index) => (
-                    <li
-                      key={marker.id}
-                      className="group flex items-center justify-between rounded-xl border border-border/50 bg-muted/40 px-2.5 py-1.5 transition-colors hover:bg-muted/70"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => flyToMarker(viewer, marker)}
-                        title="点击定位到该点位"
-                        className="flex flex-1 flex-col overflow-hidden pr-2 text-left focus:outline-none"
-                      >
-                        <span className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
-                          {index + 1}. {marker.name}
-                        </span>
-                        <span className="truncate font-mono text-[10px] text-muted-foreground">
-                          {formatCoordinates(marker.longitude, marker.latitude, marker.height)}
-                        </span>
-                      </button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() => removeMarker(marker.id)}
-                        title="删除此标记"
-                        className="size-5 shrink-0 text-muted-foreground hover:text-destructive"
-                      >
-                        <X className="size-3" />
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </PopoverContent>
-          </Popover>
+          <SceneListTool />
 
           {/* 4. 漫游进行时的浮动控制 */}
           {(isRoaming || isPaused) && (
             <>
               <Separator orientation="vertical" className="mx-1 h-5 shrink-0 bg-border/60" />
               <div className="relative flex shrink-0 flex-nowrap items-center gap-1.5 whitespace-nowrap rounded-full bg-primary/10 px-2.5 py-1 text-xs text-primary ring-1 ring-primary/30">
-                {vehicleType === 'plane' ? (
+                {vehicleType === 'plane' || vehicleType === 'fighter' ? (
                   <Plane className="size-3.5 shrink-0 animate-pulse" />
                 ) : (
                   <Footprints className="size-3.5 shrink-0 animate-pulse" />
@@ -311,7 +215,9 @@ export function SceneDock() {
                     ? '步行漫游中'
                     : vehicleType === 'vehicle'
                       ? '车辆巡航中'
-                      : '飞机飞行中'}
+                      : vehicleType === 'fighter'
+                        ? '歼-20 巡航中'
+                        : '飞机飞行中'}
                 </span>
                 {totalDistanceMeters > 0 && (
                   <span className="shrink-0 whitespace-nowrap font-mono text-[10px] opacity-80">
@@ -327,7 +233,7 @@ export function SceneDock() {
                   >
                     <Timer className="size-3 shrink-0 animate-pulse text-primary" />
                     <span className="shrink-0 whitespace-nowrap">
-                      {formatEstimatedArrivalTime(remainingRealSeconds)}
+                      预计{formatEstimatedArrivalTime(remainingRealSeconds)}
                     </span>
                   </div>
                 )}
@@ -372,19 +278,21 @@ export function SceneDock() {
                 </div>
 
                 {/* 飞机飞行阶段标签 */}
-                {vehicleType === 'plane' && flightPhase && (
+                {(vehicleType === 'plane' || vehicleType === 'fighter') && flightPhase && (
                   <span className="shrink-0 whitespace-nowrap rounded-full bg-primary/25 px-1.5 py-0.5 text-[9px] font-semibold text-primary">
-                    {flightPhase === 'taxi_start'
-                      ? '起飞滑跑'
-                      : flightPhase === 'climb'
-                        ? '仰角爬升'
-                        : flightPhase === 'cruise'
-                          ? '万米巡航'
-                          : flightPhase === 'descent'
-                            ? '进近下滑'
-                            : flightPhase === 'taxi_end'
-                              ? '着陆滑跑'
-                              : '终点停机'}
+                    {flightPhase === 'patrol'
+                      ? '空中巡检'
+                      : flightPhase === 'taxi_start'
+                        ? '起飞滑跑'
+                        : flightPhase === 'climb'
+                          ? '仰角爬升'
+                          : flightPhase === 'cruise'
+                            ? '万米巡航'
+                            : flightPhase === 'descent'
+                              ? '进近下滑'
+                              : flightPhase === 'taxi_end'
+                                ? '着陆滑跑'
+                                : '终点停机'}
                   </span>
                 )}
 
@@ -559,21 +467,29 @@ export function SceneDock() {
                                     ? '俯冲爬升'
                                     : activeAction.type === 'pitch_down'
                                       ? '进近下滑'
-                                      : '盘旋中'
+                                      : activeAction.type === 'roll_axis'
+                                        ? activeAction.bankDeg < 0
+                                          ? '左压坡度'
+                                          : activeAction.bankDeg > 0
+                                            ? '右压坡度'
+                                            : '改平'
+                                        : '盘旋中'
                         : '实时指令'}
                     </span>
                   </PopoverTrigger>
                   <PopoverContent
                     side="top"
                     align="center"
-                    className={`${vehicleType === 'plane' ? 'w-64' : 'w-56'} rounded-2xl border-white/25 bg-background/90 p-2.5 shadow-2xl backdrop-blur-xl dark:border-white/10`}
+                    className={`${vehicleType === 'plane' || vehicleType === 'fighter' ? 'w-64' : 'w-56'} rounded-2xl border-white/25 bg-background/90 p-2.5 shadow-2xl backdrop-blur-xl dark:border-white/10`}
                   >
                     <div className="pb-1.5 text-xs font-semibold text-foreground">
                       {vehicleType === 'walk'
                         ? '行人实时指令'
                         : vehicleType === 'vehicle'
                           ? '车辆驾驶指令'
-                          : '客机飞行指令'}
+                          : vehicleType === 'fighter'
+                            ? '歼-20 巡航指令'
+                            : '客机飞行指令'}
                     </div>
                     <div className="grid grid-cols-1 gap-1 text-xs">
                       {vehicleType === 'walk' && (
@@ -751,6 +667,114 @@ export function SceneDock() {
                               ))}
                             </div>
                           </div>
+                        </div>
+                      )}
+
+                      {vehicleType === 'fighter' && (
+                        <div className="flex flex-col gap-2">
+                          <div className="flex flex-col gap-1 rounded-xl border border-white/10 bg-white/5 p-1.5">
+                            <span className="text-[11px] font-medium text-foreground/75">
+                              拉升（指定高差）
+                            </span>
+                            <div className="grid grid-cols-3 gap-1">
+                              {[300, 600, 1200].map((alt) => (
+                                <Button
+                                  key={`fighter-climb-${alt}`}
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    triggerAction({
+                                      type: 'pitch_up',
+                                      deltaAltitude: alt,
+                                      speedBoostKmh: 120
+                                    })
+                                  }}
+                                  className="h-6 px-1 text-[11px] hover:bg-primary/20 hover:text-primary"
+                                >
+                                  +{alt}m
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-1 rounded-xl border border-white/10 bg-white/5 p-1.5">
+                            <span className="text-[11px] font-medium text-foreground/75">
+                              俯冲（指定高差）
+                            </span>
+                            <div className="grid grid-cols-3 gap-1">
+                              {[300, 600, 1200].map((alt) => (
+                                <Button
+                                  key={`fighter-dive-${alt}`}
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    triggerAction({
+                                      type: 'pitch_down',
+                                      deltaAltitude: alt,
+                                      speedBoostKmh: 80
+                                    })
+                                  }}
+                                  className="h-6 px-1 text-[11px] hover:bg-primary/20 hover:text-primary"
+                                >
+                                  -{alt}m
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-1 rounded-xl border border-white/10 bg-white/5 p-1.5">
+                            <span className="text-[11px] font-medium text-foreground/75">
+                              左压坡度
+                            </span>
+                            <div className="grid grid-cols-4 gap-1">
+                              {[30, 45, 60, 90].map((deg) => (
+                                <Button
+                                  key={`fighter-ccw-${deg}`}
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    triggerAction({ type: 'roll_axis', bankDeg: -deg })
+                                  }}
+                                  className="h-6 px-0.5 text-[11px] hover:bg-primary/20 hover:text-primary"
+                                >
+                                  左压{deg}°
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-1 rounded-xl border border-white/10 bg-white/5 p-1.5">
+                            <span className="text-[11px] font-medium text-foreground/75">
+                              右压坡度
+                            </span>
+                            <div className="grid grid-cols-4 gap-1">
+                              {[30, 45, 60, 90].map((deg) => (
+                                <Button
+                                  key={`fighter-cw-${deg}`}
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    triggerAction({ type: 'roll_axis', bankDeg: deg })
+                                  }}
+                                  className="h-6 px-0.5 text-[11px] hover:bg-primary/20 hover:text-primary"
+                                >
+                                  右压{deg}°
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              triggerAction({ type: 'roll_axis', bankDeg: 0 })
+                            }}
+                            className="h-7 justify-start text-xs text-foreground/80 hover:bg-primary/10 hover:text-primary"
+                          >
+                            改平
+                          </Button>
                         </div>
                       )}
                     </div>

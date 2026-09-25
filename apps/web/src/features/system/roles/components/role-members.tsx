@@ -17,11 +17,11 @@ import {
   ItemGroup,
   ItemMedia,
   ItemTitle,
-  Skeleton
+  Skeleton,
+  toast
 } from '@zen/ui'
 import { UserPlus, Users } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { toast } from 'sonner'
 
 import { Can } from '@/components/auth/can'
 import { ConfirmDialog } from '@/components/confirm-dialog'
@@ -72,7 +72,7 @@ export function RoleMembers({ roleId, roleName, memberCount }: RoleMembersProps)
           setTargetUnbindId(null)
         },
         onError: (error) => {
-          toast.error(error instanceof Error ? error.message : '解绑失败')
+          toast.add({ title: error instanceof Error ? error.message : '解绑失败', type: 'error' })
         }
       }
     )

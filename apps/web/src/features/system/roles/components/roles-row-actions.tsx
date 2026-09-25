@@ -7,10 +7,10 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
+  toast
 } from '@zen/ui'
 import { Ban, CheckSquare, Copy, MoreHorizontal, Pencil, ShieldCheck, Trash } from 'lucide-react'
-import { toast } from 'sonner'
 
 import { Can } from '@/components/auth/can'
 import { useUpdateRoleMutation } from '@/features/system/roles/mutations'
@@ -44,7 +44,7 @@ export function RolesRowActions({
 
   const handleStatusChange = () => {
     if (!canToggleStatus) {
-      toast.error('系统角色状态不可修改')
+      toast.add({ title: '系统角色状态不可修改', type: 'error' })
       return
     }
     const nextStatus = isFrozen ? 'active' : 'disabled'
@@ -52,9 +52,11 @@ export function RolesRowActions({
       { id: role.id, data: { status: nextStatus } },
       {
         onSuccess: () =>
-          toast.success(
-            nextStatus === 'active' ? `已激活角色「${role.name}」` : `已冻结角色「${role.name}」`
-          )
+          toast.add({
+            title:
+              nextStatus === 'active' ? `已激活角色「${role.name}」` : `已冻结角色「${role.name}」`,
+            type: 'success'
+          })
       }
     )
   }
