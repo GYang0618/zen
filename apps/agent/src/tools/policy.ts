@@ -120,6 +120,13 @@ export const TOOL_EXECUTION_POLICIES = {
   update_job_profile_info: write(PermissionCode.POST_MANAGE),
   delete_job_profile: destructive(PermissionCode.POST_MANAGE),
 
+  ls: read(PermissionCode.FILE_READ),
+  read_file: read(PermissionCode.FILE_READ),
+  glob: read(PermissionCode.FILE_READ),
+  grep: read(PermissionCode.FILE_READ),
+  write_file: write(PermissionCode.FILE_UPLOAD),
+  edit_file: write(PermissionCode.FILE_UPLOAD),
+
   ...pluginPolicies
 } as const satisfies Record<string, ToolExecutionPolicy>
 

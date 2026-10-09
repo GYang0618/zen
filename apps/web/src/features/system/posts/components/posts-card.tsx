@@ -23,11 +23,11 @@ import { getJobProfileIconColorClassName } from '../data'
 import { formatJobProfileLevel, jobProfileStatusConfig } from '../utils'
 import { PostsRowActions } from './posts-row-actions'
 
-import type { JobProfile } from '@zen/shared'
+import type { JobProfileListItem } from '@zen/shared'
 import type { ListSelectionActionProps } from '@/hooks'
 
 type PostsCardProps = ListSelectionActionProps & {
-  item: JobProfile
+  item: JobProfileListItem
 }
 
 export function PostsCard({

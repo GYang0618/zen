@@ -6,12 +6,12 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 
 import { useDeleteJobProfilesMutation } from '../queries'
 
-import type { JobProfile } from '@zen/shared'
+import type { JobProfileListItem } from '@zen/shared'
 
 type PostsMultiDeleteDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  items: JobProfile[]
+  items: JobProfileListItem[]
   skippedCount: number
   onDeleted: () => void
 }

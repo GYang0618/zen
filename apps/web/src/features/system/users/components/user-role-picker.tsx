@@ -20,11 +20,11 @@ import { useMemo, useState } from 'react'
 
 import { UserRoleIcon } from './user-role-icon'
 
-import type { Role } from '@zen/shared'
+import type { RoleListItem } from '@zen/shared'
 
 type UserRolePickerProps = {
   id?: string
-  roles: Role[]
+  roles: RoleListItem[]
   value: string[]
   onValueChange: (roleIds: string[]) => void
   disabled?: boolean

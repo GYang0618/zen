@@ -22,9 +22,9 @@ import { formatJobProfileLevel, jobProfileStatusConfig } from '../utils'
 import { PostsRowActions } from './posts-row-actions'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import type { JobProfile, JobProfileStatus } from '@zen/shared'
+import type { JobProfileListItem, JobProfileStatus } from '@zen/shared'
 
-const columnHelper = createColumnHelper<JobProfile>()
+const columnHelper = createColumnHelper<JobProfileListItem>()
 
 export const postsColumns = [
   columnHelper.display({
@@ -170,4 +170,4 @@ export const postsColumns = [
     id: 'actions',
     cell: ({ row }) => <PostsRowActions item={row.original} />
   })
-] as ColumnDef<JobProfile>[]
+] as ColumnDef<JobProfileListItem>[]

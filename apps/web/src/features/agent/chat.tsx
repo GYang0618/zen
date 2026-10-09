@@ -10,7 +10,7 @@ import { isAgentChatPath, parseThreadIdFromPath, useShellModeStore } from '@/sto
 
 import { AgentBackgroundRunner } from './components/agent-background-runner'
 import { ChatCanvas } from './components/chat-canvas'
-import { ChatConversation } from './components/chat-conversation'
+import { ChatConversation, resolveHistoryStatus } from './components/chat-conversation'
 import { ChatInputDock } from './components/chat-input-dock'
 import { ChatRegistrations } from './components/registrations'
 import { ChatAgentProvider, useChatAgent } from './context/chat-agent-context'
@@ -34,7 +34,15 @@ export function AgentChat({
   const lastPathThreadId = parseThreadIdFromPath(lastAgentPath)
   const effectiveThreadId = propThreadId ?? (isAgentRoute ? currentPathThreadId : lastPathThreadId)
 
-  const { activeThreadId, hasExplicitThreadId, isConnecting, agent, isReady } = useAgentThreadSync({
+  const {
+    activeThreadId,
+    hasExplicitThreadId,
+    isConnecting,
+    connectFailed,
+    retryConnect,
+    agent,
+    isReady
+  } = useAgentThreadSync({
     agentId: 'default',
     threadId: effectiveThreadId
   })
@@ -55,7 +63,14 @@ export function AgentChat({
         <Main fixed={active} fluid className="p-0">
           <ChatRegistrations />
           <AgentBackgroundRunner activeThreadId={activeThreadId} />
-          <Chat key={activeThreadId} isConnecting={isConnecting} activeThreadId={activeThreadId} />
+          <Chat
+            key={activeThreadId}
+            isConnecting={isConnecting}
+            connectFailed={connectFailed}
+            hasExplicitThreadId={hasExplicitThreadId}
+            activeThreadId={activeThreadId}
+            onRetryHistory={retryConnect}
+          />
         </Main>
         <Outlet />
       </ChatAgentProvider>
@@ -63,7 +78,19 @@ export function AgentChat({
   )
 }
 
-function Chat({ isConnecting, activeThreadId }: { isConnecting: boolean; activeThreadId: string }) {
+function Chat({
+  isConnecting,
+  connectFailed,
+  hasExplicitThreadId,
+  activeThreadId,
+  onRetryHistory
+}: {
+  isConnecting: boolean
+  connectFailed: boolean
+  hasExplicitThreadId: boolean
+  activeThreadId: string
+  onRetryHistory: () => void
+}) {
   const [inputDockRef, inputDockHeight] = useElementHeight<HTMLDivElement>()
   const { agent } = useChatAgent({
     updates: [UseAgentUpdate.OnMessagesChanged, UseAgentUpdate.OnRunStatusChanged],
@@ -71,8 +98,14 @@ function Chat({ isConnecting, activeThreadId }: { isConnecting: boolean; activeT
   })
   const isCanvasOpen = useAgentCanvasStore((state) => state.isOpen)
   const [awaitingApproval, setAwaitingApproval] = useState(false)
+  const historyStatus = resolveHistoryStatus({
+    isConnecting,
+    connectFailed,
+    hasExplicitThreadId,
+    messageCount: agent.messages.length
+  })
 
-  const showEmptyGreeting = !isConnecting && agent.messages.length === 0
+  const showEmptyGreeting = historyStatus === 'ready' && agent.messages.length === 0
 
   return (
     <div className="relative h-full w-full overflow-hidden">
@@ -84,9 +117,10 @@ function Chat({ isConnecting, activeThreadId }: { isConnecting: boolean; activeT
           className="relative flex h-full flex-col min-w-0"
         >
           <ChatConversation
-            threadLoading={isConnecting}
+            historyStatus={historyStatus}
             inputDockHeight={inputDockHeight}
             onPendingApprovalChange={setAwaitingApproval}
+            onRetryHistory={onRetryHistory}
           />
           <ChatInputDock
             ref={inputDockRef}

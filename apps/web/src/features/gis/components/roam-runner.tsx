@@ -11,8 +11,10 @@ import {
   HeightReference,
   Matrix3,
   Matrix4,
+  NodeTransformationProperty,
   PerspectiveFrustum,
   PolylineGlowMaterialProperty,
+  PropertyBag,
   Quaternion,
   Transforms
 } from 'cesium'
@@ -112,30 +114,32 @@ const vehicleWheelNodes = liveNodeTransformations({
 function liveNodeTransformations(
   nodes: Record<string, { translation: Cartesian3; rotation: Quaternion; scale: Cartesian3 }>
 ) {
-  return Object.fromEntries(
-    Object.entries(nodes).map(([name, pose]) => [
-      name,
-      {
-        translation: new CallbackProperty((_time, result) => {
-          return Cartesian3.clone(
-            pose.translation,
-            result instanceof Cartesian3 ? result : new Cartesian3()
-          )
-        }, false),
-        rotation: new CallbackProperty((_time, result) => {
-          return Quaternion.clone(
-            pose.rotation,
-            result instanceof Quaternion ? result : new Quaternion()
-          )
-        }, false),
-        scale: new CallbackProperty((_time, result) => {
-          return Cartesian3.clone(
-            pose.scale,
-            result instanceof Cartesian3 ? result : new Cartesian3()
-          )
-        }, false)
-      }
-    ])
+  return new PropertyBag(
+    Object.fromEntries(
+      Object.entries(nodes).map(([name, pose]) => [
+        name,
+        new NodeTransformationProperty({
+          translation: new CallbackProperty((_time, result) => {
+            return Cartesian3.clone(
+              pose.translation,
+              result instanceof Cartesian3 ? result : new Cartesian3()
+            )
+          }, false),
+          rotation: new CallbackProperty((_time, result) => {
+            return Quaternion.clone(
+              pose.rotation,
+              result instanceof Quaternion ? result : new Quaternion()
+            )
+          }, false),
+          scale: new CallbackProperty((_time, result) => {
+            return Cartesian3.clone(
+              pose.scale,
+              result instanceof Cartesian3 ? result : new Cartesian3()
+            )
+          }, false)
+        })
+      ])
+    )
   )
 }
 
@@ -443,6 +447,12 @@ export function RoamRunner() {
     Cartesian3.clone(simPosition, scratchPosition)
 
     const planeArticulation = vehicleType === 'plane' ? createDc10Articulation() : null
+    const nodeTransformations =
+      vehicleType === 'vehicle'
+        ? vehicleWheelNodes
+        : planeArticulation
+          ? liveNodeTransformations(planeArticulation.nodes)
+          : undefined
 
     // 创建动态回调驱动的模型实体
     const roamEntity = viewer.entities.add({
@@ -459,12 +469,7 @@ export function RoamRunner() {
         // 客机的起落架和风扇在同一段一次性动画里，跟着时钟播会在滑跑时收起起落架。
         runAnimations: vehicleType === 'walk',
         clampAnimations: false,
-        nodeTransformations:
-          vehicleType === 'vehicle'
-            ? vehicleWheelNodes
-            : planeArticulation
-              ? liveNodeTransformations(planeArticulation.nodes)
-              : undefined,
+        ...(nodeTransformations ? { nodeTransformations } : {}),
         // 运动模型禁止 CLAMP_TO_GROUND。Cesium 贴地会把经纬度量化到地形瓦片网格后再覆盖平移，
         // 模型会钉在格子上再跳到下一格；速度越快、瓦片越粗，步长越大。高度在模拟循环里逐帧写入。
         heightReference: HeightReference.NONE

@@ -248,7 +248,7 @@ export class CopilotService implements OnModuleInit {
 
   private async persistThreadSnapshotFromSse(response: Response): Promise<void> {
     try {
-      const { threadId, messages } = await parseCopilotSseResponse(response)
+      const { threadId, messages, authoritative } = await parseCopilotSseResponse(response)
       if (!threadId || messages.length === 0) return
       const authInfo = this.threadAuthMap.get(threadId)
       if (!authInfo) return
@@ -258,7 +258,8 @@ export class CopilotService implements OnModuleInit {
         tenantId: authInfo.tenantId,
         userId: authInfo.userId,
         agentId: authInfo.agentId,
-        messages
+        messages,
+        mode: authoritative ? 'replace' : 'append'
       })
     } catch (error) {
       this.logger.error({ err: error }, '从 SSE 持久化会话快照失败')

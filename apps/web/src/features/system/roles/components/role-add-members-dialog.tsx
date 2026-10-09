@@ -33,7 +33,7 @@ import { userApi } from '@/features/system/users/api'
 import { usersQueryKeys } from '@/features/system/users/queries'
 import { useAccessChangeFeedback } from '@/lib/auth/access-change'
 
-import type { User } from '@zen/shared'
+import type { UserListItem } from '@zen/shared'
 
 type RoleAddMembersDialogProps = {
   roleId: string
@@ -65,7 +65,7 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
   return debounced
 }
 
-function matchesUser(user: User, keyword: string): boolean {
+function matchesUser(user: UserListItem, keyword: string): boolean {
   const query = keyword.trim().toLowerCase()
   if (!query) return true
 

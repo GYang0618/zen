@@ -1,14 +1,4 @@
-import {
-  Badge,
-  Button,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger
-} from '@zen/ui'
+import { Badge, Button, Tabs, TabsContent, TabsList, TabsTrigger } from '@zen/ui'
 import { List, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
@@ -68,40 +58,29 @@ export function SceneListTool() {
   return (
     <>
       {open ? <SceneListPanel tab={tab} onTabChange={setTab} counts={counts} /> : null}
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              aria-pressed={open}
-              aria-expanded={open}
-              onClick={() => setOpen((current) => !current)}
-              className={dockButtonClass(open)}
-            />
-          }
-        >
-          <List className={`mr-1.5 size-4 shrink-0 ${open ? 'text-primary' : ''}`} />
-          <span className="shrink-0 whitespace-nowrap">场景列表</span>
-          {totalCount > 0 ? (
-            <Badge
-              variant="secondary"
-              className="ml-1.5 h-4 min-w-4 shrink-0 rounded-full px-1 text-[10px] leading-none whitespace-nowrap"
-            >
-              {totalCount}
-            </Badge>
-          ) : null}
-          {open ? (
-            <span className="ml-1.5 size-1.5 shrink-0 animate-ping rounded-full bg-primary" />
-          ) : null}
-        </TooltipTrigger>
-        <TooltipContent side="top" className="text-xs">
-          {open
-            ? '已打开场景列表，按 Esc 或再点按钮关闭'
-            : '打开场景列表：切换查看拾取、标记和部署'}
-        </TooltipContent>
-      </Tooltip>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        aria-pressed={open}
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+        className={dockButtonClass(open)}
+      >
+        <List className={`mr-1.5 size-4 shrink-0 ${open ? 'text-primary' : ''}`} />
+        <span className="shrink-0 whitespace-nowrap">场景列表</span>
+        {totalCount > 0 ? (
+          <Badge
+            variant="secondary"
+            className="ml-1.5 h-4 min-w-4 shrink-0 rounded-full px-1 text-[10px] leading-none whitespace-nowrap"
+          >
+            {totalCount}
+          </Badge>
+        ) : null}
+        {open ? (
+          <span className="ml-1.5 size-1.5 shrink-0 animate-ping rounded-full bg-primary" />
+        ) : null}
+      </Button>
     </>
   )
 }

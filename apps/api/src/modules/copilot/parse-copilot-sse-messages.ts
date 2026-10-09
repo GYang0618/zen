@@ -1,5 +1,7 @@
 import { stripCopilotDisplayMessages } from '@zen/shared'
 
+import { restoreDisplacedTurnPrefix } from './thread-message-order.js'
+
 import type { CopilotDisplayMessageRole } from '@zen/shared'
 import type { ThreadMessage } from './copilot-thread.service.js'
 
@@ -16,6 +18,8 @@ export interface ParsedCopilotSseResult {
   messages: ThreadMessage[]
   threadId?: string
   runId?: string
+  /** 为 true 时消息来自非空 MESSAGES_SNAPSHOT，可以整段覆盖会话。 */
+  authoritative: boolean
 }
 
 interface RunRequestBody {
@@ -31,24 +35,91 @@ function readString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined
 }
 
+function readMessageContent(value: unknown): string | undefined {
+  if (typeof value === 'string') return value
+  if (!Array.isArray(value)) return undefined
+  const text = value
+    .flatMap((part) => {
+      if (typeof part === 'string') return [part]
+      if (!isRecord(part) || typeof part.text !== 'string') return []
+      return [part.text]
+    })
+    .join('\n')
+  return text.length > 0 ? text : undefined
+}
+
+function isPreservedLocal(
+  message: ThreadMessage,
+  snapshotHasReasoning: boolean,
+  snapshotHasActivity: boolean
+) {
+  return (
+    (message.role === ACTIVITY_ROLE && !snapshotHasActivity) ||
+    (message.role === REASONING_ROLE && !snapshotHasReasoning)
+  )
+}
+
+function mergeSnapshotMessage(
+  snapshotMessage: ThreadMessage,
+  current: ThreadMessage | undefined
+): ThreadMessage {
+  if (!current) return snapshotMessage
+  const snapshotContent = snapshotMessage.content ?? ''
+  const currentContent = current.content ?? ''
+  return {
+    ...current,
+    ...snapshotMessage,
+    content:
+      snapshotContent.length >= currentContent.length ? snapshotMessage.content : current.content,
+    toolCalls: snapshotMessage.toolCalls ?? current.toolCalls,
+    toolCallId: snapshotMessage.toolCallId ?? current.toolCallId
+  }
+}
+
+function anchorLocalMessages(
+  current: ThreadMessage[],
+  snapshotById: Map<string, ThreadMessage>,
+  snapshotHasReasoning: boolean,
+  snapshotHasActivity: boolean
+) {
+  const localsByAnchor = new Map<string, ThreadMessage[]>()
+  let lastSnapshotId = ''
+
+  for (const message of current) {
+    if (snapshotById.has(message.id)) {
+      lastSnapshotId = message.id
+      continue
+    }
+    if (!isPreservedLocal(message, snapshotHasReasoning, snapshotHasActivity)) continue
+    const bucket = localsByAnchor.get(lastSnapshotId) ?? []
+    bucket.push(message)
+    localsByAnchor.set(lastSnapshotId, bucket)
+  }
+
+  return localsByAnchor
+}
+
+/**
+ * 检查点快照是消息顺序的事实来源。流式阶段先出现的 assistant 不能把
+ * 快照里才出现的 user 挤到末尾；快照没有的 reasoning / activity 仍插回原位置。
+ */
 function applyMessagesSnapshot(
   current: ThreadMessage[],
   snapshot: ThreadMessage[]
 ): ThreadMessage[] {
   const snapshotById = new Map(snapshot.map((message) => [message.id, message]))
-  const snapshotHasReasoning = snapshot.some((message) => message.role === REASONING_ROLE)
-  const snapshotHasActivity = snapshot.some((message) => message.role === ACTIVITY_ROLE)
-  const preserveLocal = (message: ThreadMessage) =>
-    (message.role === ACTIVITY_ROLE && !snapshotHasActivity) ||
-    (message.role === REASONING_ROLE && !snapshotHasReasoning)
+  const currentById = new Map(current.map((message) => [message.id, message]))
+  const localsByAnchor = anchorLocalMessages(
+    current,
+    snapshotById,
+    snapshot.some((message) => message.role === REASONING_ROLE),
+    snapshot.some((message) => message.role === ACTIVITY_ROLE)
+  )
 
-  const next = current
-    .filter((message) => preserveLocal(message) || snapshotById.has(message.id))
-    .map((message) => (preserveLocal(message) ? message : snapshotById.get(message.id)!))
-
-  const seen = new Set(next.map((message) => message.id))
+  const next = [...(localsByAnchor.get('') ?? [])]
   for (const message of snapshot) {
-    if (!seen.has(message.id)) next.push(message)
+    next.push(mergeSnapshotMessage(message, currentById.get(message.id)))
+    next.push(...(localsByAnchor.get(message.id) ?? []))
   }
   return next
 }
@@ -60,9 +131,8 @@ function normalizeSnapshotMessage(raw: unknown): ThreadMessage | null {
   if (!id || !role) return null
 
   const message: ThreadMessage = { id, role }
-  if (typeof raw.content === 'string') {
-    message.content = raw.content
-  }
+  const content = readMessageContent(raw.content)
+  if (content !== undefined) message.content = content
   if (typeof raw.toolCallId === 'string') {
     message.toolCallId = raw.toolCallId
   }
@@ -97,6 +167,14 @@ function normalizeSnapshotMessage(raw: unknown): ThreadMessage | null {
   return message
 }
 
+function ingestRunInputMessages(messages: ThreadMessage[], input: unknown) {
+  if (!isRecord(input) || !Array.isArray(input.messages)) return
+  for (const raw of input.messages) {
+    const message = normalizeSnapshotMessage(raw)
+    if (message) upsertMessage(messages, message)
+  }
+}
+
 function upsertMessage(messages: ThreadMessage[], message: ThreadMessage): void {
   const index = messages.findIndex((item) => item.id === message.id)
   if (index === -1) {
@@ -116,14 +194,15 @@ function appendContent(messages: ThreadMessage[], messageId: string, delta: stri
 }
 
 /**
- * 从 AG-UI SSE 重建会话消息：在 CopilotKit 官方解析之上补齐 reasoning，
- * 并用与客户端相同的策略把思考消息合并进 MESSAGES_SNAPSHOT。
+ * 从 AG-UI SSE 重建会话消息。非空 MESSAGES_SNAPSHOT 以检查点顺序为准，
+ * 快照里没有的 reasoning 按流式出现位置插回。
  */
 export function parseCopilotSseThreadMessages(text: string): ParsedCopilotSseResult {
-  if (!text.trim()) return { messages: [] }
+  if (!text.trim()) return { messages: [], authoritative: false }
 
   let threadId: string | undefined
   let runId: string | undefined
+  let authoritative = false
   const messages: ThreadMessage[] = []
   const toolCallsById = new Map<string, SseToolCall>()
   const toolCallParent = new Map<string, string>()
@@ -146,14 +225,17 @@ export function parseCopilotSseThreadMessages(text: string): ParsedCopilotSseRes
       case 'RUN_STARTED':
         threadId = readString(event.threadId) ?? threadId
         runId = readString(event.runId) ?? runId
+        ingestRunInputMessages(messages, event.input)
         break
       case 'MESSAGES_SNAPSHOT': {
         if (!Array.isArray(event.messages)) break
         const snapshot = event.messages
           .map((item) => normalizeSnapshotMessage(item))
           .filter((item): item is ThreadMessage => item !== null)
+        if (snapshot.length === 0) break
         const merged = applyMessagesSnapshot(messages, snapshot)
         messages.splice(0, messages.length, ...merged)
+        authoritative = true
         break
       }
       case 'TEXT_MESSAGE_START': {
@@ -253,8 +335,11 @@ export function parseCopilotSseThreadMessages(text: string): ParsedCopilotSseRes
   return {
     threadId,
     runId,
-    messages: messages.filter(
-      (message) => message.role !== REASONING_ROLE || Boolean(message.content?.length)
+    authoritative,
+    messages: restoreDisplacedTurnPrefix(
+      messages.filter(
+        (message) => message.role !== REASONING_ROLE || Boolean(message.content?.length)
+      )
     )
   }
 }
@@ -278,13 +363,13 @@ function attachToolCall(
 
 export async function parseCopilotSseResponse(response: Response): Promise<ParsedCopilotSseResult> {
   const contentType = response.headers.get('content-type') ?? ''
-  if (!contentType.includes('text/event-stream')) return { messages: [] }
+  if (!contentType.includes('text/event-stream')) return { messages: [], authoritative: false }
 
   let text: string
   try {
     text = await response.text()
   } catch {
-    return { messages: [] }
+    return { messages: [], authoritative: false }
   }
 
   return parseCopilotSseThreadMessages(text)

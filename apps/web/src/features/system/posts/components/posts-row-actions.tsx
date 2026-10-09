@@ -17,11 +17,11 @@ import { Can } from '@/components/auth/can'
 import { usePosts } from '../posts-provider'
 import { useUpdateJobProfilesStatusMutation } from '../queries'
 
-import type { JobProfile } from '@zen/shared'
+import type { JobProfileListItem } from '@zen/shared'
 import type { ListSelectionActionProps } from '@/hooks'
 
 type PostsRowActionsProps = ListSelectionActionProps & {
-  item: JobProfile
+  item: JobProfileListItem
 }
 
 export function PostsRowActions({

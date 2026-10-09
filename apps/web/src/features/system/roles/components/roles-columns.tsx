@@ -22,7 +22,7 @@ import { dataScopeConfig, getRoleIconColorClassName, roleEffectiveStatusConfig }
 import { RolesRowActions } from './roles-row-actions'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import type { Role, RoleDataScope, RoleEffectiveStatus, RoleIcon, RoleListItem } from '@zen/shared'
+import type { RoleDataScope, RoleEffectiveStatus, RoleIcon, RoleListItem } from '@zen/shared'
 
 const columnHelper = createColumnHelper<RoleListItem>()
 

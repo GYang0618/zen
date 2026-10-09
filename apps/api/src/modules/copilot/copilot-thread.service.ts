@@ -5,6 +5,7 @@ import { AgentThreadStatus } from '@prisma/client'
 import { deriveProvisionalThreadTitle } from '@zen/shared'
 
 import { PrismaService } from '../../infra/prisma/prisma.service.js'
+import { restoreDisplacedTurnPrefix } from './thread-message-order.js'
 
 import type { Prisma } from '@prisma/client'
 
@@ -40,6 +41,11 @@ export interface SaveThreadSnapshotParams {
   userId: string
   agentId: string
   messages: ThreadMessage[]
+  /**
+   * replace：检查点快照覆盖整段会话。
+   * append：流被中断、还没有快照时，只补上新消息，避免残缺结果删掉已有回合。
+   */
+  mode?: 'replace' | 'append'
 }
 
 @Injectable()
@@ -249,16 +255,24 @@ export class CopilotThreadService {
     })
 
     return {
-      messages: messages.map((m) => {
-        const meta = m.metadata as { toolCalls?: ThreadMessage['toolCalls'] } | null
-        return {
-          id: m.id,
-          role: m.role,
-          content: m.content,
-          toolCalls: meta?.toolCalls,
-          toolCallId: m.toolCallId ?? undefined
-        }
-      })
+      messages: restoreDisplacedTurnPrefix(messages.map((message) => this.toThreadMessage(message)))
+    }
+  }
+
+  private toThreadMessage(row: {
+    id: string
+    role: string
+    content: string
+    toolCallId: string | null
+    metadata: unknown
+  }): ThreadMessage {
+    const toolCalls = readStoredToolCalls(row.metadata)
+    return {
+      id: row.id,
+      role: row.role,
+      content: row.content,
+      toolCalls,
+      toolCallId: row.toolCallId ?? undefined
     }
   }
 
@@ -280,6 +294,9 @@ export class CopilotThreadService {
     const provisionalTitle = this.deriveProvisionalTitle(params.messages)
     try {
       await this.prisma.$transaction(async (tx) => {
+        const messages = await this.resolveMessagesToWrite(tx, params)
+        if (!messages) return
+
         await tx.agentThread.upsert({
           where: { id: params.threadId },
           create: {
@@ -308,8 +325,8 @@ export class CopilotThreadService {
           })
         }
 
-        for (let sequence = 0; sequence < params.messages.length; sequence++) {
-          const msg = params.messages[sequence]!
+        for (let sequence = 0; sequence < messages.length; sequence++) {
+          const msg = messages[sequence]!
           await tx.agentMessage.upsert({
             where: {
               threadId_sequence: {
@@ -344,7 +361,7 @@ export class CopilotThreadService {
         await tx.agentMessage.deleteMany({
           where: {
             threadId: params.threadId,
-            sequence: { gte: params.messages.length }
+            sequence: { gte: messages.length }
           }
         })
       })
@@ -352,4 +369,53 @@ export class CopilotThreadService {
       this.logger.error({ err: error, threadId: params.threadId }, '保存 AgentThread 会话快照失败')
     }
   }
+
+  private async resolveMessagesToWrite(
+    tx: Prisma.TransactionClient,
+    params: SaveThreadSnapshotParams
+  ): Promise<ThreadMessage[] | null> {
+    if (params.mode !== 'append') return params.messages
+
+    const existing = await tx.agentMessage.findMany({
+      where: { threadId: params.threadId },
+      orderBy: { sequence: 'asc' }
+    })
+    const seen = new Set(existing.map((row) => row.id))
+    const incoming = restoreDisplacedTurnPrefix(
+      params.messages.filter((message) => message.id && !seen.has(message.id))
+    )
+    if (incoming.length === 0) return null
+    const stored = restoreDisplacedTurnPrefix(existing.map((row) => this.toThreadMessage(row)))
+    return [...stored, ...incoming]
+  }
+}
+
+function readStoredToolCalls(metadata: unknown): ThreadMessage['toolCalls'] | undefined {
+  if (!isRecord(metadata) || !Array.isArray(metadata.toolCalls)) return undefined
+  const toolCalls = metadata.toolCalls.flatMap((item) => {
+    if (!isRecord(item) || typeof item.id !== 'string') return []
+    const name = typeof item.name === 'string' ? item.name : ''
+    const args = typeof item.args === 'string' ? item.args : ''
+    const fn = isRecord(item.function) ? item.function : undefined
+    return [
+      {
+        id: item.id,
+        name,
+        args,
+        ...(fn
+          ? {
+              function: {
+                name: typeof fn.name === 'string' ? fn.name : name,
+                arguments: typeof fn.arguments === 'string' ? fn.arguments : args
+              }
+            }
+          : {})
+      }
+    ]
+  })
+  return toolCalls.length > 0 ? toolCalls : undefined
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
 }

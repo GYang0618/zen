@@ -31,10 +31,10 @@ import { useCreateRoleMutation, useUpdateRoleMutation } from '@/features/system/
 import { RoleIconColorPicker } from './role-icon-color-picker'
 import { RoleIconPicker } from './role-icon-picker'
 
-import type { Role, RoleIcon, RoleIconColor } from '@zen/shared'
+import type { RoleIcon, RoleIconColor, RoleListItem } from '@zen/shared'
 
 interface RoleActionDialogProps {
-  currentRow?: Role
+  currentRow?: RoleListItem
   open: boolean
   onOpenChange: (open: boolean) => void
 }
@@ -77,7 +77,7 @@ function parseExpiredAt(value: string | null | undefined): Date | null {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
-function createRoleFormValues(role?: Role | null): RoleFormValues {
+function createRoleFormValues(role?: RoleListItem | null): RoleFormValues {
   if (!role) {
     return {
       name: '',

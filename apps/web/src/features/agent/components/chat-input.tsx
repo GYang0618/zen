@@ -2,6 +2,7 @@
 
 import { randomUUID, useCopilotKit } from '@copilotkit/react-core/v2'
 import { useLocation, useNavigate } from '@tanstack/react-router'
+import { buildChatUserContent, visibleChatText } from '@zen/shared'
 import { Button, cn } from '@zen/ui'
 import { Mic, Paperclip, Send, Square } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
@@ -10,9 +11,11 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { parseThreadIdFromPath } from '@/stores'
 
 import { useChatAgent } from '../context/chat-agent-context'
+import { useChatAttachments } from '../hooks/use-chat-attachments'
 import { deriveThreadTitle } from '../lib/derive-thread-title'
 import { generateThreadTitle } from '../lib/generate-thread-title'
 import { useAgentChatInputStore } from '../stores/agent-chat-input'
+import { ChatAttachmentStrip } from './chat-attachment-strip'
 import { CHAT_INPUT_PLACEHOLDERS, ChatInputDynamicTexts } from './chat-input-dynamic-texts'
 
 const TEXTAREA_MAX_HEIGHT_PX = 200
@@ -46,6 +49,7 @@ export function ChatInput({
   const [isMultiline, setIsMultiline] = useState(false)
   const [loadedDraftThreadId, setLoadedDraftThreadId] = useState<string>()
 
+  const attachments = useChatAttachments()
   const editDraft = useAgentChatInputStore((state) => state.editDraft)
   const clearEditDraft = useAgentChatInputStore((state) => state.clearEditDraft)
 
@@ -73,6 +77,7 @@ export function ChatInput({
     showPlaceholder && !isActive && !inputValue && agent.messages.length === 0
 
   useEffect(() => {
+    attachments.clear()
     if (!threadId) {
       setInputValue(localStorage.getItem(NEW_THREAD_DRAFT_KEY) ?? '')
       setLoadedDraftThreadId(undefined)
@@ -80,7 +85,7 @@ export function ChatInput({
     }
     setInputValue(localStorage.getItem(`default-agent:draft:${threadId}`) ?? '')
     setLoadedDraftThreadId(threadId)
-  }, [threadId])
+  }, [attachments.clear, threadId])
 
   useEffect(() => {
     if (!threadId) {
@@ -156,8 +161,9 @@ export function ChatInput({
   const handleActivate = () => setIsActive(true)
 
   const isRunning = agent.isRunning
+  const hasDraft = inputValue.trim().length > 0 || attachments.ready.length > 0
   const canSend =
-    inputValue.trim().length > 0 && !isRunning && !awaitingApproval && online && !loading
+    hasDraft && !attachments.uploading && !isRunning && !awaitingApproval && online && !loading
 
   const markThreadRunning = useAgentChatInputStore((state) => state.markThreadRunning)
   const markMessageStopped = useAgentChatInputStore((state) => state.markMessageStopped)
@@ -193,21 +199,24 @@ export function ChatInput({
       prevNonceRef.current = newThreadNonce
       setInputValue('')
       setIsActive(false)
+      attachments.clear()
       localStorage.removeItem(NEW_THREAD_DRAFT_KEY)
     }
-  }, [newThreadNonce])
+  }, [attachments.clear, newThreadNonce])
 
   const sendMessage = async () => {
     if (!canSend) return
     const content = inputValue
+    const readyFiles = attachments.ready
     localStorage.removeItem(NEW_THREAD_DRAFT_KEY)
     const message = {
       id: randomUUID(),
-      role: 'user',
-      content
-    } as const
+      role: 'user' as const,
+      content: buildChatUserContent(content, readyFiles)
+    }
     agent.addMessage(message)
     setInputValue('')
+    attachments.clear()
 
     const targetThreadId = threadId ?? agent.threadId
     const isFirstUserTurn = agent.messages.filter((item) => item.role === 'user').length <= 1
@@ -218,14 +227,14 @@ export function ChatInput({
         upsertProvisionalThread({
           id: targetThreadId,
           agentId: 'default',
-          name: deriveThreadTitle(content),
+          name: deriveThreadTitle(content.trim() || readyFiles[0]?.name || '附件'),
           archived: false,
           createdAt: now,
           updatedAt: now,
           lastRunAt: now
         })
         // 首条消息发出后主动请求精炼标题，就绪后静默替换临时标题
-        void generateThreadTitle(targetThreadId, content)
+        void generateThreadTitle(targetThreadId, content.trim() || readyFiles[0]?.name || '附件')
           .then((name) => {
             if (!name) return
             const stamped = new Date().toISOString()
@@ -265,7 +274,19 @@ export function ChatInput({
       if (!agent.messages.some((item) => item.id === message.id)) {
         agent.addMessage(message)
       }
-      setInputValue(message.content)
+      setInputValue(visibleChatText(message.content))
+      attachments.restore(
+        readyFiles.map((file) => ({
+          localId: file.fileId,
+          file: new File([], file.name, { type: file.mimeType }),
+          name: file.name,
+          mimeType: file.mimeType,
+          size: file.size,
+          status: 'done' as const,
+          percent: 100,
+          fileId: file.fileId
+        }))
+      )
       console.error('AgentChat: runAgent failed', error)
     }
   }
@@ -284,9 +305,15 @@ export function ChatInput({
     <Button
       variant="ghost"
       className="rounded-full size-11 shrink-0"
-      title="attach file"
+      type="button"
+      title="上传文件"
+      aria-label="上传文件"
       tabIndex={-1}
-      onClick={(e) => e.stopPropagation()}
+      disabled={!online || awaitingApproval || loading}
+      onClick={(event) => {
+        event.stopPropagation()
+        attachments.openPicker()
+      }}
     >
       <Paperclip data-icon="inline-start" />
     </Button>
@@ -336,11 +363,25 @@ export function ChatInput({
         ref={wrapperRef}
         className={cn(
           'relative w-full overflow-hidden border border-white/25 bg-popover shadow-sm backdrop-blur-2xl backdrop-saturate-150 transition-[border-radius] duration-200 before:pointer-events-none before:absolute before:inset-x-8 before:top-0 before:z-10 before:h-px before:bg-linear-to-r before:from-transparent before:via-white/55 before:to-transparent supports-backdrop-filter:bg-background/55 dark:border-white/10 dark:supports-backdrop-filter:bg-background/55 [@media(prefers-reduced-transparency:reduce)]:border-border [@media(prefers-reduced-transparency:reduce)]:bg-popover [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none [@media(prefers-reduced-transparency:reduce)]:before:hidden',
-          isMultiline ? 'rounded-4xl' : 'rounded-full'
+          isMultiline || attachments.items.length > 0 ? 'rounded-4xl' : 'rounded-full'
         )}
       >
+        <input
+          ref={attachments.inputRef}
+          type="file"
+          className="sr-only"
+          accept={attachments.accept}
+          multiple
+          tabIndex={-1}
+          aria-hidden
+          onChange={(event) => attachments.onPick(event.target.files)}
+        />
         <div className="flex flex-col items-stretch w-full">
-          {/* todo: 添加上传的文件或者图片预览展示 */}
+          <ChatAttachmentStrip
+            items={attachments.items}
+            onRemove={attachments.remove}
+            onRetry={attachments.retry}
+          />
           <div
             className={cn('flex gap-2 p-3 w-full', isMultiline ? 'items-start' : 'items-center')}
           >

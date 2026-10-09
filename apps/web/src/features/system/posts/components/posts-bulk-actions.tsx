@@ -12,10 +12,10 @@ import { useUpdateJobProfilesStatusMutation } from '../queries'
 import { getDeletableJobProfiles, getJobProfilesForStatusChange } from '../utils'
 import { PostsMultiDeleteDialog } from './posts-multi-delete-dialog'
 
-import type { JobProfile, JobProfileStatus } from '@zen/shared'
+import type { JobProfileListItem, JobProfileStatus } from '@zen/shared'
 
 type PostsBulkActionsProps = {
-  selectedItems: JobProfile[]
+  selectedItems: JobProfileListItem[]
   onClearSelection: () => void
   isSelecting?: boolean
 }

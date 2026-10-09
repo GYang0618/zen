@@ -5,6 +5,7 @@ export {
   extractFrontendTools,
   frontendStateSchema
 } from './frontend-tools'
+export { createMessageImageMiddleware } from './message-images'
 export {
   isRetriableModelError,
   isRetriableToolError,

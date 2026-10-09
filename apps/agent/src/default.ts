@@ -1,11 +1,18 @@
 import { AGENT_MEMORY_CONFIGURABLE_KEY, DEFAULT_AGENT_RUN_BUDGET } from '@zen/shared'
+import { createFilesystemMiddleware } from 'deepagents'
 import { createAgent, dynamicSystemPromptMiddleware } from 'langchain'
 
-import { createDefaultAgentMiddleware, createFrontendToolsMiddleware } from '@/middlewares'
+import { CHAT_FILESYSTEM_TOOL_NAMES, ChatStorageBackend } from '@/files/chat-storage-backend'
+import {
+  createDefaultAgentMiddleware,
+  createFrontendToolsMiddleware,
+  createMessageImageMiddleware
+} from '@/middlewares'
 import { createModel } from '@/models'
 import {
   APPROVAL_FLOW_RULES,
   ARTIFACT_RULES,
+  FILESYSTEM_RULES,
   GENERATIVE_UI_REPLY_RULES,
   IDENTITY_TOOL_RULES,
   ORGANIZATION_TYPE_CATALOG_RULES,
@@ -25,6 +32,7 @@ const BASE_SYSTEM_PROMPT = [
   TOOL_FAILURE_RULES,
   APPROVAL_FLOW_RULES,
   ARTIFACT_RULES,
+  FILESYSTEM_RULES,
   GENERATIVE_UI_REPLY_RULES,
   REASONING_STYLE_RULES
 ].join('\n\n')
@@ -41,7 +49,15 @@ export function createDefaultAgent() {
     stateSchema: AgentStateSchema,
     contextSchema: ContextSchema,
     middleware: [
-      createFrontendToolsMiddleware(coreTools.map((tool) => tool.name)),
+      createFrontendToolsMiddleware([
+        ...coreTools.map((tool) => tool.name),
+        ...CHAT_FILESYSTEM_TOOL_NAMES
+      ]),
+      createFilesystemMiddleware({
+        backend: new ChatStorageBackend(),
+        tools: [...CHAT_FILESYSTEM_TOOL_NAMES]
+      }),
+      createMessageImageMiddleware(),
       dynamicSystemPromptMiddleware<z.infer<typeof ContextSchema>>((_state, runtime) => {
         const memory = runtime.context?.[AGENT_MEMORY_CONFIGURABLE_KEY]
         const now = new Date()

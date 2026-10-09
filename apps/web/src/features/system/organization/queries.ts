@@ -32,7 +32,7 @@ import type {
   UpdateOrganizationLeader,
   UpdateOrganizationTypeCatalog,
   UpdatePositionRoles,
-  User
+  UserListItem
 } from '@zen/shared'
 import type { PaginationResponse } from '@/lib/request'
 import type { OrganizationUserOption } from './type'
@@ -49,7 +49,7 @@ export const organizationKeys = {
   typeCatalog: () => [...organizationKeys.all, 'type-catalog'] as const
 }
 
-function mapUserOptions(page: PaginationResponse<User>): OrganizationUserOption[] {
+function mapUserOptions(page: PaginationResponse<UserListItem>): OrganizationUserOption[] {
   return page.items.map((user) => {
     const primary = user.organizations?.find((item) => item.isPrimary) ?? user.organizations?.[0]
     return {

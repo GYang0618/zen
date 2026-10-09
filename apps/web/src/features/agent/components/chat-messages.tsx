@@ -1,6 +1,7 @@
 'use client'
 
 import { UseAgentUpdate, useRenderActivityMessage } from '@copilotkit/react-core/v2'
+import { listChatAttachments, visibleChatText } from '@zen/shared'
 import {
   Alert,
   AlertDescription,
@@ -38,6 +39,7 @@ import {
 import { useAgentChatInputStore } from '../stores/agent-chat-input'
 import { ChatAssistantActions } from './chat-assistant-actions'
 import { ChatCanvasBadge, ChatCanvasGeneratingBadge } from './chat-canvas-badge'
+import { ChatExportDownloads, ChatUserAttachments } from './chat-message-files'
 import { ChatPendingMessage } from './chat-pending-message'
 import { ChatUserActions } from './chat-user-actions'
 import { ChatWorkTrace } from './chat-work-trace'
@@ -46,35 +48,24 @@ import { GroupedToolCallsView } from './grouped-tool-calls-view'
 import type { Message as AGUIMessage } from '@copilotkit/react-core/v2'
 import type { ChatTurnMessageLike } from '../lib/group-chat-turns'
 
-type UserMessageContentPart = { type: string; text?: string }
-
 export type ChatMessageLike = AGUIMessage &
   ChatTurnMessageLike & {
     toolCalls?: ChatTurnMessageLike['toolCalls']
   }
 
-function flattenUserMessageContent(content: unknown): string {
-  if (!content) return ''
-  if (typeof content === 'string') return content
-  if (Array.isArray(content)) {
-    return content
-      .map((part: UserMessageContentPart) => (part.type === 'text' ? part.text : ''))
-      .filter((text): text is string => Boolean(text?.length))
-      .join('\n')
-  }
-  return String(content)
-}
-
 export function UserMessageItem({ message }: { message: ChatMessageLike }) {
-  const text = useMemo(() => flattenUserMessageContent(message.content), [message.content])
-  if (!text) return null
+  const text = useMemo(() => visibleChatText(message.content), [message.content])
+  if (!text && listChatAttachments(message.content).length === 0) return null
 
   return (
     <Message from="user" className="max-w-full">
-      <MessageContent className="text-base group-[.is-user]:max-w-7/10 group-[.is-user]:rounded-2xl group-[.is-user]:rounded-tr-none group-[.is-user]:bg-primary/90 group-[.is-user]:px-3 group-[.is-user]:py-2 group-[.is-user]:text-primary-foreground/75">
-        <MessageResponse>{text}</MessageResponse>
-      </MessageContent>
-      <ChatUserActions text={text} />
+      <ChatUserAttachments content={message.content} />
+      {text ? (
+        <MessageContent className="text-base group-[.is-user]:max-w-7/10 group-[.is-user]:rounded-2xl group-[.is-user]:rounded-tr-none group-[.is-user]:bg-primary/90 group-[.is-user]:px-3 group-[.is-user]:py-2 group-[.is-user]:text-primary-foreground/75">
+          <MessageResponse>{text}</MessageResponse>
+        </MessageContent>
+      ) : null}
+      {text ? <ChatUserActions text={text} /> : null}
     </Message>
   )
 }
@@ -132,12 +123,7 @@ export function AssistantMessageItem({
     turnGenerativeTools?.shouldRender && turnGenerativeTools.toolCalls.length > 0
   )
   const waitingForCanvas =
-    showCanvas &&
-    isRunning &&
-    isLastAssistant &&
-    hasContent &&
-    !showA2uiSlot &&
-    !showGenerativeSlot
+    showCanvas && isRunning && isLastAssistant && hasContent && !showA2uiSlot && !showGenerativeSlot
   const canvasActivityPending = Boolean(
     message.id && turnHasInProgressA2uiActivity(messages, message.id)
   )
@@ -358,6 +344,7 @@ export function ChatMessages() {
                 onRetry={handleRetry}
               />
             )}
+            <ChatExportDownloads contents={contentsForTurn(messages, turns, turnIndex)} />
           </Fragment>
         )
       })}
@@ -371,6 +358,20 @@ export function ChatMessages() {
       )}
     </div>
   )
+}
+
+function contentsForTurn(
+  messages: ChatMessageLike[],
+  turns: Array<{ user?: ChatMessageLike }>,
+  index: number
+) {
+  const startId = turns[index]?.user?.id
+  const nextId = turns[index + 1]?.user?.id
+  const start = startId ? messages.findIndex((item) => item.id === startId) : 0
+  const end = nextId ? messages.findIndex((item) => item.id === nextId) : messages.length
+  return messages
+    .slice(start < 0 ? 0 : start, end < 0 ? messages.length : end)
+    .map((item) => item.content)
 }
 
 interface ChatRunErrorProps {

@@ -20,7 +20,7 @@ import { RolesBulkActions } from './roles-bulk-actions'
 import { rolesColumns as columns } from './roles-columns'
 
 import type { VisibilityState } from '@tanstack/react-table'
-import type { Role, RoleDataScope, RoleEffectiveStatus, RoleListItem } from '@zen/shared'
+import type { RoleDataScope, RoleEffectiveStatus, RoleListItem } from '@zen/shared'
 import type { ReactNode } from 'react'
 import type { NavigateFn } from '@/hooks'
 

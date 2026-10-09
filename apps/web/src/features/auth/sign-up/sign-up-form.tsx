@@ -71,7 +71,8 @@ export function SignUpForm() {
           success: () => {
             navigate({ to: '/' })
             return '登录成功，欢迎加入我们👏'
-          }
+          },
+          error: '自动登录失败，请稍后重试'
         })
       }
     })

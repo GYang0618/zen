@@ -7,17 +7,17 @@ import { columns, PostsCard, PostsDialogs, PostsProvider } from '@/features/syst
 import { DataTable } from '../../a2ui/components/data-table'
 import { ViewSwitcher } from '../../generative-ui/components/view-switcher'
 
-import type { JobProfile, PageMeta } from '@zen/shared'
+import type { JobProfileListItem, PageMeta } from '@zen/shared'
 
 interface PostsListViewProps {
   title: string
-  data: JobProfile[]
+  data: JobProfileListItem[]
   description?: string
   pagination?: PageMeta
   loading?: boolean
 }
 
-function PostsCardScroll({ data }: { data: JobProfile[] }) {
+function PostsCardScroll({ data }: { data: JobProfileListItem[] }) {
   const viewportRef = useRef<HTMLDivElement>(null)
   const [canScrollPrev, setCanScrollPrev] = useState(false)
   const [canScrollNext, setCanScrollNext] = useState(false)

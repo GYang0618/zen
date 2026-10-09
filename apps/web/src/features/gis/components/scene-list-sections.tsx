@@ -1,5 +1,5 @@
-import { Button } from '@zen/ui'
-import { X } from 'lucide-react'
+import { Button, Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@zen/ui'
+import { Package2, X } from 'lucide-react'
 
 import { useCesium } from '../cesium-provider'
 import { findSceneModel } from '../constants'
@@ -27,7 +27,7 @@ export function PickedList() {
   const removePickedTarget = useGisStore((state) => state.removePickedTarget)
 
   if (pickedTargets.length === 0) {
-    return <ListEmpty>暂无选中。激活「实体拾取」后点击、Shift 多选或 Alt 框选</ListEmpty>
+    return <ListEmpty description="激活「实体拾取」后点击、Shift 多选或 Alt 框选" />
   }
 
   return (
@@ -65,7 +65,7 @@ export function MarkerList() {
   const removeMarker = useGisStore((state) => state.removeMarker)
 
   if (markers.length === 0) {
-    return <ListEmpty>暂无标记点，可点击「标记点位」在场景中打点</ListEmpty>
+    return <ListEmpty />
   }
 
   return (
@@ -122,7 +122,7 @@ export function DeployedList() {
   const removeDeployedObject = useGisStore((state) => state.removeDeployedObject)
 
   if (deployedObjects.length === 0) {
-    return <ListEmpty>暂无部署模型。让助手在场景中放置模型后，会出现在这里</ListEmpty>
+    return <ListEmpty />
   }
 
   return (
@@ -182,8 +182,18 @@ function ListBody({ children }: { children: ReactNode }) {
   return <ul className="max-h-48 space-y-1.5 overflow-y-auto pr-1 text-xs">{children}</ul>
 }
 
-function ListEmpty({ children }: { children: string }) {
-  return <div className="py-6 text-center text-xs text-muted-foreground">{children}</div>
+function ListEmpty({ title = '暂无数据', description }: { title?: string; description?: string }) {
+  return (
+    <Empty className="border border-dashed">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <Package2 />
+        </EmptyMedia>
+        <EmptyTitle>{title}</EmptyTitle>
+        {description && <EmptyDescription>{description}</EmptyDescription>}
+      </EmptyHeader>
+    </Empty>
+  )
 }
 
 function RemoveButton({ title, onClick }: { title: string; onClick: () => void }) {

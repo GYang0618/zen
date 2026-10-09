@@ -6,12 +6,12 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 
 import { useDeleteJobProfileMutation, useUpdateJobProfileMutation } from '../queries'
 
-import type { JobProfile } from '@zen/shared'
+import type { JobProfileListItem } from '@zen/shared'
 
 type JobProfileDeleteDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  currentRow: JobProfile
+  currentRow: JobProfileListItem
 }
 
 export function JobProfileDeleteDialog({

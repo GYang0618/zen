@@ -42,6 +42,7 @@ export function useAgentThreadSync({
   const [lastConnectedThreadId, setLastConnectedThreadId] = useState<string | null>(() =>
     threadId ? null : freshThreadId
   )
+  const [connectFailureThreadId, setConnectFailureThreadId] = useState<string | null>(null)
   const newThreadNonce = useAgentChatInputStore((state) => state.newThreadNonce)
   const markThreadRunning = useAgentChatInputStore((state) => state.markThreadRunning)
 
@@ -61,6 +62,7 @@ export function useAgentThreadSync({
   const previousThreadIdRef = useRef<string | null>(null)
 
   const isConnecting = hasExplicitThreadId && lastConnectedThreadId !== activeThreadId
+  const connectFailed = connectFailureThreadId === activeThreadId
   // connectAgent 回放历史时可能短暂 isRunning / 触发 onRunInitialized，
   // 不能据此点亮侧栏「运行中」图标；用 ref 避免订阅回调读到过期值。
   const isConnectingRef = useRef(isConnecting)
@@ -70,6 +72,12 @@ export function useAgentThreadSync({
     const nextId = randomUUID()
     setFreshThreadId(nextId)
     setLastConnectedThreadId(nextId)
+    setConnectFailureThreadId(null)
+  }, [])
+
+  const retryConnect = useCallback(() => {
+    setConnectFailureThreadId(null)
+    setLastConnectedThreadId(null)
   }, [])
 
   // 当外部显式触发新建对话事件时执行重置
@@ -134,9 +142,11 @@ export function useAgentThreadSync({
       try {
         resetAgentPendingInterrupts(agent)
         await copilotkit.connectAgent({ agent })
+        if (!detached) setConnectFailureThreadId(null)
       } catch (error) {
         if (detached) return
         console.error('useAgentThreadSync: connectAgent failed', error)
+        if (agent.messages.length === 0) setConnectFailureThreadId(activeThreadId)
       } finally {
         if (!detached) {
           const schedule =
@@ -168,7 +178,9 @@ export function useAgentThreadSync({
     localAgentId,
     hasExplicitThreadId,
     isConnecting,
+    connectFailed,
     startNewThread,
+    retryConnect,
     agent,
     isReady
   }

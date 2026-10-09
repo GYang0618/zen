@@ -6,7 +6,7 @@ import { userApi } from './api'
 import { usersQueryKeys } from './queries'
 
 import type { InfiniteData } from '@tanstack/react-query'
-import type { User, UserListItem } from '@zen/shared'
+import type { UpdateUserResult, User, UserListItem } from '@zen/shared'
 import type { PaginationResponse } from '@/lib/request'
 
 const USERS_LIST_QUERY_KEY = ['system', 'users', 'list'] as const
@@ -15,12 +15,51 @@ const ROLES_LIST_QUERY_KEY = ['system', 'roles', 'list'] as const
 const ROLE_DETAIL_QUERY_KEY = ['system', 'roles', 'detail'] as const
 const ROLE_MEMBERS_QUERY_KEY = ['system', 'roles', 'members'] as const
 
+type UserCachePatch = UpdateUserResult | Pick<User, 'roles'> | Pick<User, 'organizations'>
+
+function toListRole(role: User['roles'][number]): UserListItem['roles'][number] {
+  return {
+    id: role.id,
+    code: role.code,
+    name: role.name,
+    icon: role.icon,
+    iconColor: role.iconColor,
+    isPrimary: role.isPrimary
+  }
+}
+
+function toListOrganization(
+  organization: User['organizations'][number]
+): UserListItem['organizations'][number] {
+  return {
+    organizationId: organization.organizationId,
+    organizationName: organization.organizationName,
+    organizationType: organization.organizationType,
+    isPrimary: organization.isPrimary,
+    postId: organization.postId,
+    postName: organization.postName,
+    postLevel: organization.postLevel
+  }
+}
+
+function patchUserListItem(user: UserListItem, patch: UserCachePatch): UserListItem {
+  if ('roles' in patch) {
+    return { ...user, roles: patch.roles.map(toListRole) }
+  }
+  if ('organizations' in patch) {
+    return { ...user, organizations: patch.organizations.map(toListOrganization) }
+  }
+  const { nickname, realName, avatar, gender, email, phoneNumber, remark } = patch
+  return { ...user, nickname, realName, avatar, gender, email, phoneNumber, remark }
+}
+
 function mergeUserCaches(
   queryClient: ReturnType<typeof useQueryClient>,
   userId: string,
-  patch: Partial<User> | Partial<UserListItem>
+  patch: UserCachePatch
 ) {
-  const applyListPatch = (user: UserListItem) => (user.id === userId ? { ...user, ...patch } : user)
+  const applyListPatch = (user: UserListItem) =>
+    user.id === userId ? patchUserListItem(user, patch) : user
 
   queryClient.setQueryData<User>(usersQueryKeys.detail(userId), (current) =>
     current ? { ...current, ...patch } : current

@@ -11,7 +11,7 @@ import { BulkActionsToolbar } from '@/components/data-table'
 import { useUpdateUsersStatusMutation } from '../mutations'
 import { UsersMultiDeleteDialog } from './users-multi-delete-dialog'
 
-import type { UserListItem } from '@zen/shared'
+import type { User, UserListItem } from '@zen/shared'
 
 type UsersBulkActionsProps = {
   selectedItems: UserListItem[]
