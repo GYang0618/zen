@@ -204,8 +204,9 @@ describe('CopilotThreadService', () => {
           updateMany: jest.fn().mockResolvedValue({ count: 1 })
         },
         agentMessage: {
-          upsert: jest.fn().mockResolvedValue({}),
-          deleteMany: jest.fn().mockResolvedValue({ count: 0 })
+          findMany: jest.fn().mockResolvedValue([]),
+          deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+          create: jest.fn().mockResolvedValue({})
         }
       }
       prisma.$transaction.mockImplementationOnce(
@@ -234,17 +235,15 @@ describe('CopilotThreadService', () => {
         })
       )
       expect(txMock.agentThread.updateMany).toHaveBeenCalled()
-      expect(txMock.agentMessage.upsert).toHaveBeenCalledWith(
+      expect(txMock.agentMessage.deleteMany).toHaveBeenCalledWith({
+        where: { threadId: 't-1' }
+      })
+      expect(txMock.agentMessage.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: {
-            threadId_sequence: {
-              threadId: 't-1',
-              sequence: 0
-            }
-          },
-          create: expect.objectContaining({
+          data: expect.objectContaining({
             id: 'm-1',
             threadId: 't-1',
+            sequence: 0,
             role: 'user',
             content: 'test message'
           })

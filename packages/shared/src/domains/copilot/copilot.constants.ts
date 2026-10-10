@@ -57,6 +57,12 @@ export const PAGE_AGENT_ID = 'page'
 /** 供运行时识别默认 Chat，避免误把页面辅助 Agent 套用默认策略。 */
 export const DEFAULT_AGENT_GRAPH_ID = 'default_agent'
 
+/**
+ * 早期 `agent_threads.agent_id` 写成了图 id，而不是 {@link DEFAULT_AGENT_ID}。
+ * 默认对话列表必须把这两类记录一起查出。
+ */
+export const LEGACY_DEFAULT_THREAD_AGENT_ID = DEFAULT_AGENT_GRAPH_ID
+
 /** 页面辅助 Agent 的 LangGraph graph id。 */
 export const PAGE_AGENT_GRAPH_ID = 'page_agent'
 

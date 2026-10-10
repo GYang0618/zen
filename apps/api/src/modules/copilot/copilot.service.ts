@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import {
   CopilotRuntime,
   createCopilotExpressHandler,
@@ -25,6 +23,12 @@ import {
   parseCopilotSseResponse,
   rewriteRunRequestWithoutDisplayMessages
 } from './parse-copilot-sse-messages.js'
+import {
+  buildHistoryReplaySse,
+  CONNECT_THREAD_HEADER,
+  filterRegressiveSnapshotStream,
+  stampConnectThreadRequest
+} from './thread-history-replay.js'
 
 import type { AgentFactoryContext } from '@copilotkit/runtime/v2'
 import type { OnModuleInit } from '@nestjs/common'
@@ -162,64 +166,19 @@ export class CopilotService implements OnModuleInit {
 
           if (route.method === 'agent/connect') {
             try {
-              const cloned = request.clone()
-              const body = (await cloned.json()) as { threadId?: string }
-              if (body.threadId) {
-                const existingStore = ɵGLOBAL_STORE.peek(body.threadId)
-                if (!existingStore || existingStore.historicRuns.length === 0) {
-                  const { messages } = await this.threadService.getThreadMessages({
-                    threadId: body.threadId
-                  })
-                  if (messages && messages.length > 0) {
-                    const store = ɵGLOBAL_STORE.getOrCreate(body.threadId)
-                    if (store.historicRuns.length === 0) {
-                      const runId = randomUUID()
-                      const events = [
-                        {
-                          type: 'RUN_STARTED',
-                          threadId: body.threadId,
-                          runId,
-                          input: {
-                            threadId: body.threadId,
-                            runId,
-                            tools: [],
-                            context: [],
-                            messages
-                          }
-                        },
-                        { type: 'MESSAGES_SNAPSHOT', messages },
-                        {
-                          type: 'RUN_FINISHED',
-                          threadId: body.threadId,
-                          runId
-                        }
-                      ]
-                      ɵGLOBAL_STORE.appendRun(body.threadId, {
-                        threadId: body.threadId,
-                        runId,
-                        agentId:
-                          ('agentId' in route ? (route.agentId as string) : undefined) ?? 'default',
-                        parentRunId: null,
-                        events: events as unknown as Parameters<
-                          typeof ɵGLOBAL_STORE.appendRun
-                        >[1]['events'],
-                        messages: messages as unknown as Parameters<
-                          typeof ɵGLOBAL_STORE.appendRun
-                        >[1]['messages'],
-                        createdAt: Date.now()
-                      })
-                    }
-                  }
-                }
-              }
-            } catch {
-              // 忽略历史灌入失败
+              return await stampConnectThreadRequest(request)
+            } catch (error) {
+              this.logger.error({ err: error }, '标记 connect 会话失败')
             }
           }
         },
-        onResponse: async ({ response, route }) => {
+        onResponse: async ({ request, response, route }) => {
           if (route?.method === 'agent/run') {
             void this.persistThreadSnapshotFromSse(response.clone())
+            return this.guardSnapshotStream(response)
+          }
+          if (route?.method === 'agent/connect') {
+            return this.replayStoredHistory(request, response)
           }
           if (route?.method === 'info') {
             try {
@@ -244,6 +203,48 @@ export class CopilotService implements OnModuleInit {
         }
       }
     })
+  }
+
+  private guardSnapshotStream(response: Response): Response {
+    if (!response.body) return response
+    const headers = new Headers(response.headers)
+    headers.delete('content-length')
+    return new Response(filterRegressiveSnapshotStream(response.body), {
+      status: response.status,
+      headers
+    })
+  }
+
+  private async replayStoredHistory(request: Request, response: Response): Promise<Response> {
+    const threadId = request.headers.get(CONNECT_THREAD_HEADER)
+    if (!threadId) return response
+
+    try {
+      const store = ɵGLOBAL_STORE.peek(threadId)
+      const busy = Boolean(store?.isRunning || store?.stopRequested)
+      const { messages } = await this.threadService.getThreadMessages({ threadId })
+      if (!busy && messages.length > 0) {
+        const sse = buildHistoryReplaySse(threadId, messages)
+        if (sse) {
+          await response.body?.cancel().catch(() => undefined)
+          const headers = new Headers(response.headers)
+          headers.delete('content-length')
+          headers.set('content-type', 'text/event-stream; charset=utf-8')
+          return new Response(sse, { status: response.status, headers })
+        }
+      }
+      if (busy && response.body) {
+        const headers = new Headers(response.headers)
+        headers.delete('content-length')
+        return new Response(filterRegressiveSnapshotStream(response.body, messages), {
+          status: response.status,
+          headers
+        })
+      }
+    } catch (error) {
+      this.logger.error({ err: error, threadId }, '回放已保存的会话历史失败')
+    }
+    return response
   }
 
   private async persistThreadSnapshotFromSse(response: Response): Promise<void> {

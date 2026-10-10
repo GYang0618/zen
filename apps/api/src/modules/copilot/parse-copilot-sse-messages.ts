@@ -10,6 +10,7 @@ const ACTIVITY_ROLE: CopilotDisplayMessageRole = 'activity'
 
 interface SseToolCall {
   id: string
+  type: 'function'
   name: string
   args: string
 }
@@ -144,21 +145,15 @@ function normalizeSnapshotMessage(raw: unknown): ThreadMessage | null {
       const fn = isRecord(item.function) ? item.function : undefined
       const name = readString(item.name) ?? readString(fn?.name)
       const args = readString(item.args) ?? readString(fn?.arguments)
+      const functionName = readString(fn?.name) ?? name ?? ''
+      const functionArgs = readString(fn?.arguments) ?? args ?? ''
       return [
         {
           id: toolId,
-          name: name ?? '',
-          args: args ?? '',
-          ...(fn
-            ? {
-                function: {
-                  name: readString(fn.name) ?? name ?? '',
-                  arguments: readString(fn.arguments) ?? args ?? ''
-                }
-              }
-            : name
-              ? { function: { name, arguments: args ?? '' } }
-              : {})
+          type: 'function' as const,
+          name: functionName,
+          args: functionArgs,
+          function: { name: functionName, arguments: functionArgs }
         }
       ]
     })
@@ -281,6 +276,7 @@ export function parseCopilotSseThreadMessages(text: string): ParsedCopilotSseRes
         const existing = toolCallsById.get(toolCallId)
         const toolCall = existing ?? {
           id: toolCallId,
+          type: 'function' as const,
           name: readString(event.toolCallName) ?? '',
           args: ''
         }
@@ -356,6 +352,7 @@ function attachToolCall(
   if (!parent.toolCalls.some((item) => item.id === toolCall.id)) {
     parent.toolCalls.push({
       ...toolCall,
+      type: 'function',
       function: { name: toolCall.name, arguments: toolCall.args }
     })
   }

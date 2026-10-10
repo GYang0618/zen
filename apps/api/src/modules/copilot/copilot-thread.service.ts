@@ -2,9 +2,14 @@ import { randomUUID } from 'node:crypto'
 
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { AgentThreadStatus } from '@prisma/client'
-import { deriveProvisionalThreadTitle } from '@zen/shared'
+import {
+  DEFAULT_AGENT_ID,
+  deriveProvisionalThreadTitle,
+  LEGACY_DEFAULT_THREAD_AGENT_ID
+} from '@zen/shared'
 
 import { PrismaService } from '../../infra/prisma/prisma.service.js'
+import { mergeAuthoritativeSnapshot } from './thread-history-replay.js'
 import { restoreDisplacedTurnPrefix } from './thread-message-order.js'
 
 import type { Prisma } from '@prisma/client'
@@ -25,11 +30,12 @@ export interface ThreadMessage {
   content?: string
   toolCalls?: Array<{
     id: string
+    type: 'function'
     name: string
     args: string
-    function?: {
-      name?: string
-      arguments?: string
+    function: {
+      name: string
+      arguments: string
     }
   }>
   toolCallId?: string
@@ -42,8 +48,8 @@ export interface SaveThreadSnapshotParams {
   agentId: string
   messages: ThreadMessage[]
   /**
-   * replace：检查点快照覆盖整段会话。
-   * append：流被中断、还没有快照时，只补上新消息，避免残缺结果删掉已有回合。
+   * replace：快照覆盖整段会话；若快照缺少已有用户轮次，则与已保存消息合并。
+   * append：流被中断、还没有快照时，只补上新消息。
    */
   mode?: 'replace' | 'append'
 }
@@ -122,7 +128,7 @@ export class CopilotThreadService {
     const where: Prisma.AgentThreadWhereInput = {
       tenantId: params.tenantId,
       userId: params.userId,
-      ...(params.agentId ? { agentId: params.agentId } : {}),
+      ...(params.agentId ? { agentId: { in: threadAgentIds(params.agentId) } } : {}),
       ...(params.includeArchived ? {} : { status: AgentThreadStatus.active })
     }
 
@@ -295,7 +301,7 @@ export class CopilotThreadService {
     try {
       await this.prisma.$transaction(async (tx) => {
         const messages = await this.resolveMessagesToWrite(tx, params)
-        if (!messages) return
+        if (!messages || messages.length === 0) return
 
         await tx.agentThread.upsert({
           where: { id: params.threadId },
@@ -325,16 +331,12 @@ export class CopilotThreadService {
           })
         }
 
+        await tx.agentMessage.deleteMany({ where: { threadId: params.threadId } })
+
         for (let sequence = 0; sequence < messages.length; sequence++) {
           const msg = messages[sequence]!
-          await tx.agentMessage.upsert({
-            where: {
-              threadId_sequence: {
-                threadId: params.threadId,
-                sequence
-              }
-            },
-            create: {
+          await tx.agentMessage.create({
+            data: {
               id: msg.id || randomUUID(),
               threadId: params.threadId,
               tenantId: params.tenantId,
@@ -344,26 +346,9 @@ export class CopilotThreadService {
               toolCallId: msg.toolCallId ?? null,
               metadata:
                 msg.toolCalls && msg.toolCalls.length > 0 ? { toolCalls: msg.toolCalls } : undefined
-            },
-            update: {
-              role: msg.role,
-              content: msg.content ?? '',
-              toolCallId: msg.toolCallId ?? null,
-              metadata:
-                msg.toolCalls && msg.toolCalls.length > 0
-                  ? { toolCalls: msg.toolCalls }
-                  : undefined,
-              updatedAt: now
             }
           })
         }
-
-        await tx.agentMessage.deleteMany({
-          where: {
-            threadId: params.threadId,
-            sequence: { gte: messages.length }
-          }
-        })
       })
     } catch (error) {
       this.logger.error({ err: error, threadId: params.threadId }, '保存 AgentThread 会话快照失败')
@@ -374,20 +359,25 @@ export class CopilotThreadService {
     tx: Prisma.TransactionClient,
     params: SaveThreadSnapshotParams
   ): Promise<ThreadMessage[] | null> {
-    if (params.mode !== 'append') return params.messages
-
     const existing = await tx.agentMessage.findMany({
       where: { threadId: params.threadId },
       orderBy: { sequence: 'asc' }
     })
+    const stored = restoreDisplacedTurnPrefix(existing.map((row) => this.toThreadMessage(row)))
+    if (params.mode !== 'append') return mergeAuthoritativeSnapshot(stored, params.messages)
+
     const seen = new Set(existing.map((row) => row.id))
     const incoming = restoreDisplacedTurnPrefix(
       params.messages.filter((message) => message.id && !seen.has(message.id))
     )
     if (incoming.length === 0) return null
-    const stored = restoreDisplacedTurnPrefix(existing.map((row) => this.toThreadMessage(row)))
     return [...stored, ...incoming]
   }
+}
+
+function threadAgentIds(agentId: string): string[] {
+  if (agentId === DEFAULT_AGENT_ID) return [DEFAULT_AGENT_ID, LEGACY_DEFAULT_THREAD_AGENT_ID]
+  return [agentId]
 }
 
 function readStoredToolCalls(metadata: unknown): ThreadMessage['toolCalls'] | undefined {
@@ -397,19 +387,15 @@ function readStoredToolCalls(metadata: unknown): ThreadMessage['toolCalls'] | un
     const name = typeof item.name === 'string' ? item.name : ''
     const args = typeof item.args === 'string' ? item.args : ''
     const fn = isRecord(item.function) ? item.function : undefined
+    const functionName = typeof fn?.name === 'string' ? fn.name : name
+    const functionArgs = typeof fn?.arguments === 'string' ? fn.arguments : args
     return [
       {
         id: item.id,
-        name,
-        args,
-        ...(fn
-          ? {
-              function: {
-                name: typeof fn.name === 'string' ? fn.name : name,
-                arguments: typeof fn.arguments === 'string' ? fn.arguments : args
-              }
-            }
-          : {})
+        type: 'function' as const,
+        name: functionName,
+        args: functionArgs,
+        function: { name: functionName, arguments: functionArgs }
       }
     ]
   })
