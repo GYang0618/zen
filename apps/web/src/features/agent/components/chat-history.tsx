@@ -22,10 +22,16 @@ import { useAgentChatInputStore } from '../stores/agent-chat-input'
 import { HistoryRow } from './chat-history-row'
 
 import type { Thread } from '@copilotkit/react-core/v2'
+import type { HistoryRowSurface } from './chat-history-row'
 
 export { formatRelativeTime } from './chat-history-row'
 
-export function ChatHistory() {
+type ChatHistoryProps = {
+  surface?: HistoryRowSurface
+  onThreadOpen?: () => void
+}
+
+export function ChatHistory({ surface = 'sidebar', onThreadOpen }: ChatHistoryProps) {
   const {
     threads,
     isLoading: historyLoading,
@@ -118,6 +124,8 @@ export function ChatHistory() {
               active={thread.id === currentThreadId}
               running={runningThreadIds.has(thread.id)}
               renaming={thread.id === renamingId}
+              surface={surface}
+              onOpen={onThreadOpen}
               onRename={() => setRenamingId(thread.id)}
               onRenameCommit={(title) => {
                 setRenamingId(undefined)

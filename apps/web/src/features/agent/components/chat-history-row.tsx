@@ -20,11 +20,26 @@ const DAY_MS = 86_400_000
 /** 标题在操作条左侧的淡出宽度 */
 const TITLE_FADE_WIDTH_CLASS = 'w-8'
 
+export type HistoryRowSurface = 'sidebar' | 'popover'
+
+const SURFACE_CHROME = {
+  sidebar: {
+    bar: 'bg-sidebar',
+    fadeTo: 'to-sidebar'
+  },
+  popover: {
+    bar: 'bg-popover',
+    fadeTo: 'to-popover'
+  }
+} as const
+
 type HistoryRowProps = {
   thread: Thread
   active: boolean
   running: boolean
   renaming: boolean
+  surface?: HistoryRowSurface
+  onOpen?: () => void
   onRename: () => void
   onRenameCommit: (title: string) => void
   onRenameCancel: () => void
@@ -36,11 +51,14 @@ export function HistoryRow({
   active,
   running,
   renaming,
+  surface = 'sidebar',
+  onOpen,
   onRename,
   onRenameCommit,
   onRenameCancel,
   onDelete
 }: HistoryRowProps) {
+  const surfaceChrome = SURFACE_CHROME[surface]
   const containerRef = useRef<HTMLDivElement>(null)
   const textRef = useRef<HTMLSpanElement>(null)
   const actionsRef = useRef<HTMLDivElement>(null)
@@ -173,6 +191,7 @@ export function HistoryRow({
             aria-current={active ? 'page' : undefined}
             aria-label={running ? `${title}（正在运行）` : title}
             className="flex h-full min-w-0 flex-1 items-center gap-1 text-sm font-normal text-foreground no-underline outline-none select-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            onClick={onOpen}
           >
             {running && (
               <LoaderCircle
@@ -203,7 +222,8 @@ export function HistoryRow({
             ref={actionsRef}
             className={cn(
               'absolute inset-y-0 right-3 z-10 hidden items-center gap-1',
-              'bg-sidebar group-hover/item:bg-muted group-data-active/item:bg-muted',
+              surfaceChrome.bar,
+              'group-hover/item:bg-muted group-data-active/item:bg-muted',
               'group-hover/item:flex group-focus-within/item:flex has-data-popup-open:flex'
             )}
           >
@@ -212,7 +232,8 @@ export function HistoryRow({
               className={cn(
                 'pointer-events-none absolute inset-y-0 right-full',
                 TITLE_FADE_WIDTH_CLASS,
-                'bg-linear-to-r from-transparent to-sidebar',
+                'bg-linear-to-r from-transparent',
+                surfaceChrome.fadeTo,
                 'group-hover/item:to-muted group-data-active/item:to-muted'
               )}
             />
