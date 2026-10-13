@@ -146,6 +146,11 @@ export interface PetConfig {
   emotionMode: EmotionMode
   /** 固定表情状态 */
   fixedEmotion?: PetEmotion
+  /**
+   * 随机表情候选池。
+   * 提供后，random 模式只在该池内均匀轮换；缺省时沿用拟真表情循环。
+   */
+  randomEmotions?: readonly PetEmotion[]
   /** 随机表情变换间隔（秒） */
   randomEmotionInterval?: number
 }

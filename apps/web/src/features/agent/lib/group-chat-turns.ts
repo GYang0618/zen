@@ -13,6 +13,7 @@ export interface ChatTurnMessageLike {
   content?: unknown
   toolCalls?: ToolCallLike[]
   activityType?: string
+  metadata?: unknown
 }
 
 export interface ChatTurn<T extends ChatTurnMessageLike = ChatTurnMessageLike> {

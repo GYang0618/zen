@@ -26,6 +26,8 @@ interface ChatFoldPanelProps {
   icon?: ReactNode
   /** 跟在标题后的附加内容，不参与折叠图标切换。 */
   trailing?: ReactNode
+  /** 为 false 时只展示标题行，不提供展开。 */
+  expandable?: boolean
   children: ReactNode
   className?: string
 }
@@ -36,12 +38,27 @@ export function ChatFoldPanel({
   trigger,
   icon,
   trailing,
+  expandable = true,
   children,
   className
 }: ChatFoldPanelProps) {
+  const expanded = expandable && open
+
   return (
-    <Collapsible className={cn('w-full', className)} open={open} onOpenChange={onOpenChange}>
-      <CollapsibleTrigger className="group flex w-full items-center overflow-visible text-muted-foreground text-sm leading-none transition-colors hover:text-foreground">
+    <Collapsible
+      className={cn('w-full', className)}
+      open={expandable ? open : false}
+      onOpenChange={(nextOpen) => {
+        if (!expandable) return
+        onOpenChange(nextOpen)
+      }}
+    >
+      <CollapsibleTrigger
+        className={cn(
+          'group flex w-full items-center overflow-visible text-muted-foreground text-sm leading-none transition-colors',
+          expandable ? 'hover:text-foreground' : 'cursor-default'
+        )}
+      >
         <span className="inline-flex items-center gap-1.5">
           {icon ? (
             <span className="relative flex size-3.5 shrink-0 -translate-y-px items-center justify-center">
@@ -56,18 +73,18 @@ export function ChatFoldPanel({
           ) : null}
           {trigger}
           {trailing}
-          {icon ? null : <FoldChevron open={open} className="-translate-y-px" />}
+          {expandable && !icon ? <FoldChevron open={open} className="-translate-y-px" /> : null}
         </span>
       </CollapsibleTrigger>
       <div
         className={cn(
           'grid overflow-hidden transition-[grid-template-rows,opacity] duration-[280ms] ease-[cubic-bezier(0.32,0.72,0,1)]',
-          open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+          expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
         )}
-        inert={!open}
+        inert={!expanded}
       >
         {/* 展开时去掉 min-h-0，避免 1fr + overflow 把流式增高的内容裁掉 1px */}
-        <div className={cn('overflow-hidden', !open && 'min-h-0')}>{children}</div>
+        <div className={cn('overflow-hidden', !expanded && 'min-h-0')}>{children}</div>
       </div>
     </Collapsible>
   )

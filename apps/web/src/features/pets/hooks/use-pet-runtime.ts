@@ -6,6 +6,7 @@ import {
   getBiomimeticExpressiveDuration,
   getBiomimeticNormalDuration,
   getTargetEyeSpacing,
+  pickRandomEmotionFromPool,
   pickRandomExpressiveEmotion
 } from '../constants/emotions'
 
@@ -43,6 +44,28 @@ export interface PetRuntimeState {
   blushColor: string
 }
 
+function startPooledEmotionCycle(
+  pool: readonly PetEmotion[],
+  intervalSec: number,
+  setEmotion: (emotion: PetEmotion) => void,
+  currentRef: { current: PetEmotion }
+): () => void {
+  if (!pool.includes(currentRef.current)) {
+    const next = pickRandomEmotionFromPool(pool)
+    currentRef.current = next
+    setEmotion(next)
+  }
+
+  const intervalMs = Math.max(1, intervalSec) * 1000
+  const timer = setInterval(() => {
+    const next = pickRandomEmotionFromPool(pool, currentRef.current)
+    currentRef.current = next
+    setEmotion(next)
+  }, intervalMs)
+
+  return () => clearInterval(timer)
+}
+
 export function usePetRuntime({
   config,
   svgRef,
@@ -53,9 +76,14 @@ export function usePetRuntime({
   const configRef = useRef(config)
   configRef.current = config
 
-  const [runtimeEmotion, setRuntimeEmotion] = useState<PetEmotion>(
-    config.emotionMode === 'fixed' ? (config.fixedEmotion ?? 'normal') : 'normal'
-  )
+  const [runtimeEmotion, setRuntimeEmotion] = useState<PetEmotion>(() => {
+    if (config.emotionMode === 'fixed') return config.fixedEmotion ?? 'normal'
+    const pool = config.randomEmotions
+    if (pool && pool.length > 0) return pickRandomEmotionFromPool(pool)
+    return 'normal'
+  })
+  const runtimeEmotionRef = useRef(runtimeEmotion)
+  runtimeEmotionRef.current = runtimeEmotion
 
   // 视向平滑插值变量
   const currentGazeRef = useRef<[number, number]>([0, 0])
@@ -108,6 +136,16 @@ export function usePetRuntime({
       return
     }
 
+    const pool = config.randomEmotions
+    if (pool && pool.length > 0) {
+      return startPooledEmotionCycle(
+        pool,
+        config.randomEmotionInterval ?? 3,
+        setRuntimeEmotion,
+        runtimeEmotionRef
+      )
+    }
+
     // 拟真随机表情循环：以自然表情为主导 (5-10s)，随机穿插生动非自然微表情 (2-5s)
     let timer: ReturnType<typeof setTimeout>
     let isNormalPhase = false
@@ -134,7 +172,7 @@ export function usePetRuntime({
     timer = setTimeout(scheduleNext, initialDelay)
 
     return () => clearTimeout(timer)
-  }, [config.emotionMode, config.fixedEmotion])
+  }, [config.emotionMode, config.fixedEmotion, config.randomEmotions, config.randomEmotionInterval])
 
   // 2. 处理视向模式与目标方位设定
   useEffect(() => {

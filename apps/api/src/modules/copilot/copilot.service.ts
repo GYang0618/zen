@@ -17,6 +17,7 @@ import {
 import { AuthContextService } from '../../common/auth/auth-context.service.js'
 import { CONFIG_NAMESPACES } from '../../config/index.js'
 import { defaultAgent, pageAgent } from './agents.js'
+import { stampMissingEventTimestamps } from './agui-message-timing.js'
 import { CopilotThreadService } from './copilot-thread.service.js'
 import { extractBearerToken } from './copilot-token.util.js'
 import {
@@ -174,8 +175,9 @@ export class CopilotService implements OnModuleInit {
         },
         onResponse: async ({ request, response, route }) => {
           if (route?.method === 'agent/run') {
-            void this.persistThreadSnapshotFromSse(response.clone())
-            return this.guardSnapshotStream(response)
+            const stamped = stampMissingEventTimestamps(response)
+            void this.persistThreadSnapshotFromSse(stamped.clone())
+            return this.guardSnapshotStream(stamped)
           }
           if (route?.method === 'agent/connect') {
             return this.replayStoredHistory(request, response)

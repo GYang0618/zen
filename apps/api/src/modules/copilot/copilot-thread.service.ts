@@ -28,6 +28,8 @@ export interface ThreadMessage {
   id: string
   role: string
   content?: string
+  /** AG-UI 消息 metadata。计时放在应用键 `zen` 下。 */
+  metadata?: Record<string, unknown>
   toolCalls?: Array<{
     id: string
     type: 'function'
@@ -273,10 +275,12 @@ export class CopilotThreadService {
     metadata: unknown
   }): ThreadMessage {
     const toolCalls = readStoredToolCalls(row.metadata)
+    const metadata = isRecord(row.metadata) ? row.metadata : undefined
     return {
       id: row.id,
       role: row.role,
       content: row.content,
+      metadata,
       toolCalls,
       toolCallId: row.toolCallId ?? undefined
     }
@@ -344,8 +348,7 @@ export class CopilotThreadService {
               role: msg.role,
               content: msg.content ?? '',
               toolCallId: msg.toolCallId ?? null,
-              metadata:
-                msg.toolCalls && msg.toolCalls.length > 0 ? { toolCalls: msg.toolCalls } : undefined
+              metadata: toStoredMetadata(msg)
             }
           })
         }
@@ -378,6 +381,16 @@ export class CopilotThreadService {
 function threadAgentIds(agentId: string): string[] {
   if (agentId === DEFAULT_AGENT_ID) return [DEFAULT_AGENT_ID, LEGACY_DEFAULT_THREAD_AGENT_ID]
   return [agentId]
+}
+
+function toStoredMetadata(message: ThreadMessage): Prisma.InputJsonValue | undefined {
+  const metadata: Record<string, unknown> = { ...(message.metadata ?? {}) }
+  if (message.toolCalls && message.toolCalls.length > 0) {
+    metadata.toolCalls = message.toolCalls
+  } else {
+    delete metadata.toolCalls
+  }
+  return Object.keys(metadata).length > 0 ? (metadata as Prisma.InputJsonValue) : undefined
 }
 
 function readStoredToolCalls(metadata: unknown): ThreadMessage['toolCalls'] | undefined {

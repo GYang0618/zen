@@ -1,5 +1,11 @@
 import { randomUUID } from 'node:crypto'
 
+import {
+  mergeMessageMetadata,
+  readZenMessageTiming,
+  ZEN_MESSAGE_TIMING_METADATA_KEY
+} from '@zen/shared'
+
 import type { ThreadMessage } from './copilot-thread.service.js'
 
 /** 仅在 Copilot connect 请求内部传递，响应发出前不会回给浏览器。 */
@@ -15,6 +21,7 @@ interface ReplayMessage {
   role: string
   content?: string
   toolCallId?: string
+  metadata?: Record<string, unknown>
   toolCalls?: Array<{
     id: string
     type: 'function'
@@ -65,7 +72,13 @@ function dedupeById(messages: ThreadMessage[]): ThreadMessage[] {
       continue
     }
     const previous = result[existing]
-    if (previous) result[existing] = { ...previous, ...message }
+    if (previous) {
+      result[existing] = {
+        ...previous,
+        ...message,
+        metadata: mergeMessageMetadata(previous.metadata, message.metadata)
+      }
+    }
   }
   return result
 }
@@ -83,7 +96,7 @@ export function mergeAuthoritativeSnapshot(
   const coversIds = stored.every((message) => !message.id || incomingIds.has(message.id))
   const storedTexts = userTexts(stored)
   const coversTurns = storedTexts.length > 0 && coversUserTurns(storedTexts, userTexts(incoming))
-  if (coversIds || coversTurns) return dedupeById(incoming)
+  if (coversIds || coversTurns) return dedupeById(preserveMetadata(stored, incoming))
 
   const incomingById = new Map(
     incoming.flatMap((message) => (message.id ? [[message.id, message] as const] : []))
@@ -91,7 +104,13 @@ export function mergeAuthoritativeSnapshot(
   const seen = new Set<string>()
   const merged: ThreadMessage[] = []
   for (const message of stored) {
-    const next = message.id ? (incomingById.get(message.id) ?? message) : message
+    const incomingMessage = message.id ? incomingById.get(message.id) : undefined
+    const next = incomingMessage
+      ? {
+          ...incomingMessage,
+          metadata: mergeMessageMetadata(message.metadata, incomingMessage.metadata)
+        }
+      : message
     merged.push(next)
     if (message.id) seen.add(message.id)
   }
@@ -103,7 +122,32 @@ export function mergeAuthoritativeSnapshot(
   return merged
 }
 
+function preserveMetadata(stored: ThreadMessage[], incoming: ThreadMessage[]): ThreadMessage[] {
+  const storedById = new Map(
+    stored.flatMap((message) => (message.id ? [[message.id, message] as const] : []))
+  )
+  return incoming.map((message) => {
+    const previous = message.id ? storedById.get(message.id) : undefined
+    if (!previous) return message
+    return {
+      ...message,
+      metadata: mergeMessageMetadata(previous.metadata, message.metadata)
+    }
+  })
+}
+
+function withReplayTiming(message: ThreadMessage, replay: ReplayMessage): ReplayMessage {
+  const timing = readZenMessageTiming(message.metadata)
+  if (!timing) return replay
+  return { ...replay, metadata: { [ZEN_MESSAGE_TIMING_METADATA_KEY]: timing } }
+}
+
 function toReplayMessage(message: ThreadMessage): ReplayMessage | null {
+  const replay = toReplayMessageBody(message)
+  return replay ? withReplayTiming(message, replay) : null
+}
+
+function toReplayMessageBody(message: ThreadMessage): ReplayMessage | null {
   if (!message.id || !message.role) return null
   if (message.role === 'tool') {
     if (!message.toolCallId) return null

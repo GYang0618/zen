@@ -207,3 +207,14 @@ export function pickRandomExpressiveEmotion(current?: PetEmotion): PetEmotion {
   const idx = Math.floor(Math.random() * pool.length)
   return pool[idx] ?? 'happy'
 }
+
+/** 从给定表情池中随机挑选，尽量避开当前表情。 */
+export function pickRandomEmotionFromPool(
+  pool: readonly PetEmotion[],
+  current?: PetEmotion
+): PetEmotion {
+  const filtered = current ? pool.filter((emotion) => emotion !== current) : pool
+  const source = filtered.length > 0 ? filtered : pool
+  const index = Math.floor(Math.random() * source.length)
+  return source[index] ?? 'normal'
+}

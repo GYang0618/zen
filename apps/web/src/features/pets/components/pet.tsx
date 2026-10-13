@@ -59,6 +59,18 @@ export interface PetProps {
   randomEmotionInterval?: number
 
   /**
+   * 随机表情候选池。
+   * 提供后只在这些表情之间均匀轮换；缺省时沿用拟真表情循环。
+   */
+  randomEmotions?: readonly PetEmotion[]
+
+  /**
+   * 是否作为可聚焦按钮。装饰性展示（例如嵌在其他按钮里）应关闭。
+   * 默认：true
+   */
+  interactive?: boolean
+
+  /**
    * 视向朝向模式：
    * 'follow'（跟随光标）| 'fixed'（固定朝向）| 'random'（定时随机）
    * 默认：'follow'
@@ -158,6 +170,8 @@ export function Pet({
   emotion = 'normal',
   emotionMode = 'fixed',
   randomEmotionInterval = 12,
+  randomEmotions,
+  interactive = true,
   gazeMode = 'follow',
   fixedGaze = [0, 0],
   randomGazeInterval = 3,
@@ -205,6 +219,7 @@ export function Pet({
       eyeParams: eyeParams ? { ...DEFAULT_EYE_PARAMS, ...eyeParams } : DEFAULT_EYE_PARAMS,
       emotionMode,
       fixedEmotion: emotion,
+      randomEmotions,
       randomEmotionInterval
     }),
     [
@@ -217,6 +232,7 @@ export function Pet({
       eyeParams,
       emotionMode,
       emotion,
+      randomEmotions,
       randomEmotionInterval
     ]
   )
@@ -272,25 +288,15 @@ export function Pet({
       : 'animate-[petBreathe_4s_ease-in-out_infinite]'
     : undefined
 
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      aria-label={ariaLabel ?? `${petDefinition.name} · ${petDefinition.chineseName}`}
-      className={cn(
-        'relative flex items-center justify-center select-none outline-hidden cursor-pointer',
-        className
-      )}
-      style={style}
-      onClick={handleClick}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          handleClick(e as unknown as React.MouseEvent<HTMLDivElement>)
-        }
-        onKeyDown?.(e)
-      }}
-    >
+  const accessibleName = ariaLabel ?? `${petDefinition.name} · ${petDefinition.chineseName}`
+  const frameClassName = cn(
+    'relative flex items-center justify-center select-none outline-hidden',
+    interactive ? 'cursor-pointer' : 'pointer-events-none',
+    className
+  )
+
+  const visual = (
+    <>
       {/* 全局微动效 CSS Keyframes */}
       <style>{`
         @keyframes petBreathe {
@@ -376,6 +382,34 @@ export function Pet({
           />
         </g>
       </svg>
+    </>
+  )
+
+  if (!interactive) {
+    return (
+      <div aria-hidden="true" className={frameClassName} style={style}>
+        {visual}
+      </div>
+    )
+  }
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-label={accessibleName}
+      className={frameClassName}
+      style={style}
+      onClick={handleClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          handleClick(e as unknown as React.MouseEvent<HTMLDivElement>)
+        }
+        onKeyDown?.(e)
+      }}
+    >
+      {visual}
     </div>
   )
 }

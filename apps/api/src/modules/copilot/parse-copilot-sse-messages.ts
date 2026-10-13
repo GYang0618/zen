@@ -1,5 +1,6 @@
-import { stripCopilotDisplayMessages } from '@zen/shared'
+import { mergeMessageMetadata, stripCopilotDisplayMessages } from '@zen/shared'
 
+import { createMessageTimingRecorder } from './agui-message-timing.js'
 import { restoreDisplacedTurnPrefix } from './thread-message-order.js'
 
 import type { CopilotDisplayMessageRole } from '@zen/shared'
@@ -73,7 +74,8 @@ function mergeSnapshotMessage(
     content:
       snapshotContent.length >= currentContent.length ? snapshotMessage.content : current.content,
     toolCalls: snapshotMessage.toolCalls ?? current.toolCalls,
-    toolCallId: snapshotMessage.toolCallId ?? current.toolCallId
+    toolCallId: snapshotMessage.toolCallId ?? current.toolCallId,
+    metadata: mergeMessageMetadata(current.metadata, snapshotMessage.metadata)
   }
 }
 
@@ -137,6 +139,7 @@ function normalizeSnapshotMessage(raw: unknown): ThreadMessage | null {
   if (typeof raw.toolCallId === 'string') {
     message.toolCallId = raw.toolCallId
   }
+  if (isRecord(raw.metadata)) message.metadata = raw.metadata
   if (Array.isArray(raw.toolCalls)) {
     const toolCalls = raw.toolCalls.flatMap((item) => {
       if (!isRecord(item)) return []
@@ -198,6 +201,7 @@ export function parseCopilotSseThreadMessages(text: string): ParsedCopilotSseRes
   let threadId: string | undefined
   let runId: string | undefined
   let authoritative = false
+  const timing = createMessageTimingRecorder()
   const messages: ThreadMessage[] = []
   const toolCallsById = new Map<string, SseToolCall>()
   const toolCallParent = new Map<string, string>()
@@ -215,6 +219,7 @@ export function parseCopilotSseThreadMessages(text: string): ParsedCopilotSseRes
       continue
     }
 
+    timing.observe(event)
     const type = readString(event.type)
     switch (type) {
       case 'RUN_STARTED':
@@ -327,6 +332,7 @@ export function parseCopilotSseThreadMessages(text: string): ParsedCopilotSseRes
   for (const [toolCallId, toolCall] of toolCallsById) {
     attachToolCall(messages, toolCall, toolCallParent.get(toolCallId))
   }
+  timing.apply(messages)
 
   return {
     threadId,

@@ -118,6 +118,15 @@ export function useOptionalChatAgent(options?: UseChatAgentOptions) {
   return { agent, isReady, activeThreadId }
 }
 
+/** 只读取当前会话 id，不订阅消息与运行状态。 */
+export function useChatThreadId() {
+  const ctx = useContext(ChatAgentContext)
+  if (!ctx) {
+    throw new Error('useChatThreadId must be used within a ChatAgentProvider')
+  }
+  return ctx.activeThreadId
+}
+
 export function useChatAgent(options?: UseChatAgentOptions) {
   const ctx = useContext(ChatAgentContext)
 

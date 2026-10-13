@@ -86,11 +86,11 @@ export function PostsCard({
       </CardHeader>
 
       <CardContent>
-        <h2 className="text-base font-semibold">{item.name}</h2>
-        <p className="mt-1 text-muted-foreground">{formatJobProfileLevel(item.level)}</p>
-        {item.family ? (
-          <p className="mt-1 text-xs text-muted-foreground">岗位族 · {item.family}</p>
-        ) : null}
+        <h2 className="truncate text-base font-semibold">{item.name}</h2>
+        <p className="mt-1 truncate text-muted-foreground">{formatJobProfileLevel(item.level)}</p>
+        <p className="mt-1 truncate text-xs text-muted-foreground">
+          {item.family ? `岗位族 · ${item.family}` : '暂无岗位族'}
+        </p>
         <p className="mt-3 line-clamp-2 min-h-10 text-sm leading-5 text-muted-foreground">
           {item.description || '暂无描述'}
         </p>

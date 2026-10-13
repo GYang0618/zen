@@ -1,7 +1,7 @@
 'use client'
 
 import { UseAgentUpdate, useRenderActivityMessage } from '@copilotkit/react-core/v2'
-import { listChatAttachments, visibleChatText } from '@zen/shared'
+import { listChatAttachments, readZenMessageTiming, visibleChatText } from '@zen/shared'
 import {
   Alert,
   AlertDescription,
@@ -26,6 +26,7 @@ import {
   isA2UIToolCall,
   turnHasInProgressA2uiActivity
 } from '../lib/a2ui-tools'
+import { elapsedDurationSeconds } from '../lib/format-work-duration'
 import {
   getInlineStandardToolCalls,
   groupMessagesIntoTurns,
@@ -40,7 +41,6 @@ import { useAgentChatInputStore } from '../stores/agent-chat-input'
 import { ChatAssistantActions } from './chat-assistant-actions'
 import { ChatCanvasBadge, ChatCanvasGeneratingBadge } from './chat-canvas-badge'
 import { ChatExportDownloads, ChatUserAttachments } from './chat-message-files'
-import { ChatPendingMessage } from './chat-pending-message'
 import { ChatUserActions } from './chat-user-actions'
 import { ChatWorkTrace } from './chat-work-trace'
 import { GroupedToolCallsView } from './grouped-tool-calls-view'
@@ -204,11 +204,15 @@ export function ReasoningMessageItem({
   const content = typeof message.content === 'string' ? message.content : ''
   const isStreaming = Boolean(isRunning && isLatest)
   const hasContent = Boolean(content.length)
+  const timing = readZenMessageTiming(message.metadata)
+  const duration = isStreaming
+    ? undefined
+    : elapsedDurationSeconds(timing?.startedAt, timing?.endedAt, 'ceil')
 
   if (!hasContent && !isStreaming) return null
 
   return (
-    <Reasoning className="mb-0 w-full" isStreaming={isStreaming}>
+    <Reasoning className="mb-0 w-full" isStreaming={isStreaming} duration={duration}>
       <ReasoningTrigger />
       {hasContent && <ReasoningContent>{content}</ReasoningContent>}
     </Reasoning>
@@ -288,7 +292,7 @@ export function ChatMessages() {
     return message.role === 'activity'
   })
 
-  const showPendingPlaceholder = agent.isRunning && !hasActiveAssistantOutput
+  const isRunWaiting = agent.isRunning && !hasActiveAssistantOutput
   const canRetry = messages.some((m) => m.role === 'user')
 
   const handleRetry = () => {
@@ -315,13 +319,21 @@ export function ChatMessages() {
       {turns.map((turn, turnIndex) => {
         const isLastTurn = turnIndex === turns.length - 1
         const hasWork = turnHasFoldableWork(turn)
+        const isWaiting = isLastTurn && isRunWaiting
+        const isWorking = isLastTurn && agent.isRunning && hasWork
         const finalInlineTools = getInlineStandardToolCalls(turn.finalAssistant?.toolCalls)
 
         return (
           <Fragment key={turn.key}>
             {turn.user && <UserMessageItem message={turn.user} />}
-            {hasWork && (
-              <ChatWorkTrace turnKey={turn.key} isWorking={isLastTurn && agent.isRunning}>
+            {(hasWork || isWaiting) && (
+              <ChatWorkTrace
+                turnKey={turn.key}
+                isWaiting={isWaiting}
+                isWorking={isWorking}
+                workStartedAt={readZenMessageTiming(turn.user?.metadata)?.workStartedAt}
+                workEndedAt={readZenMessageTiming(turn.user?.metadata)?.workEndedAt}
+              >
                 <FoldedTurnMessages
                   messages={messages}
                   foldedMessages={turn.foldedMessages}
@@ -348,7 +360,6 @@ export function ChatMessages() {
           </Fragment>
         )
       })}
-      {showPendingPlaceholder && <ChatPendingMessage />}
       {runError && (
         <ChatRunError
           message={runError}

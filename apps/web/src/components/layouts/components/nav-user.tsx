@@ -83,20 +83,24 @@ export function NavUser({ user }: NavUserProps) {
                   {isAgentMode ? '切换到管理后台' : '切换到智能体模式'}
                 </DropdownMenuItem>
               </DropdownMenuGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuItem render={<Link to="/settings/account" />} nativeButton={false}>
-                  <BadgeCheck />
-                  账户
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  render={<Link to="/settings/notifications" />}
-                  nativeButton={false}
-                >
-                  <Bell />
-                  通知
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
+              {!isAgentMode && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem render={<Link to="/settings/account" />} nativeButton={false}>
+                      <BadgeCheck />
+                      账户
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      render={<Link to="/settings/notifications" />}
+                      nativeButton={false}
+                    >
+                      <Bell />
+                      通知
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onClick={() => setOpen(true)}>
                 <LogOut />

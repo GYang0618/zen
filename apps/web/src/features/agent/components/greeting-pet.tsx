@@ -5,28 +5,15 @@ import { motion } from 'motion/react'
 import { useCallback, useMemo, useState } from 'react'
 
 import { useTheme } from '@/context/theme-provider'
-import { Pet, PRESET_PETS, THREAD_PET_PALETTES } from '@/features/pets'
+import { Pet } from '@/features/pets'
+
+import { resolveThreadPetAppearance } from '../lib/thread-pet-palette'
 
 import type { PetEmotion } from '@/features/pets'
 
 interface GreetingPetProps {
   threadId?: string
   className?: string
-}
-
-/** 高离散度 32-bit MurmurHash3 算法，无位偏置，保证随机性充分均匀 */
-function hashString(str: string): number {
-  let h = 0x811c9dc5
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i)
-    h = Math.imul(h, 0x01000193)
-  }
-  h ^= h >>> 16
-  h = Math.imul(h, 0x85ebca6b)
-  h ^= h >>> 13
-  h = Math.imul(h, 0xc2b2ae35)
-  h ^= h >>> 16
-  return h >>> 0
 }
 
 /**
@@ -42,16 +29,8 @@ export function GreetingPet({ threadId, className }: GreetingPetProps) {
   const [fallbackSeed] = useState(() => Math.floor(Math.random() * 10000000))
 
   const { shape, palette } = useMemo(() => {
-    const shapeList = PRESET_PETS.map((p) => p.id)
     const baseId = threadId || `fallback-${fallbackSeed}`
-    const shapeSeed = hashString(`${baseId}:shape`)
-    const colorSeed = hashString(`${baseId}:color`)
-    const shapeIndex = shapeSeed % shapeList.length
-    const colorIndex = colorSeed % THREAD_PET_PALETTES.length
-    return {
-      shape: shapeList[shapeIndex] ?? 'orb',
-      palette: THREAD_PET_PALETTES[colorIndex] ?? THREAD_PET_PALETTES[0]
-    }
+    return resolveThreadPetAppearance(baseId)
   }, [threadId, fallbackSeed])
 
   const petColor = resolvedTheme === 'dark' ? palette.dark : palette.light

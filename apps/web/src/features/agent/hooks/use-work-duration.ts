@@ -21,9 +21,13 @@ function readSeconds(entry: WorkDurationEntry | undefined, now: number): number 
 
 /**
  * 按回合跟踪工作时长：进行中每秒刷新，结束后冻结。
- * 同一会话内切走再回来仍保留该回合已记录的用时。
+ * 同一页面里切走再回来用内存记录；刷新后用持久化的事件时间。
  */
-export function useWorkDuration(turnKey: string, isWorking: boolean): number | undefined {
+export function useWorkDuration(
+  turnKey: string,
+  isWorking: boolean,
+  persisted?: WorkDurationEntry
+): number | undefined {
   const [now, setNow] = useState(() => Date.now())
 
   useEffect(() => {
@@ -47,5 +51,8 @@ export function useWorkDuration(turnKey: string, isWorking: boolean): number | u
   }, [turnKey, isWorking])
 
   if (!turnKey) return undefined
-  return readSeconds(durations.get(turnKey), now)
+  const live = readSeconds(durations.get(turnKey), now)
+  if (live !== undefined) return live
+  if (isWorking || persisted?.endedAt === undefined) return undefined
+  return readSeconds(persisted, persisted.endedAt)
 }
