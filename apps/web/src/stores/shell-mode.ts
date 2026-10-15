@@ -10,9 +10,21 @@ const LAST_AGENT_PATH_KEY = 'zen.shell.last-agent-path'
 const DEFAULT_ADMIN_PATH = '/'
 const DEFAULT_AGENT_PATH = '/chat'
 
+/** 智能体侧栏内打开的插件页，不进入管理后台。 */
+export const AGENT_PLUGIN_MARKET_PATH = '/ai/plugins' as const
+
 /** Agent 全页聊天：`/chat` 与 `/chat/:threadId`，不含 `/chat-v2`。 */
 export function isAgentChatPath(pathname: string): boolean {
   return pathname === '/chat' || pathname.startsWith('/chat/')
+}
+
+/** 插件页属于智能体内容区，而不是管理后台菜单页。 */
+export function isAgentPluginMarketPath(pathname: string): boolean {
+  return pathname === AGENT_PLUGIN_MARKET_PATH
+}
+
+function isAgentShellPath(pathname: string): boolean {
+  return isAgentChatPath(pathname) || isAgentPluginMarketPath(pathname)
 }
 
 /** 从智能体路由路径中解析 threadId，如 `/chat/thread-123` => `'thread-123'` */
@@ -28,9 +40,18 @@ function readMode(): ShellMode {
   return raw === 'agent' || raw === 'admin' ? raw : 'admin'
 }
 
+/** 管理后台回跳地址。插件页和对话页不属于后台，读到时回退到默认页。 */
+export function resolveAdminPath(path: string | undefined): string {
+  if (!path || isAgentShellPath(path)) return DEFAULT_ADMIN_PATH
+  return path
+}
+
 function readLastAdminPath(): string {
   if (typeof window === 'undefined') return DEFAULT_ADMIN_PATH
-  return localStorage.getItem(LAST_ADMIN_PATH_KEY) || DEFAULT_ADMIN_PATH
+  const raw = localStorage.getItem(LAST_ADMIN_PATH_KEY) || DEFAULT_ADMIN_PATH
+  const resolved = resolveAdminPath(raw)
+  if (resolved !== raw) localStorage.setItem(LAST_ADMIN_PATH_KEY, resolved)
+  return resolved
 }
 
 function readLastAgentPath(): string {
@@ -59,7 +80,7 @@ export const useShellModeStore = create<ShellModeState>((set) => ({
   },
 
   setLastAdminPath: (path) => {
-    if (!path || isAgentChatPath(path)) return
+    if (!path || isAgentShellPath(path)) return
     localStorage.setItem(LAST_ADMIN_PATH_KEY, path)
     set((state) => (state.lastAdminPath === path ? state : { lastAdminPath: path }))
   },

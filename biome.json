@@ -89,7 +89,8 @@
       "!**/.agents",
       "!data",
       "!apps/api/swagger.json",
-      "!apps/agent/src/api-client"
+      "!apps/agent/src/api-client",
+      "!apps/web/public"
     ],
     "ignoreUnknown": true
   },

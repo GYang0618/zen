@@ -13,15 +13,15 @@ import {
   TooltipTrigger,
   useSidebar
 } from '@zen/ui'
-import { ClockFading, MessageCirclePlus } from 'lucide-react'
+import { Blocks, ClockFading, MessageCirclePlus, RotateCcwClock } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
-import { useShellModeStore } from '@/stores'
+import { AGENT_PLUGIN_MARKET_PATH, isAgentPluginMarketPath, useShellModeStore } from '@/stores'
 
 import { useAgentChatInputStore } from '../stores/agent-chat-input'
 import { ChatHistory } from './chat-history'
 
-const HISTORY_LABEL = '历史记录'
+import type { LucideIcon } from 'lucide-react'
 
 /**
  * Agent 侧栏内容：新建对话钉在顶部，历史列表在剩余区域内滚动。
@@ -67,57 +67,91 @@ function ThreadActions({
 
   return (
     <div className="flex flex-col gap-1">
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <Button
-              variant="ghost"
-              size={isIconCollapsed ? 'icon' : 'default'}
-              className={cn('h-8', isIconCollapsed ? 'size-8' : 'w-full justify-start')}
-              disabled={disabled}
-              onClick={onCreate}
-              aria-label="发起新对话"
-            />
-          }
-        >
-          <MessageCirclePlus data-icon={!isIconCollapsed && 'inline-start'} />
-          {!isIconCollapsed && <span>发起新对话</span>}
-        </TooltipTrigger>
-        <TooltipContent side="right" hidden={!isIconCollapsed}>
-          发起新对话
-        </TooltipContent>
-      </Tooltip>
+      <SidebarActionButton
+        label="发起新对话"
+        icon={MessageCirclePlus}
+        disabled={disabled}
+        isIconCollapsed={isIconCollapsed}
+        onClick={onCreate}
+      />
+      <SidebarActionButton
+        label="自动化任务"
+        icon={ClockFading}
+        disabled={disabled}
+        isIconCollapsed={isIconCollapsed}
+      />
+      <PluginMarketButton disabled={disabled} isIconCollapsed={isIconCollapsed} />
 
-      {isIconCollapsed ? (
-        <HistoryPopoverButton disabled={disabled} />
-      ) : (
-        <AutomationTaskButton disabled={disabled} />
-      )}
+      {isIconCollapsed && <HistoryPopoverButton disabled={disabled} />}
     </div>
   )
 }
 
-function AutomationTaskButton({ disabled }: { disabled?: boolean }) {
+function SidebarActionButton({
+  label,
+  icon: Icon,
+  disabled,
+  isIconCollapsed,
+  active = false,
+  onClick
+}: {
+  label: string
+  icon: LucideIcon
+  disabled?: boolean
+  isIconCollapsed: boolean
+  active?: boolean
+  onClick?: () => void
+}) {
   return (
     <Tooltip>
       <TooltipTrigger
         render={
           <Button
-            variant="ghost"
-            size="default"
-            className="h-8 w-full justify-start"
+            variant={active ? 'secondary' : 'ghost'}
+            size={isIconCollapsed ? 'icon' : 'default'}
+            className={cn('h-8', isIconCollapsed ? 'size-8' : 'w-full justify-start')}
             disabled={disabled}
-            aria-label="自动化任务"
+            onClick={onClick}
+            aria-label={label}
+            aria-current={active ? 'page' : undefined}
           />
         }
       >
-        <ClockFading data-icon="inline-start" />
-        <span>自动化任务</span>
+        <Icon data-icon={!isIconCollapsed && 'inline-start'} />
+        {!isIconCollapsed && <span>{label}</span>}
       </TooltipTrigger>
-      <TooltipContent side="right" hidden>
-        自动化任务
+      <TooltipContent side="right" hidden={!isIconCollapsed}>
+        {label}
       </TooltipContent>
     </Tooltip>
+  )
+}
+
+function PluginMarketButton({
+  disabled,
+  isIconCollapsed
+}: {
+  disabled?: boolean
+  isIconCollapsed: boolean
+}) {
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const isActive = isAgentPluginMarketPath(pathname)
+
+  const handleOpen = () => {
+    if (isActive) return
+    void navigate({ to: AGENT_PLUGIN_MARKET_PATH })
+  }
+
+  return (
+    <SidebarActionButton
+      label="插件"
+      icon={Blocks}
+      disabled={disabled}
+      isIconCollapsed={isIconCollapsed}
+      active={isActive}
+      onClick={handleOpen}
+    />
   )
 }
 
@@ -145,21 +179,21 @@ function HistoryPopoverButton({ disabled }: { disabled?: boolean }) {
                   size="icon"
                   className="size-8"
                   disabled={disabled}
-                  aria-label={HISTORY_LABEL}
+                  aria-label="历史记录"
                 />
               }
             />
           }
         >
-          <ClockFading />
+          <RotateCcwClock />
         </PopoverTrigger>
         <TooltipContent side="right" hidden={open}>
-          {HISTORY_LABEL}
+          历史记录
         </TooltipContent>
       </Tooltip>
       <PopoverContent side="right" align="start" className="w-72 gap-2 p-2">
         <PopoverHeader className="px-2">
-          <PopoverTitle>{HISTORY_LABEL}</PopoverTitle>
+          <PopoverTitle>历史记录</PopoverTitle>
         </PopoverHeader>
         <ScrollArea className="h-[min(20rem,calc(70dvh-3rem))] pr-2.5">
           <ChatHistory surface="popover" onThreadOpen={() => setOpen(false)} />

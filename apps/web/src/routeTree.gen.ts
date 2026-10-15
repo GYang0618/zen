@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as authRouteRouteImport } from './routes/(auth)/route'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as authChangePasswordRouteImport } from './routes/(auth)/change-password'
 import { Route as authForgotPasswordRouteImport } from './routes/(auth)/forgot-password'
 import { Route as authResetPasswordRouteImport } from './routes/(auth)/reset-password'
 import { Route as authSignInRouteImport } from './routes/(auth)/sign-in'
@@ -18,7 +19,6 @@ import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
 import { Route as AuthenticatedOtherRouteRouteImport } from './routes/_authenticated/_other/route'
 import { Route as AuthenticatedWorkbenchRouteRouteImport } from './routes/_authenticated/_workbench/route'
 import { Route as AuthenticatedAiRouteRouteImport } from './routes/_authenticated/ai/route'
-import { Route as AuthenticatedChangePasswordRouteImport } from './routes/_authenticated/change-password'
 import { Route as AuthenticatedPluginsRouteRouteImport } from './routes/_authenticated/plugins/route'
 import { Route as AuthenticatedSystemRouteRouteImport } from './routes/_authenticated/system/route'
 import { Route as Errors401RouteImport } from './routes/errors/401'
@@ -31,10 +31,7 @@ import { Route as AuthenticatedWorkbenchIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedWorkbenchBimRouteImport } from './routes/_authenticated/_workbench/bim'
 import { Route as AuthenticatedWorkbenchChatRouteRouteImport } from './routes/_authenticated/_workbench/chat/route'
 import { Route as AuthenticatedWorkbenchGisRouteImport } from './routes/_authenticated/_workbench/gis'
-import { Route as AuthenticatedAiAgentsRouteImport } from './routes/_authenticated/ai/agents'
-import { Route as AuthenticatedAiPetsRouteImport } from './routes/_authenticated/ai/pets'
-import { Route as AuthenticatedAiSkillsRouteImport } from './routes/_authenticated/ai/skills'
-import { Route as AuthenticatedAiWorkflowsRouteImport } from './routes/_authenticated/ai/workflows'
+import { Route as AuthenticatedAiPluginsRouteImport } from './routes/_authenticated/ai/plugins'
 import { Route as AuthenticatedPluginsJobsRouteImport } from './routes/_authenticated/plugins/jobs'
 import { Route as AuthenticatedPluginsNotesRouteImport } from './routes/_authenticated/plugins/notes'
 import { Route as AuthenticatedPluginsNotificationsRouteImport } from './routes/_authenticated/plugins/notifications'
@@ -43,6 +40,7 @@ import { Route as AuthenticatedSystemDictRouteImport } from './routes/_authentic
 import { Route as AuthenticatedSystemDictV2RouteImport } from './routes/_authenticated/system/dict-v2'
 import { Route as AuthenticatedSystemFilesRouteImport } from './routes/_authenticated/system/files'
 import { Route as AuthenticatedSystemIconSetRouteImport } from './routes/_authenticated/system/icon-set'
+import { Route as AuthenticatedSystemPetsRouteImport } from './routes/_authenticated/system/pets'
 import { Route as AuthenticatedSystemPluginsRouteImport } from './routes/_authenticated/system/plugins'
 import { Route as AuthenticatedOtherSettingsAccountRouteImport } from './routes/_authenticated/_other/settings/account'
 import { Route as AuthenticatedOtherSettingsAppearanceRouteImport } from './routes/_authenticated/_other/settings/appearance'
@@ -67,6 +65,11 @@ const authRouteRoute = authRouteRouteImport.update({
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
+} as any)
+const authChangePasswordRoute = authChangePasswordRouteImport.update({
+  id: '/change-password',
+  path: '/change-password',
+  getParentRoute: () => authRouteRoute,
 } as any)
 const authForgotPasswordRoute = authForgotPasswordRouteImport.update({
   id: '/forgot-password',
@@ -102,12 +105,6 @@ const AuthenticatedAiRouteRoute = AuthenticatedAiRouteRouteImport.update({
   path: '/ai',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedChangePasswordRoute =
-  AuthenticatedChangePasswordRouteImport.update({
-    id: '/change-password',
-    path: '/change-password',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedPluginsRouteRoute =
   AuthenticatedPluginsRouteRouteImport.update({
     id: '/plugins',
@@ -175,27 +172,11 @@ const AuthenticatedWorkbenchGisRoute =
     path: '/gis',
     getParentRoute: () => AuthenticatedWorkbenchRouteRoute,
   } as any)
-const AuthenticatedAiAgentsRoute = AuthenticatedAiAgentsRouteImport.update({
-  id: '/agents',
-  path: '/agents',
+const AuthenticatedAiPluginsRoute = AuthenticatedAiPluginsRouteImport.update({
+  id: '/plugins',
+  path: '/plugins',
   getParentRoute: () => AuthenticatedAiRouteRoute,
 } as any)
-const AuthenticatedAiPetsRoute = AuthenticatedAiPetsRouteImport.update({
-  id: '/pets',
-  path: '/pets',
-  getParentRoute: () => AuthenticatedAiRouteRoute,
-} as any)
-const AuthenticatedAiSkillsRoute = AuthenticatedAiSkillsRouteImport.update({
-  id: '/skills',
-  path: '/skills',
-  getParentRoute: () => AuthenticatedAiRouteRoute,
-} as any)
-const AuthenticatedAiWorkflowsRoute =
-  AuthenticatedAiWorkflowsRouteImport.update({
-    id: '/workflows',
-    path: '/workflows',
-    getParentRoute: () => AuthenticatedAiRouteRoute,
-  } as any)
 const AuthenticatedPluginsJobsRoute =
   AuthenticatedPluginsJobsRouteImport.update({
     id: '/jobs',
@@ -242,6 +223,11 @@ const AuthenticatedSystemIconSetRoute =
     path: '/icon-set',
     getParentRoute: () => AuthenticatedSystemRouteRoute,
   } as any)
+const AuthenticatedSystemPetsRoute = AuthenticatedSystemPetsRouteImport.update({
+  id: '/pets',
+  path: '/pets',
+  getParentRoute: () => AuthenticatedSystemRouteRoute,
+} as any)
 const AuthenticatedSystemPluginsRoute =
   AuthenticatedSystemPluginsRouteImport.update({
     id: '/plugins',
@@ -344,11 +330,11 @@ export interface FileRoutesByFullPath {
   '/ai': typeof AuthenticatedAiRouteRouteWithChildren
   '/plugins': typeof AuthenticatedPluginsRouteRouteWithChildren
   '/system': typeof AuthenticatedSystemRouteRouteWithChildren
+  '/change-password': typeof authChangePasswordRoute
   '/forgot-password': typeof authForgotPasswordRoute
   '/reset-password': typeof authResetPasswordRoute
   '/sign-in': typeof authSignInRoute
   '/sign-up': typeof authSignUpRoute
-  '/change-password': typeof AuthenticatedChangePasswordRoute
   '/errors/401': typeof Errors401Route
   '/errors/403': typeof Errors403Route
   '/errors/404': typeof Errors404Route
@@ -358,10 +344,7 @@ export interface FileRoutesByFullPath {
   '/chat': typeof AuthenticatedWorkbenchChatRouteRouteWithChildren
   '/bim': typeof AuthenticatedWorkbenchBimRoute
   '/gis': typeof AuthenticatedWorkbenchGisRoute
-  '/ai/agents': typeof AuthenticatedAiAgentsRoute
-  '/ai/pets': typeof AuthenticatedAiPetsRoute
-  '/ai/skills': typeof AuthenticatedAiSkillsRoute
-  '/ai/workflows': typeof AuthenticatedAiWorkflowsRoute
+  '/ai/plugins': typeof AuthenticatedAiPluginsRoute
   '/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
   '/plugins/notes': typeof AuthenticatedPluginsNotesRoute
   '/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
@@ -369,6 +352,7 @@ export interface FileRoutesByFullPath {
   '/system/dict-v2': typeof AuthenticatedSystemDictV2Route
   '/system/files': typeof AuthenticatedSystemFilesRoute
   '/system/icon-set': typeof AuthenticatedSystemIconSetRoute
+  '/system/pets': typeof AuthenticatedSystemPetsRoute
   '/system/plugins': typeof AuthenticatedSystemPluginsRoute
   '/settings/account': typeof AuthenticatedOtherSettingsAccountRoute
   '/settings/appearance': typeof AuthenticatedOtherSettingsAppearanceRoute
@@ -391,11 +375,11 @@ export interface FileRoutesByTo {
   '/ai': typeof AuthenticatedAiRouteRouteWithChildren
   '/plugins': typeof AuthenticatedPluginsRouteRouteWithChildren
   '/system': typeof AuthenticatedSystemRouteRouteWithChildren
+  '/change-password': typeof authChangePasswordRoute
   '/forgot-password': typeof authForgotPasswordRoute
   '/reset-password': typeof authResetPasswordRoute
   '/sign-in': typeof authSignInRoute
   '/sign-up': typeof authSignUpRoute
-  '/change-password': typeof AuthenticatedChangePasswordRoute
   '/errors/401': typeof Errors401Route
   '/errors/403': typeof Errors403Route
   '/errors/404': typeof Errors404Route
@@ -404,10 +388,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedOtherSettingsRouteRouteWithChildren
   '/bim': typeof AuthenticatedWorkbenchBimRoute
   '/gis': typeof AuthenticatedWorkbenchGisRoute
-  '/ai/agents': typeof AuthenticatedAiAgentsRoute
-  '/ai/pets': typeof AuthenticatedAiPetsRoute
-  '/ai/skills': typeof AuthenticatedAiSkillsRoute
-  '/ai/workflows': typeof AuthenticatedAiWorkflowsRoute
+  '/ai/plugins': typeof AuthenticatedAiPluginsRoute
   '/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
   '/plugins/notes': typeof AuthenticatedPluginsNotesRoute
   '/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
@@ -415,6 +396,7 @@ export interface FileRoutesByTo {
   '/system/dict-v2': typeof AuthenticatedSystemDictV2Route
   '/system/files': typeof AuthenticatedSystemFilesRoute
   '/system/icon-set': typeof AuthenticatedSystemIconSetRoute
+  '/system/pets': typeof AuthenticatedSystemPetsRoute
   '/system/plugins': typeof AuthenticatedSystemPluginsRoute
   '/settings/account': typeof AuthenticatedOtherSettingsAccountRoute
   '/settings/appearance': typeof AuthenticatedOtherSettingsAppearanceRoute
@@ -441,11 +423,11 @@ export interface FileRoutesById {
   '/_authenticated/ai': typeof AuthenticatedAiRouteRouteWithChildren
   '/_authenticated/plugins': typeof AuthenticatedPluginsRouteRouteWithChildren
   '/_authenticated/system': typeof AuthenticatedSystemRouteRouteWithChildren
+  '/(auth)/change-password': typeof authChangePasswordRoute
   '/(auth)/forgot-password': typeof authForgotPasswordRoute
   '/(auth)/reset-password': typeof authResetPasswordRoute
   '/(auth)/sign-in': typeof authSignInRoute
   '/(auth)/sign-up': typeof authSignUpRoute
-  '/_authenticated/change-password': typeof AuthenticatedChangePasswordRoute
   '/errors/401': typeof Errors401Route
   '/errors/403': typeof Errors403Route
   '/errors/404': typeof Errors404Route
@@ -456,10 +438,7 @@ export interface FileRoutesById {
   '/_authenticated/system/_identity': typeof AuthenticatedSystemIdentityRouteRouteWithChildren
   '/_authenticated/_workbench/bim': typeof AuthenticatedWorkbenchBimRoute
   '/_authenticated/_workbench/gis': typeof AuthenticatedWorkbenchGisRoute
-  '/_authenticated/ai/agents': typeof AuthenticatedAiAgentsRoute
-  '/_authenticated/ai/pets': typeof AuthenticatedAiPetsRoute
-  '/_authenticated/ai/skills': typeof AuthenticatedAiSkillsRoute
-  '/_authenticated/ai/workflows': typeof AuthenticatedAiWorkflowsRoute
+  '/_authenticated/ai/plugins': typeof AuthenticatedAiPluginsRoute
   '/_authenticated/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
   '/_authenticated/plugins/notes': typeof AuthenticatedPluginsNotesRoute
   '/_authenticated/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
@@ -467,6 +446,7 @@ export interface FileRoutesById {
   '/_authenticated/system/dict-v2': typeof AuthenticatedSystemDictV2Route
   '/_authenticated/system/files': typeof AuthenticatedSystemFilesRoute
   '/_authenticated/system/icon-set': typeof AuthenticatedSystemIconSetRoute
+  '/_authenticated/system/pets': typeof AuthenticatedSystemPetsRoute
   '/_authenticated/system/plugins': typeof AuthenticatedSystemPluginsRoute
   '/_authenticated/_workbench/': typeof AuthenticatedWorkbenchIndexRoute
   '/_authenticated/_other/settings/account': typeof AuthenticatedOtherSettingsAccountRoute
@@ -492,11 +472,11 @@ export interface FileRouteTypes {
     | '/ai'
     | '/plugins'
     | '/system'
+    | '/change-password'
     | '/forgot-password'
     | '/reset-password'
     | '/sign-in'
     | '/sign-up'
-    | '/change-password'
     | '/errors/401'
     | '/errors/403'
     | '/errors/404'
@@ -506,10 +486,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/bim'
     | '/gis'
-    | '/ai/agents'
-    | '/ai/pets'
-    | '/ai/skills'
-    | '/ai/workflows'
+    | '/ai/plugins'
     | '/plugins/jobs'
     | '/plugins/notes'
     | '/plugins/notifications'
@@ -517,6 +494,7 @@ export interface FileRouteTypes {
     | '/system/dict-v2'
     | '/system/files'
     | '/system/icon-set'
+    | '/system/pets'
     | '/system/plugins'
     | '/settings/account'
     | '/settings/appearance'
@@ -539,11 +517,11 @@ export interface FileRouteTypes {
     | '/ai'
     | '/plugins'
     | '/system'
+    | '/change-password'
     | '/forgot-password'
     | '/reset-password'
     | '/sign-in'
     | '/sign-up'
-    | '/change-password'
     | '/errors/401'
     | '/errors/403'
     | '/errors/404'
@@ -552,10 +530,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/bim'
     | '/gis'
-    | '/ai/agents'
-    | '/ai/pets'
-    | '/ai/skills'
-    | '/ai/workflows'
+    | '/ai/plugins'
     | '/plugins/jobs'
     | '/plugins/notes'
     | '/plugins/notifications'
@@ -563,6 +538,7 @@ export interface FileRouteTypes {
     | '/system/dict-v2'
     | '/system/files'
     | '/system/icon-set'
+    | '/system/pets'
     | '/system/plugins'
     | '/settings/account'
     | '/settings/appearance'
@@ -588,11 +564,11 @@ export interface FileRouteTypes {
     | '/_authenticated/ai'
     | '/_authenticated/plugins'
     | '/_authenticated/system'
+    | '/(auth)/change-password'
     | '/(auth)/forgot-password'
     | '/(auth)/reset-password'
     | '/(auth)/sign-in'
     | '/(auth)/sign-up'
-    | '/_authenticated/change-password'
     | '/errors/401'
     | '/errors/403'
     | '/errors/404'
@@ -603,10 +579,7 @@ export interface FileRouteTypes {
     | '/_authenticated/system/_identity'
     | '/_authenticated/_workbench/bim'
     | '/_authenticated/_workbench/gis'
-    | '/_authenticated/ai/agents'
-    | '/_authenticated/ai/pets'
-    | '/_authenticated/ai/skills'
-    | '/_authenticated/ai/workflows'
+    | '/_authenticated/ai/plugins'
     | '/_authenticated/plugins/jobs'
     | '/_authenticated/plugins/notes'
     | '/_authenticated/plugins/notifications'
@@ -614,6 +587,7 @@ export interface FileRouteTypes {
     | '/_authenticated/system/dict-v2'
     | '/_authenticated/system/files'
     | '/_authenticated/system/icon-set'
+    | '/_authenticated/system/pets'
     | '/_authenticated/system/plugins'
     | '/_authenticated/_workbench/'
     | '/_authenticated/_other/settings/account'
@@ -658,6 +632,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/(auth)/change-password': {
+      id: '/(auth)/change-password'
+      path: '/change-password'
+      fullPath: '/change-password'
+      preLoaderRoute: typeof authChangePasswordRouteImport
+      parentRoute: typeof authRouteRoute
     }
     '/(auth)/forgot-password': {
       id: '/(auth)/forgot-password'
@@ -706,13 +687,6 @@ declare module '@tanstack/react-router' {
       path: '/ai'
       fullPath: '/ai'
       preLoaderRoute: typeof AuthenticatedAiRouteRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/change-password': {
-      id: '/_authenticated/change-password'
-      path: '/change-password'
-      fullPath: '/change-password'
-      preLoaderRoute: typeof AuthenticatedChangePasswordRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/plugins': {
@@ -799,32 +773,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWorkbenchGisRouteImport
       parentRoute: typeof AuthenticatedWorkbenchRouteRoute
     }
-    '/_authenticated/ai/agents': {
-      id: '/_authenticated/ai/agents'
-      path: '/agents'
-      fullPath: '/ai/agents'
-      preLoaderRoute: typeof AuthenticatedAiAgentsRouteImport
-      parentRoute: typeof AuthenticatedAiRouteRoute
-    }
-    '/_authenticated/ai/pets': {
-      id: '/_authenticated/ai/pets'
-      path: '/pets'
-      fullPath: '/ai/pets'
-      preLoaderRoute: typeof AuthenticatedAiPetsRouteImport
-      parentRoute: typeof AuthenticatedAiRouteRoute
-    }
-    '/_authenticated/ai/skills': {
-      id: '/_authenticated/ai/skills'
-      path: '/skills'
-      fullPath: '/ai/skills'
-      preLoaderRoute: typeof AuthenticatedAiSkillsRouteImport
-      parentRoute: typeof AuthenticatedAiRouteRoute
-    }
-    '/_authenticated/ai/workflows': {
-      id: '/_authenticated/ai/workflows'
-      path: '/workflows'
-      fullPath: '/ai/workflows'
-      preLoaderRoute: typeof AuthenticatedAiWorkflowsRouteImport
+    '/_authenticated/ai/plugins': {
+      id: '/_authenticated/ai/plugins'
+      path: '/plugins'
+      fullPath: '/ai/plugins'
+      preLoaderRoute: typeof AuthenticatedAiPluginsRouteImport
       parentRoute: typeof AuthenticatedAiRouteRoute
     }
     '/_authenticated/plugins/jobs': {
@@ -881,6 +834,13 @@ declare module '@tanstack/react-router' {
       path: '/icon-set'
       fullPath: '/system/icon-set'
       preLoaderRoute: typeof AuthenticatedSystemIconSetRouteImport
+      parentRoute: typeof AuthenticatedSystemRouteRoute
+    }
+    '/_authenticated/system/pets': {
+      id: '/_authenticated/system/pets'
+      path: '/pets'
+      fullPath: '/system/pets'
+      preLoaderRoute: typeof AuthenticatedSystemPetsRouteImport
       parentRoute: typeof AuthenticatedSystemRouteRoute
     }
     '/_authenticated/system/plugins': {
@@ -999,6 +959,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface authRouteRouteChildren {
+  authChangePasswordRoute: typeof authChangePasswordRoute
   authForgotPasswordRoute: typeof authForgotPasswordRoute
   authResetPasswordRoute: typeof authResetPasswordRoute
   authSignInRoute: typeof authSignInRoute
@@ -1006,6 +967,7 @@ interface authRouteRouteChildren {
 }
 
 const authRouteRouteChildren: authRouteRouteChildren = {
+  authChangePasswordRoute: authChangePasswordRoute,
   authForgotPasswordRoute: authForgotPasswordRoute,
   authResetPasswordRoute: authResetPasswordRoute,
   authSignInRoute: authSignInRoute,
@@ -1099,17 +1061,11 @@ const AuthenticatedWorkbenchRouteRouteWithChildren =
   )
 
 interface AuthenticatedAiRouteRouteChildren {
-  AuthenticatedAiAgentsRoute: typeof AuthenticatedAiAgentsRoute
-  AuthenticatedAiPetsRoute: typeof AuthenticatedAiPetsRoute
-  AuthenticatedAiSkillsRoute: typeof AuthenticatedAiSkillsRoute
-  AuthenticatedAiWorkflowsRoute: typeof AuthenticatedAiWorkflowsRoute
+  AuthenticatedAiPluginsRoute: typeof AuthenticatedAiPluginsRoute
 }
 
 const AuthenticatedAiRouteRouteChildren: AuthenticatedAiRouteRouteChildren = {
-  AuthenticatedAiAgentsRoute: AuthenticatedAiAgentsRoute,
-  AuthenticatedAiPetsRoute: AuthenticatedAiPetsRoute,
-  AuthenticatedAiSkillsRoute: AuthenticatedAiSkillsRoute,
-  AuthenticatedAiWorkflowsRoute: AuthenticatedAiWorkflowsRoute,
+  AuthenticatedAiPluginsRoute: AuthenticatedAiPluginsRoute,
 }
 
 const AuthenticatedAiRouteRouteWithChildren =
@@ -1173,6 +1129,7 @@ interface AuthenticatedSystemRouteRouteChildren {
   AuthenticatedSystemDictV2Route: typeof AuthenticatedSystemDictV2Route
   AuthenticatedSystemFilesRoute: typeof AuthenticatedSystemFilesRoute
   AuthenticatedSystemIconSetRoute: typeof AuthenticatedSystemIconSetRoute
+  AuthenticatedSystemPetsRoute: typeof AuthenticatedSystemPetsRoute
   AuthenticatedSystemPluginsRoute: typeof AuthenticatedSystemPluginsRoute
 }
 
@@ -1184,6 +1141,7 @@ const AuthenticatedSystemRouteRouteChildren: AuthenticatedSystemRouteRouteChildr
     AuthenticatedSystemDictV2Route: AuthenticatedSystemDictV2Route,
     AuthenticatedSystemFilesRoute: AuthenticatedSystemFilesRoute,
     AuthenticatedSystemIconSetRoute: AuthenticatedSystemIconSetRoute,
+    AuthenticatedSystemPetsRoute: AuthenticatedSystemPetsRoute,
     AuthenticatedSystemPluginsRoute: AuthenticatedSystemPluginsRoute,
   }
 
@@ -1198,7 +1156,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAiRouteRoute: typeof AuthenticatedAiRouteRouteWithChildren
   AuthenticatedPluginsRouteRoute: typeof AuthenticatedPluginsRouteRouteWithChildren
   AuthenticatedSystemRouteRoute: typeof AuthenticatedSystemRouteRouteWithChildren
-  AuthenticatedChangePasswordRoute: typeof AuthenticatedChangePasswordRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -1208,7 +1165,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAiRouteRoute: AuthenticatedAiRouteRouteWithChildren,
   AuthenticatedPluginsRouteRoute: AuthenticatedPluginsRouteRouteWithChildren,
   AuthenticatedSystemRouteRoute: AuthenticatedSystemRouteRouteWithChildren,
-  AuthenticatedChangePasswordRoute: AuthenticatedChangePasswordRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

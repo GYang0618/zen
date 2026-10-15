@@ -3,7 +3,7 @@ import { Cat } from 'lucide-react'
 
 import { PetsGallery } from '@/features/pets'
 
-export const Route = createFileRoute('/_authenticated/ai/pets')({
+export const Route = createFileRoute('/_authenticated/system/pets')({
   component: PetsGallery,
   staticData: {
     title: '宠物中心',

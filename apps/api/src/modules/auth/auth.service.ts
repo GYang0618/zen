@@ -2,7 +2,6 @@ import { randomBytes } from 'node:crypto'
 
 import {
   BadRequestException,
-  ForbiddenException,
   Inject,
   Injectable,
   Logger,
@@ -17,6 +16,7 @@ import argon2 from '../../common/utils/argon2.js'
 import { PrismaService } from '../../infra/prisma/index.js'
 import { UserService } from '../user/user.service.js'
 import { AuthTokenService } from './auth.token.service.js'
+import { AuthLoginReason, readAuthFailureReason, throwAuthLoginError } from './auth-login.error.js'
 
 import type { User } from '@prisma/client'
 import type { UserListItemResponse } from '../user/responses/user.response.js'
@@ -43,6 +43,24 @@ export interface LoginMeta extends RefreshSessionMeta {
 
 const MAX_LOGIN_ATTEMPTS = 5
 const LOCK_DURATION_MINUTES = 15
+
+const ACCOUNT_STATUS_FAILURE: Record<
+  Exclude<UserStatusCode, typeof UserStatusCode.ACTIVE>,
+  { reason: AuthLoginReason; message: string }
+> = {
+  [UserStatusCode.SUSPENDED]: {
+    reason: AuthLoginReason.AccountSuspended,
+    message: '账号已被禁用'
+  },
+  [UserStatusCode.INACTIVE]: {
+    reason: AuthLoginReason.AccountInactive,
+    message: '账号尚未激活'
+  },
+  [UserStatusCode.PENDING]: {
+    reason: AuthLoginReason.AccountPending,
+    message: '账号待审核，暂时无法登录'
+  }
+}
 
 @Injectable()
 export class AuthService {
@@ -80,22 +98,22 @@ export class AuthService {
     meta: RefreshSessionMeta = {}
   ): Promise<IssueSessionResult | { requiresMfa: true; mfaToken: string }> {
     const user = await this.findUserByIdentifier(dto.identifier)
-    if (!user) {
+    if (!user || user.deletedAt) {
       await this.recordLoginEvent({
         identifier: dto.identifier,
         success: false,
         ip: meta.ip,
         userAgent: meta.userAgent,
-        reason: 'user_not_found'
+        reason: AuthLoginReason.UserNotFound
       })
-      throw new UnauthorizedException('账号或密码错误')
+      throwAuthLoginError(AuthLoginReason.UserNotFound, '用户不存在')
     }
 
     try {
+      this.assertAccountActive(user)
       await this.releaseLockIfExpired(user)
       await this.verifyPassword(user, dto.password)
       await this.resetLoginAttempts(user)
-      await this.assertAccountActive(user)
     } catch (error) {
       await this.recordLoginEvent({
         userId: user.id,
@@ -103,7 +121,7 @@ export class AuthService {
         success: false,
         ip: meta.ip,
         userAgent: meta.userAgent,
-        reason: error instanceof Error ? error.message : 'login_failed'
+        reason: readAuthFailureReason(error)
       })
       throw error
     }
@@ -467,7 +485,7 @@ export class AuthService {
   private async releaseLockIfExpired(user: User) {
     if (!user.isLocked) return
     if (user.lockExpireAt && user.lockExpireAt > new Date()) {
-      throw new ForbiddenException('账号已锁定，请稍后再试')
+      throwAuthLoginError(AuthLoginReason.AccountLocked, this.lockedUntilMessage(user.lockExpireAt))
     }
     await this.userService.updateSecurityFields(user.id, {
       isLocked: false,
@@ -491,10 +509,14 @@ export class AuthService {
         loginAttempts: attempts,
         lockExpireAt
       })
-      throw new ForbiddenException('失败次数过多，账号已被锁定')
+      throwAuthLoginError(
+        AuthLoginReason.AccountLocked,
+        `失败次数过多，账号已锁定，请 ${LOCK_DURATION_MINUTES} 分钟后再试`
+      )
     }
     await this.userService.updateSecurityFields(user.id, { loginAttempts: attempts })
-    throw new UnauthorizedException('账号或密码错误')
+    const remaining = MAX_LOGIN_ATTEMPTS - attempts
+    throwAuthLoginError(AuthLoginReason.InvalidPassword, `密码错误，还可尝试 ${remaining} 次`)
   }
 
   private async resetLoginAttempts(user: User) {
@@ -507,7 +529,15 @@ export class AuthService {
   }
 
   private assertAccountActive(user: User) {
-    if (user.status !== UserStatusCode.ACTIVE) throw new ForbiddenException('账号已被禁用')
+    if (user.status === UserStatusCode.ACTIVE) return
+
+    const failure = ACCOUNT_STATUS_FAILURE[user.status]
+    throwAuthLoginError(failure.reason, failure.message)
+  }
+
+  private lockedUntilMessage(lockExpireAt: Date): string {
+    const minutes = Math.max(1, Math.ceil((lockExpireAt.getTime() - Date.now()) / 60_000))
+    return `账号已锁定，请 ${minutes} 分钟后再试`
   }
 
   private async verifyTotp(token: string, secret: string): Promise<boolean> {

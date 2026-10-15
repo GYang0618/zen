@@ -3,41 +3,18 @@ import { cn } from '@zen/ui'
 import { useEffect, useState } from 'react'
 
 import { AuthenticatedLayout } from '@/components/layouts'
-import { RoutePending } from '@/components/route-pending'
+import { BootLoading } from '@/components/loading-state'
 import { AgentChat, AgentPopup } from '@/features/agent'
-import { authApi } from '@/features/auth/api'
+import { ensureAuthenticatedSession } from '@/features/auth/ensure-session'
 import { GeneralError } from '@/features/errors/general-error'
 import { canAccess } from '@/lib/auth/permissions'
-import { isAccessTokenExpiringSoon } from '@/lib/request/jwt-expiry'
-import { isForbidden, isSessionExpired } from '@/lib/request/utils'
-import { isAgentChatPath, useAuthStore, useShellModeStore } from '@/stores'
+import { isAgentChatPath, isAgentPluginMarketPath, useAuthStore, useShellModeStore } from '@/stores'
 
 export const Route = createFileRoute('/_authenticated')({
-  pendingComponent: RoutePending,
+  pendingComponent: BootLoading,
   errorComponent: GeneralError,
-  beforeLoad: async ({ location, matches, context }) => {
-    const existingToken = context.auth.getAccessToken()
-    if (!existingToken || isAccessTokenExpiringSoon(existingToken)) {
-      try {
-        const session = await authApi.refresh()
-        useAuthStore.getState().setAuth(session)
-      } catch (error) {
-        const canContinueWithExisting = Boolean(existingToken) && !isSessionExpired(error)
-        if (!canContinueWithExisting) {
-          if (isForbidden(error)) {
-            throw redirect({
-              to: '/errors/403',
-              replace: true
-            })
-          }
-          throw redirect({
-            to: '/sign-in',
-            search: { redirect: location.href },
-            replace: true
-          })
-        }
-      }
-    }
+  beforeLoad: async ({ location, matches }) => {
+    await ensureAuthenticatedSession(location.href)
 
     if (
       useAuthStore.getState().mustChangePassword &&
@@ -61,7 +38,7 @@ export const Route = createFileRoute('/_authenticated')({
 
 /** 不需要显示 AgentPopup 的页面 */
 function shouldHideAgentPopup(pathname: string): boolean {
-  return isAgentChatPath(pathname)
+  return isAgentChatPath(pathname) || isAgentPluginMarketPath(pathname)
 }
 
 function AuthenticatedLayoutComponent() {
@@ -75,20 +52,26 @@ function AuthenticatedLayoutComponent() {
   const shouldShowAgentPopup = mode !== 'agent' && !shouldHideAgentPopup(pathname)
 
   const isAgentMode = mode === 'agent'
+  const isPluginMarket = isAgentPluginMarketPath(pathname)
   const [hasVisitedAgent, setHasVisitedAgent] = useState(
-    () => isAgentMode || isAgentChatPath(pathname)
+    () => isAgentMode || isAgentChatPath(pathname) || isPluginMarket
   )
 
   useEffect(() => {
-    if (isAgentMode || isAgentChatPath(pathname)) {
+    if (isAgentMode || isAgentChatPath(pathname) || isPluginMarket) {
       setHasVisitedAgent(true)
     }
-  }, [isAgentMode, pathname])
+  }, [isAgentMode, isPluginMarket, pathname])
 
   useEffect(() => {
     if (isAgentChatPath(pathname)) {
       if (mode !== 'agent') setMode('agent')
       setLastAgentPath(pathname)
+      return
+    }
+
+    if (isPluginMarket) {
+      if (mode !== 'agent') setMode('agent')
       return
     }
 
@@ -98,7 +81,16 @@ function AuthenticatedLayoutComponent() {
     }
 
     setLastAdminPath(pathname)
-  }, [mode, navigate, pathname, setLastAdminPath, setLastAgentPath, lastAgentPath, setMode])
+  }, [
+    isPluginMarket,
+    mode,
+    navigate,
+    pathname,
+    setLastAdminPath,
+    setLastAgentPath,
+    lastAgentPath,
+    setMode
+  ])
 
   return (
     <AuthenticatedLayout>
@@ -111,9 +103,9 @@ function AuthenticatedLayoutComponent() {
         </div>
       )}
 
-      {/* 管理后台依赖文档流滚动；保留 h-full 以支撑 fixed 页面，但勿用 overflow-hidden 锁死滚动 */}
+      {/* 插件页由智能体内容区的 Outlet 承载，避免和管理后台再挂一份 */}
       <div className={cn('flex h-full w-full flex-col', isAgentMode && 'hidden')}>
-        <Outlet />
+        {isPluginMarket ? null : <Outlet />}
       </div>
 
       <div className={cn(!shouldShowAgentPopup && 'hidden')}>

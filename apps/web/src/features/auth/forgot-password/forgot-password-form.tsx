@@ -1,5 +1,5 @@
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Button, Field, FieldGroup, FieldLabel, Input, toast } from '@zen/ui'
+import { Button, Field, FieldDescription, FieldGroup, FieldLabel, Input, toast } from '@zen/ui'
 import { useState } from 'react'
 
 import { authApi } from '@/features/auth/api'
@@ -11,7 +11,6 @@ export function ForgotPasswordForm() {
 
   return (
     <form
-      className="p-6 md:p-8"
       onSubmit={async (event) => {
         event.preventDefault()
         setPending(true)
@@ -35,26 +34,23 @@ export function ForgotPasswordForm() {
       }}
     >
       <FieldGroup>
-        <div className="flex flex-col items-center gap-2 text-center">
-          <h1 className="text-2xl font-bold">忘记密码</h1>
-          <p className="text-sm text-muted-foreground">输入注册邮箱以获取重置令牌</p>
-        </div>
         <Field>
           <FieldLabel htmlFor="email">邮箱</FieldLabel>
           <Input
             id="email"
             type="email"
             value={email}
+            placeholder="name@example.com"
             onChange={(e) => setEmail(e.target.value)}
             required
           />
         </Field>
         <Button type="submit" disabled={pending || !email.trim()}>
-          发送重置链接
+          继续
         </Button>
-        <p className="text-center text-sm text-muted-foreground">
-          <Link to="/sign-in">返回登录</Link>
-        </p>
+        <FieldDescription className="text-center">
+          还没有账户？<Link to="/sign-up">注册</Link>
+        </FieldDescription>
       </FieldGroup>
     </form>
   )

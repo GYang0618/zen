@@ -1,12 +1,17 @@
 import { CopilotChatConfigurationProvider, UseAgentUpdate } from '@copilotkit/react-core/v2'
 import { Outlet, useLocation } from '@tanstack/react-router'
-import { ResizablePanel, ResizablePanelGroup } from '@zen/ui'
+import { cn, ResizablePanel, ResizablePanelGroup } from '@zen/ui'
 import { useState } from 'react'
 
 import { ProfileDropdown, ThemeSwitch } from '@/components'
 import { Header, Main } from '@/components/layouts'
 import { useElementHeight } from '@/hooks'
-import { isAgentChatPath, parseThreadIdFromPath, useShellModeStore } from '@/stores'
+import {
+  isAgentChatPath,
+  isAgentPluginMarketPath,
+  parseThreadIdFromPath,
+  useShellModeStore
+} from '@/stores'
 
 import { AgentBackgroundRunner } from './components/agent-background-runner'
 import { ChatCanvas } from './components/chat-canvas'
@@ -26,6 +31,7 @@ export function AgentChat({
   active?: boolean
 } = {}) {
   const { pathname } = useLocation()
+  const showPluginMarket = isAgentPluginMarketPath(pathname)
   const lastAgentPath = useShellModeStore((state) => state.lastAgentPath)
 
   // 处于智能体路由时从当前路径解析 threadId，切到管理后台时锁定 lastAgentPath 中的 threadId
@@ -54,25 +60,38 @@ export function AgentChat({
       hasExplicitThreadId={hasExplicitThreadId}
     >
       <ChatAgentProvider agent={agent} isReady={isReady} activeThreadId={activeThreadId}>
-        <Header>
-          <div className="ms-auto flex items-center gap-2 sm:gap-4">
-            <ThemeSwitch />
-            <ProfileDropdown />
-          </div>
-        </Header>
-        <Main fixed={active} fluid className="p-0">
-          <ChatRegistrations />
-          <AgentBackgroundRunner activeThreadId={activeThreadId} />
-          <Chat
-            key={activeThreadId}
-            isConnecting={isConnecting}
-            connectFailed={connectFailed}
-            hasExplicitThreadId={hasExplicitThreadId}
-            activeThreadId={activeThreadId}
-            onRetryHistory={retryConnect}
-          />
-        </Main>
-        <Outlet />
+        <div
+          className="flex h-full min-h-0 w-full flex-col"
+          data-layout={active ? 'fixed' : undefined}
+        >
+          <Header>
+            <div className="ms-auto flex items-center gap-2 sm:gap-4">
+              <ThemeSwitch />
+              <ProfileDropdown />
+            </div>
+          </Header>
+          <Main
+            fixed={active && !showPluginMarket}
+            fluid
+            className={cn('min-h-0 flex-1 p-0', showPluginMarket && 'hidden')}
+          >
+            <ChatRegistrations />
+            <AgentBackgroundRunner activeThreadId={activeThreadId} />
+            <Chat
+              key={activeThreadId}
+              isConnecting={isConnecting}
+              connectFailed={connectFailed}
+              hasExplicitThreadId={hasExplicitThreadId}
+              activeThreadId={activeThreadId}
+              onRetryHistory={retryConnect}
+            />
+          </Main>
+          {showPluginMarket ? (
+            <div className="min-h-0 flex-1 overflow-auto">
+              <Outlet />
+            </div>
+          ) : null}
+        </div>
       </ChatAgentProvider>
     </CopilotChatConfigurationProvider>
   )

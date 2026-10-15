@@ -1,6 +1,6 @@
 import { createRouter } from '@tanstack/react-router'
 
-import { RoutePending } from '@/components/route-pending'
+import { LoadingState } from '@/components/loading-state'
 import { GeneralError } from '@/features/errors/general-error'
 import { fetchActivePluginIds } from '@/features/system/plugins/api'
 import { queryClient } from '@/lib/query-client'
@@ -24,7 +24,7 @@ export const router = createRouter({
       getActiveIds: () => fetchActivePluginIds()
     }
   } satisfies AppRouterContext,
-  defaultPendingComponent: RoutePending,
+  defaultPendingComponent: LoadingState,
   defaultErrorComponent: GeneralError,
   scrollRestoration: true,
   defaultPreload: 'intent',

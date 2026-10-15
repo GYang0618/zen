@@ -51,7 +51,7 @@ services:
       - '9000:9000'
       - '9001:9001'
     volumes:
-      - ./data/minio:/bitnami/minio/data
+      - zen_minio:/bitnami/minio/data
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
       interval: 5s
@@ -99,3 +99,5 @@ volumes:
     name: zen_postgres_data
   zen_langgraph_pg:
     name: zen_langgraph_postgres_data
+  zen_minio:
+    name: zen_minio_data

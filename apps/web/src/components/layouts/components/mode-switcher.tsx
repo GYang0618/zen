@@ -10,8 +10,9 @@ import {
   SidebarMenuItem,
   useSidebar
 } from '@zen/ui'
-import { Bot, ChevronsUpDown, LayoutDashboard } from 'lucide-react'
+import { ChevronsUpDown } from 'lucide-react'
 
+import { IconZen, IconZenBot } from '@/components/icons'
 import { useSwitchShellMode } from '@/hooks'
 
 const MODE_OPTIONS = [
@@ -19,13 +20,13 @@ const MODE_OPTIONS = [
     id: 'agent' as const,
     name: '智能体',
     description: '对话驱动任务',
-    icon: Bot
+    icon: IconZenBot
   },
   {
     id: 'admin' as const,
     name: '管理后台',
     description: '菜单与页面操作',
-    icon: LayoutDashboard
+    icon: IconZen
   }
 ] as const
 

@@ -10,9 +10,9 @@ import {
   Zap
 } from 'lucide-react'
 
-import type { Skill, SkillCategory } from '../types'
+import type { Plugin, PluginCategory } from '../types'
 
-export const categories: { name: SkillCategory; icon: Skill['icon'] }[] = [
+export const categories: { name: PluginCategory; icon: Plugin['icon'] }[] = [
   { name: '全部', icon: LayoutTemplate },
   { name: '效率', icon: Zap },
   { name: '开发', icon: Code2 },
@@ -21,7 +21,7 @@ export const categories: { name: SkillCategory; icon: Skill['icon'] }[] = [
   { name: '集成', icon: Puzzle }
 ]
 
-export const skills: Skill[] = [
+export const plugins: Plugin[] = [
   {
     id: 'web-research',
     name: 'Web Research',

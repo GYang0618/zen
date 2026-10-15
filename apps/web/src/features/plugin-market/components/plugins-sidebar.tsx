@@ -1,15 +1,15 @@
 import { cn } from '@zen/ui'
 
-import { categories, skills } from '../data/skills'
+import { categories, plugins } from '../data/plugins'
 
-import type { SkillCategory } from '../types'
+import type { PluginCategory } from '../types'
 
-export function SkillsSidebar({
+export function PluginsSidebar({
   category,
   onCategoryChange
 }: {
-  category: SkillCategory
-  onCategoryChange: (category: SkillCategory) => void
+  category: PluginCategory
+  onCategoryChange: (category: PluginCategory) => void
 }) {
   return (
     <aside className="flex flex-col gap-1">
@@ -28,8 +28,8 @@ export function SkillsSidebar({
           {name}
           <span className="ml-auto text-xs text-muted-foreground">
             {name === '全部'
-              ? skills.length
-              : skills.filter((skill) => skill.category === name).length}
+              ? plugins.length
+              : plugins.filter((plugin) => plugin.category === name).length}
           </span>
         </button>
       ))}

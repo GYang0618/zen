@@ -1,14 +1,14 @@
 import type { LucideIcon } from 'lucide-react'
 
-export type SkillCategory = '全部' | '效率' | '开发' | '数据' | '内容' | '集成'
+export type PluginCategory = '全部' | '效率' | '开发' | '数据' | '内容' | '集成'
 export type MarketTab = 'explore' | 'installed'
-export type SkillSort = 'popular' | 'updated' | 'name'
+export type PluginSort = 'popular' | 'updated' | 'name'
 
-export type Skill = {
+export type Plugin = {
   id: string
   name: string
   description: string
-  category: Exclude<SkillCategory, '全部'>
+  category: Exclude<PluginCategory, '全部'>
   publisher: string
   installs: string
   version: string

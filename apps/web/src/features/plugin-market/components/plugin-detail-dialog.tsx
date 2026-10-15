@@ -11,23 +11,23 @@ import {
 } from '@zen/ui'
 import { ArrowUpRight, Check, ShieldCheck } from 'lucide-react'
 
-import type { Skill } from '../types'
+import type { Plugin } from '../types'
 
-type SkillDetailDialogProps = {
-  skill: Skill | null
+type PluginDetailDialogProps = {
+  plugin: Plugin | null
   installed: boolean
   onOpenChange: (open: boolean) => void
   onToggle: (id: string) => void
 }
 
-export function SkillDetailDialog({
-  skill,
+export function PluginDetailDialog({
+  plugin,
   installed,
   onOpenChange,
   onToggle
-}: SkillDetailDialogProps) {
-  if (!skill) return null
-  const Icon = skill.icon
+}: PluginDetailDialogProps) {
+  if (!plugin) return null
+  const Icon = plugin.icon
   return (
     <Dialog open onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
@@ -36,28 +36,28 @@ export function SkillDetailDialog({
             <div
               className={cn(
                 'flex size-9 shrink-0 items-center justify-center rounded-lg',
-                skill.iconClassName
+                plugin.iconClassName
               )}
             >
               <Icon className="size-5" />
             </div>
             <div>
               <DialogTitle className="flex items-center gap-1.5">
-                {skill.name}
-                {skill.verified && <ShieldCheck className="size-4 text-primary" />}
+                {plugin.name}
+                {plugin.verified && <ShieldCheck className="size-4 text-primary" />}
               </DialogTitle>
               <DialogDescription className="mt-1">
-                由 {skill.publisher} 发布 · v{skill.version} · {skill.updated} 更新
+                由 {plugin.publisher} 发布 · v{plugin.version} · {plugin.updated} 更新
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
         <div className="flex flex-col gap-5">
-          <p className="leading-6 text-muted-foreground">{skill.description}</p>
+          <p className="leading-6 text-muted-foreground">{plugin.description}</p>
           <div>
             <p className="mb-2 text-sm font-medium">包含能力</p>
             <div className="flex flex-wrap gap-2">
-              {skill.capabilities.map((capability) => (
+              {plugin.capabilities.map((capability) => (
                 <Badge key={capability} variant="secondary">
                   {capability}
                 </Badge>
@@ -65,8 +65,8 @@ export function SkillDetailDialog({
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 rounded-lg bg-muted/60 p-3 text-sm">
-            <Metric label="安装量" value={skill.installs} />
-            <Metric label="版本" value={skill.version} />
+            <Metric label="安装量" value={plugin.installs} />
+            <Metric label="版本" value={plugin.version} />
           </div>
         </div>
         <DialogFooter>
@@ -74,14 +74,14 @@ export function SkillDetailDialog({
             <ArrowUpRight data-icon="inline-start" />
             查看文档
           </Button>
-          <Button variant={installed ? 'outline' : 'default'} onClick={() => onToggle(skill.id)}>
+          <Button variant={installed ? 'outline' : 'default'} onClick={() => onToggle(plugin.id)}>
             {installed ? (
               <>
                 <Check data-icon="inline-start" />
                 已安装
               </>
             ) : (
-              '安装技能'
+              '安装插件'
             )}
           </Button>
         </DialogFooter>

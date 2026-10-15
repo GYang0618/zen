@@ -48,7 +48,7 @@ const formSchema = z
 type FormValues = z.infer<typeof formSchema>
 
 export function SignUpForm() {
-  const { mutate: signUp, error, isPending } = useSignUpMutation()
+  const { mutate: signUp, isPending } = useSignUpMutation()
   const navigate = useNavigate()
   const form = useForm({
     defaultValues: {
@@ -80,7 +80,6 @@ export function SignUpForm() {
 
   return (
     <form
-      className="p-6 md:p-8"
       onSubmit={(event) => {
         event.preventDefault()
         event.stopPropagation()
@@ -88,17 +87,6 @@ export function SignUpForm() {
       }}
     >
       <FieldGroup>
-        <div className="flex flex-col items-center gap-2 text-center">
-          <h1 className="text-2xl font-bold">创建你的账户</h1>
-          <div className="text-sm text-balance text-muted-foreground">
-            {error?.message ? (
-              <FieldError errors={[{ message: error.message }]} />
-            ) : (
-              '在下方输入信息来创建账户'
-            )}
-          </div>
-        </div>
-
         <form.Field name="username">
           {(field) => (
             <Field>
@@ -129,7 +117,7 @@ export function SignUpForm() {
                 onBlur={field.handleBlur}
                 onChange={(event) => field.handleChange(event.target.value)}
                 id="email"
-                placeholder="输入邮箱"
+                placeholder="name@example.com"
               />
               {field.state.meta.errors.length > 0 && (
                 <FieldError errors={field.state.meta.errors} />

@@ -29,7 +29,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>
 
 export function SignInForm() {
-  const { mutate: signIn, isPending, error } = useSignInMutation()
+  const { mutate: signIn, isPending } = useSignInMutation()
   const verifyMfa = useVerifyMfaMutation()
   const navigate = useNavigate()
   const search = useSearch({ from: '/(auth)/sign-in' })
@@ -82,16 +82,9 @@ export function SignInForm() {
   if (mfaToken) {
     return (
       <form
-        className="p-6 md:p-8"
         onSubmit={(event) => {
           event.preventDefault()
-          verifyMfa.mutate(
-            { mfaToken, code: mfaCode.trim() },
-            {
-              onSuccess: finishLogin,
-              onError: (err) => toast.add({ title: err.message || '验证失败', type: 'error' })
-            }
-          )
+          verifyMfa.mutate({ mfaToken, code: mfaCode.trim() }, { onSuccess: finishLogin })
         }}
       >
         <FieldGroup>
@@ -124,7 +117,6 @@ export function SignInForm() {
 
   return (
     <form
-      className="p-6 md:p-8"
       onSubmit={(event) => {
         event.preventDefault()
         event.stopPropagation()
@@ -132,17 +124,6 @@ export function SignInForm() {
       }}
     >
       <FieldGroup>
-        <div className="flex flex-col items-center gap-2 text-center">
-          <h1 className="text-2xl font-bold">欢迎回来👏</h1>
-          <div className="text-balance text-muted-foreground">
-            {error?.message ? (
-              <FieldError errors={[{ message: error.message }]}></FieldError>
-            ) : (
-              '登录你的 Zen Admin 账户'
-            )}
-          </div>
-        </div>
-
         <form.Field name="identifier">
           {(field) => (
             <Field>
@@ -168,9 +149,14 @@ export function SignInForm() {
             <Field>
               <div className="flex items-center justify-between gap-2">
                 <FieldLabel htmlFor="password">密码</FieldLabel>
-                <Link to="/forgot-password" className="text-xs text-muted-foreground underline">
+                <Button
+                  size="sm"
+                  variant="link"
+                  className="text-muted-foreground"
+                  onClick={() => navigate({ to: '/forgot-password' })}
+                >
                   忘记密码？
-                </Link>
+                </Button>
               </div>
               <PasswordInput
                 name={field.name}

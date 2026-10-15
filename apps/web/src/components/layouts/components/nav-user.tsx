@@ -16,8 +16,9 @@ import {
   useDialogState,
   useSidebar
 } from '@zen/ui'
-import { BadgeCheck, Bell, Bot, ChevronsUpDown, LayoutDashboard, LogOut } from 'lucide-react'
+import { BadgeCheck, Bell, ChevronsUpDown, LogOut } from 'lucide-react'
 
+import { IconZen, IconZenBot } from '@/components/icons'
 import { SignOutDialog } from '@/components/sign-out-dialog'
 import { useSwitchShellMode } from '@/hooks'
 
@@ -79,7 +80,7 @@ export function NavUser({ user }: NavUserProps) {
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
                 <DropdownMenuItem onClick={() => switchMode(isAgentMode ? 'admin' : 'agent')}>
-                  {isAgentMode ? <LayoutDashboard /> : <Bot />}
+                  {isAgentMode ? <IconZen /> : <IconZenBot />}
                   {isAgentMode ? '切换到管理后台' : '切换到智能体模式'}
                 </DropdownMenuItem>
               </DropdownMenuGroup>

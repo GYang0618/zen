@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { isAuthMfaChallenge } from '@zen/shared'
+import { toast } from '@zen/ui'
 
 import { useAuthStore } from '@/stores'
 
@@ -22,6 +23,9 @@ export function useSignInMutation() {
       if (!isAuthMfaChallenge(result)) {
         persistAuthSession(result)
       }
+    },
+    onError: (error: Error) => {
+      toast.add({ title: error.message || '登录失败', type: 'error' })
     }
   })
 }
@@ -31,7 +35,10 @@ export function useVerifyMfaMutation() {
     mutationKey: ['auth', 'mfa-verify'],
     mutationFn: ({ mfaToken, code }: { mfaToken: string; code: string }) =>
       authApi.verifyMfa(mfaToken, code),
-    onSuccess: persistAuthSession
+    onSuccess: persistAuthSession,
+    onError: (error: Error) => {
+      toast.add({ title: error.message || '验证失败', type: 'error' })
+    }
   })
 }
 
@@ -39,7 +46,10 @@ export function useSignUpMutation() {
   return useMutation({
     mutationKey: ['auth', 'sign-up'],
     mutationFn: authApi.signUp,
-    onSuccess: persistAuthSession
+    onSuccess: persistAuthSession,
+    onError: (error: Error) => {
+      toast.add({ title: error.message || '注册失败', type: 'error' })
+    }
   })
 }
 

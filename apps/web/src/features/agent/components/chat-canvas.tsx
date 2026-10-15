@@ -3,7 +3,7 @@
 import { A2UIProvider } from '@copilotkit/a2ui-renderer'
 import { UseAgentUpdate } from '@copilotkit/react-core/v2'
 import { Badge, Button } from '@zen/ui'
-import { CheckCircle2, Loader2, PanelRightClose, Sparkles } from 'lucide-react'
+import { PanelRightClose, Sparkles } from 'lucide-react'
 
 import { A2UISurfaceHost } from '../a2ui/a2ui-surface-host'
 import { catalog } from '../a2ui/catalog'
@@ -41,24 +41,6 @@ export function ChatCanvas() {
           </div>
 
           <div className="flex items-center gap-2">
-            {activeSurface && (
-              <Badge
-                variant={activeSurface.isExecuting ? 'secondary' : 'outline'}
-                className="gap-1 text-xs font-normal"
-              >
-                {activeSurface.isExecuting ? (
-                  <>
-                    <Loader2 className="size-3 animate-spin text-primary" />
-                    执行中
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="size-3 text-emerald-500" />
-                    已就绪
-                  </>
-                )}
-              </Badge>
-            )}
             <Button
               type="button"
               variant="ghost"

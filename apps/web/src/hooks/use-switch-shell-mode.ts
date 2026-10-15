@@ -1,6 +1,6 @@
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 
-import { useShellModeStore } from '@/stores'
+import { resolveAdminPath, useShellModeStore } from '@/stores'
 
 import type { ShellMode } from '@/stores'
 import type { AppPath } from '@/types/router'
@@ -27,7 +27,7 @@ export function useSwitchShellMode() {
 
     setLastAgentPath(pathname)
     setMode('admin')
-    void navigate({ to: (lastAdminPath || '/') as AppPath })
+    void navigate({ to: resolveAdminPath(lastAdminPath) as AppPath })
   }
 
   return { mode, switchMode }

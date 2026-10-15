@@ -2,12 +2,12 @@ import { Circle } from 'lucide-react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
-import { FeaturedSkillCard } from './skill-card'
+import { FeaturedPluginCard } from './plugin-card'
 
-const skill = {
-  id: 'test-skill',
-  name: '测试技能',
-  description: '用于验证精选技能卡片的交互语义。',
+const plugin = {
+  id: 'test-plugin',
+  name: '测试插件',
+  description: '用于验证精选插件卡片的交互语义。',
   category: '开发' as const,
   publisher: 'Zen',
   installs: '1',
@@ -18,10 +18,10 @@ const skill = {
   capabilities: []
 }
 
-describe('FeaturedSkillCard', () => {
+describe('FeaturedPluginCard', () => {
   it('keeps the detail and install buttons as sibling controls', () => {
     const markup = renderToStaticMarkup(
-      <FeaturedSkillCard skill={skill} installed onSelect={vi.fn()} onToggle={vi.fn()} />
+      <FeaturedPluginCard plugin={plugin} installed onSelect={vi.fn()} onToggle={vi.fn()} />
     )
 
     expect(markup).not.toMatch(/<button\b[^>]*>(?:(?!<\/button>).)*<button\b/s)

@@ -6,6 +6,7 @@ import { RouterProvider } from '@tanstack/react-router'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
+import { bindBootSplash } from '@/lib/boot-splash'
 import { queryClient } from '@/lib/query-client'
 import { initAuthTokenRefreshScheduler } from '@/lib/request'
 
@@ -17,6 +18,7 @@ import { UiStyleProvider } from './context/ui-style-provider'
 import { router } from './router'
 
 initAuthTokenRefreshScheduler()
+bindBootSplash(router)
 
 function App() {
   return (
