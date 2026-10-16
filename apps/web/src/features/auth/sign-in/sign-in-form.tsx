@@ -40,7 +40,6 @@ export function SignInForm() {
       identifier: '',
       password: ''
     } as FormValues,
-    validators: { onChange: formSchema },
     onSubmit: async ({ value }) => {
       await onSubmit(formSchema.parse(value))
     }
@@ -124,14 +123,17 @@ export function SignInForm() {
       }}
     >
       <FieldGroup>
-        <form.Field name="identifier">
+        <form.Field name="identifier" validators={{ onChange: formSchema.shape.identifier }}>
           {(field) => (
             <Field>
               <FieldLabel htmlFor="identifier">账号</FieldLabel>
               <Input
                 name={field.name}
                 value={field.state.value}
-                onBlur={field.handleBlur}
+                onBlur={() => {
+                  field.handleBlur()
+                  void field.validate('change')
+                }}
                 onChange={(event) => field.handleChange(event.target.value)}
                 id="identifier"
                 autoComplete="username"
@@ -144,7 +146,7 @@ export function SignInForm() {
           )}
         </form.Field>
 
-        <form.Field name="password">
+        <form.Field name="password" validators={{ onChange: formSchema.shape.password }}>
           {(field) => (
             <Field>
               <div className="flex items-center justify-between gap-2">
@@ -161,7 +163,10 @@ export function SignInForm() {
               <PasswordInput
                 name={field.name}
                 value={field.state.value}
-                onBlur={field.handleBlur}
+                onBlur={() => {
+                  field.handleBlur()
+                  void field.validate('change')
+                }}
                 onChange={(event) => field.handleChange(event.target.value)}
                 id="password"
                 autoComplete="current-password"
