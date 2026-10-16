@@ -20,9 +20,9 @@ import { DataTableRowActions } from './data-table-row-actions'
 import { UserAvatar } from './user-avatar'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import type { RoleIcon, User } from '@zen/shared'
+import type { RoleIcon, UserListItem } from '@zen/shared'
 
-const columnHelper = createColumnHelper<User>()
+const columnHelper = createColumnHelper<UserListItem>()
 
 export const usersColumns = [
   columnHelper.display({
@@ -183,4 +183,4 @@ export const usersColumns = [
     id: 'actions',
     cell: DataTableRowActions
   })
-] as ColumnDef<User>[]
+] as ColumnDef<UserListItem>[]

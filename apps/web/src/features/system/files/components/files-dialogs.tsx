@@ -1,13 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Label } from '@zen/ui'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, toast } from '@zen/ui'
 import { AlertTriangle } from 'lucide-react'
-import { useState } from 'react'
-import { toast } from 'sonner'
 
-import { PasswordInput } from '@/components'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { FileUploader } from '@/components/file-uploader'
-import { authApi } from '@/features/auth/api'
 
 import { useFiles } from '../files-provider'
 import { useDeleteFileMutation, usePurgeFileMutation, useRestoreFileMutation } from '../mutations'
@@ -31,12 +27,10 @@ export function FilesDialogs({ accept }: { accept?: string }) {
   const deleteFile = useDeleteFileMutation()
   const restoreFile = useRestoreFileMutation()
   const purgeFile = usePurgeFileMutation()
-  const [password, setPassword] = useState('')
 
   const close = () => {
     setOpen(null)
     setCurrentRow(null)
-    setPassword('')
   }
 
   return (
@@ -45,17 +39,23 @@ export function FilesDialogs({ accept }: { accept?: string }) {
         <DialogContent className="min-w-0 sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>上传文件</DialogTitle>
-            <DialogDescription>预签名直传到对象存储，完成后写入文件元数据。</DialogDescription>
+            <DialogDescription>
+              预签名直传到对象存储。内容完全相同的文件会直接复用，不会重复保存。
+            </DialogDescription>
           </DialogHeader>
           <FileUploader
             purpose="attachment"
             accept={accept}
             multiple
-            onSuccess={() => {
-              toast.success('上传成功')
+            onSuccess={(file, outcome) => {
+              if (outcome.deduplicated) {
+                toast.add({ title: `「${file.originalName}」已存在，未重复上传`, type: 'info' })
+                return
+              }
+              toast.add({ title: '上传成功', type: 'success' })
               void queryClient.invalidateQueries({ queryKey: filesQueryKeys.all })
             }}
-            onError={(error) => toast.error(error.message)}
+            onError={(error) => toast.add({ title: error.message, type: 'error' })}
           />
         </DialogContent>
       </Dialog>
@@ -91,11 +91,11 @@ export function FilesDialogs({ accept }: { accept?: string }) {
           handleConfirm={() => {
             deleteFile.mutate(currentRow.id, {
               onSuccess: () => {
-                toast.success('已移入回收站')
+                toast.add({ title: '已移入回收站', type: 'success' })
                 close()
                 closePreview()
               },
-              onError: (error) => toast.error(error.message)
+              onError: (error) => toast.add({ title: error.message, type: 'error' })
             })
           }}
         />
@@ -113,10 +113,10 @@ export function FilesDialogs({ accept }: { accept?: string }) {
           handleConfirm={() => {
             restoreFile.mutate(currentRow.id, {
               onSuccess: () => {
-                toast.success('已恢复')
+                toast.add({ title: '已恢复', type: 'success' })
                 close()
               },
-              onError: (error) => toast.error(error.message)
+              onError: (error) => toast.add({ title: error.message, type: 'error' })
             })
           }}
         />
@@ -132,43 +132,20 @@ export function FilesDialogs({ accept }: { accept?: string }) {
               彻底删除
             </span>
           }
-          desc={
-            <div className="space-y-3">
-              <p>确定彻底删除「{currentRow.originalName}」？不可恢复，需输入登录密码。</p>
-              <Label>
-                登录密码
-                <PasswordInput
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder="输入当前登录密码"
-                />
-              </Label>
-            </div>
-          }
+          desc={`确定彻底删除「${currentRow.originalName}」？此操作不可恢复。`}
           confirmText="彻底删除"
           cancelBtnText="取消"
           destructive
-          disabled={!password}
           isLoading={purgeFile.isPending}
           handleConfirm={() => {
-            void (async () => {
-              try {
-                const { stepUpToken } = await authApi.stepUp({ password })
-                purgeFile.mutate(
-                  { id: currentRow.id, stepUpToken },
-                  {
-                    onSuccess: () => {
-                      toast.success('已彻底删除')
-                      close()
-                      closePreview()
-                    },
-                    onError: (error) => toast.error(error.message)
-                  }
-                )
-              } catch (error) {
-                toast.error(error instanceof Error ? error.message : '二次确认失败')
-              }
-            })()
+            purgeFile.mutate(currentRow.id, {
+              onSuccess: () => {
+                toast.add({ title: '已彻底删除', type: 'success' })
+                close()
+                closePreview()
+              },
+              onError: (error) => toast.add({ title: error.message, type: 'error' })
+            })
           }}
         />
       ) : null}

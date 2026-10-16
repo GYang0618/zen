@@ -1,16 +1,16 @@
-import { toast } from 'sonner'
+import { toast } from '@zen/ui'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { isCurrentUserId, useAccessChangeFeedback } from '@/lib/auth/access-change'
 
 import { useRevokeUserSessionsMutation } from '../mutations'
 
-import type { User } from '@zen/shared'
+import type { UserListItem } from '@zen/shared'
 
 type UsersRevokeSessionsDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  currentRow: User
+  currentRow: UserListItem
 }
 
 export function UsersRevokeSessionsDialog({
@@ -46,7 +46,11 @@ export function UsersRevokeSessionsDialog({
             )
             onOpenChange(false)
           },
-          onError: (error) => toast.error(error instanceof Error ? error.message : '强制下线失败')
+          onError: (error) =>
+            toast.add({
+              title: error instanceof Error ? error.message : '强制下线失败',
+              type: 'error'
+            })
         })
       }}
     />

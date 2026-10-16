@@ -37,7 +37,12 @@ function groupActivities(items: OrganizationActivityItem[]): ActivityGroup[] {
       title: item.title,
       avatar: item.actor.avatar ?? '',
       description: item.description,
-      timestamp: formatFromNow(item.createdAt)
+      timestamp: formatFromNow(item.createdAt),
+      changes: item.diff?.changes?.map((c) => ({
+        label: c.label,
+        from: c.from != null ? String(c.from) : null,
+        to: c.to != null ? String(c.to) : null
+      }))
     })
     groups.set(groupKey, existing)
   }
@@ -92,6 +97,24 @@ export function OrganizationActivity({ organizationId }: { organizationId: strin
                     <TimelineTimestamp>{item.timestamp}</TimelineTimestamp>
                   </TimelineHeader>
                   <TimelineDescription>{item.description}</TimelineDescription>
+                  {item.changes && item.changes.length > 0 ? (
+                    <div className="mt-2 flex flex-col gap-1.5 rounded-lg border bg-muted/20 p-2 text-xs">
+                      {item.changes.map((change, idx) => (
+                        <div key={idx} className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-muted-foreground font-medium">
+                            {change.label}：
+                          </span>
+                          <span className="line-through text-muted-foreground/70 decoration-muted-foreground/40 bg-muted/50 px-1.5 py-0.5 rounded">
+                            {change.from || '无'}
+                          </span>
+                          <span className="text-muted-foreground">➔</span>
+                          <span className="bg-primary/10 text-primary font-medium px-1.5 py-0.5 rounded">
+                            {change.to || '无'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </TimelineContent>
               </TimelineItem>
             ))}

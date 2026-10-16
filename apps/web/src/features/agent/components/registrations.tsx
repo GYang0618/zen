@@ -1,13 +1,19 @@
-import { useUsersTable } from '../generative-ui'
-import { useDefaultToolUi } from '../hooks/use-default-tool-ui'
+import { useUserHumanInTheLoop } from '../hitl'
+import {
+  useDefaultRender,
+  useOrganizationsRenderers,
+  usePostsRenderers,
+  useRolesRenderers,
+  useUsersRenderers
+} from '../renderers'
 import { useAppearanceTool } from '../tools'
 
-/**`
+/**
  * agent共享的生成式UI和前端工具
  */
 export function AgentSharedRegistrations() {
   useAppearanceTool()
-  useDefaultToolUi()
+  useDefaultRender()
   return null
 }
 
@@ -22,6 +28,10 @@ export function PopupChatRegistrations() {
  * Chat模式专属生成式UI和前端工具（智能体模式下）
  */
 export function ChatRegistrations() {
-  useUsersTable()
+  useUsersRenderers()
+  usePostsRenderers()
+  useRolesRenderers()
+  useOrganizationsRenderers()
+  useUserHumanInTheLoop()
   return null
 }

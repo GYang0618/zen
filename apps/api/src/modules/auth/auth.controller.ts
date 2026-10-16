@@ -122,12 +122,6 @@ export class AuthController {
     await this.authService.disableMfa(this.requireUserId(request), body.code)
   }
 
-  @Post('step-up')
-  @HttpCode(HttpStatus.OK)
-  stepUp(@Req() request: Request, @Body() body: { password?: string; mfaCode?: string }) {
-    return this.authService.createStepUpToken(this.requireUserId(request), body)
-  }
-
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('forgot-password')

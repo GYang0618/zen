@@ -1,45 +1,21 @@
-import { createFileRoute, Outlet, redirect, useLocation, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Outlet, redirect, useLocation, useMatches } from '@tanstack/react-router'
 import { cn } from '@zen/ui'
-import { useEffect } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 
 import { AuthenticatedLayout } from '@/components/layouts'
-import { RoutePending } from '@/components/route-pending'
-import { CopilotProvider } from '@/context/copilot-provider'
-import { AgentPopup } from '@/features/agent'
-import { useAgentChatShellStore } from '@/features/agent/stores/agent-chat-shell'
-import { authApi } from '@/features/auth/api'
+import { DefaultSidebar } from '@/components/layouts/default-sidebar'
+import { BootLoading } from '@/components/loading-state'
+import { AgentChat, AgentPopup, AgentSidebar } from '@/features/agent'
+import { ensureAuthenticatedSession } from '@/features/auth/ensure-session'
 import { GeneralError } from '@/features/errors/general-error'
 import { canAccess } from '@/lib/auth/permissions'
-import { isAccessTokenExpiringSoon } from '@/lib/request/jwt-expiry'
-import { isForbidden, isSessionExpired } from '@/lib/request/utils'
-import { isAgentChatPath, useAuthStore, useShellModeStore } from '@/stores'
+import { isAgentChatPath, resolveRouteMode, useAuthStore, useSystemModeStore } from '@/stores'
 
 export const Route = createFileRoute('/_authenticated')({
-  pendingComponent: RoutePending,
+  pendingComponent: BootLoading,
   errorComponent: GeneralError,
-  beforeLoad: async ({ location, matches, context }) => {
-    const existingToken = context.auth.getAccessToken()
-    if (!existingToken || isAccessTokenExpiringSoon(existingToken)) {
-      try {
-        const session = await authApi.refresh()
-        useAuthStore.getState().setAuth(session)
-      } catch (error) {
-        const canContinueWithExisting = Boolean(existingToken) && !isSessionExpired(error)
-        if (!canContinueWithExisting) {
-          if (isForbidden(error)) {
-            throw redirect({
-              to: '/errors/403',
-              replace: true
-            })
-          }
-          throw redirect({
-            to: '/sign-in',
-            search: { redirect: location.href },
-            replace: true
-          })
-        }
-      }
-    }
+  beforeLoad: async ({ location, matches }) => {
+    await ensureAuthenticatedSession(location.href)
 
     if (
       useAuthStore.getState().mustChangePassword &&
@@ -61,44 +37,43 @@ export const Route = createFileRoute('/_authenticated')({
   component: AuthenticatedLayoutComponent
 })
 
-/** 不需要显示 AgentPopup 的页面 */
-function shouldHideAgentPopup(pathname: string): boolean {
-  return isAgentChatPath(pathname)
-}
-
 function AuthenticatedLayoutComponent() {
   const { pathname } = useLocation()
-  const navigate = useNavigate()
-  const mode = useShellModeStore((state) => state.mode)
-  const setMode = useShellModeStore((state) => state.setMode)
-  const setLastAdminPath = useShellModeStore((state) => state.setLastAdminPath)
-  const shouldShowAgentPopup = mode !== 'agent' && !shouldHideAgentPopup(pathname)
+  const routeMode = resolveRouteMode(useMatches())
+  const isAgentMode = routeMode === 'agent'
+  const isAgentPage = isAgentMode && !isAgentChatPath(pathname)
+  const hasVisitedAgent = useRef(isAgentMode)
+  if (isAgentMode) hasVisitedAgent.current = true
 
-  useEffect(() => {
-    if (isAgentChatPath(pathname)) {
-      if (mode !== 'agent') setMode('agent')
+  useLayoutEffect(() => {
+    const store = useSystemModeStore.getState()
+    if (store.mode !== routeMode) store.setMode(routeMode)
+    if (routeMode === 'agent') {
+      store.setLastAgentPath(pathname)
       return
     }
-
-    if (mode === 'agent') {
-      const threadId = useAgentChatShellStore.getState().currentThreadId
-      void (threadId
-        ? navigate({ to: '/chat/$threadId', params: { threadId }, replace: true })
-        : navigate({ to: '/chat', replace: true }))
-      return
-    }
-
-    setLastAdminPath(pathname)
-  }, [mode, navigate, pathname, setLastAdminPath, setMode])
+    store.setLastAdminPath(pathname)
+  }, [pathname, routeMode])
 
   return (
-    <AuthenticatedLayout>
-      <CopilotProvider>
-        <Outlet />
-        <div className={cn(!shouldShowAgentPopup && 'hidden')}>
-          <AgentPopup />
+    <AuthenticatedLayout sidebar={isAgentMode ? <AgentSidebar /> : <DefaultSidebar />}>
+      {hasVisitedAgent.current ? (
+        <div
+          className={cn('flex h-full w-full flex-col overflow-hidden', !isAgentMode && 'hidden')}
+        >
+          {/* 隐藏时关闭 Main fixed，避免 data-layout=fixed 仍触发 SidebarInset 的 h-svh 锁死滚动 */}
+          <AgentChat active={isAgentMode} showRoutePage={isAgentPage} />
         </div>
-      </CopilotProvider>
+      ) : null}
+
+      {/* 智能体页面由对话区的 Outlet 承载，避免和管理后台再挂一份 */}
+      <div className={cn('flex h-full w-full flex-col', isAgentMode && 'hidden')}>
+        {isAgentPage ? null : <Outlet />}
+      </div>
+
+      <div className={cn(isAgentMode && 'hidden')}>
+        <AgentPopup />
+      </div>
     </AuthenticatedLayout>
   )
 }

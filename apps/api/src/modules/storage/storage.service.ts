@@ -7,6 +7,7 @@ import {
   Injectable,
   NotFoundException
 } from '@nestjs/common'
+import { Prisma } from '@prisma/client'
 import {
   DEFAULT_PAGE,
   DEFAULT_PAGE_SIZE,
@@ -29,6 +30,7 @@ import { getStoragePolicy, isMimeAllowed, STORAGE_POLICIES } from './storage.pol
 import { StorageRepository } from './storage.repository.js'
 import { buildStorageKey } from './storage-key.js'
 
+import type { FileAsset as FileAssetRow } from '@prisma/client'
 import type {
   AuthContext,
   CreateUploadIntent,
@@ -41,6 +43,12 @@ import type {
 } from '@zen/shared'
 import type { StorageConfig } from '../../config/index.js'
 import type { ObjectStoragePort } from '../../infra/storage/index.js'
+
+const ACTIVE_UPLOAD_STATUSES = new Set(['pending', 'uploaded'])
+
+function isUniqueViolation(error: unknown) {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002'
+}
 
 const JPEG_TRANSFORM_MAX_BYTES = 8 * 1024 * 1024
 
@@ -82,6 +90,45 @@ export class StorageService {
       }
     }
 
+    const checksum = input.checksum?.toLowerCase()
+    const organizationId = input.organizationId ?? null
+    if (checksum) {
+      const reused = await this.reuseByChecksum({
+        tenantId,
+        ownerId: auth.userId,
+        purpose,
+        organizationId,
+        checksum,
+        size: input.size
+      })
+      if (reused) return reused
+    }
+
+    try {
+      return await this.persistIntent(input, auth, tenantId, purpose, checksum)
+    } catch (error) {
+      if (!checksum || !isUniqueViolation(error)) throw error
+      const reused = await this.reuseByChecksum({
+        tenantId,
+        ownerId: auth.userId,
+        purpose,
+        organizationId,
+        checksum,
+        size: input.size
+      })
+      if (reused) return reused
+      throw error
+    }
+  }
+
+  private async persistIntent(
+    input: CreateUploadIntent,
+    auth: AuthContext,
+    tenantId: string,
+    purpose: FilePurpose,
+    checksum: string | undefined
+  ): Promise<UploadIntent> {
+    const policy = getStoragePolicy(purpose)
     const fileId = randomUUID().replaceAll('-', '').slice(0, 24)
     const storageKey = buildStorageKey({
       tenantId,
@@ -110,7 +157,8 @@ export class StorageService {
           originalName: input.originalName
         }),
         size: input.size,
-        sha256: input.checksum?.toLowerCase() ?? null,
+        sha256: checksum ?? null,
+        sourceSha256: checksum ?? null,
         provider: 's3',
         storageKey,
         expiresAt: fileExpiresAt
@@ -199,6 +247,21 @@ export class StorageService {
     }
 
     const mime = detectedMime ?? row.declaredMime
+    if (sha256) {
+      const duplicate = await this.repo.findReadyByObjectHash({
+        tenantId,
+        ownerId: row.ownerId,
+        purpose: row.purpose,
+        organizationId: row.organizationId,
+        sha256,
+        excludeId: row.id
+      })
+      if (duplicate) {
+        const kept = await this.keepExistingObject(row, session, duplicate)
+        return toFileAssetDto(kept)
+      }
+    }
+
     const updated = await this.repo.update(row.id, {
       status: 'ready',
       detectedMime,
@@ -390,6 +453,86 @@ export class StorageService {
     const row = await this.repo.findById(tenantId, fileId, applyFileDataScope(auth))
     if (!row) throw new NotFoundException('文件不存在')
     return row
+  }
+
+  private async reuseByChecksum(input: {
+    tenantId: string
+    ownerId: string
+    purpose: FilePurpose
+    organizationId: string | null
+    checksum: string
+    size: number
+  }): Promise<UploadIntent | null> {
+    const existing = await this.repo.findActiveBySourceChecksum({
+      tenantId: input.tenantId,
+      ownerId: input.ownerId,
+      purpose: input.purpose,
+      organizationId: input.organizationId,
+      sourceSha256: input.checksum,
+      size: input.size
+    })
+    if (!existing) return null
+    if (existing.status === 'ready') {
+      await this.audit.write({
+        action: 'storage.upload.deduplicated',
+        resource: 'file_asset',
+        resourceId: existing.id,
+        diff: { checksum: input.checksum, size: input.size }
+      })
+      return this.toDeduplicatedIntent(existing)
+    }
+
+    const session = existing.sessions[0]
+    const reusable =
+      ACTIVE_UPLOAD_STATUSES.has(existing.status) &&
+      session?.status === 'pending' &&
+      session.expiresAt.getTime() > Date.now()
+    if (reusable && session) return this.toIntent(existing, session)
+
+    await this.objectStorage.delete(existing.storageKey).catch(() => undefined)
+    await this.repo.update(existing.id, { status: 'purged', deletedAt: new Date() })
+    if (session) await this.repo.updateSession(session.id, { status: 'aborted' })
+    return null
+  }
+
+  private async keepExistingObject(
+    incoming: { id: string; storageKey: string; sourceSha256: string | null },
+    session: { id: string } | undefined,
+    existing: FileAssetRow
+  ) {
+    await this.objectStorage.delete(incoming.storageKey).catch(() => undefined)
+    await this.repo.update(incoming.id, { status: 'purged', deletedAt: new Date() })
+    if (session) await this.repo.updateSession(session.id, { status: 'aborted' })
+
+    let kept = existing
+    if (incoming.sourceSha256 && !existing.sourceSha256) {
+      try {
+        kept = await this.repo.update(existing.id, { sourceSha256: incoming.sourceSha256 })
+      } catch (error) {
+        if (!isUniqueViolation(error)) throw error
+      }
+    }
+
+    await this.audit.write({
+      action: 'storage.upload.deduplicated',
+      resource: 'file_asset',
+      resourceId: existing.id,
+      diff: { discardedFileId: incoming.id }
+    })
+    return kept
+  }
+
+  private toDeduplicatedIntent(file: FileAssetRow): UploadIntent {
+    return {
+      fileId: file.id,
+      sessionId: file.id,
+      method: 'PUT',
+      uploadUrl: '',
+      headers: {},
+      expiresAt: file.updatedAt.toISOString(),
+      deduplicated: true,
+      file: toFileAssetDto(file)
+    }
   }
 
   private async toIntent(

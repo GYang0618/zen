@@ -5,6 +5,7 @@ import type {
   copilotApprovalStatusSchema,
   copilotArtifactSchema,
   copilotCheckpointSchema,
+  copilotDisplayMessageRoleSchema,
   copilotEvaluationSchema,
   copilotEventPageSchema,
   copilotMemorySchema,
@@ -31,6 +32,7 @@ export type CopilotRunEvent = z.infer<typeof copilotRunEventSchema>
 export type CopilotRun = z.infer<typeof copilotRunSchema>
 export type CopilotTurn = z.infer<typeof copilotTurnSchema>
 export type CopilotMessageRole = z.infer<typeof copilotMessageRoleSchema>
+export type CopilotDisplayMessageRole = z.infer<typeof copilotDisplayMessageRoleSchema>
 export type CopilotMessage = z.infer<typeof copilotMessageSchema>
 export type CopilotToolCallStatus = z.infer<typeof copilotToolCallStatusSchema>
 export type CopilotToolCall = z.infer<typeof copilotToolCallSchema>

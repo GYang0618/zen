@@ -2,6 +2,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "streamdown/styles.css";
 @import "./theme.css";
 @import "./themes/base/index.css";
 @import "./themes/accent/index.css";

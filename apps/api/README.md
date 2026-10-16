@@ -45,7 +45,7 @@ MinIO（Bitnami 镜像，数据布局与 `bitnamicharts/minio` 一致）：
 
 - API: `http://127.0.0.1:9000`
 - Console: `http://127.0.0.1:9001`（`zen` / `zenminio_secret`）
-- 本地映射：`data/minio` → `/bitnami/minio/data`
+- 数据卷：`zen_minio_data` → `/bitnami/minio/data`
 - `restart: unless-stopped`：Docker Desktop 启动后会自动拉起 Postgres 与 MinIO
 
 默认数据库参数（容器 `zen-postgres`，已与 `.env.example` 对齐）：

@@ -12,13 +12,20 @@ import type {
   updateUserSchema,
   updateUsersStatusSchema,
   userGenderSchema,
+  userListItemSchema,
   userMfaTypeSchema,
+  userOrganizationListPreviewSchema,
   userOrganizationMembershipSchema,
+  userRoleListPreviewSchema,
   userRolePreviewSchema,
   userSchema,
+  userStatisticsQuerySchema,
+  userStatisticsSchema,
+  userStatisticsToolSchema,
   userStatusSchema,
   usersPageSchema,
   usersQuerySchema,
+  usersQueryToolSchema,
   usersSortBySchema,
   usersSortOrderSchema
 } from './user.schema.js'
@@ -27,8 +34,11 @@ export type UserStatus = z.infer<typeof userStatusSchema>
 export type UserGender = z.infer<typeof userGenderSchema>
 export type UserMfaType = z.infer<typeof userMfaTypeSchema>
 export type UserRolePreview = z.infer<typeof userRolePreviewSchema>
+export type UserRoleListPreview = z.infer<typeof userRoleListPreviewSchema>
 export type UserOrganizationMembership = z.infer<typeof userOrganizationMembershipSchema>
+export type UserOrganizationListPreview = z.infer<typeof userOrganizationListPreviewSchema>
 export type User = z.infer<typeof userSchema>
+export type UserListItem = z.infer<typeof userListItemSchema>
 export type CreateUser = z.infer<typeof createUserSchema>
 export type CreateUserResult = z.infer<typeof createUserResultSchema>
 export type UpdateUser = z.infer<typeof updateUserSchema>
@@ -44,3 +54,7 @@ export type UsersQuery = z.input<typeof usersQuerySchema>
 export type UsersPage = z.infer<typeof usersPageSchema>
 export type UsersSortBy = z.infer<typeof usersSortBySchema>
 export type UsersSortOrder = z.infer<typeof usersSortOrderSchema>
+export type UsersQueryTool = z.input<typeof usersQueryToolSchema>
+export type UserStatisticsResponse = z.infer<typeof userStatisticsSchema>
+export type UserStatisticsQuery = z.input<typeof userStatisticsQuerySchema>
+export type UserStatisticsTool = z.input<typeof userStatisticsToolSchema>

@@ -5,6 +5,7 @@ import type {
   FindJobProfilesQuery,
   JobProfile,
   JobProfileDetail,
+  JobProfileListItem,
   LinkOrganizationPosition,
   Position,
   UpdateJobProfile,
@@ -14,7 +15,7 @@ import type { PaginationResponse } from '@/lib/request'
 
 export const postApi = {
   getList: (params?: FindJobProfilesQuery) =>
-    request.get<PaginationResponse<JobProfile>>('/posts', { params }),
+    request.get<PaginationResponse<JobProfileListItem>>('/posts', { params }),
 
   getById: (id: string) => request.get<JobProfileDetail>(`/posts/${id}`),
 

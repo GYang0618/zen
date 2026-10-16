@@ -1,4 +1,7 @@
+export { UsersCard, UsersCard as UserCard } from './components/users-card'
 export { usersColumns as columns } from './components/users-columns'
+export { UsersDialogs } from './components/users-dialogs'
 export { useUsersQuery } from './queries'
 export { UserDetail } from './user-detail'
 export { Users } from './users'
+export { UsersProvider, useUsers } from './users-provider'

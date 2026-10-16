@@ -21,7 +21,7 @@ import { isCurrentUserId, useAccessChangeFeedback } from '@/lib/auth/access-chan
 
 import { useAdminResetPasswordMutation } from '../mutations'
 
-import type { User } from '@zen/shared'
+import type { UserListItem } from '@zen/shared'
 
 const resetPasswordFormSchema = z
   .object({
@@ -43,7 +43,7 @@ const resetPasswordFormSchema = z
 type ResetPasswordFormValues = z.infer<typeof resetPasswordFormSchema>
 
 type UsersResetPasswordDialogProps = {
-  currentRow: User
+  currentRow: UserListItem
   open: boolean
   onOpenChange: (open: boolean) => void
 }

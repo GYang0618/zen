@@ -6,7 +6,7 @@ import { CONFIG_NAMESPACES } from '../../config/index.js'
 import type { JwtSignOptions } from '@nestjs/jwt'
 import type { AuthConfig } from '../../config/index.js'
 
-export type JwtTokenType = 'access' | 'refresh' | 'mfa' | 'step-up'
+export type JwtTokenType = 'access' | 'refresh' | 'mfa'
 
 export interface JwtTokenPayload {
   sub: string
@@ -45,10 +45,6 @@ export class AuthTokenService {
 
   signMfaChallenge(userId: string, email: string): string {
     return this.signToken({ sub: userId, email, typ: 'mfa' }, '5m')
-  }
-
-  signStepUp(userId: string, email: string, purpose = 'sensitive'): string {
-    return this.signToken({ sub: userId, email, typ: 'step-up', purpose }, '3m')
   }
 
   async verifyRefreshToken(token: string): Promise<JwtTokenPayload> {

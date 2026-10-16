@@ -14,3 +14,7 @@ export {
   UserListItemSwaggerDto,
   UserListSuccessSwaggerDto
 } from './user.swagger.response.js'
+export {
+  UserStatisticsSuccessSwaggerDto,
+  UserStatisticsSwaggerDto
+} from './user-statistics.swagger.js'

@@ -21,11 +21,11 @@ import { preventSelectionNavigation, toggleListItemFromCardClick } from '@/hooks
 import { getRoleIconColorClassName, roleEffectiveStatusConfig } from '../data/data'
 import { RolesRowActions } from './roles-row-actions'
 
-import type { Role, RoleIcon } from '@zen/shared'
+import type { RoleIcon, RoleListItem } from '@zen/shared'
 import type { ListSelectionActionProps } from '@/hooks'
 
 type RolesCardProps = ListSelectionActionProps & {
-  role: Role
+  role: RoleListItem
 }
 
 export function RolesCard({

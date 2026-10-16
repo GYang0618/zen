@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { toolCallMetaSchema } from '../../agent/tool-meta.schema.js'
 import { paged, pageQuerySchema } from '../pagination/index.js'
 
 const idSchema = z.string().trim().min(1)
@@ -158,6 +159,11 @@ export const jobProfileSchema = z.object({
   updatedAt: dateTimeSchema
 })
 
+/** 岗位目录列表行：不含创建时间等次要字段 */
+export const jobProfileListItemSchema = jobProfileSchema.omit({
+  createdAt: true
+})
+
 export const jobProfileDetailSchema = jobProfileSchema.extend({
   organizations: z.array(jobProfileOrganizationLinkSchema)
 })
@@ -198,6 +204,18 @@ export const updateOrganizationPositionSchema = z
   })
   .strict()
 
+export const positionRoleSummarySchema = z.object({
+  id: z.string(),
+  code: z.string(),
+  name: z.string()
+})
+
+export const updatePositionRolesSchema = z
+  .object({
+    roleIds: z.array(idSchema).describe('要绑定的角色 ID 列表')
+  })
+  .strict()
+
 export const positionSchema = z.object({
   id: z.string(),
   jobProfileId: z.string(),
@@ -214,6 +232,7 @@ export const positionSchema = z.object({
     .max(POSITION_MEMBER_PREVIEW_LIMIT)
     .describe(`最近添加的在岗人员，最多 ${POSITION_MEMBER_PREVIEW_LIMIT} 人`),
   status: organizationPositionStatusSchema,
+  roles: z.array(positionRoleSummarySchema).default([]),
   createdAt: dateTimeSchema,
   updatedAt: dateTimeSchema
 })
@@ -227,14 +246,65 @@ export type CreateJobProfile = z.infer<typeof createJobProfileSchema>
 export type UpdateJobProfile = z.infer<typeof updateJobProfileSchema>
 export type FindJobProfilesQuery = z.infer<typeof findJobProfilesQuerySchema>
 export type JobProfile = z.infer<typeof jobProfileSchema>
+export type JobProfileListItem = z.infer<typeof jobProfileListItemSchema>
 export type JobProfileDetail = z.infer<typeof jobProfileDetailSchema>
 export type JobProfileOrganizationLink = z.infer<typeof jobProfileOrganizationLinkSchema>
 export type LinkOrganizationPosition = z.infer<typeof linkOrganizationPositionSchema>
 /** @deprecated 使用 LinkOrganizationPosition */
 export type CreatePosition = LinkOrganizationPosition
 export type UpdateOrganizationPosition = z.infer<typeof updateOrganizationPositionSchema>
+export type UpdatePositionRoles = z.infer<typeof updatePositionRolesSchema>
+export type PositionRoleSummary = z.infer<typeof positionRoleSummarySchema>
 export type PositionMemberPreview = z.infer<typeof positionMemberPreviewSchema>
 export type Position = z.infer<typeof positionSchema>
 
-export const jobProfilesPageSchema = paged(jobProfileSchema)
+export const jobProfilesPageSchema = paged(jobProfileListItemSchema)
 export type JobProfilesPage = z.infer<typeof jobProfilesPageSchema>
+
+export const jobProfilesQueryToolSchema = toolCallMetaSchema.extend(
+  findJobProfilesQuerySchema.shape
+)
+export type JobProfilesQueryTool = z.infer<typeof jobProfilesQueryToolSchema>
+
+export const postStatisticsQuerySchema = z.object({
+  organizationId: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe('按组织 ID 筛选岗位编制统计范围；不传则统计全局编制')
+})
+
+export const postStatisticsSchema = z.object({
+  profiles: z.object({
+    total: z.number().int().nonnegative().describe('岗位目录总数'),
+    active: z.number().int().nonnegative().describe('启用状态岗位数'),
+    disabled: z.number().int().nonnegative().describe('停用状态岗位数'),
+    byLevel: z.record(z.string(), z.number().int().nonnegative()).describe('按职级分布统计'),
+    byFamily: z
+      .array(
+        z.object({
+          family: z.string().describe('岗位族名称'),
+          count: z.number().int().nonnegative().describe('岗位数量')
+        })
+      )
+      .describe('按岗位族分布统计')
+  }),
+  positions: z.object({
+    totalCount: z.number().int().nonnegative().describe('组织编制项总数'),
+    activeCount: z.number().int().nonnegative().describe('启用状态编制数'),
+    frozenCount: z.number().int().nonnegative().describe('冻结状态编制数'),
+    totalPlanHeadcount: z.number().int().nonnegative().describe('规划编制总人数'),
+    totalActualHeadcount: z.number().int().nonnegative().describe('实际在岗总人次'),
+    understaffedCount: z.number().int().nonnegative().describe('缺编编制项数（在岗 < 编制）'),
+    fullCount: z.number().int().nonnegative().describe('满编编制项数（在岗 = 编制）'),
+    overstaffedCount: z.number().int().nonnegative().describe('超编编制项数（在岗 > 编制）'),
+    vacantCount: z.number().int().nonnegative().describe('完全空缺编制项数（在岗 = 0）')
+  })
+})
+
+export const postStatisticsToolSchema = toolCallMetaSchema.extend(postStatisticsQuerySchema.shape)
+
+export type PostStatisticsQuery = z.input<typeof postStatisticsQuerySchema>
+export type PostStatisticsResponse = z.infer<typeof postStatisticsSchema>
+export type PostStatisticsTool = z.input<typeof postStatisticsToolSchema>

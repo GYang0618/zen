@@ -1,4 +1,4 @@
-import { toast } from 'sonner'
+import { toast } from '@zen/ui'
 
 import { storageApi } from './api'
 
@@ -9,6 +9,6 @@ export async function downloadFile(file: Pick<FileAsset, 'id'>) {
     const { url } = await storageApi.getUrl(file.id, 'attachment')
     window.open(url, '_blank', 'noopener,noreferrer')
   } catch (error) {
-    toast.error(error instanceof Error ? error.message : '无法下载文件')
+    toast.add({ title: error instanceof Error ? error.message : '无法下载文件', type: 'error' })
   }
 }

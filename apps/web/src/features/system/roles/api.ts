@@ -9,6 +9,7 @@ import type {
   DeleteRoles,
   PermissionGroup,
   Role,
+  RoleListItem,
   RoleMember,
   RolesQuery,
   UpdateRole
@@ -16,7 +17,8 @@ import type {
 import type { PaginationResponse } from '@/lib/request'
 
 export const roleApi = {
-  getRoleList: (params?: RolesQuery) => request.get<PaginationResponse<Role>>('/role', { params }),
+  getRoleList: (params?: RolesQuery) =>
+    request.get<PaginationResponse<RoleListItem>>('/role', { params }),
 
   getRoleById: (id: string) => request.get<Role>(`/role/${id}`),
 

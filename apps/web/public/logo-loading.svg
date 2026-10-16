@@ -1,0 +1,43 @@
+<svg viewBox="0 0 24 24" width="24" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    @keyframes zen-core-breathe {
+      0%, 100% { opacity: 0.05; transform: scale(0.94); }
+      45%, 60% { opacity: 0.18; transform: scale(1); }
+    }
+    @keyframes zen-beam-flow {
+      0% { stroke-dashoffset: 100; }
+      45%, 58% { stroke-dashoffset: 0; }
+      100% { stroke-dashoffset: -100; }
+    }
+    .zen-core {
+      transform-origin: 12px 12px;
+      animation: zen-core-breathe 2.67s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+    .zen-beam {
+      stroke-dasharray: 100 100;
+      stroke-dashoffset: 100;
+      animation: zen-beam-flow 2.67s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .zen-core,
+      .zen-beam {
+        animation: none;
+      }
+      .zen-core {
+        opacity: 0.12;
+      }
+      .zen-beam {
+        stroke-dasharray: none;
+        stroke-dashoffset: 0;
+      }
+    }
+  </style>
+  <!-- 静态精密导轨层 -->
+  <path d="M1.6 15.2V5.6C1.6 3.39086 3.39086 1.6 5.6 1.6H19.6L4.4 16.8" stroke="currentColor" stroke-opacity="0.14" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M22.4 8.8V18.4C22.4 20.6091 20.6091 22.4 18.4 22.4H4.4L19.6 7.2" stroke="currentColor" stroke-opacity="0.14" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- 结构化建筑暗面层 -->
+  <path class="zen-core" d="M1 6.2C1 3.328 3.328 1 6.2 1H18.8L6.2 13.6H17.8C20.672 13.6 23 15.928 23 18.8C23 21.672 20.672 23 17.8 23H5.2L17.8 10.4H6.2C3.328 10.4 1 8.52 1 6.2Z" fill="currentColor" />
+  <!-- 左上与右下莫比乌斯主梁 -->
+  <path class="zen-beam" pathLength="100" d="M1.6 15.2V5.6C1.6 3.39086 3.39086 1.6 5.6 1.6H19.6L4.4 16.8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+  <path class="zen-beam" pathLength="100" d="M22.4 8.8V18.4C22.4 20.6091 20.6091 22.4 18.4 22.4H4.4L19.6 7.2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

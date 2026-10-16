@@ -9,11 +9,11 @@ import {
   FieldGroup,
   FieldLabel,
   FieldSeparator,
-  Input
+  Input,
+  toast
 } from '@zen/ui'
 import { Loader2, LogIn } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { PasswordInput } from '@/components'
@@ -29,7 +29,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>
 
 export function SignInForm() {
-  const { mutate: signIn, isPending, error } = useSignInMutation()
+  const { mutate: signIn, isPending } = useSignInMutation()
   const verifyMfa = useVerifyMfaMutation()
   const navigate = useNavigate()
   const search = useSearch({ from: '/(auth)/sign-in' })
@@ -40,7 +40,6 @@ export function SignInForm() {
       identifier: '',
       password: ''
     } as FormValues,
-    validators: { onChange: formSchema },
     onSubmit: async ({ value }) => {
       await onSubmit(formSchema.parse(value))
     }
@@ -50,9 +49,10 @@ export function SignInForm() {
     mustChangePassword?: boolean
     user: { nickname: string | null; username: string }
   }) => {
-    toast.success(`欢迎回来，${session.user.nickname || session.user.username}👋🎉`, {
-      duration: 2000,
-      position: 'top-center'
+    toast.add({
+      title: `欢迎回来，${session.user.nickname || session.user.username}👋🎉`,
+      type: 'success',
+      timeout: 2000
     })
     if (session.mustChangePassword) {
       navigate({ to: '/change-password', replace: true })
@@ -70,7 +70,7 @@ export function SignInForm() {
       onSuccess: (result) => {
         if (isAuthMfaChallenge(result)) {
           setMfaToken(result.mfaToken)
-          toast.message('请输入 MFA 验证码')
+          toast.add({ title: '请输入 MFA 验证码' })
           return
         }
         finishLogin(result)
@@ -81,16 +81,9 @@ export function SignInForm() {
   if (mfaToken) {
     return (
       <form
-        className="p-6 md:p-8"
         onSubmit={(event) => {
           event.preventDefault()
-          verifyMfa.mutate(
-            { mfaToken, code: mfaCode.trim() },
-            {
-              onSuccess: finishLogin,
-              onError: (err) => toast.error(err.message || '验证失败')
-            }
-          )
+          verifyMfa.mutate({ mfaToken, code: mfaCode.trim() }, { onSuccess: finishLogin })
         }}
       >
         <FieldGroup>
@@ -123,7 +116,6 @@ export function SignInForm() {
 
   return (
     <form
-      className="p-6 md:p-8"
       onSubmit={(event) => {
         event.preventDefault()
         event.stopPropagation()
@@ -131,25 +123,17 @@ export function SignInForm() {
       }}
     >
       <FieldGroup>
-        <div className="flex flex-col items-center gap-2 text-center">
-          <h1 className="text-2xl font-bold">欢迎回来👏</h1>
-          <div className="text-balance text-muted-foreground">
-            {error?.message ? (
-              <FieldError errors={[{ message: error.message }]}></FieldError>
-            ) : (
-              '登录你的 Zen Admin 账户'
-            )}
-          </div>
-        </div>
-
-        <form.Field name="identifier">
+        <form.Field name="identifier" validators={{ onChange: formSchema.shape.identifier }}>
           {(field) => (
             <Field>
               <FieldLabel htmlFor="identifier">账号</FieldLabel>
               <Input
                 name={field.name}
                 value={field.state.value}
-                onBlur={field.handleBlur}
+                onBlur={() => {
+                  field.handleBlur()
+                  void field.validate('change')
+                }}
                 onChange={(event) => field.handleChange(event.target.value)}
                 id="identifier"
                 autoComplete="username"
@@ -162,19 +146,27 @@ export function SignInForm() {
           )}
         </form.Field>
 
-        <form.Field name="password">
+        <form.Field name="password" validators={{ onChange: formSchema.shape.password }}>
           {(field) => (
             <Field>
               <div className="flex items-center justify-between gap-2">
                 <FieldLabel htmlFor="password">密码</FieldLabel>
-                <Link to="/forgot-password" className="text-xs text-muted-foreground underline">
+                <Button
+                  size="sm"
+                  variant="link"
+                  className="text-muted-foreground"
+                  onClick={() => navigate({ to: '/forgot-password' })}
+                >
                   忘记密码？
-                </Link>
+                </Button>
               </div>
               <PasswordInput
                 name={field.name}
                 value={field.state.value}
-                onBlur={field.handleBlur}
+                onBlur={() => {
+                  field.handleBlur()
+                  void field.validate('change')
+                }}
                 onChange={(event) => field.handleChange(event.target.value)}
                 id="password"
                 autoComplete="current-password"

@@ -4,18 +4,17 @@ import {
   copilotToolResultSchema,
   DEFAULT_AGENT_GRAPH_ID,
   DEFAULT_AGENT_RUN_BUDGET,
-  defaultAgentRunBudgetSchema
+  defaultAgentRunBudgetSchema,
+  PAGE_AGENT_GRAPH_ID
 } from '@zen/shared'
 
-import { defaultAgent, planAgent } from './agents.js'
+import { defaultAgent, pageAgent } from './agents.js'
 
 describe('Copilot agent registration', () => {
   it('default agent 使用 default_agent 和统一运行预算', () => {
     const agent = defaultAgent({
       deploymentUrl: 'http://langgraph.test',
-      accessToken: 'token',
-      activePluginIds: ['demo-notes'],
-      runId: 'run-1'
+      accessToken: 'token'
     })
 
     expect(agent.graphId).toBe(DEFAULT_AGENT_GRAPH_ID)
@@ -23,8 +22,6 @@ describe('Copilot agent registration', () => {
       recursion_limit: DEFAULT_AGENT_RUN_BUDGET.recursionLimit,
       configurable: {
         accessToken: 'token',
-        activeAgentPlugins: ['demo-notes'],
-        agentRunId: 'run-1',
         locale: 'zh-CN',
         permissions: [],
         modelMetadata: {
@@ -34,25 +31,10 @@ describe('Copilot agent registration', () => {
     })
   })
 
-  it('HITL 通过后把 step-up 令牌注入 configurable', () => {
-    const agent = defaultAgent({
-      deploymentUrl: 'http://langgraph.test',
-      accessToken: 'token',
-      stepUpToken: 'step-up-1'
-    })
+  it('页面辅助 agent 不注入 Default Agent 运行预算', () => {
+    const agent = pageAgent({ deploymentUrl: 'http://langgraph.test' })
 
-    expect(agent.assistantConfig).toMatchObject({
-      configurable: {
-        accessToken: 'token',
-        stepUpToken: 'step-up-1'
-      }
-    })
-  })
-
-  it('Popup 的 plan agent 不注入 Default Agent 运行预算或用户 token', () => {
-    const agent = planAgent({ deploymentUrl: 'http://langgraph.test' })
-
-    expect(agent.graphId).toBe('plan_agent')
+    expect(agent.graphId).toBe(PAGE_AGENT_GRAPH_ID)
     expect(agent.assistantConfig).toBeUndefined()
   })
 })

@@ -1,22 +1,22 @@
 import { useDialogState } from '@zen/ui'
 import { createContext, useContext, useState } from 'react'
 
-import type { Role } from '@zen/shared'
+import type { RoleListItem } from '@zen/shared'
 
 type RolesDialogType = 'add' | 'edit' | 'delete' | 'clone'
 
 type RolesContextType = {
   open: RolesDialogType | null
   setOpen: (str: RolesDialogType | null) => void
-  currentRow: Role | null
-  setCurrentRow: React.Dispatch<React.SetStateAction<Role | null>>
+  currentRow: RoleListItem | null
+  setCurrentRow: React.Dispatch<React.SetStateAction<RoleListItem | null>>
 }
 
 const RolesContext = createContext<RolesContextType | null>(null)
 
 export function RolesProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useDialogState<RolesDialogType>(null)
-  const [currentRow, setCurrentRow] = useState<Role | null>(null)
+  const [currentRow, setCurrentRow] = useState<RoleListItem | null>(null)
 
   return (
     <RolesContext

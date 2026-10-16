@@ -6,11 +6,11 @@ import {
   SheetDescription,
   SheetFooter,
   SheetHeader,
-  SheetTitle
+  SheetTitle,
+  toast
 } from '@zen/ui'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { toast } from 'sonner'
 
 import { Can } from '@/components/auth/can'
 import { ConfirmDialog } from '@/components/confirm-dialog'
@@ -138,7 +138,7 @@ export function AssignUserOrganizationsDialog({
       notifyAccessChange(user.id, '组织归属已更新')
       onOpenChange(false)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : '更新组织失败')
+      toast.add({ title: error instanceof Error ? error.message : '更新组织失败', type: 'error' })
     }
   }
 

@@ -19,11 +19,11 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
-  InputGroupInput
+  InputGroupInput,
+  toast
 } from '@zen/ui'
 import { Copy, Loader2, ShieldCheck, ShieldOff } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
 
 import {
   useDisableMfaMutation,
@@ -62,7 +62,7 @@ export function MfaSection() {
   const handleCopySecret = () => {
     if (setupMfa.data?.secret) {
       void navigator.clipboard.writeText(setupMfa.data.secret)
-      toast.info('密钥已复制')
+      toast.add({ title: '密钥已复制', type: 'info' })
     }
   }
 

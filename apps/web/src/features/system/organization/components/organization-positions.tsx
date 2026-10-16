@@ -36,6 +36,7 @@ import {
   PanelsTopLeft,
   Plus,
   Search,
+  ShieldCheck,
   Unlink
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -46,6 +47,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { useOrganizationPositions, useRemoveOrganizationPosition } from '../queries'
 import { formatPositionLevel } from '../utils'
 import { OrganizationCreatePositionDialog } from './organization-create-position-dialog'
+import { OrganizationPositionRolesDialog } from './organization-position-roles-dialog'
 
 import type { Position } from '../type'
 
@@ -69,6 +71,7 @@ export function OrganizationPositions({ organizationId }: OrganizationPositionsP
   const [keyword, setKeyword] = useState('')
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [unlinkTarget, setUnlinkTarget] = useState<Position | null>(null)
+  const [rolesTarget, setRolesTarget] = useState<Position | null>(null)
 
   const filteredPositions = useMemo(
     () => positions.filter((position) => matchesPosition(position, keyword)),
@@ -105,6 +108,7 @@ export function OrganizationPositions({ organizationId }: OrganizationPositionsP
               key={position.id}
               position={position}
               onUnlink={() => setUnlinkTarget(position)}
+              onEditRoles={() => setRolesTarget(position)}
             />
           ))}
         </div>
@@ -146,6 +150,15 @@ export function OrganizationPositions({ organizationId }: OrganizationPositionsP
           if (!open) setUnlinkTarget(null)
         }}
       />
+
+      <OrganizationPositionRolesDialog
+        open={Boolean(rolesTarget)}
+        onOpenChange={(open) => {
+          if (!open) setRolesTarget(null)
+        }}
+        organizationId={organizationId}
+        position={rolesTarget}
+      />
     </div>
   )
 }
@@ -153,9 +166,10 @@ export function OrganizationPositions({ organizationId }: OrganizationPositionsP
 type PositionCardProps = {
   position: Position
   onUnlink: () => void
+  onEditRoles: () => void
 }
 
-function PositionCard({ position, onUnlink }: PositionCardProps) {
+function PositionCard({ position, onUnlink, onEditRoles }: PositionCardProps) {
   const vacancy = Math.max(position.headcount - position.activeCount, 0)
   const fillRate =
     position.headcount > 0 ? Math.round((position.activeCount / position.headcount) * 100) : 0
@@ -190,6 +204,10 @@ function PositionCard({ position, onUnlink }: PositionCardProps) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-36">
                   <DropdownMenuGroup>
+                    <DropdownMenuItem onClick={onEditRoles}>
+                      <ShieldCheck className="size-4" />
+                      配置基准角色
+                    </DropdownMenuItem>
                     <DropdownMenuItem variant="destructive" onClick={onUnlink}>
                       <Unlink />
                       取消关联
@@ -207,6 +225,19 @@ function PositionCard({ position, onUnlink }: PositionCardProps) {
         <p className="mt-3 line-clamp-2 min-h-10 text-sm leading-5 text-muted-foreground">
           {position.description || '暂无描述'}
         </p>
+        {position.roles && position.roles.length > 0 ? (
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+              <ShieldCheck className="size-3 text-primary" />
+              基准角色:
+            </span>
+            {position.roles.map((r) => (
+              <Badge key={r.id} variant="secondary" className="h-4 px-1.5 py-0 text-[10px]">
+                {r.name}
+              </Badge>
+            ))}
+          </div>
+        ) : null}
         <div className="mt-2 flex min-h-8 items-center justify-between gap-3">
           <span className="flex items-center gap-2 text-muted-foreground" title="最后更新时间">
             <CalendarDays className="size-4" aria-hidden />

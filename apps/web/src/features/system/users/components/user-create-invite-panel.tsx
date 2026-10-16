@@ -11,11 +11,11 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
-  InputGroupInput
+  InputGroupInput,
+  toast
 } from '@zen/ui'
 import { Copy, Loader2, Mail, MailCheck } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import { PasswordInput } from '@/components'
 import {
@@ -37,9 +37,9 @@ type UserCreateInvitePanelProps = {
 async function copyText(value: string, successLabel: string) {
   try {
     await navigator.clipboard.writeText(value)
-    toast.success(`已复制${successLabel}`)
+    toast.add({ title: `已复制${successLabel}`, type: 'success' })
   } catch {
-    toast.error('复制失败，请手动选择')
+    toast.add({ title: '复制失败，请手动选择', type: 'error' })
   }
 }
 
@@ -57,10 +57,10 @@ export function UserCreateInvitePanel({ result }: UserCreateInvitePanelProps) {
     try {
       await sendMockUserInviteEmail()
       setInviteStatus('sent')
-      toast.success('邀请邮件已模拟发送')
+      toast.add({ title: '邀请邮件已模拟发送', type: 'success' })
     } catch {
       setInviteStatus('idle')
-      toast.error('模拟发送失败，请重试')
+      toast.add({ title: '模拟发送失败，请重试', type: 'error' })
     }
   }
 

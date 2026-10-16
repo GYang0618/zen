@@ -1,6 +1,5 @@
-import { useDialogState } from '@zen/ui'
+import { toast, useDialogState } from '@zen/ui'
 import { createContext, useContext, useMemo, useState } from 'react'
-import { toast } from 'sonner'
 
 import {
   useChangeOrganizationParent,
@@ -35,6 +34,7 @@ type OrganizationsContextType = {
   organizations: Organization[]
   rootOrganization: Organization | undefined
   isLoading: boolean
+  keyword?: string
   addOrganization: (input: OrganizationBasicInput) => Promise<SharedOrganization>
   updateOrganization: (
     id: string,
@@ -49,11 +49,24 @@ type OrganizationsContextType = {
 
 const OrganizationsContext = createContext<OrganizationsContextType | null>(null)
 
-export function OrganizationsProvider({ children }: { children: React.ReactNode }) {
+export function OrganizationsProvider({
+  children,
+  keyword,
+  initialData
+}: {
+  children: React.ReactNode
+  keyword?: string
+  initialData?: Organization[]
+}) {
   const [open, setOpen] = useDialogState<OrganizationsDialogType>(null)
   const [currentNode, setCurrentNode] = useState<Organization | null>(null)
 
-  const { data: organizations = [], isLoading } = useOrganizationTree()
+  const { data: treeData = [], isLoading: isTreeLoading } = useOrganizationTree({
+    keyword,
+    enabled: initialData === undefined
+  })
+  const organizations = initialData ?? treeData
+  const isLoading = initialData !== undefined ? false : isTreeLoading
   const createOrganization = useCreateOrganization()
   const updateOrganizationMutation = useUpdateOrganization()
   const deleteOrganizationMutation = useDeleteOrganization()
@@ -138,7 +151,7 @@ export function OrganizationsProvider({ children }: { children: React.ReactNode 
         id: activeId,
         data: { parentId: validation.destinationParentId }
       })
-      toast.success('组织已移动')
+      toast.add({ title: '组织已移动', type: 'success' })
       return true
     } catch {
       return false
@@ -159,6 +172,7 @@ export function OrganizationsProvider({ children }: { children: React.ReactNode 
         organizations,
         rootOrganization,
         isLoading,
+        keyword,
         addOrganization,
         updateOrganization,
         deleteOrganization,

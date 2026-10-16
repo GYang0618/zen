@@ -6,8 +6,12 @@ export function validate(rawEnv: Record<string, unknown>) {
     return acc
   }, {})
 
+  const rawNodeEnv = rawEnv.NODE_ENV ?? process.env.NODE_ENV ?? 'development'
+  const isDev = rawNodeEnv === 'development'
   const withDefaults = {
     ...knownEnv,
+    THROTTLE: knownEnv.THROTTLE ?? (isDev ? 'off' : '100/m'),
+    COPILOT_THROTTLE: knownEnv.COPILOT_THROTTLE ?? (isDev ? 'off' : '60/m'),
     DATABASE_URL:
       knownEnv.DATABASE_URL ??
       'postgresql://postgres:postgres@localhost:5432/admin_placeholder?schema=public'

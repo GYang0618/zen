@@ -19,7 +19,6 @@ import { AuthGuard } from './guards/auth.guard.js'
 import { AuthContextGuard } from './guards/auth-context.guard.js'
 import { PermissionGuard } from './guards/permission.guard.js'
 import { PluginActiveGuard } from './guards/plugin-active.guard.js'
-import { StepUpGuard } from './guards/step-up.guard.js'
 import { AgentIdempotencyInterceptor } from './interceptors/agent-idempotency.interceptor.js'
 import { TransformInterceptor } from './interceptors/transform.interceptor.js'
 
@@ -33,18 +32,21 @@ import type { AuthConfig, SecurityConfig } from '../config/index.js'
     ThrottlerModule.forRootAsync({
       imports: [],
       inject: [securityConfig.KEY],
-      useFactory: (security: SecurityConfig) => [
-        {
-          name: 'default',
-          ttl: security.throttle.ttl,
-          limit: security.throttle.limit
-        },
-        {
-          name: 'copilot',
-          ttl: security.copilotThrottle.ttl,
-          limit: security.copilotThrottle.limit
-        }
-      ]
+      useFactory: (security: SecurityConfig) => ({
+        skipIf: () => !security.throttle.enabled,
+        throttlers: [
+          {
+            name: 'default',
+            ttl: security.throttle.ttl,
+            limit: security.throttle.limit
+          },
+          {
+            name: 'copilot',
+            ttl: security.copilotThrottle.ttl,
+            limit: security.copilotThrottle.limit
+          }
+        ]
+      })
     }),
     JwtModule.registerAsync({
       inject: [authConfig.KEY],
@@ -85,10 +87,6 @@ import type { AuthConfig, SecurityConfig } from '../config/index.js'
     {
       provide: APP_GUARD,
       useClass: PluginActiveGuard
-    },
-    {
-      provide: APP_GUARD,
-      useClass: StepUpGuard
     },
     {
       provide: APP_INTERCEPTOR,

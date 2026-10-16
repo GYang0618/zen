@@ -1,0 +1,64 @@
+import { cn, MessageAction, MessageActions, toast } from '@zen/ui'
+import { Check, Copy, RotateCw, SquareArrowOutUpRight } from 'lucide-react'
+import { useCallback, useState } from 'react'
+
+interface ChatAssistantActionsProps {
+  content: string
+  onRetry: () => void
+  isRunning?: boolean
+  className?: string
+}
+
+export function ChatAssistantActions({
+  content,
+  onRetry,
+  isRunning = false,
+  className
+}: ChatAssistantActionsProps) {
+  const [copied, setCopied] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(content)
+      setCopied(true)
+      toast.add({ title: '复制成功', type: 'success' })
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      toast.add({ title: '复制失败', type: 'error' })
+    }
+  }, [content])
+
+  const handleCopyLink = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      setLinkCopied(true)
+      toast.add({ title: '链接已复制', type: 'success' })
+      setTimeout(() => setLinkCopied(false), 2000)
+    } catch {
+      toast.add({ title: '复制链接失败', type: 'error' })
+    }
+  }, [])
+
+  return (
+    <MessageActions className={cn('mt-1 flex items-center gap-0', className)}>
+      <MessageAction
+        tooltip={copied ? '已复制' : '复制'}
+        label={copied ? '已复制' : '复制'}
+        onClick={handleCopy}
+      >
+        {copied ? <Check className="text-primary" /> : <Copy />}
+      </MessageAction>
+      <MessageAction tooltip="重新回复" label="重新回复" onClick={onRetry} disabled={isRunning}>
+        <RotateCw />
+      </MessageAction>
+      <MessageAction
+        tooltip={linkCopied ? '已复制链接' : '复制链接'}
+        label={linkCopied ? '已复制链接' : '复制链接'}
+        onClick={handleCopyLink}
+      >
+        {linkCopied ? <Check className="text-primary" /> : <SquareArrowOutUpRight />}
+      </MessageAction>
+    </MessageActions>
+  )
+}

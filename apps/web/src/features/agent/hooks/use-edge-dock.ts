@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { PointerEvent as ReactPointerEvent } from 'react'
 
-export type DockSide = 'left' | 'right'
+export type DockSide = 'left' | 'right' | 'top' | 'bottom'
 
 interface DockState {
   x: number
@@ -69,13 +69,30 @@ function readStoredPosition(storageKey?: string) {
   }
 }
 
-/** 把任意坐标吸附到最近的左右边缘，并把纵向位置约束在视口内 */
+/** 把任意坐标吸附到最近的四向视口边缘（上下左右） */
 function snapToEdge(x: number, y: number, size: number, margin: number): DockState {
+  const minX = margin
   const maxX = Math.max(margin, window.innerWidth - size - margin)
+  const minY = margin
   const maxY = Math.max(margin, window.innerHeight - size - margin)
-  const side: DockSide = x + size / 2 < window.innerWidth / 2 ? 'left' : 'right'
 
-  return { x: side === 'left' ? margin : maxX, y: clamp(y, margin, maxY), side }
+  const distLeft = Math.max(0, x - minX)
+  const distRight = Math.max(0, maxX - x)
+  const distTop = Math.max(0, y - minY)
+  const distBottom = Math.max(0, maxY - y)
+
+  const minDist = Math.min(distLeft, distRight, distTop, distBottom)
+
+  if (minDist === distLeft) {
+    return { x: minX, y: clamp(y, minY, maxY), side: 'left' }
+  }
+  if (minDist === distRight) {
+    return { x: maxX, y: clamp(y, minY, maxY), side: 'right' }
+  }
+  if (minDist === distTop) {
+    return { x: clamp(x, minX, maxX), y: minY, side: 'top' }
+  }
+  return { x: clamp(x, minX, maxX), y: maxY, side: 'bottom' }
 }
 
 function createInitialDock(size: number, margin: number, storageKey?: string): DockState {
@@ -117,7 +134,10 @@ export function useEdgeDock({
   useEffect(() => {
     if (!storageKey || isDragging) return
 
-    window.localStorage.setItem(storageKey, JSON.stringify({ x: dock.x, y: dock.y }))
+    window.localStorage.setItem(
+      storageKey,
+      JSON.stringify({ x: dock.x, y: dock.y, side: dock.side })
+    )
   }, [dock, isDragging, storageKey])
 
   const onPointerDown = useCallback((event: ReactPointerEvent<HTMLElement>) => {

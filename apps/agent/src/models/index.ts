@@ -4,12 +4,12 @@ type QwenModelOptions = ConstructorParameters<typeof ChatOpenAI>[0]
 
 export function createModel(options: QwenModelOptions = {}) {
   return new ChatOpenAI({
-    model: 'qwen3.8-max',
+    model: 'deepseek-flash',
     temperature: 0,
     streaming: true,
     ...options
   })
 }
 
-/** Popup/plan Agent 的既有模型实例，保持其运行参数不变。 */
+/** 页面辅助 Agent 的既有模型实例，保持其运行参数不变。 */
 export const qwenModel = createModel()

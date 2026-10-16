@@ -2,7 +2,7 @@
   "dependencies": ["."],
   "graphs": {
     "default_agent": "./src/default.ts:agent",
-    "plan_agent": "./src/plan.ts:agent"
+    "page_agent": "./src/page.ts:agent"
   },
   "env": ".env"
 }

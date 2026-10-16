@@ -8,25 +8,41 @@ import {
   DropdownMenuTrigger,
   Input
 } from '@zen/ui'
-import { Activity, LoaderCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+import { LoaderCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
-import type { AgentThreadSummary } from '../runtime-api'
+import type { Thread } from '@copilotkit/react-core/v2'
 
 const THREAD_TITLE_MAX_LENGTH = 80
 const FALLBACK_TITLE = '新对话'
 const MAX_RELATIVE_DAYS = 7
 const DAY_MS = 86_400_000
+/** 标题在操作条左侧的淡出宽度 */
+const TITLE_FADE_WIDTH_CLASS = 'w-8'
+
+export type HistoryRowSurface = 'sidebar' | 'popover'
+
+const SURFACE_CHROME = {
+  sidebar: {
+    bar: 'bg-sidebar',
+    fadeTo: 'to-sidebar'
+  },
+  popover: {
+    bar: 'bg-popover',
+    fadeTo: 'to-popover'
+  }
+} as const
 
 type HistoryRowProps = {
-  thread: AgentThreadSummary
+  thread: Thread
   active: boolean
   running: boolean
   renaming: boolean
+  surface?: HistoryRowSurface
+  onOpen?: () => void
   onRename: () => void
   onRenameCommit: (title: string) => void
   onRenameCancel: () => void
-  onOpenRuns: () => void
   onDelete: () => void
 }
 
@@ -35,20 +51,23 @@ export function HistoryRow({
   active,
   running,
   renaming,
+  surface = 'sidebar',
+  onOpen,
   onRename,
   onRenameCommit,
   onRenameCancel,
-  onOpenRuns,
   onDelete
 }: HistoryRowProps) {
+  const surfaceChrome = SURFACE_CHROME[surface]
   const containerRef = useRef<HTMLDivElement>(null)
   const textRef = useRef<HTMLSpanElement>(null)
+  const actionsRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const hoveringRef = useRef(false)
   const scrollRafRef = useRef<number | null>(null)
   const ignoreBlurRef = useRef(false)
   const committedRef = useRef(false)
-  const title = thread.title || FALLBACK_TITLE
+  const title = thread.name || FALLBACK_TITLE
   const [draft, setDraft] = useState(title)
 
   useEffect(() => {
@@ -96,7 +115,13 @@ export function HistoryRow({
         const el = textRef.current
         if (!container || !el) return
 
-        const distance = el.scrollWidth - container.clientWidth
+        // 操作条绝对定位覆盖标题，可视宽度只扣操作区；
+        // 淡出带叠在文字尾部，不额外占位，否则滚完会空一大截
+        const actions = actionsRef.current
+        const actionsVisible = actions !== null && getComputedStyle(actions).display !== 'none'
+        const coveredWidth = actionsVisible ? actions.offsetWidth : 0
+        const visibleWidth = Math.max(0, container.clientWidth - coveredWidth)
+        const distance = el.scrollWidth - visibleWidth
         if (distance <= 0) {
           el.style.transition = 'none'
           el.style.transform = 'translateX(0)'
@@ -122,12 +147,15 @@ export function HistoryRow({
 
   return (
     <div
+      role="group"
       className={cn(
-        'group/item flex h-8 w-full min-w-0 items-center gap-1 overflow-hidden rounded-full px-3 transition-all',
-        'hover:bg-muted/70 dark:hover:bg-muted/50',
+        'group/item relative flex h-8 w-full min-w-0 items-center gap-1 overflow-hidden rounded-full px-3 transition-all',
+        'hover:bg-muted',
         active && 'bg-muted'
       )}
       data-active={active || undefined}
+      onMouseEnter={scrollIfOverflow}
+      onMouseLeave={resetScroll}
     >
       {renaming ? (
         <Input
@@ -163,8 +191,7 @@ export function HistoryRow({
             aria-current={active ? 'page' : undefined}
             aria-label={running ? `${title}（正在运行）` : title}
             className="flex h-full min-w-0 flex-1 items-center gap-1 text-sm font-normal text-foreground no-underline outline-none select-none focus-visible:ring-3 focus-visible:ring-ring/50"
-            onMouseEnter={scrollIfOverflow}
-            onMouseLeave={resetScroll}
+            onClick={onOpen}
           >
             {running && (
               <LoaderCircle
@@ -187,10 +214,28 @@ export function HistoryRow({
               </div>
             </div>
           </Link>
-          <div className="relative hidden shrink-0 items-center gap-1 group-hover/item:flex group-focus-within/item:flex has-data-popup-open:flex">
+          {/*
+            操作条叠在标题之上：主体用不透明底挡住文字，左侧再做透明→实色淡出。
+            不能用 bg-inherit（行 hover 为 muted/70 时会透出标题造成叠字）。
+          */}
+          <div
+            ref={actionsRef}
+            className={cn(
+              'absolute inset-y-0 right-3 z-10 hidden items-center gap-1',
+              surfaceChrome.bar,
+              'group-hover/item:bg-muted group-data-active/item:bg-muted',
+              'group-hover/item:flex group-focus-within/item:flex has-data-popup-open:flex'
+            )}
+          >
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-y-0 -left-5 w-5 bg-linear-to-r from-transparent to-sidebar group-hover/item:to-muted/70 group-data-active/item:to-muted"
+              className={cn(
+                'pointer-events-none absolute inset-y-0 right-full',
+                TITLE_FADE_WIDTH_CLASS,
+                'bg-linear-to-r from-transparent',
+                surfaceChrome.fadeTo,
+                'group-hover/item:to-muted group-data-active/item:to-muted'
+              )}
             />
             <span className="relative text-xs leading-none font-normal text-muted-foreground">
               {formatRelativeTime(thread.updatedAt)}
@@ -213,10 +258,6 @@ export function HistoryRow({
                 <DropdownMenuItem onClick={onRename}>
                   <Pencil />
                   重命名
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={onOpenRuns}>
-                  <Activity />
-                  运行记录
                 </DropdownMenuItem>
                 <DropdownMenuItem variant="destructive" onClick={onDelete}>
                   <Trash2 />

@@ -117,5 +117,22 @@ export function toRoleResponse(role: RoleWithRelations): RoleResponse {
 }
 
 export function toRoleListItemResponse(role: RoleWithRelations): RoleListItemResponse {
-  return toRoleResponse(role)
+  const full = toRoleResponse(role)
+  return {
+    id: full.id,
+    code: full.code,
+    name: full.name,
+    status: full.status,
+    effectiveStatus: full.effectiveStatus,
+    kind: full.kind,
+    dataScope: full.dataScope,
+    icon: full.icon,
+    iconColor: full.iconColor,
+    expiresAt: full.expiresAt,
+    description: full.description,
+    memberCount: full.memberCount,
+    permissionCount: full.permissionCount,
+    memberPreview: full.memberPreview,
+    isSystem: full.isSystem
+  }
 }

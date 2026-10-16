@@ -6,7 +6,7 @@ import { userApi } from './api'
 import { usersQueryKeys } from './queries'
 
 import type { InfiniteData } from '@tanstack/react-query'
-import type { User } from '@zen/shared'
+import type { UpdateUserResult, User, UserListItem } from '@zen/shared'
 import type { PaginationResponse } from '@/lib/request'
 
 const USERS_LIST_QUERY_KEY = ['system', 'users', 'list'] as const
@@ -15,29 +15,68 @@ const ROLES_LIST_QUERY_KEY = ['system', 'roles', 'list'] as const
 const ROLE_DETAIL_QUERY_KEY = ['system', 'roles', 'detail'] as const
 const ROLE_MEMBERS_QUERY_KEY = ['system', 'roles', 'members'] as const
 
+type UserCachePatch = UpdateUserResult | Pick<User, 'roles'> | Pick<User, 'organizations'>
+
+function toListRole(role: User['roles'][number]): UserListItem['roles'][number] {
+  return {
+    id: role.id,
+    code: role.code,
+    name: role.name,
+    icon: role.icon,
+    iconColor: role.iconColor,
+    isPrimary: role.isPrimary
+  }
+}
+
+function toListOrganization(
+  organization: User['organizations'][number]
+): UserListItem['organizations'][number] {
+  return {
+    organizationId: organization.organizationId,
+    organizationName: organization.organizationName,
+    organizationType: organization.organizationType,
+    isPrimary: organization.isPrimary,
+    postId: organization.postId,
+    postName: organization.postName,
+    postLevel: organization.postLevel
+  }
+}
+
+function patchUserListItem(user: UserListItem, patch: UserCachePatch): UserListItem {
+  if ('roles' in patch) {
+    return { ...user, roles: patch.roles.map(toListRole) }
+  }
+  if ('organizations' in patch) {
+    return { ...user, organizations: patch.organizations.map(toListOrganization) }
+  }
+  const { nickname, realName, avatar, gender, email, phoneNumber, remark } = patch
+  return { ...user, nickname, realName, avatar, gender, email, phoneNumber, remark }
+}
+
 function mergeUserCaches(
   queryClient: ReturnType<typeof useQueryClient>,
   userId: string,
-  patch: Partial<User>
+  patch: UserCachePatch
 ) {
-  const applyPatch = (user: User) => (user.id === userId ? { ...user, ...patch } : user)
+  const applyListPatch = (user: UserListItem) =>
+    user.id === userId ? patchUserListItem(user, patch) : user
 
   queryClient.setQueryData<User>(usersQueryKeys.detail(userId), (current) =>
     current ? { ...current, ...patch } : current
   )
-  queryClient.setQueriesData<PaginationResponse<User>>(
+  queryClient.setQueriesData<PaginationResponse<UserListItem>>(
     { queryKey: USERS_LIST_QUERY_KEY },
     (current) => {
       if (!current) return current
       return {
         ...current,
-        items: current.items.map(applyPatch)
+        items: current.items.map(applyListPatch)
       }
     }
   )
-  queryClient.setQueriesData<InfiniteData<PaginationResponse<User>>>(
+  queryClient.setQueriesData<InfiniteData<PaginationResponse<UserListItem>>>(
     { queryKey: USERS_INFINITE_QUERY_KEY },
-    (current) => mapInfinitePageItems(current, applyPatch)
+    (current) => mapInfinitePageItems(current, applyListPatch)
   )
 }
 
@@ -84,8 +123,7 @@ export function useDeleteUsersMutation() {
 
   return useMutation({
     mutationKey: ['system', 'users', 'delete'],
-    mutationFn: ({ ids, stepUpToken }: { ids: string[]; stepUpToken: string }) =>
-      userApi.deleteUsers(ids, stepUpToken),
+    mutationFn: ({ ids }: { ids: string[] }) => userApi.deleteUsers(ids),
     onSuccess: async () => {
       await invalidateUserQueries(queryClient)
     }
@@ -156,12 +194,12 @@ export function useAssignUserRolesMutation() {
     mutationFn: ({
       id,
       roleIds,
-      stepUpToken
+      primaryRoleId
     }: {
       id: string
       roleIds: string[]
-      stepUpToken: string
-    }) => userApi.assignRoles(id, { roleIds }, stepUpToken),
+      primaryRoleId?: string
+    }) => userApi.assignRoles(id, { roleIds, primaryRoleId }),
     onSuccess: (result, variables) => {
       mergeUserCaches(queryClient, variables.id, { roles: result.roles })
 
@@ -184,6 +222,19 @@ export function useAssignUserRolesMutation() {
         })
       ]
       void Promise.all(staleQueries)
+    }
+  })
+}
+
+export function useSetPrimaryUserRoleMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationKey: ['system', 'users', 'set-primary-role'],
+    mutationFn: ({ id, primaryRoleId }: { id: string; primaryRoleId: string }) =>
+      userApi.setPrimaryRole(id, primaryRoleId),
+    onSuccess: (result, variables) => {
+      mergeUserCaches(queryClient, variables.id, { roles: result.roles })
     }
   })
 }

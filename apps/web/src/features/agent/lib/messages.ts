@@ -1,10 +1,4 @@
-const RUNNABLE_MESSAGE_ROLES = ['user', 'assistant', 'tool'] as const
-
-type RunnableMessageRole = (typeof RUNNABLE_MESSAGE_ROLES)[number]
-
-function isRunnableMessageRole(role: string): role is RunnableMessageRole {
-  return (RUNNABLE_MESSAGE_ROLES as readonly string[]).includes(role)
-}
+import { isCopilotRunnableMessageRole } from '@zen/shared'
 
 /**
  * 构造重试载荷：保留到最后一条用户消息为止的可回传历史，
@@ -24,5 +18,5 @@ export function buildRetryMessages<T extends { role: string }>(messages: T[]): T
 
   return messages
     .slice(0, lastUserIndex + 1)
-    .filter((message) => isRunnableMessageRole(message.role))
+    .filter((message) => isCopilotRunnableMessageRole(message.role))
 }

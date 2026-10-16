@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { toolCallMetaSchema } from '../../agent/tool-meta.schema.js'
 import { organizationTypeSchema } from '../organization/organization.schema.js'
 import { paged, pageQuerySchema } from '../pagination/index.js'
 import { roleKindSchema, roleStatusSchema } from '../role/role.schema.js'
@@ -39,6 +40,7 @@ const realNameSchema = z.string().trim().max(50, '真实姓名不能超过50个�
 const phoneNumberSchema = z.string().trim().max(20, '手机号码不能超过20个字符')
 const remarkSchema = z.string().trim().max(500, '备注不能超过500个字符')
 
+/** 用户详情中的角色预览（含主角色标记与完整展示字段） */
 export const userRolePreviewSchema = z.object({
   id: z.string().describe('角色 ID'),
   code: z.string().describe('角色编码'),
@@ -48,7 +50,18 @@ export const userRolePreviewSchema = z.object({
   iconColor: z.string().nullable().describe('图标颜色'),
   kind: roleKindSchema,
   status: roleStatusSchema,
-  permissionCount: z.number().int().nonnegative().describe('权限数量')
+  permissionCount: z.number().int().nonnegative().describe('权限数量'),
+  isPrimary: z.boolean().describe('是否主角色；同一用户最多一个主角色')
+})
+
+/** 用户列表中的角色摘要（仅主角色，UI 展示必要字段） */
+export const userRoleListPreviewSchema = z.object({
+  id: z.string().describe('角色 ID'),
+  code: z.string().describe('角色编码'),
+  name: z.string().describe('角色名称'),
+  icon: z.string().nullable().describe('角色图标'),
+  iconColor: z.string().nullable().describe('图标颜色'),
+  isPrimary: z.boolean().describe('是否主角色')
 })
 
 export const userOrganizationMembershipSchema = z.object({
@@ -61,6 +74,17 @@ export const userOrganizationMembershipSchema = z.object({
   postName: z.string().nullable().describe('岗位名称'),
   postLevel: z.string().nullable().describe('岗位职级'),
   joinedAt: z.string().nullable().describe('入职时间（ISO 8601）')
+})
+
+/** 用户列表中的组织摘要（仅主职，UI 展示必要字段） */
+export const userOrganizationListPreviewSchema = z.object({
+  organizationId: z.string().describe('组织 ID'),
+  organizationName: z.string().describe('组织名称'),
+  organizationType: organizationTypeSchema,
+  isPrimary: z.boolean().describe('是否主职'),
+  postId: z.string().nullable().describe('组织岗位编制 ID'),
+  postName: z.string().nullable().describe('岗位名称'),
+  postLevel: z.string().nullable().describe('岗位职级')
 })
 
 export const userOrganizationInputSchema = z.object({
@@ -80,7 +104,7 @@ export const userOrganizationInputSchema = z.object({
 })
 
 /**
- * 管理端列表与详情共用。偏好设置仍走 `/auth/me`，不进入用户管理协议。
+ * 管理端用户详情。偏好设置仍走 `/auth/me`，不进入用户管理协议。
  */
 export const userSchema = z.object({
   id: z.string().describe('用户 ID'),
@@ -94,8 +118,8 @@ export const userSchema = z.object({
   status: userStatusSchema,
   isLocked: z.boolean().describe('是否锁定'),
   lockExpireAt: z.string().nullable().describe('锁定到期时间（ISO 8601）'),
-  roles: z.array(userRolePreviewSchema).describe('已绑定角色'),
-  organizations: z.array(userOrganizationMembershipSchema).describe('在职组织归属'),
+  roles: z.array(userRolePreviewSchema).describe('已绑定角色（含主角色标记）'),
+  organizations: z.array(userOrganizationMembershipSchema).describe('在职组织归属（含主职标记）'),
   mfaEnabled: z.boolean().describe('是否启用 MFA'),
   mfaType: userMfaTypeSchema,
   mustChangePassword: z.boolean().describe('下次登录是否必须改密'),
@@ -116,6 +140,28 @@ export const userSchema = z.object({
   remark: z.string().nullable().describe('备注'),
   createdAt: z.string().describe('创建时间（ISO 8601）'),
   updatedAt: z.string().describe('更新时间（ISO 8601）')
+})
+
+/**
+ * 管理端用户列表行：仅 UI 必要字段；roles/organizations 各自最多返回主项。
+ */
+export const userListItemSchema = z.object({
+  id: z.string().describe('用户 ID'),
+  username: z.string().describe('用户名'),
+  nickname: z.string().nullable().describe('昵称'),
+  realName: z.string().nullable().describe('真实姓名'),
+  avatar: z.string().nullable().describe('头像'),
+  gender: userGenderSchema,
+  email: z.string().describe('邮箱'),
+  phoneNumber: z.string().nullable().describe('手机号码'),
+  status: userStatusSchema,
+  isLocked: z.boolean().describe('是否锁定'),
+  lastActiveAt: z.string().nullable().describe('最后活跃时间（ISO 8601）'),
+  remark: z.string().nullable().describe('备注'),
+  roles: z.array(userRoleListPreviewSchema).describe('主角色列表（0 或 1 项）；完整角色见用户详情'),
+  organizations: z
+    .array(userOrganizationListPreviewSchema)
+    .describe('主职组织列表（0 或 1 项）；完整归属见用户详情')
 })
 
 export const createUserSchema = z.object({
@@ -191,7 +237,13 @@ export const assignUserRolesSchema = z.object({
   roleIds: z
     .array(z.string().trim().min(1, '角色 ID 不能为空'))
     .min(1, '至少需要一个角色')
-    .describe('角色 ID 列表（覆盖式，来自 query_roles_list 的 id，不是 code）')
+    .describe('角色 ID 列表（覆盖式，来自 query_roles_list 的 id，不是 code）'),
+  primaryRoleId: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe('主角色 ID，必须属于 roleIds；省略时默认取 roleIds[0]')
 })
 
 /** 覆盖式同步用户组织归属 */
@@ -261,7 +313,50 @@ export const usersQuerySchema = pageQuerySchema.extend({
   sortOrder: usersSortOrderSchema.optional()
 })
 
-export const usersPageSchema = paged(userSchema)
+export const usersQueryToolSchema = toolCallMetaSchema.extend(usersQuerySchema.shape)
+
+export const userStatisticsQuerySchema = z.object({
+  organizationId: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe('按在职组织 ID 筛选统计范围；不传则统计当前用户有权访问的全部范围')
+})
+
+export const userStatisticsSchema = z.object({
+  total: z.number().int().nonnegative().describe('未删除用户总数'),
+  deletedCount: z.number().int().nonnegative().describe('已软删除用户数'),
+  byStatus: z.object({
+    active: z.number().int().nonnegative().describe('正常可用'),
+    inactive: z.number().int().nonnegative().describe('未完成激活流程'),
+    pending: z.number().int().nonnegative().describe('待审核'),
+    suspended: z.number().int().nonnegative().describe('已停用/禁用')
+  }),
+  byGender: z.object({
+    male: z.number().int().nonnegative().describe('男性'),
+    female: z.number().int().nonnegative().describe('女性'),
+    unknown: z.number().int().nonnegative().describe('未知')
+  }),
+  security: z.object({
+    lockedCount: z.number().int().nonnegative().describe('已锁定账号数'),
+    mfaEnabledCount: z.number().int().nonnegative().describe('已开启多因子认证数'),
+    mustChangePasswordCount: z.number().int().nonnegative().describe('需强制修改密码数')
+  }),
+  assignment: z.object({
+    assignedCount: z.number().int().nonnegative().describe('已分配组织归属用户数'),
+    unassignedCount: z.number().int().nonnegative().describe('未分配组织归属用户数'),
+    noRoleCount: z.number().int().nonnegative().describe('未绑定任何角色用户数')
+  }),
+  recentTrends: z.object({
+    newUsersLast7Days: z.number().int().nonnegative().describe('近 7 天新增用户数'),
+    newUsersLast30Days: z.number().int().nonnegative().describe('近 30 天新增用户数')
+  })
+})
+
+export const userStatisticsToolSchema = toolCallMetaSchema.extend(userStatisticsQuerySchema.shape)
+
+export const usersPageSchema = paged(userListItemSchema)
 
 export function getUserDisplayName(user: {
   realName?: string | null
@@ -276,4 +371,11 @@ export function getPrimaryOrganization<T extends { isPrimary: boolean }>(
 ): T | null {
   if (!organizations || organizations.length === 0) return null
   return organizations.find((item) => item.isPrimary) ?? organizations[0] ?? null
+}
+
+export function getPrimaryRole<T extends { isPrimary: boolean }>(
+  roles: T[] | null | undefined
+): T | null {
+  if (!roles || roles.length === 0) return null
+  return roles.find((item) => item.isPrimary) ?? roles[0] ?? null
 }

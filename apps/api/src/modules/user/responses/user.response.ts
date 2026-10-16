@@ -6,11 +6,13 @@ import type {
   UpdateUserResult,
   User,
   UserGender,
+  UserListItem,
   UserMfaType,
+  UserStatisticsResponse,
   UserStatus
 } from '@zen/shared'
 
-export type UserListItemResponse = User
+export type UserListItemResponse = UserListItem
 export type UserListResponse = Paged<UserListItemResponse>
 export type UserResponse = User
 export type CreateUserResponse = CreateUserResult
@@ -18,7 +20,7 @@ export type UpdateUserResponse = UpdateUserResult
 export type AssignUserRolesResponse = AssignUserRolesResult
 export type ReplaceUserOrganizationsResponse = ReplaceUserOrganizationsResult
 
-export type { UserGender, UserMfaType, UserStatus }
+export type { UserGender, UserMfaType, UserStatisticsResponse, UserStatus }
 
 export type UserTheme = 'light' | 'dark' | 'system'
 

@@ -1,12 +1,14 @@
 import { AudioWaveform, Command, GalleryVerticalEnd } from 'lucide-react'
 
+import { APP_NAME } from '@/config/brand'
+
 import type { Team } from './types'
 
 /** 侧边栏非菜单静态数据（团队切换器等）。导航由路由 staticData 单源生成。 */
 export const sidebarChrome = {
   teams: [
     {
-      name: 'Zen Admin',
+      name: APP_NAME,
       logo: Command,
       plan: 'Platform'
     },

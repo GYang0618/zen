@@ -10,30 +10,20 @@ import {
   SidebarMenuItem,
   useSidebar
 } from '@zen/ui'
-import { Bot, ChevronsUpDown, LayoutDashboard } from 'lucide-react'
+import { ChevronsUpDown } from 'lucide-react'
 
 import { useSwitchShellMode } from '@/hooks'
+import { SHELL_MODES } from '@/stores'
 
-const MODE_OPTIONS = [
-  {
-    id: 'agent' as const,
-    name: '智能体',
-    description: '对话驱动任务',
-    icon: Bot
-  },
-  {
-    id: 'admin' as const,
-    name: '管理后台',
-    description: '菜单与页面操作',
-    icon: LayoutDashboard
-  }
-] as const
+import { SHELL_MODE_META } from '../shell-mode-meta'
+
+const MODE_OPTIONS = SHELL_MODES.map((id) => ({ id, ...SHELL_MODE_META[id] }))
 
 export function ModeSwitcher() {
   const { isMobile } = useSidebar()
   const { mode, switchMode } = useSwitchShellMode()
 
-  const active = MODE_OPTIONS.find((option) => option.id === mode) ?? MODE_OPTIONS[1]
+  const active = SHELL_MODE_META[mode]
 
   return (
     <SidebarMenu>

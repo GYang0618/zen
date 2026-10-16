@@ -1,0 +1,8 @@
+<svg viewBox="0 0 24 24" width="24" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 结构化建筑暗面层 (Shadcn Zinc-950 #09090B, 12% 光学浓度) -->
+  <path d="M1 6.2C1 3.328 3.328 1 6.2 1H18.8L6.2 13.6H17.8C20.672 13.6 23 15.928 23 18.8C23 21.672 20.672 23 17.8 23H5.2L17.8 10.4H6.2C3.328 10.4 1 8.52 1 6.2Z" fill="#09090B" fill-opacity="0.12" />
+  <!-- 左上几何护盾与 Z 字上主梁 -->
+  <path d="M1.6 15.2V5.6C1.6 3.39086 3.39086 1.6 5.6 1.6H19.6L4.4 16.8" stroke="#09090B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- 右下几何护盾与 Z 字下主梁 (100% 中心对称) -->
+  <path d="M22.4 8.8V18.4C22.4 20.6091 20.6091 22.4 18.4 22.4H4.4L19.6 7.2" stroke="#09090B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

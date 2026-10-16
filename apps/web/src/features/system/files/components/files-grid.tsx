@@ -17,6 +17,7 @@ import {
   Skeleton
 } from '@zen/ui'
 import {
+  Copy,
   Download,
   FileArchive,
   FileText,
@@ -32,6 +33,7 @@ import { useState } from 'react'
 import { EmptyState } from '@/components/empty-state'
 import { canAccess } from '@/lib/auth/permissions'
 
+import { copyImageAddress } from '../copy-image-address'
 import { downloadFile } from '../download-file'
 import { useFiles } from '../files-provider'
 import { useFileUrlQuery } from '../queries'
@@ -213,6 +215,7 @@ function FileActionsMenu({
   onPurge
 }: FileActionsMenuProps) {
   const canDownload = file.status === 'ready' && canRead
+  const canCopyImageAddress = canDownload && file.category === 'image'
   const canTrash = file.status !== 'deleted' && file.status !== 'purged' && canDelete
   const canRecover = file.status === 'deleted' && canRestore
   const canPermanentlyDelete = file.status === 'deleted' && canPurge
@@ -234,12 +237,20 @@ function FileActionsMenu({
         >
           <MoreHorizontal />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-36">
+        <DropdownMenuContent align="end" className="w-44">
           {canDownload ? (
             <DropdownMenuItem onClick={() => void downloadFile(file)}>
               下载
               <DropdownMenuShortcut>
                 <Download />
+              </DropdownMenuShortcut>
+            </DropdownMenuItem>
+          ) : null}
+          {canCopyImageAddress ? (
+            <DropdownMenuItem onClick={() => void copyImageAddress(file)}>
+              复制图片地址
+              <DropdownMenuShortcut>
+                <Copy />
               </DropdownMenuShortcut>
             </DropdownMenuItem>
           ) : null}

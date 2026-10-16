@@ -1,0 +1,238 @@
+import {
+  adminResetPasswordSchema,
+  assignUserRolesSchema,
+  createUserSchema,
+  deleteUsersSchema,
+  replaceUserOrganizationsSchema,
+  updateUserSchema,
+  updateUsersStatusSchema,
+  userStatisticsToolSchema,
+  usersQueryToolSchema
+} from '@zen/shared'
+import { tool } from 'langchain'
+import { z } from 'zod'
+
+import {
+  asSdkOptions,
+  executeApiCall,
+  userControllerAdminResetPassword,
+  userControllerAssignRoles,
+  userControllerCreate,
+  userControllerFindAll,
+  userControllerFindOne,
+  userControllerGetStatistics,
+  userControllerRemoveMany,
+  userControllerReplaceOrganizations,
+  userControllerRestoreMany,
+  userControllerRevokeSessions,
+  userControllerUnlock,
+  userControllerUpdate,
+  userControllerUpdateStatus
+} from '@/api'
+
+import type { UserControllerAdminResetPasswordData } from '@/api'
+
+const userIdSchema = z.object({
+  id: z.string().min(1, '用户 ID 不能为空').describe('用户 ID')
+})
+
+const updateUserToolSchema = userIdSchema.extend(updateUserSchema.shape)
+const resetUserPasswordToolSchema = userIdSchema.extend(adminResetPasswordSchema.shape)
+const assignUserRolesToolSchema = userIdSchema.extend(assignUserRolesSchema.shape)
+const replaceUserOrganizationsToolSchema = userIdSchema.extend(replaceUserOrganizationsSchema.shape)
+
+export const getUsersTool = tool(
+  async (input, config) => {
+    const { meta: _meta, ...query } = input
+    return executeApiCall(config, async (_context) =>
+      userControllerFindAll({
+        query
+      })
+    )
+  },
+  {
+    name: 'query_users_list',
+    description:
+      '查询用户列表。keyword 为子串匹配（谷歌邮箱用 gmail.com / @gmail.com，不要用 google.com）。' +
+      '按状态筛选注意：已停用/禁用账号必须使用 status="suspended"（inactive 仅表示尚未完成激活流程）。' +
+      'page 与 pageSize 可只传其一。返回列表精简字段（仅主角色与主职组织摘要）；完整资料用 query_user_detail。' +
+      'meta.display 只在用户要看的就是本次返回的这份列表时为 true；取证、归类、统计、为后续办理查数时为 false，判断标准见该字段说明。',
+    schema: usersQueryToolSchema
+  }
+)
+
+export const createUserTool = tool(
+  async (input, config) =>
+    executeApiCall(config, async (_context) => userControllerCreate({ body: input })),
+  {
+    name: 'create_user',
+    description:
+      '创建用户账号。可不提供密码：系统会生成临时密码（仅本次响应返回）并要求首次登录或邀请链接设密。' +
+      'roleIds 必须来自 query_roles_list 的 id（不是 code）；省略则分配默认 user 角色。' +
+      'organizations.organizationId 来自组织树；postId 为 query_organization_positions 的编制 id，不是 jobProfileId。',
+    schema: createUserSchema
+  }
+)
+
+export const getUserTool = tool(
+  async ({ id }, config) =>
+    executeApiCall(config, async (_context) =>
+      userControllerFindOne({
+        path: { id }
+      })
+    ),
+  {
+    name: 'query_user_detail',
+    description: '根据用户 ID 查询详情，含角色预览、在职组织/岗位、锁定与会话等安全信息',
+    schema: userIdSchema
+  }
+)
+
+export const updateUserTool = tool(
+  async ({ id, ...data }, config) =>
+    executeApiCall(config, () => userControllerUpdate({ path: { id }, body: data })),
+  {
+    name: 'update_user_info',
+    description:
+      '更新用户基本资料（邮箱、昵称、真实姓名、手机号、性别、备注、头像）。用户名与密码不可通过此接口修改。',
+    schema: updateUserToolSchema
+  }
+)
+
+export const restoreUsersTool = tool(
+  async ({ ids }, config) =>
+    executeApiCall(config, () => userControllerRestoreMany({ body: { ids } })),
+  {
+    name: 'restore_deleted_users',
+    description: '批量恢复已删除的用户',
+    schema: deleteUsersSchema
+  }
+)
+
+export const updateUsersStatusTool = tool(
+  async (payload, config) =>
+    executeApiCall(config, () => userControllerUpdateStatus({ body: payload })),
+  {
+    name: 'update_user_status',
+    description:
+      '批量更新用户状态。禁用/停用/封禁/冻结必须使用 suspended；inactive 仅表示未完成激活；pending 表示待审核；active 表示正常可用。',
+    schema: updateUsersStatusSchema
+  }
+)
+
+export const unlockUserTool = tool(
+  async ({ id }, config) =>
+    executeApiCall(config, async (_context) => userControllerUnlock({ path: { id } })),
+  {
+    name: 'unlock_user',
+    description: '解锁因登录失败次数过多而被锁定的用户账号',
+    schema: userIdSchema
+  }
+)
+
+export const resetUserPasswordTool = tool(
+  async ({ id, ...body }, config) =>
+    executeApiCall(config, () =>
+      userControllerAdminResetPassword(
+        asSdkOptions<UserControllerAdminResetPasswordData>({
+          path: { id },
+          body
+        })
+      )
+    ),
+  {
+    name: 'reset_user_password',
+    description:
+      '管理员重置用户密码。密码需含大小写字母、数字和特殊字符，至少 8 位。' +
+      'mustChangePassword 默认为 true，表示下次登录必须改密。',
+    schema: resetUserPasswordToolSchema
+  }
+)
+
+export const revokeUserSessionsTool = tool(
+  async ({ id }, config) =>
+    executeApiCall(config, () => userControllerRevokeSessions({ path: { id } })),
+  {
+    name: 'revoke_user_sessions',
+    description: '强制下线指定用户的全部登录会话',
+    schema: userIdSchema
+  }
+)
+
+export const assignUserRolesTool = tool(
+  async ({ id, roleIds, primaryRoleId }, config) =>
+    executeApiCall(config, () =>
+      userControllerAssignRoles({
+        path: { id },
+        body: { roleIds, ...(primaryRoleId ? { primaryRoleId } : {}) }
+      })
+    ),
+  {
+    name: 'assign_user_roles',
+    description:
+      '覆盖式分配用户角色（替换全部角色，至少保留一个）。roleIds 必须来自 query_roles_list 的 id，不要用 code。' +
+      '可用 primaryRoleId 指定主角色（须属于 roleIds；省略则取 roleIds[0]）。' +
+      '会刷新权限版本并强制下线目标用户。',
+    schema: assignUserRolesToolSchema
+  }
+)
+
+export const replaceUserOrganizationsTool = tool(
+  async ({ id, organizations }, config) =>
+    executeApiCall(config, () =>
+      userControllerReplaceOrganizations({ path: { id }, body: { organizations } })
+    ),
+  {
+    name: 'replace_user_organizations',
+    description:
+      '覆盖式同步用户在职组织归属，可指定 isPrimary 主职与 postId。' +
+      'organizationId 来自组织树；postId 为 query_organization_positions 的编制 id，不是 jobProfileId。' +
+      '传入空数组表示清空全部组织归属。会影响数据范围并强制下线。',
+    schema: replaceUserOrganizationsToolSchema
+  }
+)
+
+export const deleteUsersTool = tool(
+  async ({ ids }, config) =>
+    executeApiCall(config, () => userControllerRemoveMany({ body: { ids } })),
+  {
+    name: 'delete_users',
+    description: '批量删除用户，禁止删除当前登录用户自身。',
+    schema: deleteUsersSchema
+  }
+)
+
+export const getUserStatisticsTool = tool(
+  async (input, config) => {
+    const { meta: _meta, ...query } = input
+    return executeApiCall(config, async (_context) =>
+      userControllerGetStatistics({
+        query
+      })
+    )
+  },
+  {
+    name: 'query_user_statistics',
+    description:
+      '查询用户多维度聚合统计数据（未删除总数、软删除数、状态分布、性别分布、账号锁定/MFA安全状况、组织与角色归属覆盖率及近 7/30 天新增趋势）。' +
+      '生成人员报表、账号状态概况、安全审计报表时优先使用本工具，严禁多次翻页遍历 query_users_list 手动累加。' +
+      '可传 organizationId 按特定组织筛选统计范围。',
+    schema: userStatisticsToolSchema
+  }
+)
+
+export const userTools = [
+  getUsersTool,
+  getUserStatisticsTool,
+  createUserTool,
+  getUserTool,
+  updateUserTool,
+  restoreUsersTool,
+  updateUsersStatusTool,
+  unlockUserTool,
+  resetUserPasswordTool,
+  revokeUserSessionsTool,
+  assignUserRolesTool,
+  replaceUserOrganizationsTool,
+  deleteUsersTool
+] as const

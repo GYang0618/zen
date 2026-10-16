@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { toast } from '@zen/ui'
 
 import { authApi } from '@/features/auth/api'
 import { useAuthStore } from '@/stores'
@@ -52,7 +52,7 @@ export function useUpdateMeMutation() {
     onSuccess: (me) => {
       applyMeSession(me)
     },
-    onError: (error: Error) => toast.error(error.message || '保存失败')
+    onError: (error: Error) => toast.add({ title: error.message || '保存失败', type: 'error' })
   })
 }
 
@@ -60,8 +60,8 @@ export function useChangePasswordMutation() {
   return useMutation({
     mutationFn: (payload: { currentPassword: string; newPassword: string }) =>
       authApi.changePassword(payload),
-    onSuccess: () => toast.success('密码已更新'),
-    onError: (error: Error) => toast.error(error.message || '密码更新失败')
+    onSuccess: () => toast.add({ title: '密码已更新', type: 'success' }),
+    onError: (error: Error) => toast.add({ title: error.message || '密码更新失败', type: 'error' })
   })
 }
 
@@ -77,9 +77,9 @@ export function useEnableMfaMutation() {
     mutationFn: (code: string) => authApi.enableMfa(code),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: settingsV2Keys.me() })
-      toast.success('双重验证已启用')
+      toast.add({ title: '双重验证已启用', type: 'success' })
     },
-    onError: (error: Error) => toast.error(error.message || '启用失败')
+    onError: (error: Error) => toast.add({ title: error.message || '启用失败', type: 'error' })
   })
 }
 
@@ -89,8 +89,8 @@ export function useDisableMfaMutation() {
     mutationFn: (code: string) => authApi.disableMfa(code),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: settingsV2Keys.me() })
-      toast.success('双重验证已关闭')
+      toast.add({ title: '双重验证已关闭', type: 'success' })
     },
-    onError: (error: Error) => toast.error(error.message || '关闭失败')
+    onError: (error: Error) => toast.add({ title: error.message || '关闭失败', type: 'error' })
   })
 }

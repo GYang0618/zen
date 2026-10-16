@@ -1,3 +1,5 @@
+import { CHAT_EXPORT_MIME_TYPES } from '@zen/shared'
+
 import type { FilePurpose } from '@zen/shared'
 
 export type StoragePolicy = {
@@ -55,12 +57,7 @@ export const STORAGE_POLICIES: Record<Exclude<FilePurpose, 'legacy'>, StoragePol
   export: {
     purpose: 'export',
     maxSize: 100 * MB,
-    mimeTypes: [
-      'application/pdf',
-      'text/csv',
-      'application/zip',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    ],
+    mimeTypes: ['application/pdf', 'application/zip', ...CHAT_EXPORT_MIME_TYPES],
     retentionDays: 30,
     visibility: 'private',
     requiredPermission: 'file:upload'

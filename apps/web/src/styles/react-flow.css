@@ -1,0 +1,30 @@
+/* ==========================================================================
+   React Flow (@xyflow/react) 自定义样式与重置规则
+   ========================================================================== */
+
+@layer components {
+  /**
+   * 组织图谱 - 自定义节点容器重置
+   * React Flow 会根据 nodeTypes 的 key 自动为外层包裹元素追加 `.react-flow__node-<type>` 类名。
+   * 此处移除其自带的 padding、border、背景和阴影，
+   * 避免与自定义卡片组件 (OrganizationGraphNodeCard) 产生双层边框、阴影或内外边距冲突。
+   */
+  .react-flow__node-organization {
+    padding: 0;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    font-size: inherit;
+  }
+
+  /**
+   * 组织图谱 - 缩略图 (MiniMap) 布局重置
+   * React Flow 默认将 `.react-flow__minimap` 设置为 absolute 定位并带有默认 margin。
+   * 这里将其覆盖为 static 与 0 margin，使其在可折叠浮动面板组件 (OrganizationGraphMiniMap)
+   * 的相对定位容器内按标准文档流自适应排版。
+   */
+  .organization-graph-minimap .react-flow__minimap {
+    position: static;
+    margin: 0;
+  }
+}

@@ -27,7 +27,7 @@ import { JOB_PROFILE_LEVEL_OPTIONS } from '../utils'
 import { JobProfileIconColorPicker } from './job-profile-icon-color-picker'
 import { JobProfileIconPicker } from './job-profile-icon-picker'
 
-import type { JobProfile } from '@zen/shared'
+import type { JobProfileListItem } from '@zen/shared'
 
 const jobProfileFormSchema = z.object({
   name: z.string().trim().min(1, '岗位名称不能为空').max(100),
@@ -47,11 +47,11 @@ type JobProfileFormValues = z.infer<typeof jobProfileFormSchema>
 type JobProfileFormDialogProps = {
   open: boolean
   mode: 'create' | 'edit'
-  currentRow: JobProfile | null
+  currentRow: JobProfileListItem | null
   onOpenChange: (open: boolean) => void
 }
 
-function createDefaultValues(row: JobProfile | null): JobProfileFormValues {
+function createDefaultValues(row: JobProfileListItem | null): JobProfileFormValues {
   if (row) {
     return {
       name: row.name,

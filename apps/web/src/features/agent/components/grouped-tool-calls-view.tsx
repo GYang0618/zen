@@ -1,9 +1,7 @@
 import { useRenderToolCall } from '@copilotkit/react-core/v2'
-import { Fragment } from 'react'
 
-import { hasDedicatedResultUi } from '@/components/ai/tool-display'
-
-import { getToolCallName } from '../lib/group-tool-calls'
+import { isToolCallDisplayHidden, parseToolCallArguments } from '../lib/group-tool-calls'
+import { DefaultToolCard } from '../renderers/default'
 
 import type { ToolCallLike } from '../lib/group-tool-calls'
 
@@ -26,29 +24,76 @@ interface CopilotKitToolCall {
   }
 }
 
-function isDedicatedResultToolCall(toolCall: ToolCallLike): toolCall is CopilotKitToolCall {
-  return Boolean(toolCall.id && hasDedicatedResultUi(getToolCallName(toolCall)))
+function isValidToolCall(toolCall: ToolCallLike): toolCall is CopilotKitToolCall {
+  return Boolean(toolCall.id && toolCall.function?.name)
+}
+
+function readResultText(content: unknown): string | undefined {
+  if (typeof content === 'string') return content
+  if (content === undefined || content === null) return undefined
+  try {
+    return JSON.stringify(content)
+  } catch {
+    return undefined
+  }
+}
+
+function findToolMessage(toolCallId: string, messages: ToolResultMessage[]) {
+  return messages.find((message) => {
+    if (message.role !== 'tool') return false
+    const candidate = message as { toolCallId?: string; tool_call_id?: string }
+    return candidate.toolCallId === toolCallId || candidate.tool_call_id === toolCallId
+  })
+}
+
+/** 取证调用不展示专属结果界面，但工作轨迹里仍用默认工具步骤。 */
+function EvidenceToolCard({
+  toolCall,
+  toolMessage
+}: {
+  toolCall: CopilotKitToolCall
+  toolMessage: ToolResultMessage | undefined
+}) {
+  const hasResult = toolMessage !== undefined
+  const parameters = parseToolCallArguments(toolCall) ?? toolCall.function.arguments
+  const status = hasResult
+    ? 'complete'
+    : parseToolCallArguments(toolCall)
+      ? 'executing'
+      : 'inProgress'
+
+  return (
+    <DefaultToolCard
+      name={toolCall.function.name}
+      toolCallId={toolCall.id}
+      parameters={parameters}
+      status={status}
+      result={readResultText(toolMessage?.content)}
+    />
+  )
 }
 
 export function GroupedToolCallsView({ toolCalls, messages }: GroupedToolCallsViewProps) {
   const renderToolCall = useRenderToolCall()
-  const dedicatedToolCalls = toolCalls.filter(isDedicatedResultToolCall)
+  const validToolCalls = toolCalls.filter(isValidToolCall)
 
-  if (dedicatedToolCalls.length === 0) return null
+  if (validToolCalls.length === 0) return null
 
   return (
     <>
-      {dedicatedToolCalls.map((toolCall) => {
-        const toolMessage = messages.find(
-          (message) => message.role === 'tool' && message.toolCallId === toolCall.id
-        )
+      {validToolCalls.map((toolCall) => {
+        const toolMessage = findToolMessage(toolCall.id, messages)
         return (
-          <Fragment key={toolCall.id}>
-            {renderToolCall({
-              toolCall: toolCall as never,
-              toolMessage: toolMessage as never
-            })}
-          </Fragment>
+          <div key={toolCall.id} className="w-full">
+            {isToolCallDisplayHidden(toolCall) ? (
+              <EvidenceToolCard toolCall={toolCall} toolMessage={toolMessage} />
+            ) : (
+              renderToolCall({
+                toolCall: toolCall as never,
+                toolMessage: toolMessage as never
+              })
+            )}
+          </div>
         )
       })}
     </>

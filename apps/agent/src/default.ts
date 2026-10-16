@@ -1,10 +1,18 @@
-import { ACTIVE_AGENT_PLUGINS_CONFIGURABLE_KEY, AGENT_MEMORY_CONFIGURABLE_KEY } from '@zen/shared'
+import { AGENT_MEMORY_CONFIGURABLE_KEY, DEFAULT_AGENT_RUN_BUDGET } from '@zen/shared'
+import { createFilesystemMiddleware } from 'deepagents'
 import { createAgent, dynamicSystemPromptMiddleware } from 'langchain'
 
-import { createDefaultAgentMiddleware } from '@/middleware'
-import { qwenModel as model } from '@/models'
+import { CHAT_FILESYSTEM_TOOL_NAMES, ChatStorageBackend } from '@/files/chat-storage-backend'
+import {
+  createDefaultAgentMiddleware,
+  createFrontendToolsMiddleware,
+  createMessageImageMiddleware
+} from '@/middlewares'
+import { createModel } from '@/models'
 import {
   APPROVAL_FLOW_RULES,
+  ARTIFACT_RULES,
+  FILESYSTEM_RULES,
   GENERATIVE_UI_REPLY_RULES,
   IDENTITY_TOOL_RULES,
   ORGANIZATION_TYPE_CATALOG_RULES,
@@ -12,9 +20,8 @@ import {
   TOOL_FAILURE_RULES
 } from '@/prompts'
 import { ContextSchema } from '@/schema/context'
-import { defaultAgentTools, getActivePluginAgentPrompts } from '@/tools'
-
-import { createFrontendToolsMiddleware } from './frontend-tools.js'
+import { AgentStateSchema } from '@/schema/state'
+import { coreTools } from '@/tools'
 
 import type { z } from 'zod'
 
@@ -24,26 +31,48 @@ const BASE_SYSTEM_PROMPT = [
   IDENTITY_TOOL_RULES,
   TOOL_FAILURE_RULES,
   APPROVAL_FLOW_RULES,
+  ARTIFACT_RULES,
+  FILESYSTEM_RULES,
   GENERATIVE_UI_REPLY_RULES,
   REASONING_STYLE_RULES
-].join('\n')
+].join('\n\n')
 
 /** 图工厂：每次创建新实例，禁止把请求级可变状态挂在模块单例上。 */
 export function createDefaultAgent() {
+  const model = createModel({
+    maxTokens: DEFAULT_AGENT_RUN_BUDGET.maxOutputTokensPerModelCall
+  })
+
   return createAgent({
     model,
-    tools: defaultAgentTools,
+    tools: coreTools,
+    stateSchema: AgentStateSchema,
     contextSchema: ContextSchema,
     middleware: [
-      createFrontendToolsMiddleware(defaultAgentTools.map((tool) => tool.name)),
+      createFrontendToolsMiddleware([
+        ...coreTools.map((tool) => tool.name),
+        ...CHAT_FILESYSTEM_TOOL_NAMES
+      ]),
+      createFilesystemMiddleware({
+        backend: new ChatStorageBackend(),
+        tools: [...CHAT_FILESYSTEM_TOOL_NAMES]
+      }),
+      createMessageImageMiddleware(),
       dynamicSystemPromptMiddleware<z.infer<typeof ContextSchema>>((_state, runtime) => {
         const memory = runtime.context?.[AGENT_MEMORY_CONFIGURABLE_KEY]
-        const activePluginIds = runtime.context?.[ACTIVE_AGENT_PLUGINS_CONFIGURABLE_KEY] ?? []
-        const pluginPrompts = getActivePluginAgentPrompts(activePluginIds)
+        const now = new Date()
+        const dateStr = now.toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' })
+        const timeStr = now.toLocaleTimeString('zh-CN', {
+          timeZone: 'Asia/Shanghai',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        })
+        const timePrompt = `当前系统时间：${dateStr} ${timeStr}（北京时间）`
         return [
           BASE_SYSTEM_PROMPT,
-          ...(pluginPrompts.length ? [`当前启用的插件指令：\n${pluginPrompts.join('\n')}`] : []),
-          ...(memory ? [`用户明确授权给 Qwen 的非敏感记忆：\n${memory}`] : [])
+          ...(memory ? [`用户明确授权给 Qwen 的非敏感记忆：\n${memory}`] : []),
+          timePrompt
         ].join('\n\n')
       }),
       ...createDefaultAgentMiddleware(model)

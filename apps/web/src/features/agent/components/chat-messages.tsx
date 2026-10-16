@@ -1,344 +1,490 @@
 'use client'
 
-import { UseAgentUpdate, useAgent, useRenderActivityMessage } from '@copilotkit/react-core/v2'
+import { UseAgentUpdate, useRenderActivityMessage } from '@copilotkit/react-core/v2'
+import { listChatAttachments, readZenMessageTiming, visibleChatText } from '@zen/shared'
 import {
   Alert,
   AlertDescription,
   AlertTitle,
   Button,
+  cn,
   Message,
   MessageContent,
   MessageResponse,
-  Reasoning,
-  ReasoningContent,
-  ReasoningTrigger
+  Shimmer
 } from '@zen/ui'
-import { AlertCircle, RefreshCw } from 'lucide-react'
-import { Fragment, useMemo, useRef } from 'react'
+import { AlertCircle, RefreshCw, Sparkles } from 'lucide-react'
+import { Fragment, useMemo } from 'react'
 
-import {
-  formatActiveToolsLabel,
-  hasDedicatedResultUi,
-  resolveActivityToolNames,
-  sanitizeReasoningContent
-} from '@/components/ai/tool-display'
-
-import {
-  isStreamingAssistantText,
-  isTrailingReasoningAfterReply,
-  lastMeaningfulMessage,
-  streamingActivitySignature
-} from '../activity-state'
-import { DisplayMessageCache } from '../display-messages'
+import { resolveStreamingCanvasTitle } from '../a2ui/resolve-a2ui-title'
+import { useChatAgent } from '../context/chat-agent-context'
 import { useAgentRetry } from '../hooks/use-agent-retry'
-import { useLiveAgentMessages } from '../hooks/use-live-agent-messages'
-import { useStreamIdle } from '../hooks/use-stream-idle'
-import { getToolCallName, resolveAssistantToolCalls } from '../lib/group-tool-calls'
-import { ChatActivityIndicator } from './chat-activity'
+import { useReasoningDuration } from '../hooks/use-reasoning-duration'
+import {
+  A2UI_ACTIVITY_TYPE,
+  findTurnGeneratingA2uiToolCall,
+  shouldShowA2uiCanvasBadge,
+  turnHasInProgressA2uiActivity
+} from '../lib/a2ui-tools'
+import {
+  getInlineStandardToolCalls,
+  groupMessagesIntoTurns,
+  turnHasFoldableWork
+} from '../lib/group-chat-turns'
+import { resolveTurnGenerativeToolCalls, resolveTurnToolCalls } from '../lib/group-tool-calls'
+import { useAgentChatInputStore } from '../stores/agent-chat-input'
+import { ChatAssistantActions } from './chat-assistant-actions'
+import { ChatCanvasBadge, ChatCanvasGeneratingBadge } from './chat-canvas-badge'
+import { ChatExportDownloads, ChatUserAttachments } from './chat-message-files'
+import { ChatReasoningTrace } from './chat-reasoning-trace'
+import { ChatUserActions } from './chat-user-actions'
+import { ChatWorkTrace } from './chat-work-trace'
 import { GroupedToolCallsView } from './grouped-tool-calls-view'
 
-import type { AssistantToolMessageLike } from '../lib/group-tool-calls'
+import type { Message as AGUIMessage } from '@copilotkit/react-core/v2'
+import type { ChatTurnMessageLike } from '../lib/group-chat-turns'
 
-type UserMessageContentPart = { type: string; text?: string }
+export type ChatMessageLike = AGUIMessage &
+  ChatTurnMessageLike & {
+    toolCalls?: ChatTurnMessageLike['toolCalls']
+  }
 
-type CopilotkitUserMessage = {
-  id: string
-  role: 'user'
-  content?: string | UserMessageContentPart[]
-}
-
-type CopilotkitAssistantMessage = {
-  id: string
-  role: 'assistant'
-  content?: string
-  toolCalls?: Array<{
-    id?: string
-    function?: {
-      name?: string
-      arguments?: string
-    }
-  }>
-}
-
-type CopilotkitReasoningMessage = {
-  id: string
-  role: 'reasoning'
-  content?: string
-}
-
-type CopilotkitActivityMessage = {
-  id: string
-  role: 'activity'
-  activityType: string
-  content: Record<string, unknown>
-}
-
-type CopilotkitToolMessage = {
-  id: string
-  role: 'tool'
-  toolCallId?: string
-  content?: unknown
-  toolCalls?: unknown
-}
-
-type CopilotkitMessage =
-  | CopilotkitUserMessage
-  | CopilotkitAssistantMessage
-  | CopilotkitReasoningMessage
-  | CopilotkitActivityMessage
-  | CopilotkitToolMessage
-
-function flattenUserMessageContent(content: CopilotkitUserMessage['content']): string {
-  if (!content) return ''
-  if (typeof content === 'string') return content
-
-  return content
-    .map((part: UserMessageContentPart) => (part.type === 'text' ? part.text : ''))
-    .filter((text): text is string => Boolean(text?.length))
-    .join('\n')
-}
-
-interface UserMessageProps {
-  message: CopilotkitUserMessage
-}
-
-function UserMessage({ message }: UserMessageProps) {
-  const text = useMemo(() => flattenUserMessageContent(message.content), [message.content])
-
-  if (!text) return null
+export function UserMessageItem({ message }: { message: ChatMessageLike }) {
+  const text = useMemo(() => visibleChatText(message.content), [message.content])
+  if (!text && listChatAttachments(message.content).length === 0) return null
 
   return (
-    <Message from="user">
-      <MessageContent>
-        <MessageResponse>{text}</MessageResponse>
-      </MessageContent>
+    <Message from="user" className="max-w-full">
+      <ChatUserAttachments content={message.content} />
+      {text ? (
+        <MessageContent className="text-base group-[.is-user]:max-w-7/10 group-[.is-user]:rounded-2xl group-[.is-user]:rounded-tr-none group-[.is-user]:bg-primary/90 group-[.is-user]:px-3 group-[.is-user]:py-2 group-[.is-user]:text-primary-foreground/75">
+          <MessageResponse>{text}</MessageResponse>
+        </MessageContent>
+      ) : null}
+      {text ? <ChatUserActions text={text} /> : null}
     </Message>
   )
 }
 
-interface AssistantMessageProps {
-  message: CopilotkitAssistantMessage
-  content: string
-  messages: CopilotkitMessage[]
-  toolGroupingMessages: AssistantToolMessageLike[]
-  isActivelyStreaming: boolean
+export interface AssistantMessageItemProps {
+  message: ChatMessageLike
+  messages: ChatMessageLike[]
+  isRunning: boolean
+  isLastAssistant: boolean
+  includeInlineTools?: boolean
+  showWorkingPlaceholder?: boolean
+  /** 为 false 时不展示画布生成态和画布入口。Popup 没有右侧画布。 */
+  showCanvas?: boolean
+  /** 为 false 时不在这条消息上挂生成式结果。轨迹内的步骤改由回合统一放到外面。 */
+  showGenerative?: boolean
+  /** 工作轨迹里的过程说明，和轨迹外的最终回复区分开。 */
+  placement?: 'answer' | 'work'
+  onRetry?: () => void
 }
 
-function AssistantMessage({
+export function AssistantMessageItem({
   message,
-  content,
   messages,
-  toolGroupingMessages,
-  isActivelyStreaming
-}: AssistantMessageProps) {
-  'use no memo'
+  isRunning,
+  isLastAssistant,
+  includeInlineTools = true,
+  showWorkingPlaceholder = false,
+  showCanvas = true,
+  showGenerative = true,
+  placement = 'answer',
+  onRetry
+}: AssistantMessageItemProps) {
+  const isStopped = useAgentChatInputStore((state) =>
+    message.id ? state.stoppedMessageIds.has(message.id) : false
+  )
+  const content = typeof message.content === 'string' ? message.content : ''
+  const isStreaming = isRunning && isLastAssistant
   const hasContent = Boolean(content.trim())
-  const last = lastMeaningfulMessage(messages)
-  const isStreaming = Boolean(
-    isActivelyStreaming && last?.id === message.id && last.role === 'assistant'
+  const toolCalls = Array.isArray(message.toolCalls) ? message.toolCalls : []
+  const inlineStandardToolCalls = useMemo(
+    () => (includeInlineTools ? getInlineStandardToolCalls(toolCalls) : []),
+    [includeInlineTools, toolCalls]
   )
-  const { hidden, toolCalls } = resolveAssistantToolCalls(toolGroupingMessages, message.id)
-  const resultToolCalls = toolCalls.filter((toolCall) =>
-    hasDedicatedResultUi(getToolCallName(toolCall))
+  const turnA2uiTools = useMemo(
+    () =>
+      message.id
+        ? resolveTurnToolCalls(messages, message.id, (toolCall) =>
+            shouldShowA2uiCanvasBadge(toolCall, messages, isRunning)
+          )
+        : null,
+    [isRunning, message.id, messages]
   )
+  const turnGenerativeTools = useMemo(
+    () => (message.id ? resolveTurnGenerativeToolCalls(messages, message.id) : null),
+    [message.id, messages]
+  )
+  const showA2uiSlot = Boolean(turnA2uiTools?.shouldRender && turnA2uiTools.toolCalls.length > 0)
+  const showGenerativeSlot = Boolean(
+    showGenerative && turnGenerativeTools?.shouldRender && turnGenerativeTools.toolCalls.length > 0
+  )
+  const canvasGeneration = useMemo(() => {
+    if (!showCanvas || !isRunning || !isLastAssistant || !message.id || showA2uiSlot) {
+      return undefined
+    }
+    return (
+      findTurnGeneratingA2uiToolCall(messages, message.id) ??
+      (turnHasInProgressA2uiActivity(messages, message.id) ? null : undefined)
+    )
+  }, [isLastAssistant, isRunning, message.id, messages, showA2uiSlot, showCanvas])
+  const showCanvasPending = canvasGeneration !== undefined && !showGenerativeSlot
 
-  if (hidden && !hasContent) return null
-  if (!hasContent && resultToolCalls.length === 0) return null
+  const hasInlineTools = inlineStandardToolCalls.length > 0
+  const showStreamingPlaceholder = Boolean(!hasContent && isStreaming && showWorkingPlaceholder)
+  if (
+    !hasContent &&
+    !hasInlineTools &&
+    !showA2uiSlot &&
+    !showGenerativeSlot &&
+    !showStreamingPlaceholder &&
+    !isStopped
+  ) {
+    return null
+  }
+
+  return (
+    <Message from="assistant" className="max-w-full">
+      <MessageContent
+        className={cn(
+          'w-full transition-all duration-300 group-[.is-assistant]:w-full',
+          placement === 'work' ? 'text-sm' : 'text-base'
+        )}
+      >
+        {hasContent && (
+          <MessageResponse
+            animated
+            isAnimating={isStreaming}
+            caret={isStreaming ? 'block' : undefined}
+          >
+            {content}
+          </MessageResponse>
+        )}
+        {hasInlineTools && (
+          <GroupedToolCallsView toolCalls={inlineStandardToolCalls} messages={messages as never} />
+        )}
+        {showStreamingPlaceholder && (
+          <div className="my-1.5 flex items-center gap-2 py-0.5 text-muted-foreground">
+            <Sparkles className="size-3.5 animate-pulse text-primary/70" />
+            <Shimmer duration={1.5} className="text-xs font-normal text-muted-foreground">
+              工作中...
+            </Shimmer>
+          </div>
+        )}
+        {isStopped && !isRunning && (
+          <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground/75">
+            <span className="inline-block size-1.5 rounded-full bg-muted-foreground/50" />
+            <span>已停止生成</span>
+          </div>
+        )}
+      </MessageContent>
+      {showCanvasPending && (
+        <ChatCanvasGeneratingBadge
+          title={canvasGeneration ? resolveStreamingCanvasTitle(canvasGeneration) : undefined}
+        />
+      )}
+      {showCanvas && showA2uiSlot && turnA2uiTools && (
+        <ChatCanvasBadge toolCalls={turnA2uiTools.toolCalls} messages={messages as never} />
+      )}
+      {showGenerativeSlot && turnGenerativeTools && (
+        <div className="w-full">
+          <GroupedToolCallsView
+            toolCalls={turnGenerativeTools.toolCalls}
+            messages={messages as never}
+          />
+        </div>
+      )}
+      {isLastAssistant && !isRunning && onRetry && (
+        <ChatAssistantActions content={content} onRetry={onRetry} isRunning={isRunning} />
+      )}
+    </Message>
+  )
+}
+
+export function ReasoningMessageItem({
+  message,
+  isRunning,
+  isLatest
+}: {
+  message: ChatMessageLike
+  isRunning: boolean
+  isLatest: boolean
+}) {
+  const content = typeof message.content === 'string' ? message.content : ''
+  const isStreaming = Boolean(isRunning && isLatest)
+  const hasContent = Boolean(content.length)
+  const timing = readZenMessageTiming(message.metadata)
+  const duration = useReasoningDuration(message.id, isStreaming, timing)
+
+  if (!hasContent && !isStreaming) return null
+
+  return <ChatReasoningTrace content={content} isStreaming={isStreaming} duration={duration} />
+}
+
+function lastTurnAssistant(turn: {
+  foldedBefore: ChatMessageLike[]
+  foldedAfter: ChatMessageLike[]
+  finalAssistant?: ChatMessageLike
+}): ChatMessageLike | undefined {
+  const ordered = [
+    ...turn.foldedBefore,
+    ...(turn.finalAssistant ? [turn.finalAssistant] : []),
+    ...turn.foldedAfter
+  ]
+  for (let index = ordered.length - 1; index >= 0; index -= 1) {
+    const message = ordered[index]
+    if (message?.role === 'assistant') return message
+  }
+  return undefined
+}
+
+/** 画布入口和生成式结果挂在轨迹外面，收起工作过程时仍然可见。 */
+function TurnSurface({
+  messages,
+  anchorId,
+  isRunning,
+  showCanvas
+}: {
+  messages: ChatMessageLike[]
+  anchorId?: string
+  isRunning: boolean
+  showCanvas: boolean
+}) {
+  const turnA2uiTools = useMemo(
+    () =>
+      anchorId
+        ? resolveTurnToolCalls(messages, anchorId, (toolCall) =>
+            shouldShowA2uiCanvasBadge(toolCall, messages, isRunning)
+          )
+        : null,
+    [anchorId, isRunning, messages]
+  )
+  const turnGenerativeTools = useMemo(
+    () => (anchorId ? resolveTurnGenerativeToolCalls(messages, anchorId) : null),
+    [anchorId, messages]
+  )
+  const showA2uiSlot = Boolean(turnA2uiTools?.shouldRender && turnA2uiTools.toolCalls.length > 0)
+  const showGenerativeSlot = Boolean(
+    turnGenerativeTools?.shouldRender && turnGenerativeTools.toolCalls.length > 0
+  )
+  const generatingToolCall = useMemo(
+    () => (anchorId ? findTurnGeneratingA2uiToolCall(messages, anchorId) : undefined),
+    [anchorId, messages]
+  )
+  const showCanvasPending =
+    showCanvas &&
+    isRunning &&
+    !showA2uiSlot &&
+    (Boolean(generatingToolCall) ||
+      Boolean(anchorId && turnHasInProgressA2uiActivity(messages, anchorId)))
+
+  if (!showCanvasPending && !showA2uiSlot && !showGenerativeSlot) return null
 
   return (
     <>
-      {hasContent && (
-        <Message from="assistant">
-          <MessageContent className="transition-all duration-300">
-            <MessageResponse isAnimating={isStreaming}>{content}</MessageResponse>
-          </MessageContent>
-        </Message>
+      {showCanvasPending && (
+        <ChatCanvasGeneratingBadge title={resolveStreamingCanvasTitle(generatingToolCall)} />
       )}
-      {!hidden && resultToolCalls.length > 0 && (
-        <GroupedToolCallsView toolCalls={resultToolCalls} messages={messages} />
+      {showCanvas && showA2uiSlot && turnA2uiTools && (
+        <ChatCanvasBadge toolCalls={turnA2uiTools.toolCalls} messages={messages as never} />
+      )}
+      {showGenerativeSlot && turnGenerativeTools && (
+        <GroupedToolCallsView
+          toolCalls={turnGenerativeTools.toolCalls}
+          messages={messages as never}
+        />
       )}
     </>
   )
 }
 
-interface ReasoningMessageProps {
-  message: CopilotkitReasoningMessage
-  content: string
-  messages: CopilotkitMessage[]
+function FoldedTurnMessages({
+  messages,
+  foldedMessages,
+  isRunning,
+  isLastTurn
+}: {
+  messages: ChatMessageLike[]
+  foldedMessages: ChatMessageLike[]
   isRunning: boolean
-}
-
-function ReasoningMessage({ message, content, messages, isRunning }: ReasoningMessageProps) {
-  'use no memo'
-  if (isTrailingReasoningAfterReply(messages, message.id)) return null
-
-  const last = lastMeaningfulMessage(messages)
-  const isLatest = messages.at(-1)?.id === message.id
-  const isStreaming = Boolean(isRunning && (last?.id === message.id || isLatest))
-  const hasContent = Boolean(content.length)
-
-  // 既无内容又非当前流式活跃的空 reasoning 不展示
-  if (!hasContent && !isStreaming) return null
+  isLastTurn: boolean
+}) {
+  const { renderActivityMessage } = useRenderActivityMessage()
+  const lastMessageId = messages.at(-1)?.id
 
   return (
-    <Reasoning className="w-full" isStreaming={isStreaming}>
-      <ReasoningTrigger />
-      {hasContent && <ReasoningContent>{sanitizeReasoningContent(content)}</ReasoningContent>}
-    </Reasoning>
+    <>
+      {foldedMessages.map((message, idx) => (
+        <Fragment key={message.id ?? `folded-${idx}`}>
+          {message.role === 'assistant' && (
+            <AssistantMessageItem
+              message={message}
+              messages={messages}
+              isRunning={isRunning}
+              isLastAssistant={false}
+              includeInlineTools
+              placement="work"
+              showCanvas={false}
+              showGenerative={false}
+            />
+          )}
+          {message.role === 'reasoning' && (
+            <ReasoningMessageItem
+              message={message}
+              isRunning={isRunning}
+              isLatest={isLastTurn && message.id === lastMessageId}
+            />
+          )}
+          {message.role === 'activity' &&
+            message.activityType !== A2UI_ACTIVITY_TYPE &&
+            renderActivityMessage(message as never)}
+        </Fragment>
+      ))}
+    </>
   )
 }
 
-function deduplicateMessages(messages: CopilotkitMessage[]): CopilotkitMessage[] {
-  const merged = new Map<string, CopilotkitMessage>()
-
-  for (const message of messages) {
-    const existing = merged.get(message.id)
-    if (existing && message.role === 'assistant' && existing.role === 'assistant') {
-      merged.set(message.id, {
-        ...existing,
-        ...message,
-        content: message.content || existing.content,
-        toolCalls: message.toolCalls ?? existing.toolCalls
-      })
-    } else {
-      merged.set(message.id, message)
-    }
-  }
-
-  return [...merged.values()]
-}
-
-/**
- * Agent 在 RUN_ERROR / 空 MESSAGES_SNAPSHOT 时可能清掉乐观添加的用户消息；
- * 本地缓存已展示过的 user 消息，并在 agent 状态中缺失时合并回列表。
- */
-function useDisplayMessages(messages: CopilotkitMessage[], threadId: string): CopilotkitMessage[] {
-  const cacheRef = useRef(new DisplayMessageCache<CopilotkitMessage>())
-
-  return useMemo(() => {
-    const deduped = deduplicateMessages(messages)
-    return cacheRef.current.merge(threadId, deduped)
-  }, [messages, threadId])
-}
-
-function collectUnresolvedToolNames(messages: CopilotkitMessage[]): string[] {
-  const resolvedIds = new Set(
-    messages
-      .filter((message): message is CopilotkitToolMessage => message.role === 'tool')
-      .map((message) => message.toolCallId)
-      .filter((id): id is string => Boolean(id))
-  )
-
-  const names: string[] = []
-  for (const message of messages) {
-    if (message.role !== 'assistant' || !message.toolCalls?.length) continue
-    for (const toolCall of message.toolCalls) {
-      if (!toolCall.id || resolvedIds.has(toolCall.id)) continue
-      const name = toolCall.function?.name
-      if (name) names.push(name)
-    }
-  }
-  return names
-}
-
-export function ChatMessages({ threadId }: { threadId: string }) {
-  'use no memo'
-  const { agent } = useAgent({
+export function ChatMessages() {
+  const { agent } = useChatAgent({
     updates: [UseAgentUpdate.OnMessagesChanged, UseAgentUpdate.OnRunStatusChanged],
     throttleMs: 0
   })
-  const { renderActivityMessage } = useRenderActivityMessage()
-  const { messages: liveMessages, isRunning } = useLiveAgentMessages(agent)
-  const messages = liveMessages as CopilotkitMessage[]
   const { runError, retryLastRun, failedUserMessage } = useAgentRetry()
 
-  const displayMessages = useDisplayMessages(
-    failedUserMessage ? [failedUserMessage as CopilotkitMessage, ...messages] : messages,
-    threadId
+  const rawMessages = agent.messages as ChatMessageLike[]
+  const messages = useMemo(() => {
+    if (failedUserMessage && !rawMessages.some((m) => m.id === failedUserMessage.id)) {
+      return [failedUserMessage as ChatMessageLike, ...rawMessages]
+    }
+    return rawMessages
+  }, [failedUserMessage, rawMessages])
+
+  const turns = useMemo(
+    () => groupMessagesIntoTurns(messages, { liveRun: agent.isRunning }),
+    [agent.isRunning, messages]
   )
-  const toolGroupingMessages = useMemo(
-    () =>
-      displayMessages.map((message) => ({
-        id: message.id,
-        role: message.role,
-        ...(message.role === 'assistant'
-          ? { content: message.content, toolCalls: message.toolCalls }
-          : {})
-      })),
-    [displayMessages]
-  )
-  const canRetry = displayMessages.some((message) => message.role === 'user')
-  const unresolvedToolNames = collectUnresolvedToolNames(displayMessages)
-  const activityToolNames = resolveActivityToolNames(unresolvedToolNames)
-  const activityLabel =
-    formatActiveToolsLabel(activityToolNames) ??
-    (unresolvedToolNames.length > 0 ? '正在检索…' : undefined)
-  const structurallyStreaming = isStreamingAssistantText(displayMessages, isRunning)
-  const streamIdle = useStreamIdle(
-    isRunning && structurallyStreaming,
-    streamingActivitySignature(displayMessages)
-  )
-  const isActivelyStreamingText = structurallyStreaming && !streamIdle
+  const lastUserIndex = messages.findLastIndex((m) => m.role === 'user')
+  const messagesAfterUser = lastUserIndex >= 0 ? messages.slice(lastUserIndex + 1) : []
+  const hasActiveAssistantOutput = messagesAfterUser.some((message) => {
+    if (message.role === 'assistant') {
+      const hasText = typeof message.content === 'string' && message.content.trim().length > 0
+      const hasTools = Array.isArray(message.toolCalls) && message.toolCalls.length > 0
+      return hasText || hasTools
+    }
+    if (message.role === 'reasoning') {
+      return typeof message.content === 'string' && message.content.length > 0
+    }
+    return message.role === 'activity'
+  })
+
+  const isRunWaiting = agent.isRunning && !hasActiveAssistantOutput
+  const canRetry = messages.some((m) => m.role === 'user')
 
   const handleRetry = () => {
-    void retryLastRun(displayMessages)
+    void retryLastRun(messages)
   }
 
-  if (displayMessages.length === 0) {
+  if (messages.length === 0) {
     if (runError) {
       return (
         <div className="flex flex-col gap-4">
           <ChatRunError
             message={runError}
             onRetry={handleRetry}
-            disabled={isRunning || !canRetry}
+            disabled={agent.isRunning || !canRetry}
           />
         </div>
       )
     }
-
     return null
   }
 
   return (
     <div className="flex flex-col gap-4">
-      {displayMessages.map((message) => {
-        if (message.role === 'tool') return null
+      {turns.map((turn, turnIndex) => {
+        const isLastTurn = turnIndex === turns.length - 1
+        const hasWork = turnHasFoldableWork(turn)
+        const isWaiting = isLastTurn && isRunWaiting
+        const isWorking = isLastTurn && agent.isRunning && hasWork
+        const finalInlineTools = getInlineStandardToolCalls(turn.finalAssistant?.toolCalls)
 
         return (
-          <Fragment key={message.id}>
-            {message.role === 'user' && <UserMessage message={message as CopilotkitUserMessage} />}
-            {message.role === 'assistant' && (
-              <AssistantMessage
-                message={message as CopilotkitAssistantMessage}
-                content={typeof message.content === 'string' ? message.content : ''}
-                messages={displayMessages}
-                toolGroupingMessages={toolGroupingMessages}
-                isActivelyStreaming={isActivelyStreamingText}
+          <Fragment key={turn.key}>
+            {turn.user && <UserMessageItem message={turn.user} />}
+            {(hasWork || isWaiting) && (
+              <ChatWorkTrace
+                turnKey={turn.key}
+                isWaiting={isWaiting}
+                isWorking={isWorking}
+                workStartedAt={readZenMessageTiming(turn.user?.metadata)?.workStartedAt}
+                workEndedAt={readZenMessageTiming(turn.user?.metadata)?.workEndedAt}
+              >
+                <FoldedTurnMessages
+                  messages={messages}
+                  foldedMessages={turn.foldedBefore}
+                  isRunning={agent.isRunning}
+                  isLastTurn={isLastTurn}
+                />
+                {finalInlineTools.length > 0 && (
+                  <GroupedToolCallsView toolCalls={finalInlineTools} messages={messages as never} />
+                )}
+                <FoldedTurnMessages
+                  messages={messages}
+                  foldedMessages={turn.foldedAfter}
+                  isRunning={agent.isRunning}
+                  isLastTurn={isLastTurn}
+                />
+              </ChatWorkTrace>
+            )}
+            {turn.finalAssistant && (
+              <AssistantMessageItem
+                message={turn.finalAssistant}
+                messages={messages}
+                isRunning={agent.isRunning}
+                isLastAssistant={isLastTurn}
+                includeInlineTools={false}
+                showCanvas={false}
+                showGenerative={false}
+                showWorkingPlaceholder={!hasWork}
+                onRetry={handleRetry}
               />
             )}
-            {message.role === 'reasoning' && (
-              <ReasoningMessage
-                message={message as CopilotkitReasoningMessage}
-                content={typeof message.content === 'string' ? message.content : ''}
-                messages={displayMessages}
-                isRunning={isRunning}
-              />
-            )}
-            {message.role === 'activity' && renderActivityMessage(message)}
+            <TurnSurface
+              messages={messages}
+              anchorId={lastTurnAssistant(turn)?.id}
+              isRunning={isLastTurn && agent.isRunning}
+              showCanvas
+            />
+            <ChatExportDownloads contents={contentsForTurn(messages, turns, turnIndex)} />
           </Fragment>
         )
       })}
       {runError && (
-        <ChatRunError message={runError} onRetry={handleRetry} disabled={isRunning || !canRetry} />
+        <ChatRunError
+          message={runError}
+          onRetry={handleRetry}
+          disabled={agent.isRunning || !canRetry}
+        />
       )}
-      <ChatActivityIndicator
-        isRunning={isRunning && !runError}
-        isStreamingText={structurallyStreaming}
-        activityLabel={activityLabel}
-      />
     </div>
   )
+}
+
+function contentsForTurn(
+  messages: ChatMessageLike[],
+  turns: Array<{ user?: ChatMessageLike }>,
+  index: number
+) {
+  const startId = turns[index]?.user?.id
+  const nextId = turns[index + 1]?.user?.id
+  const start = startId ? messages.findIndex((item) => item.id === startId) : 0
+  const end = nextId ? messages.findIndex((item) => item.id === nextId) : messages.length
+  return messages
+    .slice(start < 0 ? 0 : start, end < 0 ? messages.length : end)
+    .map((item) => item.content)
 }
 
 interface ChatRunErrorProps {

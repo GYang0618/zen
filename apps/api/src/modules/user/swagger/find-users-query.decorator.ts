@@ -7,21 +7,23 @@ import {
   UsersSortOrderSwagger
 } from './user-status.swagger.js'
 
-/** 为 GET /user 列表接口生成查询参数 OpenAPI 描述 */
+const userStatusEnum = Object.values(UserStatusSwagger)
+
+/** 为 GET /user 列表接口生成查询参数 OpenAPI 描述（与 usersQuerySchema 对齐） */
 export function ApiFindUsersQueryDocs() {
   return applyDecorators(
     ApiQuery({
       name: 'page',
       required: false,
       type: Number,
-      description: '页码，需与 pageSize 同时传入',
+      description: '页码，可选；只传 pageSize 时默认 1',
       example: 1
     }),
     ApiQuery({
       name: 'pageSize',
       required: false,
       type: Number,
-      description: '每页数量，需与 page 同时传入，最大 100',
+      description: '每页数量，可选；只传 page 时默认 10，最大 100',
       example: 10
     }),
     ApiQuery({
@@ -34,17 +36,22 @@ export function ApiFindUsersQueryDocs() {
     ApiQuery({
       name: 'status',
       required: false,
-      enum: UserStatusSwagger,
-      isArray: true,
       description: '账号状态，可传单个或数组',
+      schema: {
+        oneOf: [
+          { type: 'string', enum: userStatusEnum },
+          { type: 'array', items: { type: 'string', enum: userStatusEnum } }
+        ]
+      },
       example: UserStatusSwagger.ACTIVE
     }),
     ApiQuery({
       name: 'role',
       required: false,
-      isArray: true,
-      type: String,
       description: '角色 code，可传单个或数组',
+      schema: {
+        oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }]
+      },
       example: 'admin'
     }),
     ApiQuery({

@@ -16,22 +16,26 @@ import {
   useDialogState,
   useSidebar
 } from '@zen/ui'
-import { BadgeCheck, Bell, Bot, ChevronsUpDown, LayoutDashboard, LogOut } from 'lucide-react'
+import { BadgeCheck, Bell, ChevronsUpDown, LogOut } from 'lucide-react'
 
 import { SignOutDialog } from '@/components/sign-out-dialog'
 import { useSwitchShellMode } from '@/hooks'
+import { SHELL_MODES, useAuthStore } from '@/stores'
+
+import { SHELL_MODE_META } from '../shell-mode-meta'
 
 import type { User } from '../types'
 
 type NavUserProps = {
-  user: User
+  showSettings?: boolean
 }
 
-export function NavUser({ user }: NavUserProps) {
+export function NavUser({ showSettings = false }: NavUserProps) {
   const { isMobile } = useSidebar()
   const [open, setOpen] = useDialogState()
   const { mode, switchMode } = useSwitchShellMode()
-  const isAgentMode = mode === 'agent'
+  const user = useSidebarUser()
+  const otherModes = SHELL_MODES.filter((item) => item !== mode)
 
   return (
     <>
@@ -78,25 +82,35 @@ export function NavUser({ user }: NavUserProps) {
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                <DropdownMenuItem onClick={() => switchMode(isAgentMode ? 'admin' : 'agent')}>
-                  {isAgentMode ? <LayoutDashboard /> : <Bot />}
-                  {isAgentMode ? '切换到管理后台' : '切换到智能体模式'}
-                </DropdownMenuItem>
+                {otherModes.map((item) => {
+                  const meta = SHELL_MODE_META[item]
+                  const Icon = meta.icon
+                  return (
+                    <DropdownMenuItem key={item} onClick={() => switchMode(item)}>
+                      <Icon />
+                      {meta.switchLabel}
+                    </DropdownMenuItem>
+                  )
+                })}
               </DropdownMenuGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuItem render={<Link to="/settings/account" />} nativeButton={false}>
-                  <BadgeCheck />
-                  账户
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  render={<Link to="/settings/notifications" />}
-                  nativeButton={false}
-                >
-                  <Bell />
-                  通知
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
+              {showSettings ? (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem render={<Link to="/settings/account" />} nativeButton={false}>
+                      <BadgeCheck />
+                      账户
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      render={<Link to="/settings/notifications" />}
+                      nativeButton={false}
+                    >
+                      <Bell />
+                      通知
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </>
+              ) : null}
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onClick={() => setOpen(true)}>
                 <LogOut />
@@ -110,4 +124,14 @@ export function NavUser({ user }: NavUserProps) {
       <SignOutDialog open={!!open} onOpenChange={setOpen} />
     </>
   )
+}
+
+function useSidebarUser(): User {
+  const authUser = useAuthStore((state) => state.user)
+
+  return {
+    name: authUser?.nickname || authUser?.username || '用户',
+    email: authUser?.email || '',
+    avatar: authUser?.avatar || ''
+  }
 }

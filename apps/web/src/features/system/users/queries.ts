@@ -5,7 +5,7 @@ import { request } from '@/lib/request'
 
 import { userApi } from './api'
 
-import type { Role, UsersQuery } from '@zen/shared'
+import type { RoleListItem, UsersQuery } from '@zen/shared'
 import type { PaginationResponse } from '@/lib/request'
 
 type UsersListFilters = Omit<UsersQuery, 'page' | 'pageSize'>
@@ -49,7 +49,7 @@ export function useRoleOptionsQuery(enabled = true) {
   return useQuery({
     queryKey: ['system', 'roles', 'options'],
     queryFn: () =>
-      request.get<PaginationResponse<Role>>('/role', {
+      request.get<PaginationResponse<RoleListItem>>('/role', {
         params: { page: 1, pageSize: 100, status: 'active' }
       }),
     enabled,

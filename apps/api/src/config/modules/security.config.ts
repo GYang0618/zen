@@ -1,4 +1,5 @@
 import { registerConfig } from '../helper.js'
+import { parseThrottleRate } from '../utils/throttle-parser.js'
 
 /**
  * 安全相关配置（CORS、限流等）
@@ -20,7 +21,6 @@ export const securityConfig = registerConfig('security', (env) => ({
     allowedHeaders: [
       'Content-Type',
       'Authorization',
-      'x-step-up-token',
       'x-agent-idempotency-key',
       'x-agent-run-id',
       'x-agent-tool-name',
@@ -28,17 +28,7 @@ export const securityConfig = registerConfig('security', (env) => ({
     ]
   },
   /** 限流配置 */
-  throttle: {
-    /** 时间窗口（毫秒） */
-    ttl: env.THROTTLE_TTL,
-    /** 窗口内最大请求数 */
-    limit: env.THROTTLE_LIMIT
-  },
+  throttle: parseThrottleRate(env.THROTTLE),
   /** Copilot 协议轮询和流式请求使用独立限流桶 */
-  copilotThrottle: {
-    /** 时间窗口（毫秒） */
-    ttl: env.COPILOT_THROTTLE_TTL,
-    /** 窗口内最大请求数 */
-    limit: env.COPILOT_THROTTLE_LIMIT
-  }
+  copilotThrottle: parseThrottleRate(env.COPILOT_THROTTLE)
 }))

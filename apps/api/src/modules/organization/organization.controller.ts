@@ -12,7 +12,7 @@ import {
   Query,
   UsePipes
 } from '@nestjs/common'
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger'
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger'
 import { PermissionCode } from '@zen/shared'
 
 import { CurrentAuth } from '../../common/decorators/current-auth.decorator.js'
@@ -21,29 +21,44 @@ import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js'
 import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '../../common/swagger/index.js'
 import {
   addOrganizationMemberSchema,
+  batchTransferMembersSchema,
   changeOrganizationParentSchema,
   createOrganizationSchema,
+  dissolveOrganizationSchema,
+  findOrganizationsQuerySchema,
   linkOrganizationPositionSchema,
+  mergeOrganizationSchema,
   organizationActivitiesQuerySchema,
+  organizationStatisticsQuerySchema,
+  organizationTreeQuerySchema,
   updateOrganizationLeaderSchema,
   updateOrganizationPositionSchema,
   updateOrganizationSchema,
-  updateOrganizationTypeCatalogSchema
+  updateOrganizationTypeCatalogSchema,
+  updatePositionRolesSchema
 } from './dto/index.js'
 import { OrganizationService } from './organization.service.js'
 
 import type { AuthContext } from '@zen/shared'
 import type {
   AddOrganizationMemberDto,
+  BatchTransferMembersDto,
   ChangeOrganizationParentDto,
   CreateOrganizationDto,
   CreatePositionDto,
+  DissolveOrganizationDto,
+  FindOrganizationsQueryDto,
+  MergeOrganizationDto,
   OrganizationActivitiesQueryDto,
+  OrganizationStatisticsQueryDto,
+  OrganizationTreeQueryDto,
   UpdateOrganizationDto,
   UpdateOrganizationLeaderDto,
   UpdateOrganizationPositionDto,
-  UpdateOrganizationTypeCatalogDto
+  UpdateOrganizationTypeCatalogDto,
+  UpdatePositionRolesDto
 } from './dto/index.js'
+import type { OrganizationStatisticsResponse } from './responses/organization.response.js'
 
 @ApiTags('组织管理')
 @ApiBearerAuth(ACCESS_TOKEN_AUTH)
@@ -54,17 +69,55 @@ export class OrganizationController {
     @Inject(OrganizationService) private readonly organizationService: OrganizationService
   ) {}
 
+  @Get()
+  @RequirePermission(PermissionCode.ORG_LIST)
+  @ApiOperation({
+    summary: '查询组织列表',
+    description: '支持按关键字、组织类型等条件筛选平铺列表'
+  })
+  @UsePipes(new ZodValidationPipe(findOrganizationsQuerySchema, { types: ['query'] }))
+  findAll(@Query() query: FindOrganizationsQueryDto | undefined, @CurrentAuth() auth: AuthContext) {
+    return this.organizationService.findAll(query, auth)
+  }
+
   @Get('tree')
   @RequirePermission(PermissionCode.ORG_LIST)
-  @ApiOperation({ summary: '获取按名称排序的组织树' })
-  getTree(@CurrentAuth() auth: AuthContext) {
-    return this.organizationService.getTree(auth)
+  @ApiOperation({
+    summary: '获取按名称排序的组织树',
+    description: '支持按关键字过滤组织树，保留匹配节点及其祖先路径'
+  })
+  @ApiQuery({ name: 'keyword', required: false, description: '关键字过滤（匹配名称或编码）' })
+  @UsePipes(new ZodValidationPipe(organizationTreeQuerySchema, { types: ['query'] }))
+  getTree(@CurrentAuth() auth: AuthContext, @Query() query?: OrganizationTreeQueryDto) {
+    return this.organizationService.getTree(auth, query)
   }
 
   @Get('type-catalog')
   @ApiOperation({ summary: '获取本企业组织类型目录' })
   getTypeCatalog(@CurrentAuth() auth: AuthContext) {
     return this.organizationService.getTypeCatalog(auth)
+  }
+
+  @Get('statistics')
+  @RequirePermission(PermissionCode.ORG_LIST)
+  @ApiOperation({
+    summary: '获取组织架构聚合统计数据',
+    description:
+      '聚合统计组织节点总数、各类型分布、根组织与最大层级深度、负责人健全度及成员规模排行。支持按根节点筛选子树。'
+  })
+  @ApiQuery({
+    name: 'rootId',
+    required: false,
+    type: String,
+    description: '根组织 ID，指定后仅统计该组织及其所有子级组织',
+    example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479'
+  })
+  @UsePipes(new ZodValidationPipe(organizationStatisticsQuerySchema, { types: ['query'] }))
+  getStatistics(
+    @CurrentAuth() auth: AuthContext,
+    @Query() query?: OrganizationStatisticsQueryDto
+  ): Promise<OrganizationStatisticsResponse> {
+    return this.organizationService.getStatistics(auth, query)
   }
 
   @Patch('type-catalog')
@@ -116,6 +169,40 @@ export class OrganizationController {
   @ApiParam({ name: 'id', description: '组织 ID' })
   async remove(@Param('id') id: string, @CurrentAuth() auth: AuthContext): Promise<void> {
     await this.organizationService.remove(id, auth)
+  }
+
+  @Post(':id/dissolve')
+  @RequirePermission(PermissionCode.ORG_DELETE)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: '解散组织与分流安置向导',
+    description: '支持将下级组织自动提升至当前父级，并将成员平移至指定目标组织后安全删除。'
+  })
+  @ApiParam({ name: 'id', description: '组织 ID' })
+  @UsePipes(new ZodValidationPipe(dissolveOrganizationSchema))
+  async dissolve(
+    @Param('id') id: string,
+    @Body() payload: DissolveOrganizationDto,
+    @CurrentAuth() auth: AuthContext
+  ): Promise<void> {
+    await this.organizationService.dissolve(id, payload, auth)
+  }
+
+  @Post(':id/merge')
+  @RequirePermission(PermissionCode.ORG_DELETE)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: '组织合并向导',
+    description: '将当前组织及其下级、成员并入目标组织，并删除当前组织。'
+  })
+  @ApiParam({ name: 'id', description: '源组织 ID' })
+  @UsePipes(new ZodValidationPipe(mergeOrganizationSchema))
+  async merge(
+    @Param('id') id: string,
+    @Body() payload: MergeOrganizationDto,
+    @CurrentAuth() auth: AuthContext
+  ): Promise<void> {
+    await this.organizationService.merge(id, payload, auth)
   }
 
   @Patch(':id/leader')
@@ -173,6 +260,19 @@ export class OrganizationController {
     await this.organizationService.removeMember(id, userId, auth)
   }
 
+  @Post(':id/members/batch-transfer')
+  @RequirePermission(PermissionCode.ORG_UPDATE)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: '批量跨部门调动组织成员' })
+  @UsePipes(new ZodValidationPipe(batchTransferMembersSchema))
+  async batchTransfer(
+    @Param('id') id: string,
+    @Body() payload: BatchTransferMembersDto,
+    @CurrentAuth() auth: AuthContext
+  ): Promise<void> {
+    await this.organizationService.batchTransferMembers(id, payload, auth)
+  }
+
   @Get(':id/positions')
   @RequirePermission(PermissionCode.POST_LIST)
   @ApiOperation({ summary: '获取组织岗位编制' })
@@ -203,6 +303,19 @@ export class OrganizationController {
     @CurrentAuth() auth: AuthContext
   ) {
     return this.organizationService.updatePosition(id, positionId, payload, auth)
+  }
+
+  @Patch(':id/positions/:positionId/roles')
+  @RequirePermission(PermissionCode.POST_MANAGE)
+  @ApiOperation({ summary: '配置岗位编制基准角色（PBAC）' })
+  @UsePipes(new ZodValidationPipe(updatePositionRolesSchema))
+  updatePositionRoles(
+    @Param('id') id: string,
+    @Param('positionId') positionId: string,
+    @Body() payload: UpdatePositionRolesDto,
+    @CurrentAuth() auth: AuthContext
+  ) {
+    return this.organizationService.updatePositionRoles(id, positionId, payload, auth)
   }
 
   @Delete(':id/positions/:positionId')

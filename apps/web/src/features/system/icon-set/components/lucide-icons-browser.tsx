@@ -13,11 +13,11 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
+  toast,
   VirtualList
 } from '@zen/ui'
 import { Search, SearchX, X } from 'lucide-react'
 import { useDeferredValue, useMemo, useState } from 'react'
-import { toast } from 'sonner'
 
 import { lucideIconEntries } from '../data/lucide-icons'
 
@@ -39,9 +39,9 @@ function filterIcons(keyword: string): LucideIconEntry[] {
 async function copyIconName(entry: LucideIconEntry) {
   try {
     await navigator.clipboard.writeText(entry.kebabName)
-    toast.success(`已复制 ${entry.kebabName}`)
+    toast.add({ title: `已复制 ${entry.kebabName}`, type: 'success' })
   } catch {
-    toast.error('复制失败，请手动选择名称')
+    toast.add({ title: '复制失败，请手动选择名称', type: 'error' })
   }
 }
 

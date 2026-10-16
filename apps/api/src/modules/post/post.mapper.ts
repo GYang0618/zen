@@ -8,6 +8,7 @@ import type {
   JobProfileDetail,
   JobProfileIcon,
   JobProfileIconColor,
+  JobProfileListItem,
   JobProfileOrganizationLink,
   Position
 } from '@zen/shared'
@@ -117,6 +118,17 @@ export type PostWithProfile = Prisma.PostGetPayload<{
         }
       }
     }
+    roles: {
+      include: {
+        role: {
+          select: {
+            id: true
+            code: true
+            name: true
+          }
+        }
+      }
+    }
     _count: { select: { users: { where: { leftAt: null } } } }
   }
 }>
@@ -176,6 +188,11 @@ export function toJobProfileResponse(row: JobProfileWithCounts): JobProfile {
   }
 }
 
+export function toJobProfileListItemResponse(row: JobProfileWithCounts): JobProfileListItem {
+  const { createdAt: _createdAt, ...item } = toJobProfileResponse(row)
+  return item
+}
+
 export function toJobProfileDetailResponse(row: JobProfileWithOrganizations): JobProfileDetail {
   const organizations: JobProfileOrganizationLink[] = row.posts.map((post) => ({
     id: post.id,
@@ -226,6 +243,12 @@ export function toOrganizationPositionResponse(row: PostWithProfile): Position {
       avatar: user.profile?.avatar ?? null
     })),
     status: toApiOrganizationPositionStatus(row.status),
+    roles:
+      row.roles?.map(({ role }) => ({
+        id: role.id,
+        code: role.code,
+        name: role.name
+      })) ?? [],
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString()
   }

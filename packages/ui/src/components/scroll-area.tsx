@@ -1,7 +1,28 @@
 import { ScrollArea as ScrollAreaPrimitive } from '@base-ui/react/scroll-area'
 import { cn } from 'cn'
 
-function ScrollArea({ className, children, ...props }: ScrollAreaPrimitive.Root.Props) {
+import type { Ref } from 'react'
+
+type Scrollbars = 'vertical' | 'horizontal' | 'both' | 'none'
+
+type ScrollAreaProps = ScrollAreaPrimitive.Root.Props & {
+  viewportRef?: Ref<HTMLDivElement>
+  viewportClassName?: string
+  /** Which scrollbars to render. Defaults to `vertical` to preserve existing behavior. */
+  scrollbars?: Scrollbars
+}
+
+function ScrollArea({
+  className,
+  children,
+  viewportRef,
+  viewportClassName,
+  scrollbars = 'vertical',
+  ...props
+}: ScrollAreaProps) {
+  const showVertical = scrollbars === 'vertical' || scrollbars === 'both'
+  const showHorizontal = scrollbars === 'horizontal' || scrollbars === 'both'
+
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
@@ -9,12 +30,17 @@ function ScrollArea({ className, children, ...props }: ScrollAreaPrimitive.Root.
       {...props}
     >
       <ScrollAreaPrimitive.Viewport
+        ref={viewportRef}
         data-slot="scroll-area-viewport"
-        className="size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1"
+        className={cn(
+          'size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1',
+          viewportClassName
+        )}
       >
         {children}
       </ScrollAreaPrimitive.Viewport>
-      <ScrollBar />
+      {showVertical ? <ScrollBar orientation="vertical" /> : null}
+      {showHorizontal ? <ScrollBar orientation="horizontal" /> : null}
       <ScrollAreaPrimitive.Corner />
     </ScrollAreaPrimitive.Root>
   )
@@ -44,4 +70,5 @@ function ScrollBar({
   )
 }
 
+export type { ScrollAreaProps, Scrollbars }
 export { ScrollArea, ScrollBar }

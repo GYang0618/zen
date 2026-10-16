@@ -22,18 +22,18 @@ import {
   ItemTitle,
   Label,
   ScrollArea,
-  Skeleton
+  Skeleton,
+  toast
 } from '@zen/ui'
 import { Search } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { toast } from 'sonner'
 
 import { useAddRoleMembersMutation } from '@/features/system/roles/mutations'
 import { userApi } from '@/features/system/users/api'
 import { usersQueryKeys } from '@/features/system/users/queries'
 import { useAccessChangeFeedback } from '@/lib/auth/access-change'
 
-import type { User } from '@zen/shared'
+import type { UserListItem } from '@zen/shared'
 
 type RoleAddMembersDialogProps = {
   roleId: string
@@ -65,7 +65,7 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
   return debounced
 }
 
-function matchesUser(user: User, keyword: string): boolean {
+function matchesUser(user: UserListItem, keyword: string): boolean {
   const query = keyword.trim().toLowerCase()
   if (!query) return true
 
@@ -160,7 +160,7 @@ export function RoleAddMembersDialog({
 
   const handleSubmit = () => {
     if (selectedIds.length === 0) {
-      toast.error('请至少选择一名用户')
+      toast.add({ title: '请至少选择一名用户', type: 'error' })
       return
     }
 
@@ -171,7 +171,8 @@ export function RoleAddMembersDialog({
           notifyAccessChange(selectedIds, `已成功添加 ${selectedIds.length} 人至该角色`)
           handleOpenChange(false)
         },
-        onError: (error) => toast.error(error instanceof Error ? error.message : '添加失败')
+        onError: (error) =>
+          toast.add({ title: error instanceof Error ? error.message : '添加失败', type: 'error' })
       }
     )
   }

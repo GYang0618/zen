@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { collectAncestorIds, moveOrganizationInTree, validateOrganizationDrop } from './utils'
+import {
+  collectAncestorIds,
+  collectDescendantIds,
+  moveOrganizationInTree,
+  validateOrganizationDrop
+} from './utils'
 
 import type { Organization } from './type'
 
@@ -20,6 +25,7 @@ function organization(
     leader: null,
     memberCount: 0,
     positionCount: 0,
+    sortOrder: 0,
     parentId,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
@@ -133,5 +139,20 @@ describe('collectAncestorIds', () => {
   it('returns an empty list for a root or unknown node', () => {
     expect(collectAncestorIds(organizationTree, 'group')).toEqual([])
     expect(collectAncestorIds(organizationTree, 'missing')).toEqual([])
+  })
+})
+
+describe('collectDescendantIds', () => {
+  it('收集目标节点下的全部子孙组织 ID', () => {
+    expect(collectDescendantIds(organizationTree, 'company-a')).toEqual([
+      'branch-a',
+      'department-a',
+      'team-a'
+    ])
+  })
+
+  it('叶子节点或未知节点返回空数组', () => {
+    expect(collectDescendantIds(organizationTree, 'team-a')).toEqual([])
+    expect(collectDescendantIds(organizationTree, 'missing-id')).toEqual([])
   })
 })

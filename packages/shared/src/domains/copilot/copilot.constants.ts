@@ -7,13 +7,8 @@ export const AGENT_MEMORY_CONFIGURABLE_KEY = 'agentMemory'
 /** 当前 AG-UI Run ID，供 Tool 幂等键与 Artifact 关联使用。 */
 export const AGENT_RUN_ID_CONFIGURABLE_KEY = 'agentRunId'
 
-/** HITL 通过后注入给 Default Agent 的短期二次确认令牌。 */
-export const AGENT_STEP_UP_TOKEN_CONFIGURABLE_KEY = 'stepUpToken'
 export const AGENT_APPROVAL_ID_CONFIGURABLE_KEY = 'approvalId'
 export const AGENT_TOOL_NAME_CONFIGURABLE_KEY = 'toolName'
-
-/** 对话审批通过后，与页面 step-up 令牌同等有效的时间窗。 */
-export const AGENT_HITL_STEP_UP_WINDOW_MS = 3 * 60 * 1_000
 
 /** 当前租户允许 Default Agent 暴露 Tool 的 ACTIVE 插件 ID。 */
 export const ACTIVE_AGENT_PLUGINS_CONFIGURABLE_KEY = 'activeAgentPlugins'
@@ -48,23 +43,40 @@ export const DEFAULT_AGENT_RUN_BUDGET = {
 } as const
 
 export const DEFAULT_AGENT_VERSIONS = {
-  model: 'qwen3.7-max-2026-06-08',
+  model: 'deepseek-flash',
   prompt: 'default-agent-prompt-v1',
   toolSchema: 'default-agent-tools-v1'
 } as const
 
-/** 供运行时识别默认 Chat，避免误把 Popup 的 plan Agent 套用默认策略。 */
+/** 全局对话的运行时 agent id。A2UI 只注入这个 agent。 */
+export const DEFAULT_AGENT_ID = 'default'
+
+/** 当前模块页面与公共能力的辅助 agent 运行时 id。 */
+export const PAGE_AGENT_ID = 'page'
+
+/** 供运行时识别默认 Chat，避免误把页面辅助 Agent 套用默认策略。 */
 export const DEFAULT_AGENT_GRAPH_ID = 'default_agent'
 
-/** 拥有前端专用渲染 UI（表格、3D/属性卡片等）的工具名单，提示词与展示层单源引用 */
-export const DEDICATED_RESULT_UI_TOOL_NAMES = [
-  'indoor_walkthrough',
-  'query_job_profiles_list',
-  'query_properties',
-  'query_users_list'
-] as const
+/**
+ * 早期 `agent_threads.agent_id` 写成了图 id，而不是 {@link DEFAULT_AGENT_ID}。
+ * 默认对话列表必须把这两类记录一起查出。
+ */
+export const LEGACY_DEFAULT_THREAD_AGENT_ID = DEFAULT_AGENT_GRAPH_ID
 
-export type DedicatedResultUiToolName = (typeof DEDICATED_RESULT_UI_TOOL_NAMES)[number]
+/** 页面辅助 Agent 的 LangGraph graph id。 */
+export const PAGE_AGENT_GRAPH_ID = 'page_agent'
+
+/** 动态 A2UI Surface 工具名（当前） */
+export const A2UI_SURFACE_TOOL_NAME = 'render_a2ui' as const
+
+/** 历史会话中可能出现的旧 A2UI 工具名，仅用于识别，不再注册 */
+export const LEGACY_A2UI_SURFACE_TOOL_NAMES = ['generate_dynamic_dashboard'] as const
+
+/** 所有应走 A2UI 画布的工具名（含历史兼容） */
+export const A2UI_SURFACE_TOOL_NAMES = [
+  A2UI_SURFACE_TOOL_NAME,
+  ...LEGACY_A2UI_SURFACE_TOOL_NAMES
+] as const
 
 /** Agent 工具的中文业务标题映射，供提示词与 UI 展示层单源引用 */
 export const TOOL_TITLES: Record<string, string> = {
@@ -84,7 +96,8 @@ export const TOOL_TITLES: Record<string, string> = {
   delete_job_profile: '删除岗位',
   delete_roles: '删除角色',
   delete_users: '删除用户',
-  hard_delete_users: '彻底删除用户',
+  generate_dynamic_dashboard: '生成式界面',
+  render_a2ui: '生成式界面',
   highlight_elements: '高亮构件',
   indoor_walkthrough: '室内漫游',
   load_model: '加载模型',
@@ -96,16 +109,20 @@ export const TOOL_TITLES: Record<string, string> = {
   query_organization_detail: '查询组织详情',
   query_organization_members: '查询组织成员',
   query_organization_positions: '查询岗位编制',
+  query_organization_statistics: '查询组织统计',
   query_organization_tree: '查询组织架构',
   query_organization_type_catalog: '查询组织类型',
   query_permissions_list: '查询权限列表',
+  query_post_statistics: '查询岗位统计',
   query_properties: '查询构件属性',
   query_role_detail: '查询角色详情',
   query_role_members: '查询角色成员',
+  query_role_statistics: '查询角色统计',
   query_roles_list: '查询角色列表',
   query_route_info: '查询当前路由',
   query_user_detail: '查询用户详情',
   query_user_list: '查询用户',
+  query_user_statistics: '查询用户统计',
   query_users_list: '查询用户列表',
   remove_organization_member: '移除组织成员',
   remove_organization_position: '移除岗位编制',

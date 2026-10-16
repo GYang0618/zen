@@ -1,14 +1,23 @@
 'use client'
 
-import { randomUUID, useAgent, useCopilotKit } from '@copilotkit/react-core/v2'
+import { randomUUID, useCopilotKit } from '@copilotkit/react-core/v2'
+import { useLocation, useNavigate } from '@tanstack/react-router'
+import { buildChatUserContent, visibleChatText } from '@zen/shared'
 import { Button, cn } from '@zen/ui'
 import { Mic, Paperclip, Send, Square } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
-import type { Variants } from 'motion/react'
+import { parseThreadIdFromPath } from '@/stores'
 
-const PLACEHOLDERS = ['设置主题颜色、字体、样式风格', '用户、组织、角色、权限管理']
+import { useChatAgent } from '../context/chat-agent-context'
+import { useChatAttachments } from '../hooks/use-chat-attachments'
+import { deriveThreadTitle } from '../lib/derive-thread-title'
+import { generateThreadTitle } from '../lib/generate-thread-title'
+import { useAgentChatInputStore } from '../stores/agent-chat-input'
+import { ChatAttachmentStrip } from './chat-attachment-strip'
+import { CHAT_INPUT_PLACEHOLDERS, ChatInputDynamicTexts } from './chat-input-dynamic-texts'
+
 const TEXTAREA_MAX_HEIGHT_PX = 200
 /** 单行布局下两侧按钮占用的大致宽度，用于跨行检测时避免宽窄切换抖动 */
 const SIDE_ACTIONS_WIDTH_PX = 160
@@ -19,27 +28,19 @@ export function ChatInput({
   online = true,
   awaitingApproval = false,
   loading = false,
-  threadId,
-  onEnsureThread,
-  onRunStart,
-  onRunSettled,
-  onStop
+  threadId
 }: {
   className?: string
   online?: boolean
-  /** 存在待处理的高风险操作审批时为 true：禁止发送新消息，避免绕过审批卡片继续对话 */
   awaitingApproval?: boolean
-  /** 正在切换历史对话时禁止输入，避免写入尚未加载完成的会话 */
   loading?: boolean
   threadId?: string
-  /** 发送前确保已有 threadId；新对话在首条消息时创建并写入历史 */
-  onEnsureThread?: (firstMessage: string) => Promise<string>
-  onRunStart?: (runId: string) => void
-  onRunSettled?: (runId: string) => void
-  onStop?: () => Promise<void>
 }) {
-  const { agent } = useAgent()
+  const { agent } = useChatAgent()
   const { copilotkit } = useCopilotKit()
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const urlThreadId = parseThreadIdFromPath(pathname)
 
   const [placeholderIndex, setPlaceholderIndex] = useState(0)
   const [showPlaceholder, setShowPlaceholder] = useState(true)
@@ -48,14 +49,35 @@ export function ChatInput({
   const [isMultiline, setIsMultiline] = useState(false)
   const [loadedDraftThreadId, setLoadedDraftThreadId] = useState<string>()
 
+  const attachments = useChatAttachments()
+  const editDraft = useAgentChatInputStore((state) => state.editDraft)
+  const clearEditDraft = useAgentChatInputStore((state) => state.clearEditDraft)
+
   const wrapperRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const singleLineHeightRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (!editDraft) return
+    setInputValue(editDraft.text)
+    setIsActive(true)
+    clearEditDraft()
+    requestAnimationFrame(() => {
+      const el = textareaRef.current
+      if (el) {
+        el.focus()
+        const length = el.value.length
+        el.setSelectionRange(length, length)
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }
+    })
+  }, [editDraft, clearEditDraft])
 
   const dynamicPlaceholderActive =
     showPlaceholder && !isActive && !inputValue && agent.messages.length === 0
 
   useEffect(() => {
+    attachments.clear()
     if (!threadId) {
       setInputValue(localStorage.getItem(NEW_THREAD_DRAFT_KEY) ?? '')
       setLoadedDraftThreadId(undefined)
@@ -63,7 +85,7 @@ export function ChatInput({
     }
     setInputValue(localStorage.getItem(`default-agent:draft:${threadId}`) ?? '')
     setLoadedDraftThreadId(threadId)
-  }, [threadId])
+  }, [attachments.clear, threadId])
 
   useEffect(() => {
     if (!threadId) {
@@ -82,7 +104,7 @@ export function ChatInput({
     const interval = setInterval(() => {
       setShowPlaceholder(false)
       setTimeout(() => {
-        setPlaceholderIndex((prev) => (prev + 1) % PLACEHOLDERS.length)
+        setPlaceholderIndex((prev) => (prev + 1) % CHAT_INPUT_PLACEHOLDERS.length)
         setShowPlaceholder(true)
       }, 400)
     }, 3000)
@@ -139,13 +161,23 @@ export function ChatInput({
   const handleActivate = () => setIsActive(true)
 
   const isRunning = agent.isRunning
+  const hasDraft = inputValue.trim().length > 0 || attachments.ready.length > 0
   const canSend =
-    inputValue.trim().length > 0 && !isRunning && !awaitingApproval && online && !loading
+    hasDraft && !attachments.uploading && !isRunning && !awaitingApproval && online && !loading
+
+  const markThreadRunning = useAgentChatInputStore((state) => state.markThreadRunning)
+  const markMessageStopped = useAgentChatInputStore((state) => state.markMessageStopped)
+  const upsertProvisionalThread = useAgentChatInputStore((state) => state.upsertProvisionalThread)
+  const requestHistoryRefresh = useAgentChatInputStore((state) => state.requestHistoryRefresh)
 
   const stopAgent = async () => {
-    if (onStop) {
-      await onStop()
-      return
+    const targetThreadId = threadId ?? agent.threadId
+    if (targetThreadId) {
+      markThreadRunning(targetThreadId, false)
+    }
+    const lastAssistantMessage = agent.messages.findLast((m) => m.role === 'assistant')
+    if (lastAssistantMessage?.id) {
+      markMessageStopped(lastAssistantMessage.id)
     }
     try {
       copilotkit.stopAgent({ agent })
@@ -159,32 +191,103 @@ export function ChatInput({
     }
   }
 
+  const newThreadNonce = useAgentChatInputStore((state) => state.newThreadNonce)
+  const prevNonceRef = useRef(newThreadNonce)
+
+  useEffect(() => {
+    if (newThreadNonce > prevNonceRef.current) {
+      prevNonceRef.current = newThreadNonce
+      setInputValue('')
+      setIsActive(false)
+      attachments.clear()
+      localStorage.removeItem(NEW_THREAD_DRAFT_KEY)
+    }
+  }, [attachments.clear, newThreadNonce])
+
   const sendMessage = async () => {
     if (!canSend) return
     const content = inputValue
-    if (onEnsureThread) await onEnsureThread(content)
+    const readyFiles = attachments.ready
     localStorage.removeItem(NEW_THREAD_DRAFT_KEY)
     const message = {
       id: randomUUID(),
-      role: 'user',
-      content
-    } as const
+      role: 'user' as const,
+      content: buildChatUserContent(content, readyFiles)
+    }
     agent.addMessage(message)
     setInputValue('')
-    const runId = randomUUID()
-    onRunStart?.(runId)
+    attachments.clear()
+
+    const targetThreadId = threadId ?? agent.threadId
+    const isFirstUserTurn = agent.messages.filter((item) => item.role === 'user').length <= 1
+    if (targetThreadId) {
+      markThreadRunning(targetThreadId, true)
+      if (isFirstUserTurn) {
+        const now = new Date().toISOString()
+        upsertProvisionalThread({
+          id: targetThreadId,
+          agentId: 'default',
+          name: deriveThreadTitle(content.trim() || readyFiles[0]?.name || '附件'),
+          archived: false,
+          createdAt: now,
+          updatedAt: now,
+          lastRunAt: now
+        })
+        // 首条消息发出后主动请求精炼标题，就绪后静默替换临时标题
+        void generateThreadTitle(targetThreadId, content.trim() || readyFiles[0]?.name || '附件')
+          .then((name) => {
+            if (!name) return
+            const stamped = new Date().toISOString()
+            upsertProvisionalThread({
+              id: targetThreadId,
+              agentId: 'default',
+              name,
+              archived: false,
+              createdAt: stamped,
+              updatedAt: stamped,
+              lastRunAt: stamped
+            })
+            requestHistoryRefresh()
+          })
+          .catch((error) => {
+            console.error('AgentChat: generateThreadTitle failed', error)
+          })
+      }
+    }
+
+    // 如果当前处于新会话路径，发送首条消息时将路由锚定到当前 threadId
+    if (!urlThreadId && threadId) {
+      void navigate({
+        to: '/chat/$threadId',
+        params: { threadId },
+        replace: true
+      })
+    }
+
     try {
-      await copilotkit.runAgent({ agent, runId })
+      await copilotkit.runAgent({ agent })
+      requestHistoryRefresh()
     } catch (error) {
-      // A failed run may emit an empty MESSAGES_SNAPSHOT and remove the
-      // optimistic user message. Restore it so the error can be retried.
+      if (targetThreadId) {
+        markThreadRunning(targetThreadId, false)
+      }
       if (!agent.messages.some((item) => item.id === message.id)) {
         agent.addMessage(message)
       }
-      setInputValue(message.content)
+      setInputValue(visibleChatText(message.content))
+      attachments.restore(
+        readyFiles.map((file) => ({
+          localId: file.fileId,
+          file: new File([], file.name, { type: file.mimeType }),
+          name: file.name,
+          mimeType: file.mimeType,
+          size: file.size,
+          status: 'done' as const,
+          percent: 100,
+          fileId: file.fileId
+        }))
+      )
       console.error('AgentChat: runAgent failed', error)
-    } finally {
-      onRunSettled?.(runId)
     }
   }
 
@@ -202,9 +305,15 @@ export function ChatInput({
     <Button
       variant="ghost"
       className="rounded-full size-11 shrink-0"
-      title="attach file"
+      type="button"
+      title="上传文件"
+      aria-label="上传文件"
       tabIndex={-1}
-      onClick={(e) => e.stopPropagation()}
+      disabled={!online || awaitingApproval || loading}
+      onClick={(event) => {
+        event.stopPropagation()
+        attachments.openPicker()
+      }}
     >
       <Paperclip data-icon="inline-start" />
     </Button>
@@ -253,12 +362,26 @@ export function ChatInput({
       <div
         ref={wrapperRef}
         className={cn(
-          'w-full overflow-hidden bg-background dark:bg-input/30 shadow-sm transition-[border-radius] duration-200',
-          isMultiline ? 'rounded-4xl' : 'rounded-full'
+          'relative w-full overflow-hidden border border-white/25 bg-popover shadow-sm backdrop-blur-2xl backdrop-saturate-150 transition-[border-radius] duration-200 before:pointer-events-none before:absolute before:inset-x-8 before:top-0 before:z-10 before:h-px before:bg-linear-to-r before:from-transparent before:via-white/55 before:to-transparent supports-backdrop-filter:bg-background/55 dark:border-white/10 dark:supports-backdrop-filter:bg-background/55 [@media(prefers-reduced-transparency:reduce)]:border-border [@media(prefers-reduced-transparency:reduce)]:bg-popover [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none [@media(prefers-reduced-transparency:reduce)]:before:hidden',
+          isMultiline || attachments.items.length > 0 ? 'rounded-4xl' : 'rounded-full'
         )}
       >
+        <input
+          ref={attachments.inputRef}
+          type="file"
+          className="sr-only"
+          accept={attachments.accept}
+          multiple
+          tabIndex={-1}
+          aria-hidden
+          onChange={(event) => attachments.onPick(event.target.files)}
+        />
         <div className="flex flex-col items-stretch w-full">
-          {/* todo: 添加上传的文件或者图片预览展示 */}
+          <ChatAttachmentStrip
+            items={attachments.items}
+            onRemove={attachments.remove}
+            onRetry={attachments.retry}
+          />
           <div
             className={cn('flex gap-2 p-3 w-full', isMultiline ? 'items-start' : 'items-center')}
           >
@@ -282,7 +405,10 @@ export function ChatInput({
                 }}
               />
               <div className="col-start-1 row-start-1 pointer-events-none flex items-center min-w-0">
-                <DynamicTexts active={dynamicPlaceholderActive} activeIndex={placeholderIndex} />
+                <ChatInputDynamicTexts
+                  active={dynamicPlaceholderActive}
+                  activeIndex={placeholderIndex}
+                />
               </div>
             </div>
 
@@ -309,71 +435,5 @@ export function ChatInput({
         </div>
       </div>
     </div>
-  )
-}
-
-function DynamicTexts({ active, activeIndex }: { active: boolean; activeIndex: number }) {
-  const placeholderContainerVariants = {
-    initial: {},
-    animate: { transition: { staggerChildren: 0.025 } },
-    exit: { transition: { staggerChildren: 0.015, staggerDirection: -1 } }
-  }
-
-  const letterVariants: Variants = {
-    initial: {
-      opacity: 0,
-      filter: 'blur(12px)',
-      y: 10
-    },
-    animate: {
-      opacity: 1,
-      filter: 'blur(0px)',
-      y: 0,
-      transition: {
-        opacity: { duration: 0.25 },
-        filter: { duration: 0.4 },
-        y: { type: 'spring', stiffness: 80, damping: 20 }
-      }
-    },
-    exit: {
-      opacity: 0,
-      filter: 'blur(12px)',
-      y: -10,
-      transition: {
-        opacity: { duration: 0.2 },
-        filter: { duration: 0.3 },
-        y: { type: 'spring' as const, stiffness: 80, damping: 20 }
-      }
-    }
-  }
-  return (
-    <AnimatePresence mode="wait">
-      {active && (
-        <motion.span
-          key={activeIndex}
-          className="flex items-center text-base leading-none text-muted-foreground select-none pointer-events-none"
-          style={{
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            zIndex: 0
-          }}
-          variants={placeholderContainerVariants}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-        >
-          {PLACEHOLDERS[activeIndex].split('').map((char, i) => (
-            <motion.span
-              key={`${activeIndex}-${i}`}
-              variants={letterVariants}
-              className="inline-block leading-none"
-            >
-              {char === ' ' ? '\u00A0' : char}
-            </motion.span>
-          ))}
-        </motion.span>
-      )}
-    </AnimatePresence>
   )
 }

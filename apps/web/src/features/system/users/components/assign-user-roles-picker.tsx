@@ -24,22 +24,24 @@ import { Search, X } from 'lucide-react'
 
 import { UserRoleIcon } from './user-role-icon'
 
-import type { Role, UserRolePreview } from '@zen/shared'
+import type { RoleListItem, UserRolePreview } from '@zen/shared'
 
 const SELECTED_ROLE_PREVIEW_LIMIT = 4
 
 type AssignUserRolesPickerProps = {
   isLoading: boolean
-  roles: Role[]
-  visibleRoles: Role[]
-  selectedRoles: Array<Role | UserRolePreview>
+  roles: RoleListItem[]
+  visibleRoles: RoleListItem[]
+  selectedRoles: Array<RoleListItem | UserRolePreview>
   roleIds: string[]
+  primaryRoleId?: string
   keyword: string
   showSelectedOnly: boolean
   selectionError?: string
   onKeywordChange: (value: string) => void
   onShowSelectedOnlyChange: (value: boolean) => void
   onToggle: (roleId: string, checked: boolean) => void
+  onPrimaryChange: (roleId: string) => void
   onClear: () => void
 }
 
@@ -49,12 +51,14 @@ export function AssignUserRolesPicker({
   visibleRoles,
   selectedRoles,
   roleIds,
+  primaryRoleId,
   keyword,
   showSelectedOnly,
   selectionError,
   onKeywordChange,
   onShowSelectedOnlyChange,
   onToggle,
+  onPrimaryChange,
   onClear
 }: AssignUserRolesPickerProps) {
   const hiddenSelectedCount = Math.max(selectedRoles.length - SELECTED_ROLE_PREVIEW_LIMIT, 0)
@@ -86,20 +90,32 @@ export function AssignUserRolesPicker({
             </Button>
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {selectedRoles.slice(0, SELECTED_ROLE_PREVIEW_LIMIT).map((role) => (
-              <Button
-                key={role.id}
-                type="button"
-                variant="secondary"
-                size="xs"
-                title={`取消选择 ${role.name}`}
-                aria-label={`取消选择 ${role.name}`}
-                onClick={() => onToggle(role.id, false)}
-              >
-                <span className="max-w-32 truncate">{role.name}</span>
-                <X data-icon="inline-end" />
-              </Button>
-            ))}
+            {selectedRoles.slice(0, SELECTED_ROLE_PREVIEW_LIMIT).map((role) => {
+              const isPrimary = role.id === primaryRoleId
+              return (
+                <Button
+                  key={role.id}
+                  type="button"
+                  variant={isPrimary ? 'default' : 'secondary'}
+                  size="xs"
+                  title={isPrimary ? `${role.name}（主角色）` : `设 ${role.name} 为主角色`}
+                  aria-label={isPrimary ? `${role.name} 为主角色` : `设 ${role.name} 为主角色`}
+                  onClick={() => onPrimaryChange(role.id)}
+                >
+                  <span className="max-w-32 truncate">
+                    {isPrimary ? '主 · ' : ''}
+                    {role.name}
+                  </span>
+                  <X
+                    data-icon="inline-end"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      onToggle(role.id, false)
+                    }}
+                  />
+                </Button>
+              )
+            })}
             {hiddenSelectedCount > 0 ? (
               <Button
                 type="button"

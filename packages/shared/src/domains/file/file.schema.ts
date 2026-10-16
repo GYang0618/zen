@@ -62,7 +62,9 @@ export const uploadIntentSchema = z.object({
   method: z.literal('PUT'),
   uploadUrl: z.string(),
   headers: z.record(z.string(), z.string()),
-  expiresAt: z.string()
+  expiresAt: z.string(),
+  deduplicated: z.boolean().optional(),
+  file: fileAssetSchema.optional()
 })
 export type UploadIntent = z.infer<typeof uploadIntentSchema>
 

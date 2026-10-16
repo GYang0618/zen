@@ -53,7 +53,8 @@ import type {
   RoleListItemResponse,
   RoleListResponse,
   RoleMembersResponse,
-  RoleResponse
+  RoleResponse,
+  RoleStatisticsResponse
 } from './responses/role.response.js'
 
 const roleMembersQuerySchema = z.object({
@@ -106,6 +107,19 @@ export class RoleController {
   @ApiStandardErrorResponses()
   permissionCatalog(): Promise<PermissionGroupResponse[]> {
     return this.roleService.listPermissions()
+  }
+
+  @Get('statistics')
+  @RequirePermission(PermissionCode.ROLE_LIST)
+  @ApiOperation({
+    summary: '获取角色聚合统计数据',
+    description:
+      '聚合统计角色总量、系统/自定义种类分布、启停/过期分布、数据范围分布以及成员绑定情况。'
+  })
+  @ApiOkResponse({ description: '查询成功' })
+  @ApiStandardErrorResponses()
+  getStatistics(): Promise<RoleStatisticsResponse> {
+    return this.roleService.getStatistics()
   }
 
   @Get(':id')

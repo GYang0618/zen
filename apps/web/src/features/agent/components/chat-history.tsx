@@ -1,6 +1,7 @@
 'use client'
 
-import { useNavigate } from '@tanstack/react-router'
+import { useThreads } from '@copilotkit/react-core/v2'
+import { useLocation, useNavigate } from '@tanstack/react-router'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,33 +12,90 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from '@zen/ui'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { InfiniteScrollSentinel } from '@/components/infinite-scroll-sentinel'
+import { parseThreadIdFromPath, useSystemModeStore } from '@/stores'
 
-import { useAgentChatShellStore } from '../stores/agent-chat-shell'
+import { isProvisionalThreadNewer, mergeHistoryThreads } from '../lib/merge-history-threads'
+import { useAgentChatInputStore } from '../stores/agent-chat-input'
 import { HistoryRow } from './chat-history-row'
 
-import type { AgentThreadSummary } from '../runtime-api'
+import type { Thread } from '@copilotkit/react-core/v2'
+import type { HistoryRowSurface } from './chat-history-row'
 
 export { formatRelativeTime } from './chat-history-row'
 
-export function ChatHistory() {
-  const threads = useAgentChatShellStore((state) => state.threads)
-  const currentThreadId = useAgentChatShellStore((state) => state.currentThreadId)
-  const runningThreadId = useAgentChatShellStore((state) => state.runningThreadId)
-  const historyLoading = useAgentChatShellStore((state) => state.historyLoading)
-  const historyLoadingMore = useAgentChatShellStore((state) => state.historyLoadingMore)
-  const historyHasMore = useAgentChatShellStore((state) => state.historyHasMore)
-  const historyLoadMoreError = useAgentChatShellStore((state) => state.historyLoadMoreError)
-  const handlers = useAgentChatShellStore((state) => state.handlers)
-  const setRunsOpen = useAgentChatShellStore((state) => state.setRunsOpen)
+type ChatHistoryProps = {
+  surface?: HistoryRowSurface
+  onThreadOpen?: () => void
+}
+
+export function ChatHistory({ surface = 'sidebar', onThreadOpen }: ChatHistoryProps) {
+  const {
+    threads,
+    isLoading: historyLoading,
+    error: historyError,
+    hasMoreThreads: historyHasMore,
+    isFetchingMoreThreads: historyLoadingMore,
+    fetchMoreThreads,
+    renameThread,
+    deleteThread,
+    refetchThreads
+  } = useThreads({ agentId: 'default' })
+  const { pathname } = useLocation()
+  const lastAgentPath = useSystemModeStore((state) => state.lastAgentPath)
+  const currentThreadId = parseThreadIdFromPath(pathname) ?? parseThreadIdFromPath(lastAgentPath)
+  const triggerNewThread = useAgentChatInputStore((state) => state.triggerNewThread)
+  const runningThreadIds = useAgentChatInputStore((state) => state.runningThreadIds)
+  const markThreadRunning = useAgentChatInputStore((state) => state.markThreadRunning)
+  const provisionalThreads = useAgentChatInputStore((state) => state.provisionalThreads)
+  const removeProvisionalThread = useAgentChatInputStore((state) => state.removeProvisionalThread)
+  const historyRefreshNonce = useAgentChatInputStore((state) => state.historyRefreshNonce)
   const navigate = useNavigate()
 
-  const [deleteTarget, setDeleteTarget] = useState<AgentThreadSummary | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Thread | null>(null)
   const [renamingId, setRenamingId] = useState<string>()
 
-  const activeThreads = threads.filter((thread) => thread.status !== 'archived')
+  useEffect(() => {
+    if (historyRefreshNonce === 0) return
+    void refetchThreads()
+  }, [historyRefreshNonce, refetchThreads])
+
+  // 服务端列表已包含最终标题时再清乐观项；避免「仅有临时标题」时把本地精炼结果删掉
+  useEffect(() => {
+    for (const provisional of provisionalThreads) {
+      const server = threads.find((thread) => thread.id === provisional.id)
+      if (!server?.name?.trim()) continue
+
+      const clientName = provisional.name?.trim()
+      const serverName = server.name.trim()
+      if (
+        clientName &&
+        clientName !== serverName &&
+        isProvisionalThreadNewer(server, provisional)
+      ) {
+        continue
+      }
+
+      removeProvisionalThread(provisional.id)
+    }
+  }, [threads, provisionalThreads, removeProvisionalThread])
+
+  const activeThreads = useMemo(
+    () => mergeHistoryThreads(threads, provisionalThreads).filter((thread) => !thread.archived),
+    [threads, provisionalThreads]
+  )
+
+  const handleDelete = async (target: Thread) => {
+    markThreadRunning(target.id, false)
+    removeProvisionalThread(target.id)
+    await deleteThread(target.id)
+    if (currentThreadId === target.id) {
+      triggerNewThread()
+      void navigate({ to: '/chat' })
+    }
+  }
 
   return (
     <>
@@ -46,7 +104,13 @@ export function ChatHistory() {
         {historyLoading && activeThreads.length === 0 && (
           <p className="px-3 py-8 text-center text-sm text-muted-foreground">正在加载</p>
         )}
+        {!historyLoading && historyError && activeThreads.length === 0 && (
+          <p className="px-3 py-8 text-center text-sm text-destructive">
+            历史会话加载失败：{historyError.message}
+          </p>
+        )}
         {!historyLoading &&
+          !historyError &&
           activeThreads.length === 0 &&
           !historyHasMore &&
           !historyLoadingMore && (
@@ -58,34 +122,32 @@ export function ChatHistory() {
               key={thread.id}
               thread={thread}
               active={thread.id === currentThreadId}
-              running={thread.id === runningThreadId}
+              running={runningThreadIds.has(thread.id)}
               renaming={thread.id === renamingId}
+              surface={surface}
+              onOpen={onThreadOpen}
               onRename={() => setRenamingId(thread.id)}
               onRenameCommit={(title) => {
                 setRenamingId(undefined)
-                if (title !== (thread.title || '新对话')) {
-                  void handlers?.renameThread(thread.id, title)
+                if (title !== (thread.name || '新对话')) {
+                  void renameThread(thread.id, title)
                 }
               }}
               onRenameCancel={() => setRenamingId(undefined)}
-              onOpenRuns={() => {
-                void navigate({ to: '/chat/$threadId', params: { threadId: thread.id } })
-                setRunsOpen(true, thread.id)
-              }}
               onDelete={() => setDeleteTarget(thread)}
             />
           ))}
         </div>
-        {historyHasMore || historyLoadingMore || historyLoadMoreError ? (
+        {historyHasMore || historyLoadingMore ? (
           <InfiniteScrollSentinel
             hasNextPage={historyHasMore}
             isFetchingNextPage={historyLoadingMore}
-            isError={historyLoadMoreError}
+            isError={false}
             exhaustedLabel={null}
             rootSelector="[data-slot='scroll-area-viewport']"
             className="min-h-8 py-2"
             onLoadMore={() => {
-              void handlers?.loadMoreThreads()
+              void fetchMoreThreads()
             }}
           />
         ) : null}
@@ -99,7 +161,7 @@ export function ChatHistory() {
           <AlertDialogHeader>
             <AlertDialogTitle>删除这段对话？</AlertDialogTitle>
             <AlertDialogDescription>
-              “{deleteTarget?.title || '新对话'}”的消息、运行记录和事件将一并删除，此操作不可撤销。
+              “{deleteTarget?.name || '新对话'}”的消息和记录将一并删除，此操作不可撤销。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -107,7 +169,7 @@ export function ChatHistory() {
             <AlertDialogAction
               variant="destructive"
               onClick={() => {
-                if (deleteTarget) void handlers?.deleteThread(deleteTarget.id)
+                if (deleteTarget) void handleDelete(deleteTarget)
                 setDeleteTarget(null)
               }}
             >

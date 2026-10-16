@@ -18,6 +18,7 @@ import type {
   AssignRolePermissions,
   CloneRole,
   Role,
+  RoleListItem,
   RoleMember,
   RoleStatus
 } from '@zen/shared'
@@ -81,23 +82,47 @@ function updateRoleMemberCaches(
   queryClient.setQueryData<Role>([...ROLE_DETAIL_QUERY_KEY, roleId], (role) =>
     role ? patchRoleMembers(role, membersPage) : role
   )
-  queryClient.setQueriesData<PaginationResponse<Role>>(
+  queryClient.setQueriesData<PaginationResponse<RoleListItem>>(
     { queryKey: ROLES_LIST_QUERY_KEY },
     (page) => {
       if (!page) return page
       return {
         ...page,
         items: page.items.map((role) =>
-          role.id === roleId ? patchRoleMembers(role, membersPage) : role
+          role.id === roleId
+            ? {
+                ...role,
+                memberCount: membersPage.pagination.total,
+                memberPreview: membersPage.items
+                  .slice(0, ROLE_MEMBER_PREVIEW_LIMIT)
+                  .map((member) => ({
+                    id: member.id,
+                    nickname: member.realName ?? member.nickname ?? member.username,
+                    avatar: member.avatar
+                  }))
+              }
+            : role
         )
       }
     }
   )
-  queryClient.setQueriesData<InfiniteData<PaginationResponse<Role>>>(
+  queryClient.setQueriesData<InfiniteData<PaginationResponse<RoleListItem>>>(
     { queryKey: ROLES_INFINITE_QUERY_KEY },
     (current) =>
       mapInfinitePageItems(current, (role) =>
-        role.id === roleId ? patchRoleMembers(role, membersPage) : role
+        role.id === roleId
+          ? {
+              ...role,
+              memberCount: membersPage.pagination.total,
+              memberPreview: membersPage.items
+                .slice(0, ROLE_MEMBER_PREVIEW_LIMIT)
+                .map((member) => ({
+                  id: member.id,
+                  nickname: member.realName ?? member.nickname ?? member.username,
+                  avatar: member.avatar
+                }))
+            }
+          : role
       )
   )
 }

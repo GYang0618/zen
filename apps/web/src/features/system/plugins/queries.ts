@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { toast } from '@zen/ui'
 
 import { clearActivePluginIdsCache, pluginsApi } from './api'
 
@@ -25,9 +25,9 @@ export function useActivatePlugin() {
     onSuccess: async () => {
       clearActivePluginIdsCache()
       await queryClient.invalidateQueries({ queryKey: pluginKeys.all })
-      toast.success('插件已启用')
+      toast.add({ title: '插件已启用', type: 'success' })
     },
-    onError: (error: Error) => toast.error(error.message || '启用失败')
+    onError: (error: Error) => toast.add({ title: error.message || '启用失败', type: 'error' })
   })
 }
 
@@ -38,9 +38,9 @@ export function useDeactivatePlugin() {
     onSuccess: async () => {
       clearActivePluginIdsCache()
       await queryClient.invalidateQueries({ queryKey: pluginKeys.all })
-      toast.success('插件已停用')
+      toast.add({ title: '插件已停用', type: 'success' })
     },
-    onError: (error: Error) => toast.error(error.message || '停用失败')
+    onError: (error: Error) => toast.add({ title: error.message || '停用失败', type: 'error' })
   })
 }
 
@@ -51,8 +51,8 @@ export function useUpdatePluginConfig() {
       pluginsApi.updateConfig(id, config),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: pluginKeys.all })
-      toast.success('插件配置已保存')
+      toast.add({ title: '插件配置已保存', type: 'success' })
     },
-    onError: (error: Error) => toast.error(error.message || '保存失败')
+    onError: (error: Error) => toast.add({ title: error.message || '保存失败', type: 'error' })
   })
 }

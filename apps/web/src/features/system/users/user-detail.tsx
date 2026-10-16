@@ -9,10 +9,10 @@ import {
   PageHeaderDescription,
   PageHeaderMedia,
   PageHeaderTitle,
-  Skeleton
+  Skeleton,
+  toast
 } from '@zen/ui'
 import { ArrowLeft, KeyRound, LockOpen, LogOut } from 'lucide-react'
-import { toast } from 'sonner'
 
 import { Can } from '@/components/auth/can'
 import { EmptyState } from '@/components/empty-state'
@@ -116,7 +116,7 @@ function UserDetailContent() {
                   disabled={isUnlocking}
                   onClick={() =>
                     unlockUser(user.id, {
-                      onSuccess: () => toast.success('账号已解锁')
+                      onSuccess: () => toast.add({ title: '账号已解锁', type: 'success' })
                     })
                   }
                 >

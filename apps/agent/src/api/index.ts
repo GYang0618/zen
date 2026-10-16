@@ -1,9 +1,22 @@
 import { createClient } from '../api-client/client'
-import { client } from '../api-client/client.gen'
-import { bindGeneratedClient } from './create-client'
+import { client } from './client'
 
 export * from '../api-client'
-export { asSdkOptions, executeApiCall, toQueryArray, unwrapApiSuccessData } from './call-api'
+export { asSdkOptions, executeApiCall } from './call-api'
+export {
+  getAccessTokenFromConfig,
+  getCurrentAccessToken,
+  UnauthorizedToolError
+} from './request-context'
+export {
+  resolveToolCallIdentity,
+  resolveToolExecutionContext
+} from './tool-execution-context'
+export {
+  formatUnhandledToolError,
+  isToolFailureResult,
+  toToolFailureResult
+} from './tool-failure'
 export {
   isApiErrorEnvelope,
   isApiSuccessEnvelope,
@@ -11,20 +24,5 @@ export {
   toSuccessEnvelope,
   unwrapToolSuccessData
 } from './tool-result'
-export {
-  createAgentApiClient,
-  getActiveAgentApiClient,
-  runWithAgentApiClient
-} from './create-client'
-export { getAccessTokenFromConfig, getCurrentAccessToken } from './request-context'
-export { resolveToolExecutionContext } from './tool-execution-context'
-export {
-  formatUnhandledToolError,
-  isToolFailureResult,
-  type RecoverableHint,
-  toToolFailureResult
-} from './tool-failure'
 
 export { client, createClient }
-
-bindGeneratedClient(client)

@@ -1,10 +1,9 @@
 'use no memo'
 
 import { PermissionCode } from '@zen/shared'
-import { Button, Tooltip, TooltipContent, TooltipTrigger } from '@zen/ui'
+import { Button, Tooltip, TooltipContent, TooltipTrigger, toast } from '@zen/ui'
 import { Trash2, UserCheck, UserX } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import { Can } from '@/components/auth/can'
 import { BulkActionsToolbar } from '@/components/data-table'
@@ -12,10 +11,10 @@ import { BulkActionsToolbar } from '@/components/data-table'
 import { useUpdateUsersStatusMutation } from '../mutations'
 import { UsersMultiDeleteDialog } from './users-multi-delete-dialog'
 
-import type { User } from '@zen/shared'
+import type { User, UserListItem } from '@zen/shared'
 
 type UsersBulkActionsProps = {
-  selectedItems: User[]
+  selectedItems: UserListItem[]
   onClearSelection: () => void
   isSelecting?: boolean
 }
@@ -37,7 +36,7 @@ export function UsersBulkActions({
       {
         onSuccess: () => {
           const actionText = status === 'active' ? '激活' : '停用'
-          toast.success(`已${actionText} ${selectedItems.length} 个用户`)
+          toast.add({ title: `已${actionText} ${selectedItems.length} 个用户`, type: 'success' })
           onClearSelection()
         }
       }

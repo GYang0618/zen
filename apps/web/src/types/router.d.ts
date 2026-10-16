@@ -1,5 +1,6 @@
 import type { LinkProps } from '@tanstack/react-router'
 import type { LucideIcon } from 'lucide-react'
+import type { ShellMode } from '@/stores'
 
 /**
  * 路由 `staticData` 元数据（菜单 / 面包屑 / 权限门控的唯一来源）。
@@ -39,6 +40,12 @@ export interface RouterMeta {
   pluginId?: string
   /** 页面描述 */
   description?: string
+  /**
+   * 所属工作模式。
+   * 不写或 `admin` 为管理后台，`agent` 为智能体。
+   * 从当前路由向父级查找，使用最近一次声明；一组同类页面写在共同 layout 上即可继承。
+   */
+  mode?: ShellMode
 }
 
 declare module '@tanstack/react-router' {

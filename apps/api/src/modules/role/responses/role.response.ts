@@ -25,7 +25,10 @@ export type RoleResponse = {
   updatedAt: string
 }
 
-export type RoleListItemResponse = RoleResponse
+export type RoleListItemResponse = Omit<
+  RoleResponse,
+  'customOrgIds' | 'permissions' | 'createdAt' | 'updatedAt' | 'sort'
+>
 
 export type RoleListResponse = {
   items: RoleListItemResponse[]
@@ -74,3 +77,5 @@ export type PermissionGroupResponse = {
   module: string
   permissions: PermissionResponse[]
 }
+
+export type { RoleStatisticsResponse } from '@zen/shared'

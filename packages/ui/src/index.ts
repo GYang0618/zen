@@ -20,6 +20,7 @@ export * from './components/button-group'
 export * from './components/calendar'
 export * from './components/card'
 export * from './components/carousel'
+export * from './components/chart'
 export * from './components/checkbox'
 export * from './components/collapsible'
 export * from './components/combobox'
@@ -59,6 +60,7 @@ export * from './components/tabs'
 export * from './components/textarea'
 export * from './components/toast'
 export * from './components/tooltip'
+export * from './components/trace'
 
 // Common (自研)
 

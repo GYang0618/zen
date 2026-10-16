@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router'
-import { toast } from 'sonner'
+import { toast } from '@zen/ui'
 
 import { useAuthStore } from '@/stores'
 
@@ -24,7 +24,7 @@ export function useAccessChangeFeedback() {
     const ids = typeof affectedUserIds === 'string' ? [affectedUserIds] : [...affectedUserIds]
     const currentId = useAuthStore.getState().user?.id
     if (currentId && ids.includes(currentId)) {
-      toast.success(selfMessage)
+      toast.add({ title: selfMessage, type: 'success' })
       useAuthStore.getState().clearAuth()
       navigate({
         to: '/sign-in',
@@ -33,6 +33,6 @@ export function useAccessChangeFeedback() {
       })
       return
     }
-    toast.success(otherMessage)
+    toast.add({ title: otherMessage, type: 'success' })
   }
 }

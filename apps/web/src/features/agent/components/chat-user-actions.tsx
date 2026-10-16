@@ -1,0 +1,51 @@
+import { cn, MessageAction, MessageActions, toast } from '@zen/ui'
+import { Check, Copy, Pencil } from 'lucide-react'
+import { useCallback, useState } from 'react'
+
+import { useAgentChatInputStore } from '../stores/agent-chat-input'
+
+interface ChatUserActionsProps {
+  text: string
+  className?: string
+}
+
+export function ChatUserActions({ text, className }: ChatUserActionsProps) {
+  const [copied, setCopied] = useState(false)
+  const setEditDraft = useAgentChatInputStore((state) => state.setEditDraft)
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      toast.add({ title: '复制成功', type: 'success' })
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      toast.add({ title: '复制失败', type: 'error' })
+    }
+  }, [text])
+
+  const handleEdit = useCallback(() => {
+    setEditDraft(text)
+    toast.add({ title: '已填入输入框', type: 'info' })
+  }, [setEditDraft, text])
+
+  return (
+    <MessageActions
+      className={cn(
+        'ml-auto flex items-center gap-0 justify-end opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100',
+        className
+      )}
+    >
+      <MessageAction tooltip="重新编辑" label="重新编辑" onClick={handleEdit}>
+        <Pencil />
+      </MessageAction>
+      <MessageAction
+        tooltip={copied ? '已复制' : '复制'}
+        label={copied ? '已复制' : '复制'}
+        onClick={handleCopy}
+      >
+        {copied ? <Check className="text-primary" /> : <Copy />}
+      </MessageAction>
+    </MessageActions>
+  )
+}

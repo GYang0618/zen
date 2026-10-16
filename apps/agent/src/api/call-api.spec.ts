@@ -18,9 +18,10 @@ afterEach(() => {
 
 describe('executeApiCall Artifact handling', () => {
   it('将大型 Tool 结果保存为 Artifact 并只返回摘要', async () => {
-    let artifactRequest: RequestInfo | URL | undefined
+    let artifactUrl = ''
     globalThis.fetch = (async (input) => {
-      artifactRequest = input
+      artifactUrl =
+        typeof input === 'string' ? input : input instanceof Request ? input.url : String(input)
       return new Response(
         JSON.stringify({
           code: 200,
@@ -59,7 +60,7 @@ describe('executeApiCall Artifact handling', () => {
       }
     )
 
-    assert.match(String(artifactRequest), /\/api\/copilot\/runtime\/runs\/run-1\/artifacts$/)
+    assert.match(artifactUrl, /\/api\/copilot\/runtime\/runs\/run-1\/artifacts$/)
     const parsed = JSON.parse(result) as {
       code: number
       message: string
@@ -107,5 +108,26 @@ describe('executeApiCall fail-closed writes', () => {
     assert.equal(parsed.code, 400)
     assert.equal(parsed.reason, 'MISSING_EXECUTION_CONTEXT')
     assert.match(parsed.message, /写操作缺少 run\/tool\/tenant\/user 标识/)
+  })
+
+  it('缺少 accessToken 时返回 401 UNAUTHORIZED 错误信封', async () => {
+    const result = await executeApiCall(
+      {
+        configurable: {},
+        toolCallId: 'tool-call-1',
+        toolCall: { name: 'query_users_list' }
+      } as never,
+      async () => {
+        throw new Error('should not run')
+      }
+    )
+    const parsed = JSON.parse(result) as {
+      code: number
+      reason: string
+      message: string
+    }
+    assert.equal(parsed.code, 401)
+    assert.equal(parsed.reason, 'UNAUTHORIZED')
+    assert.match(parsed.message, /缺少用户 access token/)
   })
 })

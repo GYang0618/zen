@@ -16,7 +16,7 @@ import {
 } from '@zen/ui'
 
 import { SignOutDialog } from '@/components/sign-out-dialog'
-import { useAuthStore } from '@/stores'
+import { useAuthStore, useSystemModeStore } from '@/stores'
 
 function getInitials(value: string) {
   const normalized = value.trim()
@@ -32,6 +32,7 @@ function getInitials(value: string) {
 
 export function ProfileDropdown() {
   const [open, setOpen] = useDialogState()
+  const isAgentMode = useSystemModeStore((state) => state.mode) === 'agent'
   const user = useAuthStore((s) => s.user)
   const displayName = user?.nickname ?? user?.username ?? '—'
   const email = user?.email ?? ''
@@ -58,20 +59,24 @@ export function ProfileDropdown() {
             </DropdownMenuLabel>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuGroup>
-            <DropdownMenuItem render={<Link to="/settings/profile" />} nativeButton={false}>
-              个人资料
-              <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuItem render={<Link to="/settings/profile" />} nativeButton={false}>
-              账户设置
-              <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuItem render={<Link to="/settings/appearance" />} nativeButton={false}>
-              外观设置
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
-          <DropdownMenuSeparator />
+          {!isAgentMode && (
+            <>
+              <DropdownMenuGroup>
+                <DropdownMenuItem render={<Link to="/settings/profile" />} nativeButton={false}>
+                  个人资料
+                  <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
+                </DropdownMenuItem>
+                <DropdownMenuItem render={<Link to="/settings/profile" />} nativeButton={false}>
+                  账户设置
+                  <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
+                </DropdownMenuItem>
+                <DropdownMenuItem render={<Link to="/settings/appearance" />} nativeButton={false}>
+                  外观设置
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+            </>
+          )}
           <DropdownMenuItem variant="destructive" onClick={() => setOpen(true)}>
             退出登录
             <DropdownMenuShortcut className="text-current">⇧⌘Q</DropdownMenuShortcut>

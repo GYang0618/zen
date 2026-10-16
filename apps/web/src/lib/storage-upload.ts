@@ -4,9 +4,27 @@ import type { CreateUploadIntent, FileAsset, FilePurpose, UploadIntent } from '@
 
 export type UploadEndpoint = 'storage' | 'avatar'
 
+export type UploadOutcome = {
+  file: FileAsset
+  deduplicated: boolean
+}
+
 type PutProgress = {
   onProgress?: (percent: number) => void
   signal?: AbortSignal
+}
+
+function throwIfAborted(signal?: AbortSignal) {
+  if (signal?.aborted) throw new DOMException('上传已取消', 'AbortError')
+}
+
+/** 原文件字节的 SHA-256，十六进制小写。相同内容得到相同结果。 */
+export async function digestFileSha256(file: Blob, signal?: AbortSignal) {
+  throwIfAborted(signal)
+  const bytes = await file.arrayBuffer()
+  throwIfAborted(signal)
+  const digest = await crypto.subtle.digest('SHA-256', bytes)
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
 export function putPresignedObject(
@@ -43,20 +61,32 @@ export async function uploadWithIntent(input: {
   file: File
   purpose: Exclude<FilePurpose, 'legacy'>
   endpoint?: UploadEndpoint
+  checksum?: string
   onProgress?: (percent: number) => void
   signal?: AbortSignal
-}): Promise<FileAsset> {
+}): Promise<UploadOutcome> {
   const endpoint = input.endpoint ?? (input.purpose === 'avatar' ? 'avatar' : 'storage')
   const intentPath = endpoint === 'avatar' ? '/me/avatar' : '/storage/uploads'
   const mimeType = input.file.type || 'application/octet-stream'
+  const checksum = input.checksum ?? (await digestFileSha256(input.file, input.signal))
   const body: CreateUploadIntent = {
     purpose: input.purpose,
     originalName: input.file.name || 'unnamed',
     mimeType,
-    size: input.file.size
+    size: input.file.size,
+    checksum
   }
 
   const intent = await request.post<UploadIntent, CreateUploadIntent>(intentPath, body)
+  if (intent.deduplicated) {
+    if (endpoint === 'avatar') {
+      const file = await request.post<FileAsset>(`/me/avatar/${intent.fileId}/complete`, {})
+      return { file, deduplicated: true }
+    }
+    if (!intent.file) throw new Error('相同内容的文件已存在，但缺少文件信息')
+    return { file: intent.file, deduplicated: true }
+  }
+
   await putPresignedObject(intent.uploadUrl, input.file, intent.headers, {
     onProgress: input.onProgress,
     signal: input.signal
@@ -67,5 +97,6 @@ export async function uploadWithIntent(input: {
       ? `/me/avatar/${intent.fileId}/complete`
       : `/storage/uploads/${intent.fileId}/complete`
 
-  return request.post<FileAsset>(completePath, {})
+  const file = await request.post<FileAsset>(completePath, { checksum })
+  return { file, deduplicated: file.id !== intent.fileId }
 }

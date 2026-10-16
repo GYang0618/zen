@@ -21,7 +21,12 @@ import { UsersBulkActions } from './users-bulk-actions'
 import { usersColumns as columns } from './users-columns'
 
 import type { OnChangeFn, SortingState, VisibilityState } from '@tanstack/react-table'
-import type { User, UsersQuery as UsersSearch, UsersSortBy, UsersSortOrder } from '@zen/shared'
+import type {
+  UserListItem,
+  UsersQuery as UsersSearch,
+  UsersSortBy,
+  UsersSortOrder
+} from '@zen/shared'
 import type { ReactNode } from 'react'
 import type { NavigateFn } from '@/hooks'
 
@@ -39,7 +44,7 @@ function toUsersSortBy(columnId?: string): UsersSortBy | undefined {
 }
 
 type DataTableProps = {
-  data: User[]
+  data: UserListItem[]
   isLoading?: boolean
   isFetching?: boolean
   isError?: boolean
@@ -77,7 +82,7 @@ export function UsersTable({
     pagination,
     onPaginationChange,
     ensurePageInRange
-  } = useTableUrlState<User>({
+  } = useTableUrlState<UserListItem>({
     search,
     navigate,
     pagination: { defaultPage: 1, defaultPageSize: 10 },

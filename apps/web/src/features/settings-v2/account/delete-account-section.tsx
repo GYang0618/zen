@@ -21,8 +21,6 @@ import {
 } from '@zen/ui'
 import { Trash2 } from 'lucide-react'
 
-import { PasswordInput } from '@/components'
-
 const CONFIRM_TEXT = '删除我的账户'
 
 export function DeleteAccountSection() {
@@ -51,19 +49,11 @@ export function DeleteAccountSection() {
             <AlertDialogHeader>
               <AlertDialogTitle>确认删除账户？</AlertDialogTitle>
               <AlertDialogDescription>
-                此操作不可撤销。请输入登录密码，并在下方输入「{CONFIRM_TEXT}」以继续。
+                此操作不可撤销。请在下方输入「{CONFIRM_TEXT}」以继续。
               </AlertDialogDescription>
             </AlertDialogHeader>
 
             <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="delete-account-password">登录密码</FieldLabel>
-                <PasswordInput
-                  id="delete-account-password"
-                  autoComplete="current-password"
-                  placeholder="输入当前登录密码"
-                />
-              </Field>
               <Field>
                 <FieldLabel htmlFor="delete-account-confirm">确认文案</FieldLabel>
                 <Input

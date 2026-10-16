@@ -19,8 +19,12 @@ import {
   Textarea
 } from '@zen/ui'
 
+import { APP_NAME } from '@/config/brand'
+
 import { SectionContent } from '../components/section-content'
 import { SystemLogoField } from './system-logo-field'
+
+const COPYRIGHT_TEXT = `© ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.`
 
 const LANGUAGE_OPTIONS = [
   { label: '简体中文', value: 'zh-CN' },
@@ -59,12 +63,7 @@ export function SettingsSystem() {
             />
             <Field>
               <FieldLabel htmlFor="system-name">系统名称</FieldLabel>
-              <Input
-                id="system-name"
-                type="text"
-                placeholder="Zen Admin"
-                defaultValue="Zen Admin"
-              />
+              <Input id="system-name" type="text" placeholder={APP_NAME} defaultValue={APP_NAME} />
               <FieldDescription>完整产品名称，显示在页面标题与登录页。</FieldDescription>
             </Field>
             <Field>
@@ -94,11 +93,7 @@ export function SettingsSystem() {
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="copyright">版权信息</FieldLabel>
-              <Textarea
-                id="copyright"
-                placeholder="© 2026 Zen Admin. All rights reserved."
-                defaultValue="© 2026 Zen Admin. All rights reserved."
-              />
+              <Textarea id="copyright" placeholder={COPYRIGHT_TEXT} defaultValue={COPYRIGHT_TEXT} />
               <FieldDescription>
                 显示在页面页脚，可使用 {'{year}'} 占位符表示当前年份。
               </FieldDescription>

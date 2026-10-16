@@ -3,7 +3,7 @@ import { ApiProperty } from '@nestjs/swagger'
 import { ApiSuccessResponseBaseSwaggerDto } from '../../../common/swagger/index.js'
 import { UserStatusSwagger } from './user-status.swagger.js'
 
-/** 用户列表行（与 userSchema / UserListItemResponse 对齐） */
+/** 用户列表行（与 userListItemSchema / UserListItemResponse 对齐） */
 export class UserListItemSwaggerDto {
   @ApiProperty({ description: '用户 ID', example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479' })
   id!: string
@@ -19,6 +19,9 @@ export class UserListItemSwaggerDto {
 
   @ApiProperty({ description: '头像 URL', nullable: true })
   avatar!: string | null
+
+  @ApiProperty({ description: '性别', enum: ['male', 'female', 'unknown'] })
+  gender!: 'male' | 'female' | 'unknown'
 
   @ApiProperty({ description: '邮箱', example: 'zhangsan@example.com' })
   email!: string
@@ -36,47 +39,61 @@ export class UserListItemSwaggerDto {
   @ApiProperty({ description: '是否锁定' })
   isLocked!: boolean
 
-  @ApiProperty({ description: '锁定到期时间（ISO 8601）', nullable: true })
-  lockExpireAt!: string | null
+  @ApiProperty({ description: '最后活跃时间（ISO 8601）', nullable: true })
+  lastActiveAt!: string | null
 
-  @ApiProperty({ description: '已绑定角色', type: 'array' })
+  @ApiProperty({ description: '备注', nullable: true })
+  remark!: string | null
+
+  @ApiProperty({
+    description: '主角色摘要（0 或 1 项）',
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        code: { type: 'string' },
+        name: { type: 'string' },
+        icon: { type: 'string', nullable: true },
+        iconColor: { type: 'string', nullable: true },
+        isPrimary: { type: 'boolean' }
+      }
+    }
+  })
   roles!: Array<{
     id: string
     code: string
     name: string
     icon: string | null
     iconColor: string | null
-    kind: 'system' | 'custom'
-    status: 'active' | 'disabled'
+    isPrimary: boolean
   }>
 
-  @ApiProperty({ description: '在职组织归属', type: 'array' })
+  @ApiProperty({
+    description: '主职组织摘要（0 或 1 项）',
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        organizationId: { type: 'string' },
+        organizationName: { type: 'string' },
+        organizationType: { type: 'string' },
+        isPrimary: { type: 'boolean' },
+        postId: { type: 'string', nullable: true },
+        postName: { type: 'string', nullable: true },
+        postLevel: { type: 'string', nullable: true }
+      }
+    }
+  })
   organizations!: Array<{
     organizationId: string
     organizationName: string
-    organizationCode: string
     organizationType: string
     isPrimary: boolean
     postId: string | null
     postName: string | null
     postLevel: string | null
-    joinedAt: string | null
   }>
-
-  @ApiProperty({ description: '是否启用 MFA' })
-  mfaEnabled!: boolean
-
-  @ApiProperty({ description: '最近登录时间（ISO 8601）', nullable: true })
-  lastLoginAt!: string | null
-
-  @ApiProperty({ description: '备注', nullable: true })
-  remark!: string | null
-
-  @ApiProperty({ description: '创建时间（ISO 8601）', example: '2026-05-22T08:00:00.000Z' })
-  createdAt!: string
-
-  @ApiProperty({ description: '更新时间（ISO 8601）', example: '2026-05-22T08:00:00.000Z' })
-  updatedAt!: string
 }
 
 class PageMetaSwaggerDto {

@@ -19,13 +19,13 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiTags
 } from '@nestjs/swagger'
 import { PermissionCode } from '@zen/shared'
 
 import { CurrentAuth } from '../../common/decorators/current-auth.decorator.js'
 import { RequirePermission } from '../../common/decorators/require-permission.decorator.js'
-import { RequireStepUp } from '../../common/decorators/require-step-up.decorator.js'
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js'
 import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '../../common/swagger/index.js'
 import { adminResetPasswordSchema } from './dto/admin-reset-password.dto.js'
@@ -36,6 +36,7 @@ import { findUsersQuerySchema } from './dto/find-users-query.dto.js'
 import { replaceUserOrganizationsSchema } from './dto/replace-user-organizations.dto.js'
 import { updateUserSchema } from './dto/update-user.dto.js'
 import { updateUsersStatusSchema } from './dto/update-users-status.dto.js'
+import { userStatisticsQuerySchema } from './dto/user-statistics-query.dto.js'
 import {
   ApiFindUsersQueryDocs,
   AssignUserRolesSuccessSwaggerDto,
@@ -48,7 +49,8 @@ import {
   UpdateUserSwaggerDto,
   UpdateUsersStatusSwaggerDto,
   UserListItemArraySuccessSwaggerDto,
-  UserListSuccessSwaggerDto
+  UserListSuccessSwaggerDto,
+  UserStatisticsSuccessSwaggerDto
 } from './swagger/index.js'
 import { UserService } from './user.service.js'
 
@@ -63,6 +65,7 @@ import type { FindUsersQueryDto } from './dto/find-users-query.dto.js'
 import type { ReplaceUserOrganizationsDto } from './dto/replace-user-organizations.dto.js'
 import type { UpdateUserDto } from './dto/update-user.dto.js'
 import type { UpdateUsersStatusDto } from './dto/update-users-status.dto.js'
+import type { UserStatisticsQueryDto } from './dto/user-statistics-query.dto.js'
 import type {
   AssignUserRolesResponse,
   CreateUserResponse,
@@ -70,7 +73,8 @@ import type {
   UpdateUserResponse,
   UserListItemResponse,
   UserListResponse,
-  UserResponse
+  UserResponse,
+  UserStatisticsResponse
 } from './responses/user.response.js'
 
 @ApiTags('用户管理')
@@ -112,6 +116,30 @@ export class UserController {
     @CurrentAuth() auth: AuthContext
   ): Promise<UserListResponse> {
     return this.userService.findAll(query, auth)
+  }
+
+  @Get('statistics')
+  @RequirePermission(PermissionCode.USER_LIST)
+  @ApiOperation({
+    summary: '获取用户聚合统计数据',
+    description:
+      '聚合统计用户总数、状态分布、性别分布、账号安全概况、组织与角色归属覆盖率及近 7/30 天新增趋势。支持按组织筛选。'
+  })
+  @ApiQuery({
+    name: 'organizationId',
+    required: false,
+    type: String,
+    description: '组织 ID，指定后仅统计该组织及其下属子树用户',
+    example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479'
+  })
+  @ApiOkResponse({ description: '查询成功', type: UserStatisticsSuccessSwaggerDto })
+  @ApiStandardErrorResponses()
+  @UsePipes(new ZodValidationPipe(userStatisticsQuerySchema, { types: ['query'] }))
+  getStatistics(
+    @Query() query: UserStatisticsQueryDto | undefined,
+    @CurrentAuth() auth: AuthContext
+  ): Promise<UserStatisticsResponse> {
+    return this.userService.getStatistics(query, auth)
   }
 
   @Get(':id')
@@ -186,7 +214,7 @@ export class UserController {
   @ApiOperation({ summary: '解锁用户账号' })
   @ApiOkResponse({ description: '解锁成功', type: UpdateUserSuccessSwaggerDto })
   @ApiStandardErrorResponses()
-  unlock(@Param('id') id: string): Promise<UserResponse> {
+  unlock(@Param('id') id: string): Promise<UserListItemResponse> {
     return this.userService.unlock(id)
   }
 
@@ -199,7 +227,7 @@ export class UserController {
   adminResetPassword(
     @Param('id') id: string,
     @Body() body: AdminResetPasswordDto
-  ): Promise<UserResponse> {
+  ): Promise<UserListItemResponse> {
     return this.userService.adminResetPassword(id, body.password, body.mustChangePassword ?? true)
   }
 
@@ -208,16 +236,16 @@ export class UserController {
   @ApiOperation({ summary: '强制下线用户全部会话' })
   @ApiOkResponse({ description: '下线成功', type: UpdateUserSuccessSwaggerDto })
   @ApiStandardErrorResponses()
-  revokeSessions(@Param('id') id: string): Promise<UserResponse> {
+  revokeSessions(@Param('id') id: string): Promise<UserListItemResponse> {
     return this.userService.revokeSessions(id)
   }
 
   @Patch(':id/roles')
   @RequirePermission(PermissionCode.ROLE_ASSIGN)
-  @RequireStepUp()
   @ApiOperation({
     summary: '覆盖式分配用户角色',
-    description: '替换用户全部角色；会 bump 权限版本并强制下线目标用户。需要二次确认令牌。'
+    description:
+      '替换用户全部角色；可指定 primaryRoleId 为主角色（须在 roleIds 内，省略则取首项）。会 bump 权限版本并强制下线目标用户。'
   })
   @ApiParam({ name: 'id', description: '用户 ID' })
   @ApiBody({
@@ -225,7 +253,8 @@ export class UserController {
       type: 'object',
       required: ['roleIds'],
       properties: {
-        roleIds: { type: 'array', items: { type: 'string' } }
+        roleIds: { type: 'array', items: { type: 'string' } },
+        primaryRoleId: { type: 'string', description: '主角色 ID，须属于 roleIds' }
       }
     }
   })
@@ -237,6 +266,31 @@ export class UserController {
     @Body() body: AssignUserRolesDto
   ): Promise<AssignUserRolesResponse> {
     return this.userService.assignRoles(id, body)
+  }
+
+  @Patch(':id/primary-role')
+  @RequirePermission(PermissionCode.ROLE_ASSIGN)
+  @ApiOperation({
+    summary: '设置用户主角色',
+    description: '在已绑定角色中切换主角色，不改变角色集合；会 bump 权限版本并强制下线。'
+  })
+  @ApiParam({ name: 'id', description: '用户 ID' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['primaryRoleId'],
+      properties: {
+        primaryRoleId: { type: 'string' }
+      }
+    }
+  })
+  @ApiOkResponse({ description: '更新成功', type: AssignUserRolesSuccessSwaggerDto })
+  @ApiStandardErrorResponses()
+  setPrimaryRole(
+    @Param('id') id: string,
+    @Body() body: { primaryRoleId: string }
+  ): Promise<AssignUserRolesResponse> {
+    return this.userService.setPrimaryRole(id, body.primaryRoleId)
   }
 
   @Patch(':id/organizations')
@@ -281,10 +335,9 @@ export class UserController {
 
   @Delete()
   @RequirePermission(PermissionCode.USER_DELETE)
-  @RequireStepUp()
   @ApiOperation({
-    summary: '批量软删除用户',
-    description: '逻辑删除指定用户，禁止删除当前登录用户自身。需要二次确认令牌。'
+    summary: '批量删除用户',
+    description: '删除指定用户，禁止删除当前登录用户自身。'
   })
   @ApiBody({ type: DeleteUsersSwaggerDto })
   @ApiOkResponse({ description: '删除成功', type: UserListItemArraySuccessSwaggerDto })

@@ -110,7 +110,6 @@ import { ${pageExport} } from '${packageName(entry.id)}/web'
 import { PLUGIN_WEB_ROUTES } from '@zen/plugin-registry/web'
 import { ${iconName} } from 'lucide-react'
 
-import { RoutePending } from '@/components/route-pending'
 import { PluginPageShell } from '@/features/plugins/plugin-page-shell'
 import { requireActivePlugin } from '@/lib/plugins/require-active-plugin'
 
@@ -121,7 +120,6 @@ if (!pluginRoute) {
 
 export const Route = createFileRoute('/_authenticated/plugins/${segment}')({
   beforeLoad: () => requireActivePlugin(pluginRoute.pluginId),
-  pendingComponent: RoutePending,
   component: function PluginRoutePage() {
     return <PluginPageShell page={${pageExport}} />
   },

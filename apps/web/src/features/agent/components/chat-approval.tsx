@@ -2,192 +2,315 @@
 
 import { useInterrupt } from '@copilotkit/react-core/v2'
 import { Confirmation, ConfirmationAction, ConfirmationActions, ConfirmationTitle } from '@zen/ui'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { isApiClientError } from '@/lib/request/utils'
+import { useChatAgent } from '../context/chat-agent-context'
+import { formatToolTitle } from '../lib/tool-title'
+import { useAgentChatInputStore } from '../stores/agent-chat-input'
 
-import { buildApprovalDecisions } from '../approval-decision'
-import { approvalToInterruptView, resolveApprovalInterrupt } from '../approval-interrupt'
-import { extractReadableTargets, resolveApprovalOperation } from '../approval-title'
-import { defaultAgentRuntimeApi } from '../runtime-api'
+import type { PendingApprovalTool } from '../stores/agent-chat-input'
 
-import type { ApprovalInterruptView } from '../approval-interrupt'
-import type { AgentApproval } from '../runtime-api'
-
-type CopilotInterrupt = { id?: string; metadata?: Record<string, unknown> } | null
-type CopilotInterruptEvent = { value?: unknown } | null
-
-const MAX_INLINE_TARGETS = 3
+export interface ParsedInterruptValue {
+  actionRequests: PendingApprovalTool[]
+  message?: string
+  title?: string
+  action?: string
+}
 
 /**
- * 高风险 Tool 的人工审批 UI。以内联 Confirmation 卡片渲染在消息流末尾（由 chat.tsx 挂载），
- * 而非模态弹框：既保留“阻塞输入、必须处理”的强制力，又不遮挡对话上下文。
+ * 提取中断原始负载（兼容标准 AG-UI 与遗留自定义事件模式）
  */
-export function ChatApprovalRegistration({
-  onPendingChange,
-  persistedApproval,
-  onPersistedDecision,
-  onLiveInterrupt
-}: {
+export function extractInterruptRawValue(
+  interrupt: unknown,
+  event: { value?: unknown } | null | undefined
+): unknown {
+  if (interrupt && typeof interrupt === 'object') {
+    const obj = interrupt as {
+      metadata?: { langgraph?: { raw?: unknown } }
+      value?: unknown
+    }
+    if (obj.metadata?.langgraph?.raw !== undefined) {
+      return obj.metadata.langgraph.raw
+    }
+    if (obj.value !== undefined) {
+      return obj.value
+    }
+  }
+  return event?.value
+}
+
+export function parseInterruptValue(rawValue: unknown): ParsedInterruptValue {
+  let parsed = rawValue
+  if (typeof rawValue === 'string') {
+    try {
+      parsed = JSON.parse(rawValue)
+    } catch {
+      return { actionRequests: [], message: rawValue }
+    }
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    return { actionRequests: [] }
+  }
+
+  const obj = parsed as Record<string, unknown>
+  const actionRequests: PendingApprovalTool[] = []
+
+  if (Array.isArray(obj.actionRequests)) {
+    for (const item of obj.actionRequests) {
+      if (
+        item &&
+        typeof item === 'object' &&
+        typeof (item as { name?: unknown }).name === 'string'
+      ) {
+        const ar = item as { name: string; args?: unknown; description?: unknown }
+        actionRequests.push({
+          name: ar.name,
+          args:
+            typeof ar.args === 'object' && ar.args !== null
+              ? (ar.args as Record<string, unknown>)
+              : undefined,
+          description: typeof ar.description === 'string' ? ar.description : undefined
+        })
+      }
+    }
+  }
+
+  return {
+    actionRequests,
+    message: typeof obj.message === 'string' ? obj.message : undefined,
+    title: typeof obj.title === 'string' ? obj.title : undefined,
+    action: typeof obj.action === 'string' ? obj.action : undefined
+  }
+}
+
+interface ChatApprovalRegistrationProps {
   onPendingChange?: (pending: boolean) => void
-  persistedApproval?: AgentApproval | null
-  onPersistedDecision?: (decision: 'approve' | 'reject') => Promise<void>
-  onLiveInterrupt?: () => void
-}) {
+}
+
+/**
+ * 高风险操作的人工审批 UI（HITL）。
+ * 使用 CopilotKit 官方 useInterrupt，以内联 Confirmation 卡片渲染在消息流末尾。
+ */
+export function ChatApprovalRegistration({ onPendingChange }: ChatApprovalRegistrationProps) {
+  const { isReady } = useChatAgent()
+  const clearPendingApprovalTools = useAgentChatInputStore(
+    (state) => state.clearPendingApprovalTools
+  )
+
+  useEffect(() => {
+    return () => {
+      clearPendingApprovalTools()
+    }
+  }, [clearPendingApprovalTools])
+
+  if (!isReady) return null
+
+  return <ChatApprovalRegistrationInner onPendingChange={onPendingChange} />
+}
+
+function ChatApprovalRegistrationInner({ onPendingChange }: ChatApprovalRegistrationProps) {
+  const { agent, activeThreadId } = useChatAgent()
+  const clearPendingApprovalTools = useAgentChatInputStore(
+    (state) => state.clearPendingApprovalTools
+  )
+  const clearResolvingApprovalTools = useAgentChatInputStore(
+    (state) => state.clearResolvingApprovalTools
+  )
+  const resolvedInterruptIdsRef = useRef<Set<string>>(new Set())
+  const prevThreadIdRef = useRef(activeThreadId)
+
+  if (prevThreadIdRef.current !== activeThreadId) {
+    prevThreadIdRef.current = activeThreadId
+    resolvedInterruptIdsRef.current.clear()
+    clearResolvingApprovalTools()
+  }
+
   const interruptElement = useInterrupt({
+    agentId: agent.agentId,
     renderInChat: false,
-    render: ({ interrupt, event, resolve }) => (
-      <ApprovalCard interrupt={interrupt} event={event} onDecide={resolve} />
-    )
+    render: ({ event, interrupt, resolve }) => {
+      const interruptId = interrupt?.id ?? event?.name ?? 'unknown-interrupt'
+      if (resolvedInterruptIdsRef.current.has(interruptId)) {
+        return null as unknown as React.ReactElement
+      }
+
+      const rawValue = extractInterruptRawValue(interrupt, event)
+      return (
+        <ApprovalCardWrapper
+          key={interruptId}
+          rawValue={rawValue}
+          interruptId={interruptId}
+          isAgentRunning={Boolean(agent.isRunning)}
+          onResolve={(payload) => {
+            resolvedInterruptIdsRef.current.add(interruptId)
+            resolve(payload)
+          }}
+        />
+      )
+    }
   })
 
-  const pending = Boolean(interruptElement) || Boolean(persistedApproval)
+  const pending = Boolean(interruptElement)
 
   useEffect(() => {
     onPendingChange?.(pending)
-  }, [pending, onPendingChange])
+    if (!pending) {
+      clearPendingApprovalTools()
+    }
+  }, [pending, onPendingChange, clearPendingApprovalTools])
 
   useEffect(() => {
-    if (interruptElement) onLiveInterrupt?.()
-  }, [interruptElement, onLiveInterrupt])
+    return () => {
+      clearPendingApprovalTools()
+    }
+  }, [clearPendingApprovalTools])
 
-  if (interruptElement) return interruptElement
-  if (!persistedApproval || !onPersistedDecision) return null
+  if (!interruptElement) return null
+
+  return interruptElement
+}
+
+interface ApprovalCardWrapperProps {
+  rawValue: unknown
+  interruptId: string
+  isAgentRunning: boolean
+  onResolve: (payload: unknown) => void
+}
+
+function ApprovalCardWrapper({
+  rawValue,
+  interruptId,
+  isAgentRunning,
+  onResolve
+}: ApprovalCardWrapperProps) {
+  const setPendingApprovalTools = useAgentChatInputStore((state) => state.setPendingApprovalTools)
+  const clearPendingApprovalTools = useAgentChatInputStore(
+    (state) => state.clearPendingApprovalTools
+  )
+  const markApprovalToolsResolving = useAgentChatInputStore(
+    (state) => state.markApprovalToolsResolving
+  )
+  const [submitting, setSubmitting] = useState(false)
+  const parsed = useMemo(() => parseInterruptValue(rawValue), [rawValue])
+
+  useEffect(() => {
+    if (parsed.actionRequests.length > 0) {
+      setPendingApprovalTools(parsed.actionRequests)
+    }
+    return () => {
+      clearPendingApprovalTools()
+    }
+  }, [parsed.actionRequests, setPendingApprovalTools, clearPendingApprovalTools])
+
+  const handleApprove = () => {
+    if (submitting || isAgentRunning) return
+    setSubmitting(true)
+    const approvedNames = parsed.actionRequests.map((ar) => ar.name).filter(Boolean)
+    if (approvedNames.length > 0) {
+      markApprovalToolsResolving(approvedNames)
+    }
+
+    const decisions =
+      parsed.actionRequests.length > 0
+        ? parsed.actionRequests.map(() => ({ type: 'approve' as const }))
+        : [{ type: 'approve' as const }]
+
+    onResolve({
+      approved: true,
+      decisions
+    })
+  }
+
+  const handleReject = () => {
+    if (submitting || isAgentRunning) return
+    setSubmitting(true)
+    const decisions =
+      parsed.actionRequests.length > 0
+        ? parsed.actionRequests.map(() => ({
+            type: 'reject' as const,
+            message: '用户已拒绝执行该操作'
+          }))
+        : [{ type: 'reject' as const, message: '用户已拒绝执行该操作' }]
+
+    onResolve({
+      approved: false,
+      decisions
+    })
+  }
 
   return (
     <ApprovalCard
-      view={approvalToInterruptView(persistedApproval)}
-      onDecide={async (payload) => {
-        const decision = readDecision(payload)
-        await onPersistedDecision(decision)
-      }}
+      parsed={parsed}
+      interruptId={interruptId}
+      submitting={submitting}
+      isAgentRunning={isAgentRunning}
+      onApprove={handleApprove}
+      onReject={handleReject}
     />
   )
 }
 
-function ApprovalCard({
-  interrupt,
-  event,
-  view,
-  onDecide
-}: {
-  interrupt?: CopilotInterrupt
-  event?: CopilotInterruptEvent
-  view?: ApprovalInterruptView
-  onDecide: (payload?: unknown, interruptId?: string) => Promise<unknown>
-}) {
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string>()
-  const resolved = view ?? resolveApprovalInterrupt(interrupt, event)
-  const toolNames = uniqueToolNames(resolved)
-  const operation = resolveApprovalOperation(toolNames)
-  const args =
-    resolved.actions.length === 1
-      ? resolved.actions[0]?.args
-      : resolved.actions.length
-        ? resolved.actions.map((action) => action.args)
-        : resolved.args
-  const targets = extractReadableTargets(args)
-  const interruptId = resolved.id
-  const approvalId = interruptId ?? 'pending'
+interface ApprovalCardProps {
+  parsed: ParsedInterruptValue
+  interruptId: string
+  submitting: boolean
+  isAgentRunning: boolean
+  onApprove: () => void
+  onReject: () => void
+}
 
-  const submit = async (decision: 'approve' | 'reject') => {
-    setSubmitting(true)
-    setError(undefined)
-    try {
-      if (interruptId) {
-        try {
-          await defaultAgentRuntimeApi.decideApprovalByInterrupt(interruptId, { decision })
-        } catch (approvalError) {
-          if (!isApiClientError(approvalError) || approvalError.code !== 404) throw approvalError
-        }
-      }
-      const decisions = buildApprovalDecisions(resolved.actions.length, decision)
-      await onDecide({ decisions }, interruptId)
-    } catch (approvalError) {
-      setError(
-        approvalError instanceof Error
-          ? approvalError.message
-          : decision === 'approve'
-            ? '审批提交失败'
-            : '拒绝提交失败'
-      )
-    } finally {
-      setSubmitting(false)
-    }
+function getApprovalTitle(parsed: ParsedInterruptValue): string {
+  if (parsed.title) return parsed.title
+  if (parsed.message) return parsed.message
+  if (parsed.action) return `确定要执行 ${parsed.action} 操作吗？`
+
+  if (parsed.actionRequests.length === 1) {
+    const name = parsed.actionRequests[0].name
+    return `确定要执行「${formatToolTitle(name)}」操作吗？`
   }
+
+  if (parsed.actionRequests.length > 1) {
+    const names = parsed.actionRequests.map((a) => `「${formatToolTitle(a.name)}」`).join('、')
+    return `确定要执行以下操作吗：${names}？`
+  }
+
+  return '该操作需要您的授权与审批，是否确认执行？'
+}
+
+function ApprovalCard({
+  parsed,
+  interruptId,
+  submitting,
+  isAgentRunning,
+  onApprove,
+  onReject
+}: ApprovalCardProps) {
+  const title = useMemo(() => getApprovalTitle(parsed), [parsed])
+  const disabled = submitting || isAgentRunning
 
   return (
     <Confirmation
-      approval={{ id: approvalId }}
+      approval={{ id: interruptId }}
       state={submitting ? 'approval-responded' : 'approval-requested'}
       className="gap-3 p-3"
     >
       <ConfirmationTitle>
-        <ConfirmationSentence operation={operation} targets={targets} />
+        <div className="flex flex-col gap-1">
+          <span className="font-semibold">{title}</span>
+          <span className="text-muted-foreground text-xs">
+            此操作涉及敏感业务数据修改，请确认后继续。
+          </span>
+        </div>
       </ConfirmationTitle>
-      {error && (
-        <p role="alert" className="text-destructive text-sm">
-          {error}
-        </p>
-      )}
       <ConfirmationActions>
-        <ConfirmationAction
-          variant="outline"
-          disabled={submitting}
-          onClick={() => void submit('reject')}
-        >
+        <ConfirmationAction variant="outline" disabled={disabled} onClick={onReject}>
           拒绝
         </ConfirmationAction>
-        <ConfirmationAction disabled={submitting} onClick={() => void submit('approve')}>
+        <ConfirmationAction disabled={disabled} onClick={onApprove}>
           确认执行
         </ConfirmationAction>
       </ConfirmationActions>
     </Confirmation>
   )
-}
-
-function ConfirmationSentence({ operation, targets }: { operation: string; targets: string[] }) {
-  if (targets.length === 0 || targets.length > MAX_INLINE_TARGETS) {
-    const suffix = targets.length > MAX_INLINE_TARGETS ? `（共 ${targets.length} 项）` : ''
-    return `确定要${operation}${suffix}吗？`
-  }
-
-  return (
-    <>
-      确定要{operation}{' '}
-      {targets.map((target) => (
-        <code
-          key={target}
-          className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground"
-        >
-          {target}
-        </code>
-      ))}{' '}
-      吗？
-    </>
-  )
-}
-
-function uniqueToolNames(view: ApprovalInterruptView): string[] {
-  return [
-    ...new Set(
-      [...view.actions.map((action) => action.name), view.toolName].filter((name): name is string =>
-        Boolean(name)
-      )
-    )
-  ]
-}
-
-function readDecision(payload: unknown): 'approve' | 'reject' {
-  const record =
-    payload !== null && typeof payload === 'object'
-      ? (payload as Record<string, unknown>)
-      : undefined
-  const decisions = Array.isArray(record?.decisions) ? record.decisions : []
-  const first = decisions[0]
-  if (first && typeof first === 'object' && 'type' in first && first.type === 'reject') {
-    return 'reject'
-  }
-  return 'approve'
 }

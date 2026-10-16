@@ -20,7 +20,7 @@ import { PostsBulkActions } from './posts-bulk-actions'
 import { postsColumns as columns } from './posts-columns'
 
 import type { VisibilityState } from '@tanstack/react-table'
-import type { JobProfile, JobProfileStatus } from '@zen/shared'
+import type { JobProfileListItem, JobProfileStatus } from '@zen/shared'
 import type { ReactNode } from 'react'
 import type { NavigateFn } from '@/hooks'
 
@@ -32,7 +32,7 @@ type PostsSearch = {
 }
 
 type PostsTableProps = {
-  data: JobProfile[]
+  data: JobProfileListItem[]
   isLoading?: boolean
   isFetching?: boolean
   isError?: boolean
@@ -66,7 +66,7 @@ export function PostsTable({
     pagination,
     onPaginationChange,
     ensurePageInRange
-  } = useTableUrlState<JobProfile>({
+  } = useTableUrlState<JobProfileListItem>({
     search,
     navigate,
     pagination: { defaultPage: 1, defaultPageSize: 10 },
