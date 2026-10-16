@@ -1257,7 +1257,10 @@ model FileAsset {
   declaredMime   String    @map("declared_mime")
   detectedMime   String?   @map("detected_mime")
   size           Int       @default(0)
+  /// 对象存储中的内容哈希。JPEG 去掉 EXIF 后可能与用户所选原文件不同。
   sha256         String?
+  /// 用户所选原文件的 SHA-256，用于同一所有者、同一用途下的内容去重。
+  sourceSha256   String?   @map("source_sha256")
   provider       String    @default("s3")
   storageKey     String    @map("storage_key")
   expiresAt      DateTime? @map("expires_at")
@@ -1279,6 +1282,7 @@ model FileAsset {
   @@index([deletedAt])
   @@index([purgeAfter])
   @@index([sha256])
+  @@index([tenantId, ownerId, purpose, sourceSha256])
   @@map("file_assets")
 }
 

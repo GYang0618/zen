@@ -1,11 +1,18 @@
 'use client'
 
-import { Shimmer } from '@zen/ui'
+import {
+  Shimmer,
+  Trace,
+  TraceCollapsible,
+  TraceCollapsibleContent,
+  TraceCollapsibleTrigger,
+  TraceLine,
+  TraceTitle
+} from '@zen/ui'
 import { useEffect, useRef, useState } from 'react'
 
 import { useWorkDuration } from '../hooks/use-work-duration'
 import { formatWorkStatusTitle } from '../lib/format-work-duration'
-import { ChatFoldPanel } from './chat-fold-panel'
 import { WorkingPet } from './working-pet'
 
 import type { ReactNode } from 'react'
@@ -62,28 +69,36 @@ export function ChatWorkTrace({
   const status: WorkStatus = isWaiting ? 'waiting' : isWorking ? 'working' : 'done'
   const title = formatWorkStatusTitle(status, durationSeconds)
   const showPet = status !== 'done'
-  const titleNode =
-    status === 'done' ? (
-      <span className="leading-none">{title}</span>
-    ) : (
-      <Shimmer as="span" className="leading-none" duration={1}>
-        {title}
-      </Shimmer>
-    )
+  const summary = (
+    <TraceLine
+      status={status === 'done' ? undefined : status === 'waiting' ? 'pending' : 'running'}
+      className="overflow-visible py-0.5"
+    >
+      {showPet ? <WorkingPet /> : null}
+      <TraceTitle>
+        {status === 'done' ? (
+          title
+        ) : (
+          <Shimmer as="span" duration={1}>
+            {title}
+          </Shimmer>
+        )}
+      </TraceTitle>
+    </TraceLine>
+  )
+
+  if (isWaiting) {
+    return <Trace>{summary}</Trace>
+  }
 
   return (
-    <ChatFoldPanel
-      open={open}
-      onOpenChange={setOpen}
-      expandable={!isWaiting}
-      trigger={
-        <span className="inline-flex items-center gap-1.5">
-          {showPet ? <WorkingPet /> : null}
-          {titleNode}
-        </span>
-      }
-    >
-      <div className="pt-4 flex flex-col gap-4">{children}</div>
-    </ChatFoldPanel>
+    <Trace>
+      <TraceCollapsible open={open} onOpenChange={setOpen}>
+        <TraceCollapsibleTrigger>{summary}</TraceCollapsibleTrigger>
+        <TraceCollapsibleContent className="flex flex-col gap-2">
+          {children}
+        </TraceCollapsibleContent>
+      </TraceCollapsible>
+    </Trace>
   )
 }

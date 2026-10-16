@@ -1,3 +1,4 @@
-/** 产品字标。登录页与首屏加载共用。 */
-export const APP_BRAND_NAME = 'ZenPilot'
-export const APP_BRAND_TAGLINE = '智航平台'
+import { configs } from '@/config/env'
+
+/** 系统名称。唯一来源是环境变量 `VITE_APP_NAME`。 */
+export const APP_NAME = configs.appName

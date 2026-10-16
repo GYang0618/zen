@@ -14,12 +14,22 @@ import {
   PAGE_AGENT_GRAPH_ID
 } from '@zen/shared'
 
+import { bridgeOpenTextToToolCall } from './bridge-text-to-tool-call.js'
+
 import type { AuthContext } from '@zen/shared'
 
 const agents = {
   default: { graphId: DEFAULT_AGENT_GRAPH_ID },
   page: { graphId: PAGE_AGENT_GRAPH_ID }
 } as const
+
+/** 补上正文切到工具调用时被适配器丢掉的 TOOL_CALL_START。 */
+class StreamingLangGraphAgent extends LangGraphAgent {
+  override handleSingleEvent(event: unknown): void {
+    if (bridgeOpenTextToToolCall(this, event)) return
+    super.handleSingleEvent(event)
+  }
+}
 
 export const defaultAgent = ({
   deploymentUrl,
@@ -52,7 +62,7 @@ export const defaultAgent = ({
     ...(memory ? { [AGENT_MEMORY_CONFIGURABLE_KEY]: memory } : {})
   }
 
-  return new LangGraphAgent({
+  return new StreamingLangGraphAgent({
     deploymentUrl,
     graphId: agents.default.graphId,
     emitInterruptOutcome: true,
@@ -71,7 +81,7 @@ export const pageAgent = ({
   deploymentUrl: string
   accessToken?: string
 }) =>
-  new LangGraphAgent({
+  new StreamingLangGraphAgent({
     deploymentUrl,
     graphId: agents.page.graphId,
     emitInterruptOutcome: true,

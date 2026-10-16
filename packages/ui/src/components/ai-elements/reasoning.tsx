@@ -8,16 +8,7 @@ import { mermaid } from '@streamdown/mermaid'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@zen/ui/components/collapsible'
 import { cn } from '@zen/ui/lib/utils'
 import { BrainIcon, ChevronRightIcon } from 'lucide-react'
-import {
-  createContext,
-  memo,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from 'react'
+import { createContext, memo, useCallback, useContext, useEffect, useMemo, useRef } from 'react'
 import { Streamdown } from 'streamdown'
 
 import { Shimmer } from './shimmer'
@@ -49,7 +40,6 @@ export type ReasoningProps = ComponentProps<typeof Collapsible> & {
   duration?: number
 }
 
-const AUTO_CLOSE_DELAY = 1000
 const MS_IN_S = 1000
 
 export const Reasoning = memo(
@@ -57,18 +47,14 @@ export const Reasoning = memo(
     className,
     isStreaming = false,
     open,
-    defaultOpen,
+    defaultOpen = false,
     onOpenChange,
     duration: durationProp,
     children,
     ...props
   }: ReasoningProps) => {
-    const resolvedDefaultOpen = defaultOpen ?? isStreaming
-    // Track if defaultOpen was explicitly set to false (to prevent auto-open)
-    const isExplicitlyClosed = defaultOpen === false
-
     const [isOpen, setIsOpen] = useControllableState<boolean>({
-      defaultProp: resolvedDefaultOpen,
+      defaultProp: defaultOpen,
       onChange: onOpenChange,
       prop: open
     })
@@ -77,14 +63,10 @@ export const Reasoning = memo(
       prop: durationProp
     })
 
-    const hasEverStreamedRef = useRef(isStreaming)
-    const [hasAutoClosed, setHasAutoClosed] = useState(false)
     const startTimeRef = useRef<number | null>(null)
 
-    // Track when streaming starts and compute duration
     useEffect(() => {
       if (isStreaming) {
-        hasEverStreamedRef.current = true
         if (startTimeRef.current === null) {
           startTimeRef.current = Date.now()
         }
@@ -93,25 +75,6 @@ export const Reasoning = memo(
         startTimeRef.current = null
       }
     }, [isStreaming, setDuration])
-
-    // Auto-open when streaming starts (unless explicitly closed)
-    useEffect(() => {
-      if (isStreaming && !isOpen && !isExplicitlyClosed) {
-        setIsOpen(true)
-      }
-    }, [isStreaming, isOpen, setIsOpen, isExplicitlyClosed])
-
-    // Auto-close when streaming ends (once only, and only if it ever streamed)
-    useEffect(() => {
-      if (hasEverStreamedRef.current && !isStreaming && isOpen && !hasAutoClosed) {
-        const timer = setTimeout(() => {
-          setIsOpen(false)
-          setHasAutoClosed(true)
-        }, AUTO_CLOSE_DELAY)
-
-        return () => clearTimeout(timer)
-      }
-    }, [isStreaming, isOpen, setIsOpen, hasAutoClosed])
 
     const handleOpenChange = useCallback(
       (newOpen: boolean) => {
@@ -178,12 +141,19 @@ export const ReasoningTrigger = memo(
         {children ?? (
           <span className="inline-flex items-center gap-1.5">
             <span className="relative flex size-3.5 shrink-0 -translate-y-px items-center justify-center">
-              <BrainIcon className="block size-3.5 transition-opacity group-hover:opacity-0 group-focus-visible:opacity-0" />
+              <BrainIcon
+                className={cn(
+                  'block size-3.5 transition-opacity',
+                  isOpen ? 'opacity-0' : 'group-hover:opacity-0 group-focus-visible:opacity-0'
+                )}
+              />
               <ChevronRightIcon
                 aria-hidden="true"
                 className={cn(
-                  'pointer-events-none absolute inset-0 m-auto block size-3.5 opacity-0 transition-[opacity,transform] group-hover:opacity-100 group-focus-visible:opacity-100',
-                  isOpen ? 'rotate-90' : 'rotate-0'
+                  'pointer-events-none absolute inset-0 m-auto block size-3.5 transition-[opacity,transform]',
+                  isOpen
+                    ? 'rotate-90 opacity-100'
+                    : 'rotate-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100'
                 )}
               />
             </span>

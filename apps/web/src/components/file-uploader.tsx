@@ -1,23 +1,13 @@
-import {
-  Badge,
-  Button,
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemFooter,
-  ItemGroup,
-  ItemMedia,
-  ItemTitle,
-  Progress
-} from '@zen/ui'
-import { FileArchive, FileText, Film, Image, Loader2, Upload, X } from 'lucide-react'
+import { ItemGroup } from '@zen/ui'
+import { Upload } from 'lucide-react'
 import { useId, useRef, useState } from 'react'
 
-import { uploadWithIntent } from '@/lib/storage-upload'
+import { UploadFileRow } from '@/components/upload-file-row'
+import { digestFileSha256, uploadWithIntent } from '@/lib/storage-upload'
 
 import type { FileAsset, FilePurpose } from '@zen/shared'
 import type { ChangeEvent, DragEvent } from 'react'
+import type { UploadItem } from '@/components/upload-file-row'
 import type { UploadEndpoint } from '@/lib/storage-upload'
 
 type FileUploaderProps = {
@@ -26,133 +16,8 @@ type FileUploaderProps = {
   accept?: string
   multiple?: boolean
   disabled?: boolean
-  onSuccess?: (file: FileAsset) => void
+  onSuccess?: (file: FileAsset, outcome: { deduplicated: boolean }) => void
   onError?: (error: Error) => void
-}
-
-type UploadStatus = 'uploading' | 'done' | 'error' | 'cancelled'
-
-type UploadItem = {
-  id: string
-  name: string
-  percent: number
-  status: UploadStatus
-  error?: string
-  file: File
-}
-
-function formatFileSize(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`
-  const units = ['KB', 'MB', 'GB']
-  let value = bytes / 1024
-  let index = 0
-  while (value >= 1024 && index < units.length - 1) {
-    value /= 1024
-    index += 1
-  }
-  return `${value.toFixed(index === 0 ? 0 : 1)} ${units[index]}`
-}
-
-function FileKindIcon({ file }: { file: File }) {
-  const type = file.type
-  if (type.startsWith('image/')) return <Image aria-hidden />
-  if (type.startsWith('video/')) return <Film aria-hidden />
-  if (type.includes('zip') || type.includes('compressed') || /\.(zip|rar|7z)$/i.test(file.name)) {
-    return <FileArchive aria-hidden />
-  }
-  return <FileText aria-hidden />
-}
-
-function statusCopy(item: UploadItem) {
-  if (item.status === 'uploading') return `${item.percent}%`
-  if (item.status === 'done') return '上传完成'
-  if (item.status === 'cancelled') return '已取消'
-  return item.error ?? '上传失败'
-}
-
-function UploadFileActions({
-  item,
-  onCancel,
-  onRetry,
-  onDismiss
-}: {
-  item: UploadItem
-  onCancel: () => void
-  onRetry: () => void
-  onDismiss: () => void
-}) {
-  return (
-    <ItemActions className="shrink-0">
-      {item.status === 'uploading' ? (
-        <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
-          取消
-        </Button>
-      ) : null}
-      {item.status === 'error' ? (
-        <Button type="button" size="sm" variant="outline" onClick={onRetry}>
-          重试
-        </Button>
-      ) : null}
-      {item.status === 'done' ? <Badge variant="secondary">完成</Badge> : null}
-      {item.status === 'cancelled' ? <Badge variant="outline">已取消</Badge> : null}
-      {item.status === 'error' ? <Badge variant="destructive">失败</Badge> : null}
-      {item.status !== 'uploading' ? (
-        <Button
-          type="button"
-          size="icon-sm"
-          variant="ghost"
-          aria-label={`移除 ${item.name}`}
-          onClick={onDismiss}
-        >
-          <X />
-        </Button>
-      ) : null}
-    </ItemActions>
-  )
-}
-
-function UploadFileRow({
-  item,
-  onCancel,
-  onRetry,
-  onDismiss
-}: {
-  item: UploadItem
-  onCancel: () => void
-  onRetry: () => void
-  onDismiss: () => void
-}) {
-  const isUploading = item.status === 'uploading'
-
-  return (
-    <Item variant="outline" size="sm" role="listitem" className="min-w-0">
-      <ItemMedia variant="icon">
-        {isUploading ? (
-          <Loader2 className="animate-spin" aria-hidden />
-        ) : (
-          <FileKindIcon file={item.file} />
-        )}
-      </ItemMedia>
-      <ItemContent className="min-w-0 overflow-hidden">
-        <ItemTitle className="w-full min-w-0">
-          <span className="block truncate" title={item.name}>
-            {item.name}
-          </span>
-        </ItemTitle>
-        <ItemDescription>
-          {formatFileSize(item.file.size)}
-          <span aria-hidden> · </span>
-          {statusCopy(item)}
-        </ItemDescription>
-      </ItemContent>
-      <UploadFileActions item={item} onCancel={onCancel} onRetry={onRetry} onDismiss={onDismiss} />
-      {isUploading ? (
-        <ItemFooter>
-          <Progress value={item.percent} className="min-w-0" aria-label={`${item.name} 上传进度`} />
-        </ItemFooter>
-      ) : null}
-    </Item>
-  )
 }
 
 export function FileUploader({
@@ -179,29 +44,67 @@ export function FileUploader({
     setItems((current) => current.filter((item) => item.id !== id))
   }
 
-  const runUpload = async (id: string, file: File) => {
+  const runUpload = async (id: string, file: File, checksum: string) => {
     const controller = new AbortController()
     controllers.current.set(id, controller)
+    updateItem(id, { status: 'uploading', percent: 0, error: undefined })
     try {
       const uploaded = await uploadWithIntent({
         file,
         purpose,
         endpoint,
+        checksum,
         signal: controller.signal,
         onProgress: (percent) => updateItem(id, { percent })
       })
-      updateItem(id, { percent: 100, status: 'done' })
-      onSuccess?.(uploaded)
+      updateItem(id, {
+        percent: 100,
+        status: uploaded.deduplicated ? 'duplicate' : 'done'
+      })
+      onSuccess?.(uploaded.file, { deduplicated: uploaded.deduplicated })
+      return uploaded.deduplicated ? 'duplicate' : 'done'
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
         updateItem(id, { status: 'cancelled', error: '已取消' })
-        return
+        return 'cancelled'
       }
       const next = error instanceof Error ? error : new Error('上传失败')
       updateItem(id, { status: 'error', error: next.message })
       onError?.(next)
+      return 'error'
     } finally {
       controllers.current.delete(id)
+    }
+  }
+
+  const hashItem = async (item: UploadItem) => {
+    const controller = new AbortController()
+    controllers.current.set(item.id, controller)
+    try {
+      return await digestFileSha256(item.file, controller.signal)
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        updateItem(item.id, { status: 'cancelled', error: '已取消' })
+        return null
+      }
+      const next = error instanceof Error ? error : new Error('无法校验文件')
+      updateItem(item.id, { status: 'error', error: next.message })
+      onError?.(next)
+      return null
+    } finally {
+      controllers.current.delete(item.id)
+    }
+  }
+
+  const uploadGroup = async (checksum: string, group: UploadItem[]) => {
+    let represented = false
+    for (const item of group) {
+      if (represented) {
+        updateItem(item.id, { status: 'duplicate', percent: 100 })
+        continue
+      }
+      const result = await runUpload(item.id, item.file, checksum)
+      if (result === 'done' || result === 'duplicate') represented = true
     }
   }
 
@@ -212,13 +115,23 @@ export function FileUploader({
       id: crypto.randomUUID(),
       name: file.name,
       percent: 0,
-      status: 'uploading' as const,
+      status: 'hashing' as const,
       file
     }))
     setItems((current) => [...nextItems, ...current])
-    for (const item of nextItems) {
-      void runUpload(item.id, item.file)
-    }
+    void (async () => {
+      const groups = new Map<string, UploadItem[]>()
+      for (const item of nextItems) {
+        const checksum = await hashItem(item)
+        if (!checksum) continue
+        const group = groups.get(checksum)
+        if (group) group.push(item)
+        else groups.set(checksum, [item])
+      }
+      await Promise.all(
+        [...groups.entries()].map(([checksum, group]) => uploadGroup(checksum, group))
+      )
+    })()
   }
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -274,8 +187,12 @@ export function FileUploader({
                 item={item}
                 onCancel={() => controllers.current.get(item.id)?.abort()}
                 onRetry={() => {
-                  updateItem(item.id, { status: 'uploading', percent: 0, error: undefined })
-                  void runUpload(item.id, item.file)
+                  updateItem(item.id, { status: 'hashing', percent: 0, error: undefined })
+                  void (async () => {
+                    const checksum = await hashItem(item)
+                    if (!checksum) return
+                    await uploadGroup(checksum, [item])
+                  })()
                 }}
                 onDismiss={() => dismissItem(item.id)}
               />

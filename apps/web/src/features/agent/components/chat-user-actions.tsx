@@ -32,19 +32,19 @@ export function ChatUserActions({ text, className }: ChatUserActionsProps) {
   return (
     <MessageActions
       className={cn(
-        'ml-auto flex items-center gap-1 justify-end opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100',
+        'ml-auto flex items-center gap-0 justify-end opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100',
         className
       )}
     >
       <MessageAction tooltip="重新编辑" label="重新编辑" onClick={handleEdit}>
-        <Pencil className="size-3.5" />
+        <Pencil />
       </MessageAction>
       <MessageAction
         tooltip={copied ? '已复制' : '复制'}
         label={copied ? '已复制' : '复制'}
         onClick={handleCopy}
       >
-        {copied ? <Check className="size-3.5 text-primary" /> : <Copy className="size-3.5" />}
+        {copied ? <Check className="text-primary" /> : <Copy />}
       </MessageAction>
     </MessageActions>
   )

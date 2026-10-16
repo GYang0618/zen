@@ -27,6 +27,24 @@ function isAgentShellPath(pathname: string): boolean {
   return isAgentChatPath(pathname) || isAgentPluginMarketPath(pathname)
 }
 
+type RouteModeMatch = {
+  staticData: {
+    mode?: ShellMode
+  }
+}
+
+/**
+ * 从当前匹配链解析工作模式。叶子优先，缺省为管理后台。
+ * 直接访问和跨模式跳转都以此为准，不再按具体路径分支。
+ */
+export function resolveRouteMode(matches: readonly RouteModeMatch[]): ShellMode {
+  for (let index = matches.length - 1; index >= 0; index -= 1) {
+    const mode = matches[index]?.staticData.mode
+    if (mode === 'agent' || mode === 'admin') return mode
+  }
+  return 'admin'
+}
+
 /** 从智能体路由路径中解析 threadId，如 `/chat/thread-123` => `'thread-123'` */
 export function parseThreadIdFromPath(pathname: string): string | undefined {
   if (!isAgentChatPath(pathname)) return undefined
@@ -69,7 +87,7 @@ export interface ShellModeState {
   setLastAgentPath: (path: string) => void
 }
 
-export const useShellModeStore = create<ShellModeState>((set) => ({
+export const useSystemModeStore = create<ShellModeState>((set) => ({
   mode: readMode(),
   lastAdminPath: readLastAdminPath(),
   lastAgentPath: readLastAgentPath(),

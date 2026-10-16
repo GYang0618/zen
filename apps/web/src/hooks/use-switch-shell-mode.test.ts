@@ -11,7 +11,7 @@ vi.mock('@tanstack/react-router', () => ({
     select({ location: { pathname: currentPathname } })
 }))
 
-import { useShellModeStore } from '@/stores'
+import { useSystemModeStore } from '@/stores'
 
 import { useSwitchShellMode } from './use-switch-shell-mode'
 
@@ -20,7 +20,7 @@ describe('useSwitchShellMode', () => {
     vi.clearAllMocks()
     localStorage.clear()
     currentPathname = '/system/users'
-    useShellModeStore.setState({
+    useSystemModeStore.setState({
       mode: 'admin',
       lastAdminPath: '/system/users',
       lastAgentPath: '/chat/thread-active-1'
@@ -35,13 +35,13 @@ describe('useSwitchShellMode', () => {
       result.current.switchMode('agent')
     })
 
-    expect(useShellModeStore.getState().mode).toBe('agent')
-    expect(useShellModeStore.getState().lastAdminPath).toBe('/system/users')
+    expect(useSystemModeStore.getState().mode).toBe('agent')
+    expect(useSystemModeStore.getState().lastAdminPath).toBe('/system/users')
     expect(mockNavigate).toHaveBeenCalledWith({ to: '/chat/thread-active-1' })
   })
 
   it('从 agent 切换至 admin 时，记录 lastAgentPath 并导航至 lastAdminPath', () => {
-    useShellModeStore.setState({
+    useSystemModeStore.setState({
       mode: 'agent',
       lastAdminPath: '/system/roles',
       lastAgentPath: '/chat'
@@ -53,8 +53,8 @@ describe('useSwitchShellMode', () => {
       result.current.switchMode('admin')
     })
 
-    expect(useShellModeStore.getState().mode).toBe('admin')
-    expect(useShellModeStore.getState().lastAgentPath).toBe('/chat/thread-999')
+    expect(useSystemModeStore.getState().mode).toBe('admin')
+    expect(useSystemModeStore.getState().lastAgentPath).toBe('/chat/thread-999')
     expect(mockNavigate).toHaveBeenCalledWith({ to: '/system/roles' })
   })
 

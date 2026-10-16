@@ -3,9 +3,9 @@
  * `runtime` 必须与 index.html `#boot-splash` 的初始文本一致，脚本执行前靠它显示。
  */
 export const BOOT_STATUS = {
-  runtime: '正在加载运行环境',
-  session: '正在校验登录状态',
-  enter: '正在进入工作台'
+  runtime: '正在加载运行环境...',
+  session: '正在校验登录状态...',
+  enter: '正在进入工作台...'
 } as const
 
 const SPLASH_ID = 'boot-splash'

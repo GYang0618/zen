@@ -1,6 +1,6 @@
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 
-import { resolveAdminPath, useShellModeStore } from '@/stores'
+import { resolveAdminPath, useSystemModeStore } from '@/stores'
 
 import type { ShellMode } from '@/stores'
 import type { AppPath } from '@/types/router'
@@ -8,12 +8,12 @@ import type { AppPath } from '@/types/router'
 export function useSwitchShellMode() {
   const navigate = useNavigate()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
-  const mode = useShellModeStore((state) => state.mode)
-  const setMode = useShellModeStore((state) => state.setMode)
-  const lastAdminPath = useShellModeStore((state) => state.lastAdminPath)
-  const setLastAdminPath = useShellModeStore((state) => state.setLastAdminPath)
-  const lastAgentPath = useShellModeStore((state) => state.lastAgentPath)
-  const setLastAgentPath = useShellModeStore((state) => state.setLastAgentPath)
+  const mode = useSystemModeStore((state) => state.mode)
+  const setMode = useSystemModeStore((state) => state.setMode)
+  const lastAdminPath = useSystemModeStore((state) => state.lastAdminPath)
+  const setLastAdminPath = useSystemModeStore((state) => state.setLastAdminPath)
+  const lastAgentPath = useSystemModeStore((state) => state.lastAgentPath)
+  const setLastAgentPath = useSystemModeStore((state) => state.setLastAgentPath)
 
   const switchMode = (next: ShellMode) => {
     if (next === mode) return

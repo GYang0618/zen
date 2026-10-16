@@ -16,7 +16,7 @@ import {
 } from '@zen/ui'
 
 import { SignOutDialog } from '@/components/sign-out-dialog'
-import { useAuthStore, useShellModeStore } from '@/stores'
+import { useAuthStore, useSystemModeStore } from '@/stores'
 
 function getInitials(value: string) {
   const normalized = value.trim()
@@ -32,7 +32,7 @@ function getInitials(value: string) {
 
 export function ProfileDropdown() {
   const [open, setOpen] = useDialogState()
-  const isAgentMode = useShellModeStore((state) => state.mode) === 'agent'
+  const isAgentMode = useSystemModeStore((state) => state.mode) === 'agent'
   const user = useAuthStore((s) => s.user)
   const displayName = user?.nickname ?? user?.username ?? '—'
   const email = user?.email ?? ''

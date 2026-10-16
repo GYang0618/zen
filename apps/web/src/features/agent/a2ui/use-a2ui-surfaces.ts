@@ -3,7 +3,7 @@
 import { A2UI_SURFACE_TOOL_NAMES } from '@zen/shared'
 import { useEffect, useMemo, useRef } from 'react'
 
-import { parseToolCallArguments } from '../lib/group-tool-calls'
+import { isToolCallDisplayHidden, parseToolCallArguments } from '../lib/group-tool-calls'
 import { useAgentCanvasStore } from '../stores/agent-canvas'
 import { assembleRenderA2uiOperations } from './assemble-operations'
 import { readA2uiArgsTitle } from './resolve-a2ui-title'
@@ -189,8 +189,8 @@ export function extractA2UISurfaces(
         const fallbackSurfaceId = `a2ui-${toolCallId}`
         if (seenSurfaceIds.has(fallbackSurfaceId)) continue
 
-        const args = parseToolCallArguments(toolCall) ?? {}
-        if (args.display === false) continue
+        const args = parseToolCallArguments(toolCall)
+        if (!args || isToolCallDisplayHidden(toolCall)) continue
 
         const explicitTitle = readA2uiArgsTitle(args)
         let title = explicitTitle ?? '生成式界面'
@@ -210,6 +210,8 @@ export function extractA2UISurfaces(
         }
 
         if (!operations) {
+          // 参数还在增长、工具也还没返回时，不把半成品当成已生成的画布。
+          if (isRunning && !toolResultMsg) continue
           operations = assembleRenderA2uiOperations(args, fallbackSurfaceId)
         }
 

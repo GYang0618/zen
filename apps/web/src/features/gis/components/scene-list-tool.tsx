@@ -3,6 +3,7 @@ import { List, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { useGisStore } from '../stores/gis'
+import { dockButtonClass } from './dock-button-class'
 import { DeployedList, MarkerList, PickedList } from './scene-list-sections'
 
 const SCENE_LIST_TABS = ['picked', 'markers', 'deployed'] as const
@@ -15,17 +16,8 @@ const SCENE_LIST_TAB_LABELS: Record<SceneListTab, string> = {
   deployed: '部署'
 }
 
-const DOCK_BUTTON_CLASS =
-  'relative h-9 shrink-0 rounded-full px-3 text-xs font-medium whitespace-nowrap transition-all duration-200'
-
 function isSceneListTab(value: unknown): value is SceneListTab {
   return SCENE_LIST_TABS.some((tab) => tab === value)
-}
-
-function dockButtonClass(active: boolean) {
-  return active
-    ? `${DOCK_BUTTON_CLASS} bg-primary/20 text-primary shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_0_12px_rgba(var(--primary),0.35)] ring-1 ring-primary/40`
-    : `${DOCK_BUTTON_CLASS} text-foreground/80 hover:bg-white/25 dark:hover:bg-white/10`
 }
 
 export function SceneListTool() {

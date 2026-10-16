@@ -6,16 +6,21 @@ import { LayoutProvider } from '@/context/layout-provider'
 import { SearchProvider } from '@/context/search-provider'
 import { getCookie } from '@/lib/cookies'
 
-import { AppSidebar } from './app-sidebar'
+import type { ReactNode } from 'react'
 
-export function AuthenticatedLayout({ children }: { children?: React.ReactNode }) {
+type AuthenticatedLayoutProps = {
+  sidebar: ReactNode
+  children?: ReactNode
+}
+
+export function AuthenticatedLayout({ sidebar, children }: AuthenticatedLayoutProps) {
   const defaultOpen = getCookie('sidebar_state') !== 'false'
   return (
     <SearchProvider>
       <LayoutProvider>
         <SidebarProvider defaultOpen={defaultOpen}>
           <CopilotProvider>
-            <AppSidebar />
+            {sidebar}
             <SidebarInset
               className={cn(
                 // Set content container, so we can use container queries

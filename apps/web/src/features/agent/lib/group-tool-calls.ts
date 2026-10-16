@@ -83,11 +83,18 @@ export function isTurnFinalDisplayToolCall(toolCall: ToolCallLike | undefined): 
   return readDisplayFlag(args) === true
 }
 
-/** A2UI 等：未声明或 true 则展示；显式 false 则隐藏。 */
+/** A2UI 等：未声明或 true 则展示；显式 false 则隐藏。参数未闭合时视为仍可展示。 */
 export function isToolCallDisplayEnabled(toolCall: ToolCallLike | undefined): boolean {
   const args = parseToolCallArguments(toolCall)
   if (!args) return true
   return readDisplayFlag(args) !== false
+}
+
+/** 参数已解析，且调用方显式关闭了展示。未闭合的参数还不能判定为隐藏。 */
+export function isToolCallDisplayHidden(toolCall: ToolCallLike | undefined): boolean {
+  const args = parseToolCallArguments(toolCall)
+  if (!args) return false
+  return readDisplayFlag(args) === false
 }
 
 export function groupConsecutiveToolCalls<T extends ToolCallLike>(

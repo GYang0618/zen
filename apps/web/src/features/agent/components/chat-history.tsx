@@ -15,7 +15,7 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 
 import { InfiniteScrollSentinel } from '@/components/infinite-scroll-sentinel'
-import { parseThreadIdFromPath, useShellModeStore } from '@/stores'
+import { parseThreadIdFromPath, useSystemModeStore } from '@/stores'
 
 import { isProvisionalThreadNewer, mergeHistoryThreads } from '../lib/merge-history-threads'
 import { useAgentChatInputStore } from '../stores/agent-chat-input'
@@ -44,7 +44,7 @@ export function ChatHistory({ surface = 'sidebar', onThreadOpen }: ChatHistoryPr
     refetchThreads
   } = useThreads({ agentId: 'default' })
   const { pathname } = useLocation()
-  const lastAgentPath = useShellModeStore((state) => state.lastAgentPath)
+  const lastAgentPath = useSystemModeStore((state) => state.lastAgentPath)
   const currentThreadId = parseThreadIdFromPath(pathname) ?? parseThreadIdFromPath(lastAgentPath)
   const triggerNewThread = useAgentChatInputStore((state) => state.triggerNewThread)
   const runningThreadIds = useAgentChatInputStore((state) => state.runningThreadIds)

@@ -5,7 +5,7 @@ import { ForgotPasswordForm } from './forgot-password-form'
 
 export function ForgotPassword() {
   return (
-    <div className="w-md flex flex-col gap-4">
+    <div className="w-sm flex flex-col gap-4">
       <AuthBrand />
       <Card>
         <CardHeader>

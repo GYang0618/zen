@@ -1,6 +1,4 @@
 import {
-  Avatar,
-  AvatarFallback,
   cn,
   Item,
   ItemActions,
@@ -10,7 +8,7 @@ import {
   ItemMedia,
   ItemTitle
 } from '@zen/ui'
-import { ChevronRight, Sparkles } from 'lucide-react'
+import { ChevronRight, PencilSparkles } from 'lucide-react'
 
 import { resolveA2uiToolCallTitle } from '../a2ui/resolve-a2ui-title'
 import { parseToolCallArguments } from '../lib/group-tool-calls'
@@ -73,15 +71,10 @@ export function ChatCanvasBadge({ toolCalls, messages }: ChatCanvasBadgeProps) {
 
 const CANVAS_GENERATING_TITLE = '画布'
 
-export function ChatCanvasGeneratingBadge() {
+export function ChatCanvasGeneratingBadge({ title = CANVAS_GENERATING_TITLE }: { title?: string }) {
   return (
     <ItemGroup className="my-1.5 gap-2" role="status" aria-live="polite" aria-busy="true">
-      <CanvasBadgeItem
-        title={CANVAS_GENERATING_TITLE}
-        hasResult={false}
-        isActive={false}
-        onOpen={() => undefined}
-      />
+      <CanvasBadgeItem title={title} hasResult={false} isActive={false} onOpen={() => undefined} />
     </ItemGroup>
   )
 }
@@ -107,14 +100,9 @@ function CanvasBadgeItem({ title, hasResult, isActive, onOpen }: CanvasBadgeItem
       )}
     >
       <ItemMedia variant="icon">
-        <Avatar className="size-10">
-          <AvatarFallback>
-            <Sparkles
-              className={cn('size-4.5 text-primary', !hasResult && 'shimmer')}
-              aria-hidden
-            />
-          </AvatarFallback>
-        </Avatar>
+        <div className=" size-10 rounded-full bg-muted/80 border border-border flex items-center justify-center text-primary">
+          <PencilSparkles className="size-5" aria-hidden />
+        </div>
       </ItemMedia>
       <ItemContent className="min-w-0">
         <ItemTitle className="min-w-0">

@@ -50,6 +50,14 @@ export function peekA2uiTitleFromArgumentsRaw(raw: string | undefined): string |
  * 对话徽章 / 工作区标签用的 A2UI 标题。
  * 优先用模型在 tool args 中给出的概括标题，其次用组件树推断，最后回退到工具名映射。
  */
+/** 参数里已经能读到的界面标题。还没有标题时不回退到工具名。 */
+export function resolveStreamingCanvasTitle(
+  toolCall: ToolCallLike | undefined
+): string | undefined {
+  const args = parseToolCallArguments(toolCall)
+  return readA2uiArgsTitle(args) ?? peekA2uiTitleFromArgumentsRaw(toolCall?.function?.arguments)
+}
+
 export function resolveA2uiToolCallTitle(
   toolCall: ToolCallLike | undefined,
   inferredTitle?: string

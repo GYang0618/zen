@@ -1,3 +1,3 @@
 export * from './auth'
-export * from './shell-mode'
+export * from './system-mode'
 export * from './tabs'

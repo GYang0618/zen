@@ -10,6 +10,7 @@ export const Route = createFileRoute('/_authenticated/ai/plugins')({
     description: '为智能体安装可复用的插件能力。',
     icon: Puzzle,
     order: 3,
-    hideInMenu: true
+    hideInMenu: true,
+    mode: 'agent'
   }
 })

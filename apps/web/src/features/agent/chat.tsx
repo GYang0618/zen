@@ -6,12 +6,7 @@ import { useState } from 'react'
 import { ProfileDropdown, ThemeSwitch } from '@/components'
 import { Header, Main } from '@/components/layouts'
 import { useElementHeight } from '@/hooks'
-import {
-  isAgentChatPath,
-  isAgentPluginMarketPath,
-  parseThreadIdFromPath,
-  useShellModeStore
-} from '@/stores'
+import { isAgentChatPath, parseThreadIdFromPath, useSystemModeStore } from '@/stores'
 
 import { AgentBackgroundRunner } from './components/agent-background-runner'
 import { ChatCanvas } from './components/chat-canvas'
@@ -25,14 +20,16 @@ import { useAgentCanvasStore } from './stores/agent-canvas'
 export function AgentChat({
   threadId: propThreadId,
   /** 是否处于可见的智能体模式；隐藏时需关闭 fixed，避免污染 SidebarInset 的 :has([data-layout=fixed]) */
-  active = true
+  active = true,
+  /** 智能体模式下的非对话页，由当前路由页面替换对话区 */
+  showRoutePage = false
 }: {
   threadId?: string
   active?: boolean
+  showRoutePage?: boolean
 } = {}) {
   const { pathname } = useLocation()
-  const showPluginMarket = isAgentPluginMarketPath(pathname)
-  const lastAgentPath = useShellModeStore((state) => state.lastAgentPath)
+  const lastAgentPath = useSystemModeStore((state) => state.lastAgentPath)
 
   // 处于智能体路由时从当前路径解析 threadId，切到管理后台时锁定 lastAgentPath 中的 threadId
   const isAgentRoute = isAgentChatPath(pathname)
@@ -71,9 +68,9 @@ export function AgentChat({
             </div>
           </Header>
           <Main
-            fixed={active && !showPluginMarket}
+            fixed={active && !showRoutePage}
             fluid
-            className={cn('min-h-0 flex-1 p-0', showPluginMarket && 'hidden')}
+            className={cn('min-h-0 flex-1 p-0', showRoutePage && 'hidden')}
           >
             <ChatRegistrations />
             <AgentBackgroundRunner activeThreadId={activeThreadId} />
@@ -86,7 +83,7 @@ export function AgentChat({
               onRetryHistory={retryConnect}
             />
           </Main>
-          {showPluginMarket ? (
+          {showRoutePage ? (
             <div className="min-h-0 flex-1 overflow-auto">
               <Outlet />
             </div>

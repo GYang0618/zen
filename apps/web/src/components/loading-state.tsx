@@ -2,7 +2,7 @@ import { useRouterState } from '@tanstack/react-router'
 import { cn, Progress } from '@zen/ui'
 import { useReducedMotion } from 'motion/react'
 
-import { APP_BRAND_NAME, APP_BRAND_TAGLINE } from '@/config/brand'
+import { APP_NAME } from '@/config/brand'
 import { BOOT_STATUS } from '@/lib/boot-splash'
 
 const ICON_SIZE = {
@@ -69,10 +69,7 @@ function FullscreenLoading({ label, className }: LoadingFrameProps) {
       <div className="boot-mark">
         <PendingMark variant="fullscreen" />
       </div>
-      <p className="boot-brand">
-        <span>{APP_BRAND_NAME}</span>
-        <span className="boot-tagline">{APP_BRAND_TAGLINE}</span>
-      </p>
+      <p className="boot-brand">{APP_NAME}</p>
       <p className="boot-status">{status}</p>
       <Progress value={null} aria-label={status} className="mt-8 w-48" />
     </div>

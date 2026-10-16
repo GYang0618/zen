@@ -36,7 +36,7 @@ export function ResetPasswordForm() {
   const isInviteMock = isMockInviteToken(token.trim())
 
   return (
-    <div className="w-md flex flex-col gap-4">
+    <div className="w-sm flex flex-col gap-4">
       <AuthBrand />
       <Card>
         <CardHeader>

@@ -1,6 +1,11 @@
 import { create } from 'zustand'
 
-import { GIS_ROAM_CONFIG, GIS_ROAM_MIN_WAYPOINTS, GIS_ROAM_SPEED_MULTIPLIERS } from '../constants'
+import {
+  GIS_ROAM_CONFIG,
+  GIS_ROAM_MIN_WAYPOINTS,
+  GIS_ROAM_SPEED_MULTIPLIER_LIMITS,
+  GIS_ROAM_SPEED_MULTIPLIERS
+} from '../constants'
 
 import type { GisRoamViewMode } from '../constants'
 
@@ -376,7 +381,8 @@ export const useGisRoamStore = create<GisRoamState>((set, get) => ({
   },
 
   setSpeedMultiplier: (multiplier) => {
-    const validMultiplier = Math.max(0.1, Math.min(32, multiplier))
+    const { min, max } = GIS_ROAM_SPEED_MULTIPLIER_LIMITS
+    const validMultiplier = Math.max(min, Math.min(max, multiplier))
     set({ speedMultiplier: validMultiplier })
   },
 

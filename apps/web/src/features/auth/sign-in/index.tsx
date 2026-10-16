@@ -12,7 +12,7 @@ import { SignInForm } from './sign-in-form'
 
 export function SignIn() {
   return (
-    <div className="w-md  flex flex-col gap-4">
+    <div className="w-sm flex flex-col gap-4">
       <AuthBrand />
       <Card>
         <CardHeader>
@@ -23,7 +23,7 @@ export function SignIn() {
           <SignInForm />
         </CardContent>
       </Card>
-      <FieldDescription className="px-6 text-center">
+      <FieldDescription className="px-15 text-center">
         点击登录，即表示你同意我们的<a href="/"> 服务条款 </a>和<a href="/"> 隐私政策 </a>。
       </FieldDescription>
     </div>

@@ -52,9 +52,10 @@ export function WorkingPet() {
       fixedGaze={WORKING_PET_GAZE}
       color={color}
       interactive={false}
+      enableAnimation={false}
       enableSquishOnClick={false}
       showShadow={false}
-      className="size-8 shrink-0"
+      className="size-8 shrink-0 overflow-visible [&_svg]:overflow-visible [&_svg]:drop-shadow-none"
       width="100%"
       height="100%"
     />

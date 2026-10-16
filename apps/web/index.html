@@ -6,7 +6,7 @@
     <link rel="icon" type="image/svg+xml" href="/logo.svg" media="(prefers-color-scheme: light)" />
     <link rel="icon" type="image/svg+xml" href="/logo-dark.svg" media="(prefers-color-scheme: dark)" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Zen Pilot 智航平台</title>
+    <title>%VITE_APP_NAME%</title>
     <script>
       (() => {
         try {
@@ -199,11 +199,11 @@
         font-variation-settings: normal;
         font-synthesis: none;
       }
-      :is(#boot-splash, .boot-screen) :is(.boot-brand, .boot-tagline, .boot-status),
+      :is(#boot-splash, .boot-screen) :is(.boot-brand, .boot-status),
       #boot-splash .boot-status-line {
         color: inherit;
       }
-      :is(#boot-splash, .boot-screen) :is(.boot-tagline, .boot-status) {
+      :is(#boot-splash, .boot-screen) .boot-status {
         font-weight: 400;
       }
       :is(#boot-splash, .boot-screen) .boot-status {
@@ -297,7 +297,8 @@
     <div id="root"></div>
     <!--
       必须放在 #root 之外。React createRoot 会清掉挂载点里的节点。
-      文案与 src/config/brand.ts、BootLoading 默认状态一致。
+      系统名称使用 %VITE_APP_NAME%，与 src/config/brand.ts 的 APP_NAME 同源。
+      状态文案须与 BootLoading 默认状态一致。
       标记与 public/logo-loading.svg 一致，改动画时两处一起改。
       路由首次 onResolved 后由 src/main.tsx 移除。
     -->
@@ -380,7 +381,7 @@
           />
         </svg>
       </div>
-      <p class="boot-brand"><span>ZenPilot</span><span class="boot-tagline">智航平台</span></p>
+      <p class="boot-brand">%VITE_APP_NAME%</p>
       <!-- 初始文案须与 src/lib/boot-splash.ts 的 BOOT_STATUS.runtime 一致 -->
       <p class="boot-status"><span class="boot-status-line is-current">正在加载运行环境</span></p>
       <div class="boot-progress" aria-hidden="true"><span></span></div>

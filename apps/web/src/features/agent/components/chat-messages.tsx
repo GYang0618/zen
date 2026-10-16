@@ -7,40 +7,36 @@ import {
   AlertDescription,
   AlertTitle,
   Button,
+  cn,
   Message,
   MessageContent,
   MessageResponse,
-  Reasoning,
-  ReasoningContent,
-  ReasoningTrigger,
   Shimmer
 } from '@zen/ui'
 import { AlertCircle, RefreshCw, Sparkles } from 'lucide-react'
 import { Fragment, useMemo } from 'react'
 
+import { resolveStreamingCanvasTitle } from '../a2ui/resolve-a2ui-title'
 import { useChatAgent } from '../context/chat-agent-context'
 import { useAgentRetry } from '../hooks/use-agent-retry'
-import { useCanvasGenerationPending } from '../hooks/use-canvas-generation-pending'
+import { useReasoningDuration } from '../hooks/use-reasoning-duration'
 import {
   A2UI_ACTIVITY_TYPE,
-  isA2UIToolCall,
+  findTurnGeneratingA2uiToolCall,
+  shouldShowA2uiCanvasBadge,
   turnHasInProgressA2uiActivity
 } from '../lib/a2ui-tools'
-import { elapsedDurationSeconds } from '../lib/format-work-duration'
 import {
   getInlineStandardToolCalls,
   groupMessagesIntoTurns,
   turnHasFoldableWork
 } from '../lib/group-chat-turns'
-import {
-  isToolCallDisplayEnabled,
-  resolveTurnGenerativeToolCalls,
-  resolveTurnToolCalls
-} from '../lib/group-tool-calls'
+import { resolveTurnGenerativeToolCalls, resolveTurnToolCalls } from '../lib/group-tool-calls'
 import { useAgentChatInputStore } from '../stores/agent-chat-input'
 import { ChatAssistantActions } from './chat-assistant-actions'
 import { ChatCanvasBadge, ChatCanvasGeneratingBadge } from './chat-canvas-badge'
 import { ChatExportDownloads, ChatUserAttachments } from './chat-message-files'
+import { ChatReasoningTrace } from './chat-reasoning-trace'
 import { ChatUserActions } from './chat-user-actions'
 import { ChatWorkTrace } from './chat-work-trace'
 import { GroupedToolCallsView } from './grouped-tool-calls-view'
@@ -79,6 +75,10 @@ export interface AssistantMessageItemProps {
   showWorkingPlaceholder?: boolean
   /** 为 false 时不展示画布生成态和画布入口。Popup 没有右侧画布。 */
   showCanvas?: boolean
+  /** 为 false 时不在这条消息上挂生成式结果。轨迹内的步骤改由回合统一放到外面。 */
+  showGenerative?: boolean
+  /** 工作轨迹里的过程说明，和轨迹外的最终回复区分开。 */
+  placement?: 'answer' | 'work'
   onRetry?: () => void
 }
 
@@ -90,6 +90,8 @@ export function AssistantMessageItem({
   includeInlineTools = true,
   showWorkingPlaceholder = false,
   showCanvas = true,
+  showGenerative = true,
+  placement = 'answer',
   onRetry
 }: AssistantMessageItemProps) {
   const isStopped = useAgentChatInputStore((state) =>
@@ -106,13 +108,11 @@ export function AssistantMessageItem({
   const turnA2uiTools = useMemo(
     () =>
       message.id
-        ? resolveTurnToolCalls(
-            messages,
-            message.id,
-            (tc) => isA2UIToolCall(tc) && isToolCallDisplayEnabled(tc)
+        ? resolveTurnToolCalls(messages, message.id, (toolCall) =>
+            shouldShowA2uiCanvasBadge(toolCall, messages, isRunning)
           )
         : null,
-    [message.id, messages]
+    [isRunning, message.id, messages]
   )
   const turnGenerativeTools = useMemo(
     () => (message.id ? resolveTurnGenerativeToolCalls(messages, message.id) : null),
@@ -120,15 +120,18 @@ export function AssistantMessageItem({
   )
   const showA2uiSlot = Boolean(turnA2uiTools?.shouldRender && turnA2uiTools.toolCalls.length > 0)
   const showGenerativeSlot = Boolean(
-    turnGenerativeTools?.shouldRender && turnGenerativeTools.toolCalls.length > 0
+    showGenerative && turnGenerativeTools?.shouldRender && turnGenerativeTools.toolCalls.length > 0
   )
-  const waitingForCanvas =
-    showCanvas && isRunning && isLastAssistant && hasContent && !showA2uiSlot && !showGenerativeSlot
-  const canvasActivityPending = Boolean(
-    message.id && turnHasInProgressA2uiActivity(messages, message.id)
-  )
-  const canvasTextSettled = useCanvasGenerationPending(content, waitingForCanvas)
-  const showCanvasPending = waitingForCanvas && (canvasActivityPending || canvasTextSettled)
+  const canvasGeneration = useMemo(() => {
+    if (!showCanvas || !isRunning || !isLastAssistant || !message.id || showA2uiSlot) {
+      return undefined
+    }
+    return (
+      findTurnGeneratingA2uiToolCall(messages, message.id) ??
+      (turnHasInProgressA2uiActivity(messages, message.id) ? null : undefined)
+    )
+  }, [isLastAssistant, isRunning, message.id, messages, showA2uiSlot, showCanvas])
+  const showCanvasPending = canvasGeneration !== undefined && !showGenerativeSlot
 
   const hasInlineTools = inlineStandardToolCalls.length > 0
   const showStreamingPlaceholder = Boolean(!hasContent && isStreaming && showWorkingPlaceholder)
@@ -145,7 +148,12 @@ export function AssistantMessageItem({
 
   return (
     <Message from="assistant" className="max-w-full">
-      <MessageContent className="w-full text-base transition-all duration-300 group-[.is-assistant]:w-full">
+      <MessageContent
+        className={cn(
+          'w-full transition-all duration-300 group-[.is-assistant]:w-full',
+          placement === 'work' ? 'text-sm' : 'text-base'
+        )}
+      >
         {hasContent && (
           <MessageResponse
             animated
@@ -173,7 +181,11 @@ export function AssistantMessageItem({
           </div>
         )}
       </MessageContent>
-      {showCanvasPending && <ChatCanvasGeneratingBadge />}
+      {showCanvasPending && (
+        <ChatCanvasGeneratingBadge
+          title={canvasGeneration ? resolveStreamingCanvasTitle(canvasGeneration) : undefined}
+        />
+      )}
       {showCanvas && showA2uiSlot && turnA2uiTools && (
         <ChatCanvasBadge toolCalls={turnA2uiTools.toolCalls} messages={messages as never} />
       )}
@@ -205,17 +217,87 @@ export function ReasoningMessageItem({
   const isStreaming = Boolean(isRunning && isLatest)
   const hasContent = Boolean(content.length)
   const timing = readZenMessageTiming(message.metadata)
-  const duration = isStreaming
-    ? undefined
-    : elapsedDurationSeconds(timing?.startedAt, timing?.endedAt, 'ceil')
+  const duration = useReasoningDuration(message.id, isStreaming, timing)
 
   if (!hasContent && !isStreaming) return null
 
+  return <ChatReasoningTrace content={content} isStreaming={isStreaming} duration={duration} />
+}
+
+function lastTurnAssistant(turn: {
+  foldedBefore: ChatMessageLike[]
+  foldedAfter: ChatMessageLike[]
+  finalAssistant?: ChatMessageLike
+}): ChatMessageLike | undefined {
+  const ordered = [
+    ...turn.foldedBefore,
+    ...(turn.finalAssistant ? [turn.finalAssistant] : []),
+    ...turn.foldedAfter
+  ]
+  for (let index = ordered.length - 1; index >= 0; index -= 1) {
+    const message = ordered[index]
+    if (message?.role === 'assistant') return message
+  }
+  return undefined
+}
+
+/** 画布入口和生成式结果挂在轨迹外面，收起工作过程时仍然可见。 */
+function TurnSurface({
+  messages,
+  anchorId,
+  isRunning,
+  showCanvas
+}: {
+  messages: ChatMessageLike[]
+  anchorId?: string
+  isRunning: boolean
+  showCanvas: boolean
+}) {
+  const turnA2uiTools = useMemo(
+    () =>
+      anchorId
+        ? resolveTurnToolCalls(messages, anchorId, (toolCall) =>
+            shouldShowA2uiCanvasBadge(toolCall, messages, isRunning)
+          )
+        : null,
+    [anchorId, isRunning, messages]
+  )
+  const turnGenerativeTools = useMemo(
+    () => (anchorId ? resolveTurnGenerativeToolCalls(messages, anchorId) : null),
+    [anchorId, messages]
+  )
+  const showA2uiSlot = Boolean(turnA2uiTools?.shouldRender && turnA2uiTools.toolCalls.length > 0)
+  const showGenerativeSlot = Boolean(
+    turnGenerativeTools?.shouldRender && turnGenerativeTools.toolCalls.length > 0
+  )
+  const generatingToolCall = useMemo(
+    () => (anchorId ? findTurnGeneratingA2uiToolCall(messages, anchorId) : undefined),
+    [anchorId, messages]
+  )
+  const showCanvasPending =
+    showCanvas &&
+    isRunning &&
+    !showA2uiSlot &&
+    (Boolean(generatingToolCall) ||
+      Boolean(anchorId && turnHasInProgressA2uiActivity(messages, anchorId)))
+
+  if (!showCanvasPending && !showA2uiSlot && !showGenerativeSlot) return null
+
   return (
-    <Reasoning className="mb-0 w-full" isStreaming={isStreaming} duration={duration}>
-      <ReasoningTrigger />
-      {hasContent && <ReasoningContent>{content}</ReasoningContent>}
-    </Reasoning>
+    <>
+      {showCanvasPending && (
+        <ChatCanvasGeneratingBadge title={resolveStreamingCanvasTitle(generatingToolCall)} />
+      )}
+      {showCanvas && showA2uiSlot && turnA2uiTools && (
+        <ChatCanvasBadge toolCalls={turnA2uiTools.toolCalls} messages={messages as never} />
+      )}
+      {showGenerativeSlot && turnGenerativeTools && (
+        <GroupedToolCallsView
+          toolCalls={turnGenerativeTools.toolCalls}
+          messages={messages as never}
+        />
+      )}
+    </>
   )
 }
 
@@ -244,6 +326,9 @@ function FoldedTurnMessages({
               isRunning={isRunning}
               isLastAssistant={false}
               includeInlineTools
+              placement="work"
+              showCanvas={false}
+              showGenerative={false}
             />
           )}
           {message.role === 'reasoning' && (
@@ -277,7 +362,10 @@ export function ChatMessages() {
     return rawMessages
   }, [failedUserMessage, rawMessages])
 
-  const turns = useMemo(() => groupMessagesIntoTurns(messages), [messages])
+  const turns = useMemo(
+    () => groupMessagesIntoTurns(messages, { liveRun: agent.isRunning }),
+    [agent.isRunning, messages]
+  )
   const lastUserIndex = messages.findLastIndex((m) => m.role === 'user')
   const messagesAfterUser = lastUserIndex >= 0 ? messages.slice(lastUserIndex + 1) : []
   const hasActiveAssistantOutput = messagesAfterUser.some((message) => {
@@ -336,13 +424,19 @@ export function ChatMessages() {
               >
                 <FoldedTurnMessages
                   messages={messages}
-                  foldedMessages={turn.foldedMessages}
+                  foldedMessages={turn.foldedBefore}
                   isRunning={agent.isRunning}
                   isLastTurn={isLastTurn}
                 />
                 {finalInlineTools.length > 0 && (
                   <GroupedToolCallsView toolCalls={finalInlineTools} messages={messages as never} />
                 )}
+                <FoldedTurnMessages
+                  messages={messages}
+                  foldedMessages={turn.foldedAfter}
+                  isRunning={agent.isRunning}
+                  isLastTurn={isLastTurn}
+                />
               </ChatWorkTrace>
             )}
             {turn.finalAssistant && (
@@ -352,10 +446,18 @@ export function ChatMessages() {
                 isRunning={agent.isRunning}
                 isLastAssistant={isLastTurn}
                 includeInlineTools={false}
+                showCanvas={false}
+                showGenerative={false}
                 showWorkingPlaceholder={!hasWork}
                 onRetry={handleRetry}
               />
             )}
+            <TurnSurface
+              messages={messages}
+              anchorId={lastTurnAssistant(turn)?.id}
+              isRunning={isLastTurn && agent.isRunning}
+              showCanvas
+            />
             <ChatExportDownloads contents={contentsForTurn(messages, turns, turnIndex)} />
           </Fragment>
         )

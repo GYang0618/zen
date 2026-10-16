@@ -19,6 +19,7 @@ export function loadEnv() {
 export const env = loadEnv()
 
 export const configs = {
+  appName: env.VITE_APP_NAME,
   baseUrl: env.VITE_APP_BASE_URL,
   apiTimeout: env.VITE_APP_API_TIMEOUT,
   chatApi: env.VITE_APP_CHAT_API,

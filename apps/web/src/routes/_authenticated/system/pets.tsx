@@ -8,6 +8,6 @@ export const Route = createFileRoute('/_authenticated/system/pets')({
   staticData: {
     title: '宠物中心',
     icon: Cat,
-    order: 4
+    order: 80
   }
 })

@@ -1,5 +1,5 @@
 import { cn, MessageAction, MessageActions, toast } from '@zen/ui'
-import { Check, Copy, Link2, RefreshCw } from 'lucide-react'
+import { Check, Copy, RotateCw, SquareArrowOutUpRight } from 'lucide-react'
 import { useCallback, useState } from 'react'
 
 interface ChatAssistantActionsProps {
@@ -41,23 +41,23 @@ export function ChatAssistantActions({
   }, [])
 
   return (
-    <MessageActions className={cn('mt-1 flex items-center gap-1', className)}>
+    <MessageActions className={cn('mt-1 flex items-center gap-0', className)}>
       <MessageAction
         tooltip={copied ? '已复制' : '复制'}
         label={copied ? '已复制' : '复制'}
         onClick={handleCopy}
       >
-        {copied ? <Check className="size-3.5 text-primary" /> : <Copy className="size-3.5" />}
+        {copied ? <Check className="text-primary" /> : <Copy />}
       </MessageAction>
       <MessageAction tooltip="重新回复" label="重新回复" onClick={onRetry} disabled={isRunning}>
-        <RefreshCw className="size-3.5" />
+        <RotateCw />
       </MessageAction>
       <MessageAction
         tooltip={linkCopied ? '已复制链接' : '复制链接'}
         label={linkCopied ? '已复制链接' : '复制链接'}
         onClick={handleCopyLink}
       >
-        {linkCopied ? <Check className="size-3.5 text-primary" /> : <Link2 className="size-3.5" />}
+        {linkCopied ? <Check className="text-primary" /> : <SquareArrowOutUpRight />}
       </MessageAction>
     </MessageActions>
   )

@@ -58,7 +58,7 @@ export function useChatAttachments() {
         signal: controller.signal,
         onProgress: (percent) => patch(localId, { percent })
       })
-      patch(localId, { status: 'done', percent: 100, fileId: uploaded.id, mimeType })
+      patch(localId, { status: 'done', percent: 100, fileId: uploaded.file.id, mimeType })
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return
       const message = error instanceof Error ? error.message : '上传失败'

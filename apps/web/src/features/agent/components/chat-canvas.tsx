@@ -2,8 +2,10 @@
 
 import { A2UIProvider } from '@copilotkit/a2ui-renderer'
 import { UseAgentUpdate } from '@copilotkit/react-core/v2'
-import { Badge, Button } from '@zen/ui'
+import { Button } from '@zen/ui'
 import { PanelRightClose, Sparkles } from 'lucide-react'
+
+import { IconZenAgent } from '@/components/icons'
 
 import { A2UISurfaceHost } from '../a2ui/a2ui-surface-host'
 import { catalog } from '../a2ui/catalog'
@@ -30,14 +32,9 @@ export function ChatCanvas() {
         <div className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
           <div className="flex min-w-0 items-center gap-2">
             <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-              <Sparkles className="size-4" />
+              <IconZenAgent className="size-4" />
             </div>
-            <span className="truncate text-sm font-semibold">画布</span>
-            {activeSurface && (
-              <Badge variant="outline" className="text-xs font-normal">
-                {activeSurface.title}
-              </Badge>
-            )}
+            <span className="truncate text-sm font-semibold">{activeSurface?.title || '画布'}</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -58,7 +55,6 @@ export function ChatCanvas() {
         {/* 多 Surface 切换标签栏 */}
         {surfaces.length > 1 && (
           <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-border bg-muted/30 px-4 py-1.5 scrollbar-none">
-            <span className="shrink-0 text-xs text-muted-foreground">历史界面：</span>
             {surfaces.map((s, idx) => {
               const isCurrent = activeSurface?.surfaceId === s.surfaceId
               return (
@@ -91,10 +87,6 @@ export function ChatCanvas() {
                 <Sparkles className="size-6" />
               </div>
               <h3 className="mt-4 text-sm font-semibold">暂无画布内容</h3>
-              <p className="mt-1.5 max-w-xs text-xs text-muted-foreground">
-                当智能体执行生成式工具（如查询用户列表等）时，将通过 A2UI
-                协议在此处实时呈现交互界面和结构化结果。
-              </p>
             </div>
           )}
         </div>

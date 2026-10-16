@@ -1,5 +1,14 @@
 import { UseAgentUpdate, useDefaultRenderTool } from '@copilotkit/react-core/v2'
-import { CodeBlock, Shimmer } from '@zen/ui'
+import {
+  CodeBlock,
+  Shimmer,
+  TraceCollapsible,
+  TraceCollapsibleContent,
+  TraceCollapsibleTrigger,
+  TraceIcon,
+  TraceLine,
+  TraceTitle
+} from '@zen/ui'
 import {
   CheckCircleIcon,
   CircleIcon,
@@ -10,7 +19,6 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
-import { ChatFoldPanel } from '../components/chat-fold-panel'
 import { useOptionalChatAgent } from '../context/chat-agent-context'
 import { isA2UIToolCall } from '../lib/a2ui-tools'
 import { formatToolTitle } from '../lib/tool-title'
@@ -277,43 +285,47 @@ export function DefaultToolCard({
         : undefined)
 
   return (
-    <ChatFoldPanel
-      className="not-prose"
-      open={open}
-      onOpenChange={setOpen}
-      icon={<WrenchIcon className="block size-3.5" />}
-      trigger={
-        isBusy ? (
-          <Shimmer as="span" className="leading-none" duration={1}>
-            {title}
-          </Shimmer>
-        ) : (
-          <span className="leading-none">{title}</span>
-        )
-      }
-      trailing={<ToolStateIcon state={toolState} />}
-    >
-      <div className="flex flex-col gap-4 pt-4" data-tool-call-id={toolCallId}>
-        {hasParams && <JsonSection label="参数" value={parameters} />}
+    <TraceCollapsible className="not-prose" open={open} onOpenChange={setOpen}>
+      <TraceCollapsibleTrigger>
+        <TraceLine status={isError ? 'error' : isBusy ? 'running' : undefined}>
+          <TraceIcon>
+            <WrenchIcon />
+          </TraceIcon>
+          <TraceTitle>
+            {isBusy ? (
+              <Shimmer as="span" className="leading-none" duration={1}>
+                {title}
+              </Shimmer>
+            ) : (
+              title
+            )}
+          </TraceTitle>
+          <ToolStateIcon state={toolState} />
+        </TraceLine>
+      </TraceCollapsibleTrigger>
+      <TraceCollapsibleContent>
+        <div className="flex flex-col gap-4" data-tool-call-id={toolCallId}>
+          {hasParams && <JsonSection label="参数" value={parameters} />}
 
-        {isError && (
-          <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-destructive text-xs">
-            <div className="flex items-center justify-between font-medium">
-              <span>{parsedError?.title ?? (isTimedOut ? '请求超时' : '执行中断')}</span>
-              {parsedError?.code ? (
-                <span className="rounded bg-destructive/20 px-1.5 py-0.5 text-[10px]">
-                  HTTP {parsedError.code}
-                </span>
-              ) : null}
+          {isError && (
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-destructive text-xs">
+              <div className="flex items-center justify-between font-medium">
+                <span>{parsedError?.title ?? (isTimedOut ? '请求超时' : '执行中断')}</span>
+                {parsedError?.code ? (
+                  <span className="rounded bg-destructive/20 px-1.5 py-0.5 text-[10px]">
+                    HTTP {parsedError.code}
+                  </span>
+                ) : null}
+              </div>
+              {errorMessage && <p className="mt-1 text-muted-foreground">{errorMessage}</p>}
             </div>
-            {errorMessage && <p className="mt-1 text-muted-foreground">{errorMessage}</p>}
-          </div>
-        )}
+          )}
 
-        {result && !isError && <JsonSection label="结果" value={result} />}
-        {isError && !parsedError && result ? <JsonSection label="错误" value={result} /> : null}
-      </div>
-    </ChatFoldPanel>
+          {result && !isError && <JsonSection label="结果" value={result} />}
+          {isError && !parsedError && result ? <JsonSection label="错误" value={result} /> : null}
+        </div>
+      </TraceCollapsibleContent>
+    </TraceCollapsible>
   )
 }
 

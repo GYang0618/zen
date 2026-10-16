@@ -2,7 +2,7 @@ import { cn } from '@zen/ui'
 
 import type { SVGProps } from 'react'
 
-export function IconZenBot({ className, ...props }: SVGProps<SVGSVGElement>) {
+export function IconZenAgent({ className, ...props }: SVGProps<SVGSVGElement>) {
   return (
     <svg
       viewBox="0 0 24 24"

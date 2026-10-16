@@ -39,13 +39,19 @@ export function FilesDialogs({ accept }: { accept?: string }) {
         <DialogContent className="min-w-0 sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>上传文件</DialogTitle>
-            <DialogDescription>预签名直传到对象存储，完成后写入文件元数据。</DialogDescription>
+            <DialogDescription>
+              预签名直传到对象存储。内容完全相同的文件会直接复用，不会重复保存。
+            </DialogDescription>
           </DialogHeader>
           <FileUploader
             purpose="attachment"
             accept={accept}
             multiple
-            onSuccess={() => {
+            onSuccess={(file, outcome) => {
+              if (outcome.deduplicated) {
+                toast.add({ title: `「${file.originalName}」已存在，未重复上传`, type: 'info' })
+                return
+              }
               toast.add({ title: '上传成功', type: 'success' })
               void queryClient.invalidateQueries({ queryKey: filesQueryKeys.all })
             }}

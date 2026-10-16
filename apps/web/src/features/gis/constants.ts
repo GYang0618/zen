@@ -441,5 +441,11 @@ export const GIS_ACTION_CONFIG = {
 /** 漫游播放倍速可选预设 */
 export const GIS_ROAM_SPEED_MULTIPLIERS = [0.5, 1, 2, 4, 8, 16] as const
 
+/** 播放倍速钳位。预设按钮、写入接口和帧循环使用同一上下界。 */
+export const GIS_ROAM_SPEED_MULTIPLIER_LIMITS = {
+  min: 0.1,
+  max: 32
+} as const
+
 /** 坐标定位完成后，闪烁标记的停留时长（毫秒） */
 export const GIS_LOCATE_FLASH_DURATION_MS = 3000
