@@ -18,7 +18,13 @@ import { useEffect, useRef, useState } from 'react'
 
 import { NavUser } from '@/components/layouts/components/nav-user'
 import { ShellSidebarFrame } from '@/components/layouts/shell-sidebar-frame'
-import { AGENT_PLUGIN_MARKET_PATH, isAgentPluginMarketPath, useSystemModeStore } from '@/stores'
+import {
+  AGENT_PLUGIN_MARKET_PATH,
+  isAgentChatPath,
+  isAgentPluginMarketPath,
+  parseThreadIdFromPath,
+  useSystemModeStore
+} from '@/stores'
 
 import { useAgentChatInputStore } from '../stores/agent-chat-input'
 import { ChatHistory } from './chat-history'
@@ -39,13 +45,19 @@ export function AgentSidebar() {
 
 function AgentSidebarContent() {
   const triggerNewThread = useAgentChatInputStore((state) => state.triggerNewThread)
+  const lastAgentPath = useSystemModeStore((state) => state.lastAgentPath)
   const setLastAgentPath = useSystemModeStore((state) => state.setLastAgentPath)
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const { state, isMobile } = useSidebar()
   const isIconCollapsed = state === 'collapsed' && !isMobile
 
   const handleCreate = () => {
-    triggerNewThread()
+    if (isAgentChatPath(pathname) && !parseThreadIdFromPath(pathname)) return
+
+    const conversationPath = isAgentChatPath(pathname) ? pathname : lastAgentPath
+    if (parseThreadIdFromPath(conversationPath)) triggerNewThread()
+
     setLastAgentPath('/chat')
     void navigate({ to: '/chat' })
   }

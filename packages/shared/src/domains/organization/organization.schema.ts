@@ -142,6 +142,12 @@ export const batchTransferMembersSchema = z
   })
   .strict()
 
+export const batchRemoveMembersSchema = z
+  .object({
+    userIds: z.array(idSchema).min(1, '至少选择一名成员').describe('要移出当前组织的成员 ID 列表')
+  })
+  .strict()
+
 export const addOrganizationMemberSchema = z
   .object({
     userIds: z.array(idSchema).min(1, '至少选择一名用户').describe('要加入组织的用户 ID 列表')
@@ -232,6 +238,7 @@ export type ChangeOrganizationParent = z.infer<typeof changeOrganizationParentSc
 export type DissolveOrganization = z.infer<typeof dissolveOrganizationSchema>
 export type MergeOrganization = z.infer<typeof mergeOrganizationSchema>
 export type BatchTransferMembers = z.infer<typeof batchTransferMembersSchema>
+export type BatchRemoveMembers = z.infer<typeof batchRemoveMembersSchema>
 export type AddOrganizationMember = z.infer<typeof addOrganizationMemberSchema>
 export type OrganizationMember = z.infer<typeof organizationMemberSchema>
 export type OrganizationActivity = z.infer<typeof organizationActivitySchema>

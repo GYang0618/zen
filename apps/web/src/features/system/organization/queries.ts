@@ -17,7 +17,9 @@ import { organizationApi } from './api'
 import type { QueryClient } from '@tanstack/react-query'
 import type {
   AddOrganizationMember,
+  BatchRemoveMembers,
   BatchTransferMembers,
+  BatchUnlinkOrganizationPositions,
   ChangeOrganizationParent,
   CreateOrganization,
   DissolveOrganization,
@@ -345,6 +347,27 @@ export function useAddOrganizationMember(organizationId: string) {
   })
 }
 
+export function useBatchRemoveOrganizationMembers(organizationId: string) {
+  const queryClient = useQueryClient()
+  const notifyAccessChange = useAccessChangeFeedback()
+  return useMutation({
+    mutationFn: (data: BatchRemoveMembers) =>
+      organizationApi.batchRemoveMembers(organizationId, data),
+    onSuccess: async (_data, variables) => {
+      const removedIds = new Set(variables.userIds)
+      await settleOrganizationMemberChange(queryClient, organizationId, {
+        delta: -variables.userIds.length,
+        updateMembers: (prev) => prev?.filter((item) => !removedIds.has(item.id))
+      })
+      notifyAccessChange(
+        variables.userIds,
+        variables.userIds.length > 1 ? `已移除 ${variables.userIds.length} 名成员` : '成员已移除'
+      )
+    },
+    onError: (error: Error) => toast.add({ title: error.message || '移除失败', type: 'error' })
+  })
+}
+
 export function useRemoveOrganizationMember(organizationId: string) {
   const queryClient = useQueryClient()
   const notifyAccessChange = useAccessChangeFeedback()
@@ -372,6 +395,26 @@ export function useCreateOrganizationPosition(organizationId: string) {
       toast.add({ title: '岗位已关联', type: 'success' })
     },
     onError: (error: Error) => toast.add({ title: error.message || '关联失败', type: 'error' })
+  })
+}
+
+export function useBatchUnlinkOrganizationPositions(organizationId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: BatchUnlinkOrganizationPositions) =>
+      organizationApi.batchUnlinkPositions(organizationId, data),
+    onSuccess: async (_data, variables) => {
+      await invalidateOrganizationPositionQueries(queryClient, organizationId)
+      await queryClient.invalidateQueries({ queryKey: postKeys.all })
+      toast.add({
+        title:
+          variables.positionIds.length > 1
+            ? `已取消 ${variables.positionIds.length} 个岗位关联`
+            : '已取消岗位关联',
+        type: 'success'
+      })
+    },
+    onError: (error: Error) => toast.add({ title: error.message || '取消关联失败', type: 'error' })
   })
 }
 

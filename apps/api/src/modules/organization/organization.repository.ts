@@ -39,6 +39,14 @@ export type MergeResult = {
   transferredUserIds: string[]
 }
 
+/** 批量移除时，请求中的成员并非全部仍在当前组织。事务内抛出以回滚。 */
+export class OrganizationMembersMissingError extends Error {
+  constructor() {
+    super('部分组织成员不存在')
+    this.name = 'OrganizationMembersMissingError'
+  }
+}
+
 @Injectable()
 export class OrganizationRepository {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
@@ -237,6 +245,22 @@ export class OrganizationRepository {
     return this.prisma.userOrganization.updateMany({
       where: { organizationId, userId, leftAt: null },
       data: { leftAt: new Date(), isPrimary: false }
+    })
+  }
+
+  async batchRemoveMembers(organizationId: string, userIds: string[]) {
+    await this.prisma.$transaction(async (tx) => {
+      const activeCount = await tx.userOrganization.count({
+        where: { organizationId, userId: { in: userIds }, leftAt: null }
+      })
+      if (activeCount !== userIds.length) {
+        throw new OrganizationMembersMissingError()
+      }
+
+      await tx.userOrganization.updateMany({
+        where: { organizationId, userId: { in: userIds }, leftAt: null },
+        data: { leftAt: new Date(), isPrimary: false }
+      })
     })
   }
 

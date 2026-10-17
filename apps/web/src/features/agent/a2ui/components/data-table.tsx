@@ -22,7 +22,7 @@ import {
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
-import { createColumnsFromDefinitions } from './table-columns'
+import { createColumnsFromDefinitions, smartCompareFn } from './table-columns'
 
 import type { RendererProps } from '@copilotkit/a2ui-renderer'
 import type {
@@ -64,13 +64,14 @@ function DataTableHeaderCell<TData extends RowData, TValue>({
 
   const renderedContent = flexRender(header.column.columnDef.header, header.getContext())
   const canSort = header.column.getCanSort()
-  const isTextHeader = typeof renderedContent === 'string' || typeof renderedContent === 'number'
+  const headerIsText = typeof renderedContent === 'string' || typeof renderedContent === 'number'
 
-  if (!canSort || !isTextHeader) {
+  if (!canSort || !headerIsText) {
     return renderedContent
   }
 
   const isSorted = header.column.getIsSorted()
+  const headerText = String(renderedContent)
 
   return (
     <button
@@ -80,7 +81,7 @@ function DataTableHeaderCell<TData extends RowData, TValue>({
         isSorted ? 'text-foreground font-semibold' : 'hover:text-foreground'
       )}
       onClick={header.column.getToggleSortingHandler()}
-      aria-label={`按${renderedContent}排序`}
+      aria-label={`按${headerText}排序`}
     >
       <span>{renderedContent}</span>
       {isSorted === 'asc' ? (
@@ -165,10 +166,13 @@ export function DataTable<TData extends RowData, TValue = unknown>({
   sorting,
   onSortingChange
 }: DataTableProps<TData, TValue>) {
-  const [internalSorting, setInternalSorting] = useState<SortingState>([])
+  const [internalSorting, setInternalSorting] = useState<SortingState>(() => sorting ?? [])
 
   const currentSorting = sorting ?? internalSorting
-  const handleSortingChange: OnChangeFn<SortingState> = onSortingChange ?? setInternalSorting
+  const handleSortingChange: OnChangeFn<SortingState> = (updater) => {
+    setInternalSorting(updater)
+    onSortingChange?.(updater)
+  }
 
   const table = useReactTable({
     data,
@@ -180,7 +184,10 @@ export function DataTable<TData extends RowData, TValue = unknown>({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     enableSorting,
-    sortDescFirst: false
+    sortDescFirst: false,
+    sortingFns: {
+      smart: smartCompareFn
+    }
   })
 
   const showSkeleton = isLoading && data.length === 0
@@ -239,7 +246,9 @@ export interface A2uiDataTableProps {
 export function A2uiDataTable({ props }: RendererProps<A2uiDataTableProps>) {
   const { title, description, columns = [], data = [], enableSorting = true, emptyMessage } = props
 
-  const dynamicColumns = useMemo(() => createColumnsFromDefinitions(columns), [columns])
+  const columnsHash = useMemo(() => JSON.stringify(columns), [columns])
+  // biome-ignore lint/correctness/useExhaustiveDependencies: columnsHash is deep comparison
+  const dynamicColumns = useMemo(() => createColumnsFromDefinitions(columns), [columnsHash])
 
   const tableElement = (
     <DataTable

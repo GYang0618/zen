@@ -1,19 +1,6 @@
 import {
-  Avatar,
-  AvatarBadge,
-  AvatarFallback,
-  AvatarImage,
-  Badge,
   Button,
-  Card,
-  CardContent,
-  CardFooter,
-  Checkbox,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+  cn,
   Empty,
   EmptyContent,
   EmptyDescription,
@@ -23,27 +10,22 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-  Separator,
   toast
 } from '@zen/ui'
-import {
-  ArrowRightLeft,
-  CheckCircle,
-  Download,
-  Ellipsis,
-  Mail,
-  Phone,
-  Search,
-  UserPlus,
-  UserRoundArrowLeft,
-  UserRoundMinus,
-  X
-} from 'lucide-react'
+import { Download, Search, UserPlus, UserRoundArrowLeft } from 'lucide-react'
 import { useMemo, useState } from 'react'
+
+import { selectItemsById, useListSelection } from '@/hooks'
 
 import { useOrganizationDetail, useOrganizationMembers } from '../queries'
 import { OrganizationAddMemberDialog } from './organization-add-member-dialog'
 import { OrganizationBatchTransferDialog } from './organization-batch-transfer-dialog'
+import {
+  OrganizationMemberCard,
+  organizationMemberName,
+  organizationMemberStatusLabel
+} from './organization-member-card'
+import { OrganizationMembersBulkActions } from './organization-members-bulk-actions'
 import { OrganizationRemoveMemberDialog } from './organization-remove-member-dialog'
 
 import type { OrganizationMember } from '../type'
@@ -55,28 +37,6 @@ type MemberDialog =
   | { type: 'remove'; member: OrganizationMember }
   | { type: 'batchTransfer' }
   | null
-
-function displayName(member: OrganizationMember): string {
-  return member.nickname ?? member.username
-}
-
-async function copyMemberContact(
-  value: string | null,
-  options: { emptyMessage: string; successLabel: string }
-) {
-  const text = value?.trim()
-  if (!text) {
-    toast.add({ title: options.emptyMessage, type: 'error' })
-    return
-  }
-
-  try {
-    await navigator.clipboard.writeText(text)
-    toast.add({ title: `已复制${options.successLabel}：${text}`, type: 'success' })
-  } catch {
-    toast.add({ title: '复制失败，请手动选择', type: 'error' })
-  }
-}
 
 function matchesMember(member: OrganizationMember, keyword: string): boolean {
   const q = keyword.trim().toLowerCase()
@@ -95,13 +55,6 @@ function matchesMember(member: OrganizationMember, keyword: string): boolean {
     .includes(q)
 }
 
-function accountStatusLabel(status: OrganizationMember['accountStatus']): string {
-  if (status === 'active') return '已激活'
-  if (status === 'pending') return '待激活'
-  if (status === 'suspended') return '已停用'
-  return '未激活'
-}
-
 function exportMembersToCsv(members: OrganizationMember[], orgName?: string) {
   if (members.length === 0) {
     toast.add({ title: '当前没有可导出的成员数据', type: 'info' })
@@ -109,14 +62,14 @@ function exportMembersToCsv(members: OrganizationMember[], orgName?: string) {
   }
 
   const headers = ['姓名', '账号', '岗位', '职级', '账号状态', '邮箱', '手机号']
-  const rows = members.map((m) => [
-    m.nickname ?? m.username,
-    m.username,
-    m.post ?? '未分配',
-    m.level ?? '未定级',
-    accountStatusLabel(m.accountStatus),
-    m.email ?? '',
-    m.phoneNumber ?? ''
+  const rows = members.map((member) => [
+    organizationMemberName(member),
+    member.username,
+    member.post ?? '未分配',
+    member.level ?? '未定级',
+    organizationMemberStatusLabel(member.accountStatus),
+    member.email ?? '',
+    member.phoneNumber ?? ''
   ])
 
   const csvContent = [headers, ...rows]
@@ -139,9 +92,9 @@ export function OrganizationMembers({ organizationId }: { organizationId: string
   const { data: orgDetail } = useOrganizationDetail(organizationId)
   const { data: membersData, isLoading } = useOrganizationMembers(organizationId)
   const members = membersData ?? EMPTY_MEMBERS
+  const selection = useListSelection()
 
   const [keyword, setKeyword] = useState('')
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [dialog, setDialog] = useState<MemberDialog>(null)
 
   const memberIds = useMemo(
@@ -154,26 +107,13 @@ export function OrganizationMembers({ organizationId }: { organizationId: string
     [keyword, members]
   )
 
-  const selectedMembers = useMemo(() => {
-    const idSet = new Set(selectedIds)
-    return members.filter((m) => idSet.has(m.id))
-  }, [members, selectedIds])
-
-  const handleToggleSelect = (id: string, checked: boolean) => {
-    setSelectedIds((prev) => (checked ? [...prev, id] : prev.filter((item) => item !== id)))
-  }
-
-  const handleSelectAllFiltered = () => {
-    if (selectedIds.length === filteredMembers.length) {
-      setSelectedIds([])
-    } else {
-      setSelectedIds(filteredMembers.map((m) => m.id))
-    }
-  }
+  const selectedMembers = useMemo(
+    () => selectItemsById(members, selection.selectedIds),
+    [members, selection.selectedIds]
+  )
 
   return (
-    <div className="@container flex flex-col gap-4">
-      {/* 顶部搜索与操作栏 */}
+    <div className={cn('@container flex flex-col gap-4', 'max-sm:has-[div[role="toolbar"]]:mb-16')}>
       <section className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-56 max-w-sm flex-1 items-center gap-2">
           <InputGroup className="w-full">
@@ -205,158 +145,20 @@ export function OrganizationMembers({ organizationId }: { organizationId: string
         </div>
       </section>
 
-      {/* 批量操作工具条 */}
-      {selectedIds.length > 0 ? (
-        <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-2.5">
-          <div className="flex items-center gap-3">
-            <Checkbox
-              checked={filteredMembers.length > 0 && selectedIds.length === filteredMembers.length}
-              onCheckedChange={handleSelectAllFiltered}
-              aria-label="全选当前筛选成员"
-            />
-            <span className="text-sm font-medium">
-              已选中 <span className="font-bold text-primary">{selectedIds.length}</span> 名成员
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant="default"
-              onClick={() => setDialog({ type: 'batchTransfer' })}
-            >
-              <ArrowRightLeft className="size-4" />
-              批量调动部门
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={() => setSelectedIds([])}
-              aria-label="取消选择"
-            >
-              <X className="size-4" />
-              清空选择
-            </Button>
-          </div>
-        </section>
-      ) : null}
-
-      {/* 成员网格 */}
       {isLoading ? (
         <p className="py-8 text-center text-sm text-muted-foreground">加载成员…</p>
       ) : filteredMembers.length ? (
         <div className="grid grid-cols-1 gap-4 @sm:grid-cols-2 @2xl:grid-cols-3 @4xl:grid-cols-4">
-          {filteredMembers.map((item) => {
-            const name = displayName(item)
-            const isSelected = selectedIds.includes(item.id)
-            return (
-              <Card
-                key={item.id}
-                className={`relative rounded-2xl bg-background/80 transition-all ${
-                  isSelected ? 'ring-2 ring-primary ring-offset-1' : ''
-                }`}
-              >
-                {/* 选择复选框 */}
-                <div className="absolute top-3 left-3 z-10">
-                  <Checkbox
-                    checked={isSelected}
-                    onCheckedChange={(checked) => handleToggleSelect(item.id, !!checked)}
-                    aria-label={`选择${name}`}
-                  />
-                </div>
-
-                {/* 菜单 */}
-                <div className="absolute top-2 right-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger
-                      render={
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={`打开${name}的成员操作`}
-                        />
-                      }
-                    >
-                      <Ellipsis />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-36">
-                      <DropdownMenuGroup>
-                        <DropdownMenuItem
-                          variant="destructive"
-                          onClick={() => setDialog({ type: 'remove', member: item })}
-                        >
-                          <UserRoundMinus />
-                          移除成员
-                        </DropdownMenuItem>
-                      </DropdownMenuGroup>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                <CardContent className="pt-7">
-                  <div className="flex flex-col items-center justify-center gap-3">
-                    <Avatar className="size-14">
-                      <AvatarImage src={item.avatar ?? undefined} />
-                      <AvatarFallback>{name.charAt(0)}</AvatarFallback>
-                      {item.accountStatus === 'active' ? (
-                        <AvatarBadge className="bg-green-600 dark:bg-green-800" />
-                      ) : null}
-                    </Avatar>
-
-                    <div className="text-center">
-                      <h3 className="truncate text-sm font-semibold dark:text-zinc-100">{name}</h3>
-                      <p className="mt-1 truncate text-xs text-muted-foreground dark:text-zinc-400">
-                        {[item.post, item.level].filter(Boolean).join(' · ') || '未分配岗位'}
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-center gap-2">
-                      <Badge variant="secondary" className="text-xs">
-                        主职
-                      </Badge>
-                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground dark:text-zinc-400">
-                        <CheckCircle className="size-3.5 text-green-500" />
-                        {accountStatusLabel(item.accountStatus)}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="bg-transparent p-0">
-                  <button
-                    type="button"
-                    className="flex flex-1 cursor-pointer items-center justify-center gap-2 border-0 bg-transparent px-3 py-2.5 text-inherit transition-colors hover:bg-muted/50"
-                    aria-label={`复制${name}的邮箱`}
-                    onClick={() =>
-                      void copyMemberContact(item.email, {
-                        emptyMessage: '该成员暂无邮箱',
-                        successLabel: '邮箱'
-                      })
-                    }
-                  >
-                    <Mail className="size-4" />
-                    <span>邮箱</span>
-                  </button>
-                  <Separator orientation="vertical" className="h-full" />
-                  <button
-                    type="button"
-                    className="flex flex-1 cursor-pointer items-center justify-center gap-2 border-0 bg-transparent px-3 py-2.5 text-inherit transition-colors hover:bg-muted/50"
-                    aria-label={`复制${name}的电话`}
-                    onClick={() =>
-                      void copyMemberContact(item.phoneNumber, {
-                        emptyMessage: '该成员暂无电话',
-                        successLabel: '电话'
-                      })
-                    }
-                  >
-                    <Phone className="size-4" />
-                    <span>电话</span>
-                  </button>
-                </CardFooter>
-              </Card>
-            )
-          })}
+          {filteredMembers.map((item) => (
+            <OrganizationMemberCard
+              key={item.id}
+              member={item}
+              isSelecting={selection.isSelecting}
+              selected={selection.isSelected(item.id)}
+              onSelectedChange={(nextSelected) => selection.setSelected(item.id, nextSelected)}
+              onRemove={() => setDialog({ type: 'remove', member: item })}
+            />
+          ))}
         </div>
       ) : (
         <Empty className="border border-dashed">
@@ -404,9 +206,17 @@ export function OrganizationMembers({ organizationId }: { organizationId: string
         organizationId={organizationId}
         selectedMembers={selectedMembers}
         onSuccess={() => {
-          setSelectedIds([])
+          selection.clear()
           setDialog(null)
         }}
+      />
+
+      <OrganizationMembersBulkActions
+        organizationId={organizationId}
+        selectedMembers={selectedMembers}
+        isSelecting={selection.isSelecting}
+        onClearSelection={selection.clear}
+        onBatchTransfer={() => setDialog({ type: 'batchTransfer' })}
       />
     </div>
   )

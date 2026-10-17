@@ -18,27 +18,32 @@ import { z } from 'zod'
 
 import { PasswordInput } from '@/components'
 import { isCurrentUserId, useAccessChangeFeedback } from '@/lib/auth/access-change'
+import { handleFieldBlurValidate, validateConfirmPassword } from '@/lib/form/field-validation'
 
 import { useAdminResetPasswordMutation } from '../mutations'
 
 import type { UserListItem } from '@zen/shared'
 
-const resetPasswordFormSchema = z
-  .object({
-    password: z
-      .string()
-      .min(8, '密码必须至少有8个字符')
-      .regex(/[A-Z]/, '密码必须包含至少一个大写字母')
-      .regex(/[a-z]/, '密码必须包含至少一个小写字母')
-      .regex(/\d/, '密码必须包含至少一个数字')
-      .regex(/[\W_]/, '密码必须包含至少一个特殊字符'),
-    confirmPassword: z.string().min(1, '请确认密码'),
-    mustChangePassword: z.boolean()
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: '两次输入的密码不一致',
+const resetPasswordFieldsSchema = z.object({
+  password: z
+    .string()
+    .min(1, { error: '请输入新密码', abort: true })
+    .min(8, { error: '密码必须至少有8个字符', abort: true })
+    .regex(/[A-Z]/, { error: '密码必须包含至少一个大写字母', abort: true })
+    .regex(/[a-z]/, { error: '密码必须包含至少一个小写字母', abort: true })
+    .regex(/\d/, { error: '密码必须包含至少一个数字', abort: true })
+    .regex(/[\W_]/, { error: '密码必须包含至少一个特殊字符', abort: true }),
+  confirmPassword: z.string().min(1, '请确认密码'),
+  mustChangePassword: z.boolean()
+})
+
+const resetPasswordFormSchema = resetPasswordFieldsSchema.refine(
+  (data) => data.password === data.confirmPassword,
+  {
+    error: '两次输入的密码不一致',
     path: ['confirmPassword']
-  })
+  }
+)
 
 type ResetPasswordFormValues = z.infer<typeof resetPasswordFormSchema>
 
@@ -62,7 +67,6 @@ export function UsersResetPasswordDialog({
       confirmPassword: '',
       mustChangePassword: true
     } as ResetPasswordFormValues,
-    validators: { onChange: resetPasswordFormSchema },
     onSubmit: async ({ value }) => {
       await onSubmit(resetPasswordFormSchema.parse(value))
     }
@@ -107,14 +111,17 @@ export function UsersResetPasswordDialog({
           }}
         >
           <FieldGroup>
-            <form.Field name="password">
+            <form.Field
+              name="password"
+              validators={{ onChange: resetPasswordFieldsSchema.shape.password }}
+            >
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid || undefined}>
                   <FieldLabel htmlFor="reset-password">新密码</FieldLabel>
                   <PasswordInput
                     name={field.name}
                     value={field.state.value}
-                    onBlur={field.handleBlur}
+                    onBlur={() => handleFieldBlurValidate(field)}
                     onChange={(event) => field.handleChange(event.target.value)}
                     id="reset-password"
                     autoComplete="new-password"
@@ -126,14 +133,20 @@ export function UsersResetPasswordDialog({
                 </Field>
               )}
             </form.Field>
-            <form.Field name="confirmPassword">
+            <form.Field
+              name="confirmPassword"
+              validators={{
+                onChangeListenTo: ['password'],
+                onChange: validateConfirmPassword
+              }}
+            >
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid || undefined}>
                   <FieldLabel htmlFor="reset-confirm">确认密码</FieldLabel>
                   <PasswordInput
                     name={field.name}
                     value={field.state.value}
-                    onBlur={field.handleBlur}
+                    onBlur={() => handleFieldBlurValidate(field)}
                     onChange={(event) => field.handleChange(event.target.value)}
                     id="reset-confirm"
                     autoComplete="new-password"

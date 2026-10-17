@@ -27,6 +27,7 @@ import { useEffect, useState } from 'react'
 import { z } from 'zod'
 
 import { useCreateRoleMutation, useUpdateRoleMutation } from '@/features/system/roles/mutations'
+import { handleFieldBlurValidate } from '@/lib/form/field-validation'
 
 import { RoleIconColorPicker } from './role-icon-color-picker'
 import { RoleIconPicker } from './role-icon-picker'
@@ -52,13 +53,21 @@ const TODAY = (() => {
 })()
 
 const roleFormSchema = z.object({
-  name: z.string().trim().min(1, '角色名称不能为空').max(50, '角色名称不能超过50个字符'),
+  name: z
+    .string()
+    .trim()
+    .min(1, { error: '角色名称不能为空', abort: true })
+    .max(50, { error: '角色名称不能超过50个字符', abort: true }),
   code: z
     .string()
     .trim()
-    .min(2, '角色编码至少需要2个字符')
-    .max(50, '角色编码不能超过50个字符')
-    .regex(/^[a-z][a-z0-9_]*$/, '角色编码仅支持小写字母、数字和下划线，且以字母开头'),
+    .min(1, { error: '角色编码不能为空', abort: true })
+    .min(2, { error: '角色编码至少需要2个字符', abort: true })
+    .max(50, { error: '角色编码不能超过50个字符', abort: true })
+    .regex(/^[a-z][a-z0-9_]*$/, {
+      error: '角色编码仅支持小写字母、数字和下划线，且以字母开头',
+      abort: true
+    }),
   icon: z.enum(ROLE_ICON_VALUES).nullable(),
   iconColor: z.enum(ROLE_ICON_COLOR_VALUES).nullable(),
   description: z.string().trim().max(200, '角色描述不能超过200个字符'),
@@ -118,13 +127,12 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
   const { mutate: updateRole, isPending: isUpdating } = useUpdateRoleMutation()
   const isSubmitting = isCreating || isUpdating
 
+  const formSchema = isEdit ? editRoleFormSchema : roleFormSchema
+
   const form = useForm({
     defaultValues: createRoleFormValues(currentRow),
-    validators: { onChange: isEdit ? editRoleFormSchema : roleFormSchema },
     onSubmit: async ({ value }) => {
-      await (isEdit ? handleUpdateSubmit : handleCreateSubmit)(
-        (isEdit ? editRoleFormSchema : roleFormSchema).parse(value)
-      )
+      await (isEdit ? handleUpdateSubmit : handleCreateSubmit)(formSchema.parse(value))
     }
   })
   const iconColor = useStore(form.store, (state) => state.values.iconColor)
@@ -236,7 +244,7 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
           }}
         >
           <FieldGroup>
-            <form.Field name="name">
+            <form.Field name="name" validators={{ onChange: formSchema.shape.name }}>
               {(field) => (
                 <Field data-invalid={isTouchedInvalid(field.state.meta) || undefined}>
                   <FieldLabel htmlFor="role-name">角色名称</FieldLabel>
@@ -244,7 +252,7 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
                     <Input
                       name={field.name}
                       value={field.state.value}
-                      onBlur={field.handleBlur}
+                      onBlur={() => handleFieldBlurValidate(field)}
                       onChange={(event) => field.handleChange(event.target.value)}
                       id="role-name"
                       placeholder="例如：运维专家"
@@ -258,7 +266,7 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
                 </Field>
               )}
             </form.Field>
-            <form.Field name="code">
+            <form.Field name="code" validators={{ onChange: formSchema.shape.code }}>
               {(field) => (
                 <Field data-invalid={isTouchedInvalid(field.state.meta) || undefined}>
                   <FieldLabel htmlFor="role-code">唯一标识 Code</FieldLabel>
@@ -266,7 +274,7 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
                     <Input
                       name={field.name}
                       value={field.state.value}
-                      onBlur={field.handleBlur}
+                      onBlur={() => handleFieldBlurValidate(field)}
                       onChange={(event) => field.handleChange(event.target.value)}
                       id="role-code"
                       className="font-mono"
@@ -284,7 +292,7 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
                 </Field>
               )}
             </form.Field>
-            <form.Field name="icon">
+            <form.Field name="icon" validators={{ onChange: formSchema.shape.icon }}>
               {(field) => (
                 <Field data-invalid={isTouchedInvalid(field.state.meta) || undefined}>
                   <FieldLabel htmlFor="role-icon">角色图标</FieldLabel>
@@ -303,7 +311,7 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
                 </Field>
               )}
             </form.Field>
-            <form.Field name="iconColor">
+            <form.Field name="iconColor" validators={{ onChange: formSchema.shape.iconColor }}>
               {(field) => (
                 <Field data-invalid={isTouchedInvalid(field.state.meta) || undefined}>
                   <FieldLabel htmlFor="role-icon-color">图标颜色</FieldLabel>
@@ -321,7 +329,7 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
                 </Field>
               )}
             </form.Field>
-            <form.Field name="expiresAt">
+            <form.Field name="expiresAt" validators={{ onChange: formSchema.shape.expiresAt }}>
               {(field) => (
                 <Field data-invalid={isTouchedInvalid(field.state.meta) || undefined}>
                   <FieldLabel htmlFor="role-expired-at">过期时间</FieldLabel>
@@ -383,7 +391,7 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
                 </Field>
               )}
             </form.Field>
-            <form.Field name="description">
+            <form.Field name="description" validators={{ onChange: formSchema.shape.description }}>
               {(field) => (
                 <Field data-invalid={isTouchedInvalid(field.state.meta) || undefined}>
                   <FieldLabel htmlFor="role-description">角色描述说明</FieldLabel>
@@ -391,7 +399,7 @@ export function RoleActionDialog({ currentRow, open, onOpenChange }: RoleActionD
                     <Textarea
                       name={field.name}
                       value={field.state.value}
-                      onBlur={field.handleBlur}
+                      onBlur={() => handleFieldBlurValidate(field)}
                       onChange={(event) => field.handleChange(event.target.value)}
                       id="role-description"
                       rows={3}

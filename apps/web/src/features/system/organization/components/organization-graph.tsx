@@ -38,8 +38,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useTheme } from '@/context/theme-provider'
 
-import { buildOrganizationGraph } from '../build-organization-graph'
-import { useOrganizations } from '../organizations-provider'
+import { buildOrganizationGraph, ORGANIZATION_GRAPH_EDGE_TYPE } from '../build-organization-graph'
+import { useOrganizationsOptional } from '../organizations-provider'
 import {
   collectAncestorIds,
   collectExpandableIds,
@@ -54,6 +54,7 @@ import { OrganizationGraphNode as OrganizationGraphNodeCard } from './organizati
 import { OrganizationMergeDialog } from './organization-merge-dialog'
 
 import type { Edge, NodeMouseHandler } from '@xyflow/react'
+import type { ReactNode } from 'react'
 import type { OrganizationGraphNode, OrganizationGraphRankdir } from '../build-organization-graph'
 import type { Organization } from '../type'
 
@@ -62,7 +63,7 @@ const nodeTypes = {
 }
 
 const defaultEdgeOptions = {
-  type: 'smoothstep' as const,
+  type: ORGANIZATION_GRAPH_EDGE_TYPE,
   selectable: false,
   markerEnd: {
     type: MarkerType.ArrowClosed,
@@ -92,6 +93,7 @@ function OrganizationGraphCanvas({
   onToggleExpand,
   onDelete,
   onMerge,
+  renderMenu,
   onSelect,
   onClear
 }: {
@@ -102,14 +104,15 @@ function OrganizationGraphCanvas({
   onToggleExpand: (id: string) => void
   onDelete?: (org: Organization) => void
   onMerge?: (org: Organization) => void
+  renderMenu?: (organization: Organization) => ReactNode
   onSelect: NodeMouseHandler<OrganizationGraphNode>
   onClear: () => void
 }) {
   const { fitView } = useReactFlow()
   const { resolvedTheme } = useTheme()
   const actions = useMemo(
-    () => ({ onToggleExpand, rankdir, onDelete, onMerge }),
-    [onToggleExpand, rankdir, onDelete, onMerge]
+    () => ({ onToggleExpand, rankdir, onDelete, onMerge, renderMenu }),
+    [onToggleExpand, rankdir, onDelete, onMerge, renderMenu]
   )
   const [flowNodes, setFlowNodes, onNodesChange] = useNodesState(nodes)
 
@@ -160,8 +163,28 @@ function OrganizationGraphCanvas({
   )
 }
 
-export function OrganizationGraph({ className }: { className?: string } = {}) {
-  const { organizations, currentNode, setCurrentNode, isLoading, keyword } = useOrganizations()
+export function OrganizationGraph({
+  className,
+  organizations: organizationsProp,
+  renderMenu
+}: {
+  className?: string
+  /** 传入后不再读取组织页的数据，用于在其他界面复用同一套图谱。 */
+  organizations?: Organization[]
+  /** 替换节点菜单。传入后不再打开合并、删除弹窗。 */
+  renderMenu?: (organization: Organization) => ReactNode
+} = {}) {
+  const context = useOrganizationsOptional()
+  const organizations = organizationsProp ?? context?.organizations ?? []
+  const isLoading = organizationsProp !== undefined ? false : (context?.isLoading ?? false)
+  const keyword = organizationsProp !== undefined ? undefined : context?.keyword
+  const [localCurrent, setLocalCurrent] = useState<Organization | null>(null)
+  const currentNode =
+    organizationsProp !== undefined ? localCurrent : (context?.currentNode ?? null)
+  const setCurrentNode =
+    organizationsProp !== undefined
+      ? setLocalCurrent
+      : (context?.setCurrentNode ?? (() => undefined))
   const expandableIds = useMemo(() => collectExpandableIds(organizations), [organizations])
   const [rankdir, setRankdir] = useState<OrganizationGraphRankdir>('TB')
   const [expandedIds, setExpandedIds] = useState(() =>
@@ -341,8 +364,9 @@ export function OrganizationGraph({ className }: { className?: string } = {}) {
                 layoutKey={`${rankdir}:${layout.nodes.map((node) => node.id).join(',')}`}
                 rankdir={rankdir}
                 onToggleExpand={handleToggleExpand}
-                onDelete={setDeleteTarget}
-                onMerge={setMergeTarget}
+                onDelete={renderMenu ? undefined : setDeleteTarget}
+                onMerge={renderMenu ? undefined : setMergeTarget}
+                renderMenu={renderMenu}
                 onSelect={handleSelect}
                 onClear={() => setCurrentNode(null)}
               />
@@ -351,31 +375,35 @@ export function OrganizationGraph({ className }: { className?: string } = {}) {
         )}
       </CardContent>
 
-      <OrganizationDeleteDialog
-        open={Boolean(deleteTarget)}
-        onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null)
-        }}
-        target={deleteTarget}
-        tree={organizations}
-        onSuccess={() => {
-          if (currentNode?.id === deleteTarget?.id) {
-            setCurrentNode(null)
-          }
-        }}
-      />
-      <OrganizationMergeDialog
-        open={Boolean(mergeTarget)}
-        onOpenChange={(open) => {
-          if (!open) setMergeTarget(null)
-        }}
-        sourceOrganization={mergeTarget}
-        onSuccess={() => {
-          if (currentNode?.id === mergeTarget?.id) {
-            setCurrentNode(null)
-          }
-        }}
-      />
+      {renderMenu ? null : (
+        <>
+          <OrganizationDeleteDialog
+            open={Boolean(deleteTarget)}
+            onOpenChange={(open) => {
+              if (!open) setDeleteTarget(null)
+            }}
+            target={deleteTarget}
+            tree={organizations}
+            onSuccess={() => {
+              if (currentNode?.id === deleteTarget?.id) {
+                setCurrentNode(null)
+              }
+            }}
+          />
+          <OrganizationMergeDialog
+            open={Boolean(mergeTarget)}
+            onOpenChange={(open) => {
+              if (!open) setMergeTarget(null)
+            }}
+            sourceOrganization={mergeTarget}
+            onSuccess={() => {
+              if (currentNode?.id === mergeTarget?.id) {
+                setCurrentNode(null)
+              }
+            }}
+          />
+        </>
+      )}
     </Card>
   )
 }

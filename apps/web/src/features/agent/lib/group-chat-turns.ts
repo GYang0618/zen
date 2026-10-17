@@ -1,5 +1,5 @@
 import { A2UI_ACTIVITY_TYPE, isA2UIToolCall, isInProgressA2uiActivity } from './a2ui-tools'
-import { isChatSurfaceToolCall, isTurnFinalDisplayToolCall } from './group-tool-calls'
+import { isChatSurfaceToolCall } from './group-tool-calls'
 
 import type { ToolCallLike } from './group-tool-calls'
 
@@ -25,14 +25,11 @@ export interface ChatTurn<T extends ChatTurnMessageLike = ChatTurnMessageLike> {
 
 /**
  * 工作轨迹里的工具步骤。
- * `meta.display === false` 只表示不渲染专属结果界面，调用本身仍要留在轨迹里。
+ * `meta.display` 只决定专属结果界面是否挂到轨迹外，调用步骤本身仍留在轨迹里。
+ * 画布与对话内表单不进轨迹。
  */
 export function isInlineStandardToolCall(toolCall: ToolCallLike): boolean {
-  return (
-    !isA2UIToolCall(toolCall) &&
-    !isTurnFinalDisplayToolCall(toolCall) &&
-    !isChatSurfaceToolCall(toolCall)
-  )
+  return !isA2UIToolCall(toolCall) && !isChatSurfaceToolCall(toolCall)
 }
 
 export function getInlineStandardToolCalls(toolCalls: ToolCallLike[] | undefined): ToolCallLike[] {

@@ -39,7 +39,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Can } from '@/components/auth/can'
 
-import { useOrganizations } from '../organizations-provider'
+import { useOrganizationsOptional } from '../organizations-provider'
 import { useOrganizationTypeCatalog } from '../queries'
 import {
   collectExpandableIds,
@@ -54,6 +54,7 @@ import { OrganizationTypeIcon } from './organization-icon'
 import { OrganizationMergeDialog } from './organization-merge-dialog'
 
 import type { DragEndEvent, DragOverEvent } from '@dnd-kit/react'
+import type { ReactNode } from 'react'
 import type { Organization } from '../type'
 
 interface TreeNodePreviewProps {
@@ -102,10 +103,14 @@ function TreeNodePreview({ data, className, isBlocked }: TreeNodePreviewProps) {
 interface TreeNodeProps {
   data: Organization
   expandedIds: Set<string>
+  selectedId?: string | null
   onExpandedChange: (id: string, open: boolean) => void
   onSelect?: (node: Organization) => void
   onDelete: (node: Organization) => void
   onMerge: (node: Organization) => void
+  /** 替换配置、合并、删除按钮。不传时使用系统管理页的操作。 */
+  renderActions?: (organization: Organization) => ReactNode
+  draggable?: boolean
   isDragging: boolean
   dragOverId: string | null
   /** 校验某个正在拖拽的组织是否允许放置到当前节点，用于在碰撞检测阶段直接拒绝非法目标 */
@@ -115,10 +120,13 @@ interface TreeNodeProps {
 function TreeNode({
   data,
   expandedIds,
+  selectedId,
   onExpandedChange,
   onSelect,
   onDelete,
   onMerge,
+  renderActions,
+  draggable = true,
   isDragging,
   dragOverId,
   canAcceptDraggable
@@ -126,11 +134,17 @@ function TreeNode({
   const { getLabel } = useOrganizationTypeCatalog()
   const { id, name, type, memberCount, children } = data
   const hasChildren = Boolean(children?.length)
-  const { currentNode } = useOrganizations()
   const open = expandedIds.has(id)
-  const isSelected = currentNode?.id === id
+  const isSelected = selectedId === id
 
-  const { isDragSource, handleRef, ref: draggableRef } = useDraggable({ id })
+  const {
+    isDragSource,
+    handleRef,
+    ref: draggableRef
+  } = useDraggable({
+    id,
+    disabled: !draggable
+  })
   const { isDropTarget, ref: droppableRef } = useDroppable({
     id,
     accept: (source) => {
@@ -170,16 +184,18 @@ function TreeNode({
           onClick={() => onSelect?.(data)}
         >
           <ItemMedia>
-            <Button
-              type="button"
-              variant="ghost"
-              ref={handleRef}
-              className="size-7 cursor-grab text-muted-foreground/50 opacity-0 transition-opacity duration-200 hover:cursor-grab hover:text-muted-foreground active:cursor-grabbing group-hover/item:opacity-100"
-              aria-label={`拖动${name}`}
-              onClick={(event) => event.stopPropagation()}
-            >
-              <GripVertical />
-            </Button>
+            {draggable ? (
+              <Button
+                type="button"
+                variant="ghost"
+                ref={handleRef}
+                className="size-7 cursor-grab text-muted-foreground/50 opacity-0 transition-opacity duration-200 hover:cursor-grab hover:text-muted-foreground active:cursor-grabbing group-hover/item:opacity-100"
+                aria-label={`拖动${name}`}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <GripVertical />
+              </Button>
+            ) : null}
 
             {hasChildren ? (
               <CollapsibleTrigger
@@ -212,71 +228,77 @@ function TreeNode({
               orientation="vertical"
             />
             <div className="flex items-center">
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="配置"
-                      className="pointer-events-none opacity-0 transition-opacity duration-200 group-hover/item:pointer-events-auto group-hover/item:opacity-100"
-                      nativeButton={false}
+              {renderActions ? (
+                renderActions(data)
+              ) : (
+                <>
+                  <Tooltip>
+                    <TooltipTrigger
                       render={
-                        <Link
-                          to="/system/organization/$id"
-                          params={{ id }}
-                          onClick={(event) => event.stopPropagation()}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="配置"
+                          className="pointer-events-none opacity-0 transition-opacity duration-200 group-hover/item:pointer-events-auto group-hover/item:opacity-100"
+                          nativeButton={false}
+                          render={
+                            <Link
+                              to="/system/organization/$id"
+                              params={{ id }}
+                              onClick={(event) => event.stopPropagation()}
+                            />
+                          }
                         />
                       }
-                    />
-                  }
-                >
-                  <Settings />
-                </TooltipTrigger>
-                <TooltipContent>配置</TooltipContent>
-              </Tooltip>
-              <Can permission={PermissionCode.ORG_UPDATE}>
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={`合并${name}`}
-                        className="pointer-events-none opacity-0 transition-opacity duration-200 group-hover/item:pointer-events-auto group-hover/item:opacity-100"
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          onMerge(data)
-                        }}
-                      >
-                        <GitMerge />
-                      </Button>
-                    }
-                  />
-                  <TooltipContent>合并组织</TooltipContent>
-                </Tooltip>
-              </Can>
-              <Can permission={PermissionCode.ORG_DELETE}>
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={`删除${name}`}
-                        className="pointer-events-none text-destructive opacity-0 transition-opacity duration-200 hover:text-destructive group-hover/item:pointer-events-auto group-hover/item:opacity-100"
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          onDelete(data)
-                        }}
-                      >
-                        <Trash2 data-icon="inline-start" />
-                      </Button>
-                    }
-                  />
-                  <TooltipContent>删除 / 解散组织</TooltipContent>
-                </Tooltip>
-              </Can>
+                    >
+                      <Settings />
+                    </TooltipTrigger>
+                    <TooltipContent>配置</TooltipContent>
+                  </Tooltip>
+                  <Can permission={PermissionCode.ORG_UPDATE}>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`合并${name}`}
+                            className="pointer-events-none opacity-0 transition-opacity duration-200 group-hover/item:pointer-events-auto group-hover/item:opacity-100"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              onMerge(data)
+                            }}
+                          >
+                            <GitMerge />
+                          </Button>
+                        }
+                      />
+                      <TooltipContent>合并组织</TooltipContent>
+                    </Tooltip>
+                  </Can>
+                  <Can permission={PermissionCode.ORG_DELETE}>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`删除${name}`}
+                            className="pointer-events-none text-destructive opacity-0 transition-opacity duration-200 hover:text-destructive group-hover/item:pointer-events-auto group-hover/item:opacity-100"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              onDelete(data)
+                            }}
+                          >
+                            <Trash2 data-icon="inline-start" />
+                          </Button>
+                        }
+                      />
+                      <TooltipContent>删除 / 解散组织</TooltipContent>
+                    </Tooltip>
+                  </Can>
+                </>
+              )}
             </div>
           </ItemActions>
         </Item>
@@ -290,10 +312,13 @@ function TreeNode({
                 data={child}
                 key={child.id}
                 expandedIds={expandedIds}
+                selectedId={selectedId}
                 onExpandedChange={onExpandedChange}
                 onSelect={onSelect}
                 onDelete={onDelete}
                 onMerge={onMerge}
+                renderActions={renderActions}
+                draggable={draggable}
                 isDragging={isDragging}
                 dragOverId={dragOverId}
                 canAcceptDraggable={canAcceptDraggable}
@@ -306,9 +331,29 @@ function TreeNode({
   )
 }
 
-export function OrganizationTree({ className }: { className?: string } = {}) {
-  const { currentNode, setCurrentNode, organizations, moveOrganization, isLoading, keyword } =
-    useOrganizations()
+export function OrganizationTree({
+  className,
+  organizations: organizationsProp,
+  renderActions
+}: {
+  className?: string
+  /** 传入后不再读取组织页的数据，用于在其他界面复用同一套架构树。 */
+  organizations?: Organization[]
+  /** 替换行内配置、合并、删除。传入后不再打开合并、删除弹窗，也不启用拖拽调整。 */
+  renderActions?: (organization: Organization) => ReactNode
+} = {}) {
+  const context = useOrganizationsOptional()
+  const organizations = organizationsProp ?? context?.organizations ?? []
+  const isLoading = organizationsProp !== undefined ? false : (context?.isLoading ?? false)
+  const keyword = organizationsProp !== undefined ? undefined : context?.keyword
+  const moveOrganization = renderActions ? undefined : context?.moveOrganization
+  const [localCurrent, setLocalCurrent] = useState<Organization | null>(null)
+  const currentNode =
+    organizationsProp !== undefined ? localCurrent : (context?.currentNode ?? null)
+  const setCurrentNode =
+    organizationsProp !== undefined
+      ? setLocalCurrent
+      : (context?.setCurrentNode ?? (() => undefined))
   const { catalog } = useOrganizationTypeCatalog()
   const expandableIds = useMemo(() => collectExpandableIds(organizations), [organizations])
   const [expandedIds, setExpandedIds] = useState(
@@ -381,6 +426,8 @@ export function OrganizationTree({ className }: { className?: string } = {}) {
       }
       return
     }
+
+    if (!moveOrganization) return
 
     void moveOrganization(activeId, overId).then((moved) => {
       if (moved) {
@@ -473,9 +520,12 @@ export function OrganizationTree({ className }: { className?: string } = {}) {
                 data={item}
                 key={item.id}
                 expandedIds={expandedIds}
+                selectedId={currentNode?.id}
                 onExpandedChange={handleExpandedChange}
                 onDelete={setDeleteTarget}
                 onMerge={setMergeTarget}
+                renderActions={renderActions}
+                draggable={Boolean(moveOrganization)}
                 isDragging={isDragging}
                 dragOverId={dragOverId}
                 canAcceptDraggable={canAcceptOrganizationDrop}
@@ -501,31 +551,35 @@ export function OrganizationTree({ className }: { className?: string } = {}) {
           </DragDropProvider>
         )}
       </CardContent>
-      <OrganizationDeleteDialog
-        open={Boolean(deleteTarget)}
-        onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null)
-        }}
-        target={deleteTarget}
-        tree={organizations}
-        onSuccess={() => {
-          if (currentNode?.id === deleteTarget?.id) {
-            setCurrentNode(null)
-          }
-        }}
-      />
-      <OrganizationMergeDialog
-        open={Boolean(mergeTarget)}
-        onOpenChange={(open) => {
-          if (!open) setMergeTarget(null)
-        }}
-        sourceOrganization={mergeTarget}
-        onSuccess={() => {
-          if (currentNode?.id === mergeTarget?.id) {
-            setCurrentNode(null)
-          }
-        }}
-      />
+      {renderActions ? null : (
+        <>
+          <OrganizationDeleteDialog
+            open={Boolean(deleteTarget)}
+            onOpenChange={(open) => {
+              if (!open) setDeleteTarget(null)
+            }}
+            target={deleteTarget}
+            tree={organizations}
+            onSuccess={() => {
+              if (currentNode?.id === deleteTarget?.id) {
+                setCurrentNode(null)
+              }
+            }}
+          />
+          <OrganizationMergeDialog
+            open={Boolean(mergeTarget)}
+            onOpenChange={(open) => {
+              if (!open) setMergeTarget(null)
+            }}
+            sourceOrganization={mergeTarget}
+            onSuccess={() => {
+              if (currentNode?.id === mergeTarget?.id) {
+                setCurrentNode(null)
+              }
+            }}
+          />
+        </>
+      )}
     </Card>
   )
 }

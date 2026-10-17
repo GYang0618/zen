@@ -23,6 +23,7 @@ import { z } from 'zod'
 
 import { useJobProfilesQuery } from '@/features/system/posts/queries'
 import { formatJobProfileLevel } from '@/features/system/posts/utils'
+import { handleFieldBlurValidate } from '@/lib/form/field-validation'
 
 import { useCreateOrganizationPosition } from '../queries'
 import { POSITION_LEVEL_OPTIONS } from '../utils'
@@ -31,9 +32,13 @@ import type { Position } from '../type'
 
 const linkPositionFormSchema = z.object({
   jobProfileId: z.string().min(1, '请选择岗位'),
-  headcount: z.number().int().min(1, '编制人数至少为 1').max(999),
+  headcount: z
+    .number({ error: '请输入编制人数' })
+    .int({ error: '编制人数必须为整数', abort: true })
+    .min(1, { error: '编制人数至少为 1', abort: true })
+    .max(999, { error: '编制人数不能超过 999', abort: true }),
   level: z.enum(['P5', 'P6', 'P7', 'P8']).or(z.literal('')),
-  description: z.string().trim().max(500)
+  description: z.string().trim().max(500, '编制说明不能超过500个字符')
 })
 
 type LinkPositionFormValues = z.infer<typeof linkPositionFormSchema>
@@ -79,7 +84,6 @@ export function OrganizationCreatePositionDialog({
 
   const form = useForm({
     defaultValues: createDefaultValues() as LinkPositionFormValues,
-    validators: { onChange: linkPositionFormSchema },
     onSubmit: async ({ value }) => {
       await handleSubmit(linkPositionFormSchema.parse(value))
     }
@@ -121,7 +125,10 @@ export function OrganizationCreatePositionDialog({
           }}
         >
           <FieldGroup>
-            <form.Field name="jobProfileId">
+            <form.Field
+              name="jobProfileId"
+              validators={{ onChange: linkPositionFormSchema.shape.jobProfileId }}
+            >
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid || undefined}>
                   <FieldLabel>岗位目录</FieldLabel>
@@ -162,7 +169,10 @@ export function OrganizationCreatePositionDialog({
             </form.Field>
 
             <div className="grid grid-cols-2 gap-4">
-              <form.Field name="headcount">
+              <form.Field
+                name="headcount"
+                validators={{ onChange: linkPositionFormSchema.shape.headcount }}
+              >
                 {(field) => (
                   <Field data-invalid={!field.state.meta.isValid || undefined}>
                     <FieldLabel htmlFor="link-position-headcount">编制人数</FieldLabel>
@@ -184,7 +194,10 @@ export function OrganizationCreatePositionDialog({
                 )}
               </form.Field>
 
-              <form.Field name="level">
+              <form.Field
+                name="level"
+                validators={{ onChange: linkPositionFormSchema.shape.level }}
+              >
                 {(field) => (
                   <Field data-invalid={!field.state.meta.isValid || undefined}>
                     <FieldLabel>职级覆盖（可选）</FieldLabel>
@@ -228,14 +241,17 @@ export function OrganizationCreatePositionDialog({
               </form.Field>
             </div>
 
-            <form.Field name="description">
+            <form.Field
+              name="description"
+              validators={{ onChange: linkPositionFormSchema.shape.description }}
+            >
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid || undefined}>
                   <FieldLabel htmlFor="link-position-description">编制说明</FieldLabel>
                   <Textarea
                     name={field.name}
                     value={field.state.value}
-                    onBlur={field.handleBlur}
+                    onBlur={() => handleFieldBlurValidate(field)}
                     onChange={(event) => field.handleChange(event.target.value)}
                     id="link-position-description"
                     placeholder="可选，补充本组织对该岗位的说明"

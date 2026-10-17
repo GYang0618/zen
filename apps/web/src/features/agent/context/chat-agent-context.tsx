@@ -22,11 +22,15 @@ export function ChatAgentProvider({
   activeThreadId: string
   children: React.ReactNode
 }) {
-  return (
-    <ChatAgentContext.Provider value={{ agent, isReady, activeThreadId }}>
-      {children}
-    </ChatAgentContext.Provider>
+  const value = useMemo(
+    () => ({ agent, isReady, activeThreadId }),
+    [agent, isReady, activeThreadId]
   )
+  return <ChatAgentContext.Provider value={value}>{children}</ChatAgentContext.Provider>
+}
+
+export function useChatAgentContext() {
+  return useContext(ChatAgentContext)
 }
 
 const ALL_UPDATES = [

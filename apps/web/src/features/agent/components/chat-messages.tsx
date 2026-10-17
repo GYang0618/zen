@@ -164,7 +164,11 @@ export function AssistantMessageItem({
           </MessageResponse>
         )}
         {hasInlineTools && (
-          <GroupedToolCallsView toolCalls={inlineStandardToolCalls} messages={messages as never} />
+          <GroupedToolCallsView
+            placement="work"
+            toolCalls={inlineStandardToolCalls}
+            messages={messages as never}
+          />
         )}
         {showStreamingPlaceholder && (
           <div className="my-1.5 flex items-center gap-2 py-0.5 text-muted-foreground">
@@ -429,7 +433,11 @@ export function ChatMessages() {
                   isLastTurn={isLastTurn}
                 />
                 {finalInlineTools.length > 0 && (
-                  <GroupedToolCallsView toolCalls={finalInlineTools} messages={messages as never} />
+                  <GroupedToolCallsView
+                    placement="work"
+                    toolCalls={finalInlineTools}
+                    messages={messages as never}
+                  />
                 )}
                 <FoldedTurnMessages
                   messages={messages}

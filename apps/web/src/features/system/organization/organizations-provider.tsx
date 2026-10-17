@@ -187,8 +187,12 @@ export function OrganizationsProvider({
   )
 }
 
+export function useOrganizationsOptional() {
+  return useContext(OrganizationsContext)
+}
+
 export const useOrganizations = () => {
-  const organizationsContext = useContext(OrganizationsContext)
+  const organizationsContext = useOrganizationsOptional()
   if (!organizationsContext) {
     throw new Error('useOrganizations must be used within a OrganizationsProvider')
   }

@@ -167,7 +167,14 @@ export function buildOrganizationMembersDiff(
   members: Array<{ id: string; name: string }>,
   kind: 'added' | 'removed'
 ): AuditDiff {
+  const verb = kind === 'added' ? '添加' : '移除'
+  const memberText =
+    members.length === 1
+      ? `${verb}了成员「${members[0].name}」`
+      : `${verb}了 ${members.map((m) => m.name).join('、')} 共 ${members.length} 人`
+
   return createAuditDiff({
+    summary: memberText,
     target: { id: org.id, code: org.code, name: org.name },
     members: kind === 'added' ? { added: members } : { removed: members }
   })

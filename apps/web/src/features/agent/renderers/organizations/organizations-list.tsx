@@ -1,31 +1,24 @@
 import { ListTree, Network } from 'lucide-react'
 import { useMemo } from 'react'
 
-import {
-  OrganizationGraph,
-  OrganizationsDialogs,
-  OrganizationsProvider,
-  OrganizationTree,
-  OrganizationWorkspaceLayout
-} from '@/features/system/organization'
+import { OrganizationGraph, OrganizationTree } from '@/features/system/organization'
 
 import { ViewSwitcher } from '../../generative-ui/components/view-switcher'
+import { OrganizationAgentMenu, OrganizationAgentTreeActions } from './organization-menu'
 
-import type { Organization } from '@/features/system/organization/type'
+import type { OrganizationTreeNode } from '@zen/shared'
 
 export interface OrganizationsListViewProps {
   title: string
-  treeData?: Organization[]
+  treeData?: OrganizationTreeNode[]
   description?: string
-  keyword?: string
   loading?: boolean
 }
 
 export function OrganizationsList({
   title,
   description,
-  treeData,
-  keyword,
+  treeData = [],
   loading = false
 }: OrganizationsListViewProps) {
   const views = useMemo(
@@ -34,37 +27,38 @@ export function OrganizationsList({
         key: 'graph',
         icon: Network,
         render: (
-          <div className="h-115 w-full min-h-100">
-            <OrganizationWorkspaceLayout className="h-full">
-              <OrganizationGraph className="border-none bg-transparent py-0 shadow-none" />
-            </OrganizationWorkspaceLayout>
-          </div>
+          <OrganizationGraph
+            className="h-96"
+            organizations={treeData}
+            renderMenu={(organization) => (
+              <OrganizationAgentMenu organization={organization} isolatePointer />
+            )}
+          />
         )
       },
       {
         key: 'tree',
         icon: ListTree,
         render: (
-          <div className="h-115 w-full min-h-100">
-            <OrganizationWorkspaceLayout className="h-full">
-              <OrganizationTree className="border-none bg-transparent py-0 shadow-none" />
-            </OrganizationWorkspaceLayout>
-          </div>
+          <OrganizationTree
+            className="h-96"
+            organizations={treeData}
+            renderActions={(organization) => (
+              <OrganizationAgentTreeActions organization={organization} />
+            )}
+          />
         )
       }
     ],
-    []
+    [treeData]
   )
 
   return (
-    <OrganizationsProvider keyword={keyword} initialData={treeData}>
-      <OrganizationsDialogs />
-      <ViewSwitcher
-        title={title ?? '组织架构查询结果'}
-        description={description}
-        views={views}
-        loading={loading}
-      />
-    </OrganizationsProvider>
+    <ViewSwitcher
+      title={title ?? '组织架构查询结果'}
+      description={description}
+      views={views}
+      loading={loading}
+    />
   )
 }

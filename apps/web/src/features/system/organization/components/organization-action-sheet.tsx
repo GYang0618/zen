@@ -30,6 +30,8 @@ import { Building2, CalendarIcon, Loader2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { z } from 'zod'
 
+import { handleFieldBlurValidate } from '@/lib/form/field-validation'
+
 import { ORG_TYPES } from '../data/data'
 import { useOrganizations } from '../organizations-provider'
 import { useOrganizationTypeCatalog } from '../queries'
@@ -58,13 +60,21 @@ const TODAY = (() => {
 })()
 
 const organizationFormSchema = z.object({
-  name: z.string().trim().min(1, '组织名称不能为空').max(100, '组织名称不能超过100个字符'),
+  name: z
+    .string()
+    .trim()
+    .min(1, { error: '组织名称不能为空', abort: true })
+    .max(100, { error: '组织名称不能超过100个字符', abort: true }),
   code: z
     .string()
     .trim()
-    .min(2, '组织编码至少需要2个字符')
-    .max(50, '组织编码不能超过50个字符')
-    .regex(/^[a-z][a-z0-9_]*$/, '组织编码仅支持小写字母、数字和下划线，且以字母开头'),
+    .min(1, { error: '组织编码不能为空', abort: true })
+    .min(2, { error: '组织编码至少需要2个字符', abort: true })
+    .max(50, { error: '组织编码不能超过50个字符', abort: true })
+    .regex(/^[a-z][a-z0-9_]*$/, {
+      error: '组织编码仅支持小写字母、数字和下划线，且以字母开头',
+      abort: true
+    }),
   type: z.string().min(1, '请选择组织类型'),
   parentId: z.string(),
   description: z.string().trim().max(500, '组织描述不能超过500个字符'),
@@ -130,7 +140,6 @@ export function OrganizationActionSheet({
       effectiveDate: TODAY,
       leaderId: undefined
     } as OrganizationFormValues,
-    validators: { onChange: organizationFormSchema },
     onSubmit: async ({ value }) => {
       await (isEdit ? handleUpdateSubmit : handleCreateSubmit)(organizationFormSchema.parse(value))
     }
@@ -285,7 +294,7 @@ export function OrganizationActionSheet({
           }}
         >
           <FieldGroup className="px-4">
-            <form.Field name="name">
+            <form.Field name="name" validators={{ onChange: organizationFormSchema.shape.name }}>
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid}>
                   <FieldLabel htmlFor="organization-name">组织名称</FieldLabel>
@@ -293,7 +302,7 @@ export function OrganizationActionSheet({
                     <Input
                       name={field.name}
                       value={field.state.value}
-                      onBlur={field.handleBlur}
+                      onBlur={() => handleFieldBlurValidate(field)}
                       onChange={(event) => field.handleChange(event.target.value)}
                       id="organization-name"
                       placeholder="例如：平台研发部"
@@ -308,7 +317,7 @@ export function OrganizationActionSheet({
               )}
             </form.Field>
 
-            <form.Field name="code">
+            <form.Field name="code" validators={{ onChange: organizationFormSchema.shape.code }}>
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid}>
                   <FieldLabel htmlFor="organization-code">组织编码</FieldLabel>
@@ -316,7 +325,7 @@ export function OrganizationActionSheet({
                     <Input
                       name={field.name}
                       value={field.state.value}
-                      onBlur={field.handleBlur}
+                      onBlur={() => handleFieldBlurValidate(field)}
                       onChange={(event) => field.handleChange(event.target.value)}
                       id="organization-code"
                       className="font-mono"
@@ -335,7 +344,10 @@ export function OrganizationActionSheet({
               )}
             </form.Field>
 
-            <form.Field name="parentId">
+            <form.Field
+              name="parentId"
+              validators={{ onChange: organizationFormSchema.shape.parentId }}
+            >
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid}>
                   <FieldLabel htmlFor="organization-parent">上级组织</FieldLabel>
@@ -371,7 +383,7 @@ export function OrganizationActionSheet({
               )}
             </form.Field>
 
-            <form.Field name="type">
+            <form.Field name="type" validators={{ onChange: organizationFormSchema.shape.type }}>
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid}>
                   <FieldLabel htmlFor="organization-type">组织类型</FieldLabel>
@@ -412,7 +424,10 @@ export function OrganizationActionSheet({
               )}
             </form.Field>
 
-            <form.Field name="effectiveDate">
+            <form.Field
+              name="effectiveDate"
+              validators={{ onChange: organizationFormSchema.shape.effectiveDate }}
+            >
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid}>
                   <FieldLabel htmlFor="organization-effective-date">生效日期</FieldLabel>
@@ -458,7 +473,10 @@ export function OrganizationActionSheet({
             </form.Field>
 
             {!isEdit ? (
-              <form.Field name="leaderId">
+              <form.Field
+                name="leaderId"
+                validators={{ onChange: organizationFormSchema.shape.leaderId }}
+              >
                 {(field) => (
                   <Field data-invalid={!field.state.meta.isValid}>
                     <FieldLabel htmlFor="organization-leader">负责人</FieldLabel>
@@ -479,7 +497,10 @@ export function OrganizationActionSheet({
               </form.Field>
             ) : null}
 
-            <form.Field name="description">
+            <form.Field
+              name="description"
+              validators={{ onChange: organizationFormSchema.shape.description }}
+            >
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid}>
                   <FieldLabel htmlFor="organization-description">描述说明</FieldLabel>
@@ -487,7 +508,7 @@ export function OrganizationActionSheet({
                     <Textarea
                       name={field.name}
                       value={field.state.value}
-                      onBlur={field.handleBlur}
+                      onBlur={() => handleFieldBlurValidate(field)}
                       onChange={(event) => field.handleChange(event.target.value)}
                       id="organization-description"
                       rows={4}

@@ -17,10 +17,13 @@ import { UserAvatar } from './user-avatar'
 import { UsersCardActions } from './users-card-actions'
 
 import type { RoleIcon, UserListItem } from '@zen/shared'
+import type { ReactNode } from 'react'
 import type { ListSelectionActionProps } from '@/hooks'
 
 type UsersCardProps = ListSelectionActionProps & {
   user: UserListItem
+  /** 替换默认操作菜单。不传时使用系统管理页的操作。 */
+  actions?: ReactNode
 }
 
 async function copyText(value: string, successLabel: string) {
@@ -34,6 +37,7 @@ async function copyText(value: string, successLabel: string) {
 
 export function UsersCard({
   user,
+  actions,
   isSelecting,
   selected = false,
   onEnterSelecting,
@@ -75,13 +79,15 @@ export function UsersCard({
                 已锁定
               </Badge>
             ) : null}
-            <UsersCardActions
-              user={user}
-              isSelecting={isSelecting}
-              selected={selected}
-              onEnterSelecting={onEnterSelecting}
-              onSelectedChange={onSelectedChange}
-            />
+            {actions ?? (
+              <UsersCardActions
+                user={user}
+                isSelecting={isSelecting}
+                selected={selected}
+                onEnterSelecting={onEnterSelecting}
+                onSelectedChange={onSelectedChange}
+              />
+            )}
           </div>
         </CardAction>
       </CardHeader>

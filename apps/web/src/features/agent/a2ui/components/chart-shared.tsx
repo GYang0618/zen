@@ -72,6 +72,20 @@ export function createCategoryConfig(data: ChartDataItem[]): ChartConfig {
   )
 }
 
+export function createMultiSeriesConfig(
+  series: Array<{ key: string; label: string }>
+): ChartConfig {
+  return Object.fromEntries(
+    series.map((item, index) => [
+      item.key,
+      {
+        label: item.label,
+        color: CHART_COLOR_TOKENS[index % CHART_COLOR_TOKENS.length]
+      }
+    ])
+  )
+}
+
 export function withCategoryFills(data: ChartDataItem[]) {
   return data.map((item, index) => ({
     ...item,

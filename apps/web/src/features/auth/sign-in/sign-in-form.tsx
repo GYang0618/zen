@@ -17,6 +17,7 @@ import { useState } from 'react'
 import { z } from 'zod'
 
 import { PasswordInput } from '@/components'
+import { handleFieldBlurValidate } from '@/lib/form/field-validation'
 
 import { useSignInMutation, useVerifyMfaMutation } from '../mutations'
 import { ThirdPartyLogin } from '../third-party-login'
@@ -130,10 +131,7 @@ export function SignInForm() {
               <Input
                 name={field.name}
                 value={field.state.value}
-                onBlur={() => {
-                  field.handleBlur()
-                  void field.validate('change')
-                }}
+                onBlur={() => handleFieldBlurValidate(field)}
                 onChange={(event) => field.handleChange(event.target.value)}
                 id="identifier"
                 autoComplete="username"
@@ -163,10 +161,7 @@ export function SignInForm() {
               <PasswordInput
                 name={field.name}
                 value={field.state.value}
-                onBlur={() => {
-                  field.handleBlur()
-                  void field.validate('change')
-                }}
+                onBlur={() => handleFieldBlurValidate(field)}
                 onChange={(event) => field.handleChange(event.target.value)}
                 id="password"
                 autoComplete="current-password"

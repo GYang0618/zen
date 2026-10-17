@@ -27,7 +27,10 @@ import {
   toOrganizationMemberResponse,
   toOrganizationResponse
 } from './organization.mapper.js'
-import { OrganizationRepository } from './organization.repository.js'
+import {
+  OrganizationMembersMissingError,
+  OrganizationRepository
+} from './organization.repository.js'
 import { assertValidParentType, canBeChildOf, throwMoveRejection } from './organization.rules.js'
 import {
   buildOrganizationCascadeDeletedDiff,
@@ -58,7 +61,9 @@ import type {
 } from '@zen/shared'
 import type {
   AddOrganizationMemberDto,
+  BatchRemoveMembersDto,
   BatchTransferMembersDto,
+  BatchUnlinkOrganizationPositionsDto,
   ChangeOrganizationParentDto,
   CreateOrganizationDto,
   CreatePositionDto,
@@ -122,8 +127,9 @@ function formatMembersLine(
   names: string[],
   verb: '添加了' | '移除了' | '调出了' | '调入了'
 ): string {
-  if (names.length === 0) return `${verb} 0 人`
-  return `${verb}${names.join('、')} 共 ${names.length} 人`
+  if (names.length === 0) return `${verb}成员`
+  if (names.length === 1) return `${verb}成员「${names[0]}」`
+  return `${verb} ${names.join('、')} 共 ${names.length} 人`
 }
 
 function formatChanges(diff: AuditDiff): string {
@@ -163,16 +169,22 @@ function formatActivityDescription(action: string, diff: AuditDiff | null): stri
   }
 
   if (action === 'system.organization.member_added') {
-    return formatMembersLine(
-      (diff.members?.added ?? []).map((item) => item.name),
-      '添加了'
+    return (
+      diff.summary ??
+      formatMembersLine(
+        (diff.members?.added ?? []).map((item) => item.name),
+        '添加了'
+      )
     )
   }
 
   if (action === 'system.organization.member_removed') {
-    return formatMembersLine(
-      (diff.members?.removed ?? []).map((item) => item.name),
-      '移除了'
+    return (
+      diff.summary ??
+      formatMembersLine(
+        (diff.members?.removed ?? []).map((item) => item.name),
+        '移除了'
+      )
     )
   }
 
@@ -847,6 +859,47 @@ export class OrganizationService {
     await this.refreshUserAccess(userId)
   }
 
+  async batchRemoveMembers(
+    id: string,
+    data: BatchRemoveMembersDto,
+    auth: AuthContext
+  ): Promise<void> {
+    const organization = await this.requireVisible(id, auth)
+    const userIds = [...new Set(data.userIds.map((item) => item.trim()).filter(Boolean))]
+    if (userIds.length === 0) {
+      throw new BadRequestException('至少选择一名成员')
+    }
+
+    const displayUsers = await this.orgRepo.findUsersDisplayByIds(userIds)
+    const displayById = new Map(
+      displayUsers.map((user) => [user.id, toUserDisplayName(user)] as const)
+    )
+
+    try {
+      await this.orgRepo.batchRemoveMembers(id, userIds)
+    } catch (error) {
+      if (error instanceof OrganizationMembersMissingError) {
+        throw new NotFoundException('部分组织成员不存在')
+      }
+      throw error
+    }
+
+    await this.writeAudit(
+      auth,
+      id,
+      'system.organization.member_removed',
+      buildOrganizationMembersDiff(
+        organization,
+        userIds.map((userId) => ({
+          id: userId,
+          name: displayById.get(userId) ?? userId
+        })),
+        'removed'
+      )
+    )
+    await Promise.all(userIds.map((userId) => this.refreshUserAccess(userId)))
+  }
+
   async listPositions(id: string, auth: AuthContext): Promise<PositionResponse[]> {
     await this.requireVisible(id, auth)
     return this.postService.listOrganizationPositions(id)
@@ -889,6 +942,19 @@ export class OrganizationService {
     await this.postService.unlinkOrganizationPosition(id, positionId)
   }
 
+  async batchUnlinkPositions(
+    id: string,
+    data: BatchUnlinkOrganizationPositionsDto,
+    auth: AuthContext
+  ): Promise<void> {
+    await this.requireVisible(id, auth)
+    const positionIds = [...new Set(data.positionIds.map((item) => item.trim()).filter(Boolean))]
+    if (positionIds.length === 0) {
+      throw new BadRequestException('至少选择一个岗位编制')
+    }
+    await this.postService.batchUnlinkOrganizationPositions(id, positionIds)
+  }
+
   async listActivities(
     id: string,
     query: OrganizationActivitiesQueryDto,
@@ -901,15 +967,43 @@ export class OrganizationService {
       count: () => this.orgRepo.countActivities(auth.tenantId, id),
       findMany: (pagination) => this.orgRepo.listActivities(auth.tenantId, id, pagination)
     })
-    const actorIds = [
-      ...new Set(page.items.flatMap((item) => (item.actorId ? [item.actorId] : [])))
-    ]
+    const candidateUserIds = new Set<string>()
+    for (const item of page.items) {
+      if (item.actorId) candidateUserIds.add(item.actorId)
+      if (item.diff && typeof item.diff === 'object') {
+        const d = item.diff as Record<string, unknown>
+        if (typeof d.userId === 'string' && d.userId) candidateUserIds.add(d.userId)
+        if (Array.isArray(d.userIds)) {
+          for (const uid of d.userIds) {
+            if (typeof uid === 'string' && uid) candidateUserIds.add(uid)
+          }
+        }
+        if (typeof d.leaderId === 'string' && d.leaderId) candidateUserIds.add(d.leaderId)
+        const members = d.members as
+          | { added?: Array<{ id?: string }>; removed?: Array<{ id?: string }> }
+          | undefined
+        if (Array.isArray(members?.added)) {
+          for (const m of members.added) if (m?.id) candidateUserIds.add(m.id)
+        }
+        if (Array.isArray(members?.removed)) {
+          for (const m of members.removed) if (m?.id) candidateUserIds.add(m.id)
+        }
+      }
+    }
+
+    const allUserIds = [...candidateUserIds]
+    const displayUsers = await this.orgRepo.findUsersDisplayByIds(allUserIds)
+    const userDisplayMap = new Map(
+      displayUsers.map((user) => [user.id, toUserDisplayName(user)] as const)
+    )
     const actors = new Map(
-      (await this.orgRepo.findActivityActors(actorIds)).map((user) => [user.id, user])
+      (await this.orgRepo.findActivityActors(allUserIds)).map((user) => [user.id, user])
     )
     return {
       pagination: page.pagination,
-      items: page.items.map((item) => this.toActivity(item, actors.get(item.actorId ?? '')))
+      items: page.items.map((item) =>
+        this.toActivity(item, actors.get(item.actorId ?? ''), userDisplayMap)
+      )
     }
   }
 
@@ -1032,9 +1126,51 @@ export class OrganizationService {
           nickname: string | null
           profile: { realName: string | null; avatar: string | null } | null
         }
-      | undefined
+      | undefined,
+    userDisplayMap?: Map<string, string>
   ): OrganizationActivity {
-    const diff = parseAuditDiff(item.diff)
+    let diff = parseAuditDiff(item.diff)
+
+    // 若结构化 diff 中成员名称缺失或等于 id，尝试用 userDisplayMap 补齐
+    if (diff?.members) {
+      if (diff.members.added) {
+        diff.members.added = diff.members.added.map((m) => ({
+          id: m.id,
+          name: m.name && m.name !== m.id ? m.name : (userDisplayMap?.get(m.id) ?? m.name ?? m.id)
+        }))
+      }
+      if (diff.members.removed) {
+        diff.members.removed = diff.members.removed.map((m) => ({
+          id: m.id,
+          name: m.name && m.name !== m.id ? m.name : (userDisplayMap?.get(m.id) ?? m.name ?? m.id)
+        }))
+      }
+    }
+
+    // 兼容历史脏数据/旧版格式的 diff（如 { userId: "..." } 或 { code, name }）
+    if (!diff && item.diff && typeof item.diff === 'object') {
+      const d = item.diff as Record<string, unknown>
+      if (typeof d.userId === 'string' && d.userId) {
+        const userName = userDisplayMap?.get(d.userId) ?? d.userId
+        if (item.action === 'system.organization.member_added') {
+          diff = createAuditDiff({
+            summary: `添加了成员「${userName}」`,
+            members: { added: [{ id: d.userId, name: userName }] }
+          })
+        } else if (item.action === 'system.organization.member_removed') {
+          diff = createAuditDiff({
+            summary: `移除了成员「${userName}」`,
+            members: { removed: [{ id: d.userId, name: userName }] }
+          })
+        }
+      } else if (item.action === 'system.organization.created' && typeof d.name === 'string') {
+        const orgDesc = d.code ? `创建组织节点 ${d.name}（${d.code}）` : `创建了组织「${d.name}」`
+        diff = createAuditDiff({
+          summary: orgDesc
+        })
+      }
+    }
+
     return {
       id: item.id,
       actor: {

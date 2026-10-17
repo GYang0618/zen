@@ -75,6 +75,17 @@ export function preventSelectionNavigation(
   if (isSelecting) event.preventDefault()
 }
 
+/** 从当前卡片的「选择」进入选择模式，并立刻勾选这一张卡片。 */
+export function enterSelectingCurrentItem(
+  options: Pick<ListSelectionActionProps, 'onEnterSelecting' | 'onSelectedChange'>
+) {
+  if (options.onSelectedChange) {
+    options.onSelectedChange(true)
+    return
+  }
+  options.onEnterSelecting?.()
+}
+
 export function useListSelection() {
   const [state, setState] = useState<ListSelectionState>(EMPTY_LIST_SELECTION)
 

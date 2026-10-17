@@ -13,6 +13,7 @@ import {
 import { Ban, CheckSquare, MoreHorizontal, Pencil, Power, Trash2 } from 'lucide-react'
 
 import { Can } from '@/components/auth/can'
+import { enterSelectingCurrentItem } from '@/hooks'
 
 import { usePosts } from '../posts-provider'
 import { useUpdateJobProfilesStatusMutation } from '../queries'
@@ -68,7 +69,9 @@ export function PostsRowActions({
       <DropdownMenuContent align="end" className="w-36">
         <DropdownMenuGroup>
           {onEnterSelecting ? (
-            <DropdownMenuItem onClick={onEnterSelecting}>
+            <DropdownMenuItem
+              onClick={() => enterSelectingCurrentItem({ onEnterSelecting, onSelectedChange })}
+            >
               <CheckSquare />
               选择
             </DropdownMenuItem>

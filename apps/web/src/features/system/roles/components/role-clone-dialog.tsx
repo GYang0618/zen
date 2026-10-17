@@ -30,6 +30,7 @@ import { useEffect, useState } from 'react'
 import { z } from 'zod'
 
 import { useCloneRoleMutation } from '@/features/system/roles/mutations'
+import { handleFieldBlurValidate } from '@/lib/form/field-validation'
 
 import type { RoleListItem } from '@zen/shared'
 
@@ -52,14 +53,22 @@ const TODAY = (() => {
 })()
 
 const cloneFormSchema = z.object({
-  name: z.string().trim().min(1, 'è§è²åç§°ä¸è½ä¸ºç©º').max(50, 'è§è²åç§°ä¸è½è¶è¿50ä¸ªå­ç¬¦'),
+  name: z
+    .string()
+    .trim()
+    .min(1, { error: '角色名称不能为空', abort: true })
+    .max(50, { error: '角色名称不能超过50个字符', abort: true }),
   code: z
     .string()
     .trim()
-    .min(2, 'è§è²ç¼ç è³å°éè¦2ä¸ªå­ç¬¦')
-    .max(50, 'è§è²ç¼ç ä¸è½è¶è¿50ä¸ªå­ç¬¦')
-    .regex(/^[a-z][a-z0-9_]*$/, 'è§è²ç¼ç ä»æ¯æå°åå­æ¯ãæ°å­åä¸åçº¿ï¼ä¸ä»¥å­æ¯å¼å¤´'),
-  description: z.string().trim().max(200, 'è§è²æè¿°ä¸è½è¶è¿200ä¸ªå­ç¬¦'),
+    .min(1, { error: '角色编码不能为空', abort: true })
+    .min(2, { error: '角色编码至少需要2个字符', abort: true })
+    .max(50, { error: '角色编码不能超过50个字符', abort: true })
+    .regex(/^[a-z][a-z0-9_]*$/, {
+      error: '角色编码仅支持小写字母、数字和下划线，且以字母开头',
+      abort: true
+    }),
+  description: z.string().trim().max(200, '角色描述不能超过200个字符'),
   expiresAt: z.date().nullable()
 })
 
@@ -82,7 +91,7 @@ function suggestCloneCode(sourceCode: string): string {
 
 function buildDefaultValues(source: RoleListItem): CloneFormValues {
   return {
-    name: `${source.name} å¯æ¬`,
+    name: `${source.name} 副本`,
     code: suggestCloneCode(source.code),
     description: source.description ?? '',
     expiresAt: null
@@ -95,7 +104,6 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
 
   const form = useForm({
     defaultValues: buildDefaultValues(currentRow) as CloneFormValues,
-    validators: { onChange: cloneFormSchema },
     onSubmit: async ({ value }) => {
       await handleSubmit(cloneFormSchema.parse(value))
     }
@@ -113,7 +121,7 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
         ...meta,
         errorMap: {
           ...meta.errorMap,
-          onSubmit: [{ code: 'custom', path: [], message: 'è¿ææ¶é´ä¸è½æ©äºä»å¤©' }]
+          onSubmit: [{ code: 'custom', path: [], message: '过期时间不能早于今天' }]
         }
       }))
       return
@@ -132,19 +140,19 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
       {
         onSuccess: (cloned) => {
           toast.add({
-            title: `å·²åºäºã${currentRow.name}ãåéåºæ°è§è²ã${cloned.name}ã`,
+            title: `已基于「${currentRow.name}」克隆出新角色「${cloned.name}」`,
             type: 'success'
           })
           onOpenChange(false)
         },
         onError: (error) => {
-          const message = error instanceof Error ? error.message : 'åéå¤±è´¥'
-          if (message.includes('ç¼ç ') || message.includes('å·²å­å¨')) {
+          const message = error instanceof Error ? error.message : '克隆失败'
+          if (message.includes('编码') || message.includes('已存在')) {
             form.setFieldMeta('code', (meta) => ({
               ...meta,
               errorMap: {
                 ...meta.errorMap,
-                onSubmit: [{ code: 'custom', path: [], message: 'è§è²ç¼ç å·²å­å¨' }]
+                onSubmit: [{ code: 'custom', path: [], message: '角色编码已存在' }]
               }
             }))
             return
@@ -167,25 +175,25 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
         <DialogHeader>
           <DialogTitle>
             <span className="flex items-center gap-2">
-              <Copy className="size-5" /> åéè§è²æééç½®
+              <Copy className="size-5" /> 克隆角色权限配置
             </span>
           </DialogTitle>
           <DialogDescription>
-            åºäºã{currentRow.name}ãåå»ºä¸ä¸ªæ°è§è²ï¼å¯å¨ä¿å­åè°æ´åç§°ä¸ç¼ç ã
+            基于「{currentRow.name}」创建一个新角色，可在保存前调整名称与编码。
           </DialogDescription>
         </DialogHeader>
 
         <Alert>
           <Info />
           <AlertTitle className="flex items-center gap-2">
-            å°å¤å¶ä»¥ä¸éç½®
+            将复制以下配置
             <Badge variant="secondary" className="gap-1">
               <ShieldCheck className="size-3" />
-              {currentRow.permissionCount} é¡¹æé
+              {currentRow.permissionCount} 项权限
             </Badge>
           </AlertTitle>
           <AlertDescription className="flex items-center gap-1.5">
-            <UserX className="size-3.5" /> ä¸åå«è¯¥è§è²å½åå³èçæåï¼åéåééæ°åéã
+            <UserX className="size-3.5" /> 不包含该角色当前关联的成员，克隆后需重新分配。
           </AlertDescription>
         </Alert>
 
@@ -199,18 +207,18 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
           }}
         >
           <FieldGroup>
-            <form.Field name="name">
+            <form.Field name="name" validators={{ onChange: cloneFormSchema.shape.name }}>
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid}>
-                  <FieldLabel htmlFor="clone-role-name">æ°è§è²åç§°</FieldLabel>
+                  <FieldLabel htmlFor="clone-role-name">新角色名称</FieldLabel>
                   <FieldContent>
                     <Input
                       name={field.name}
                       value={field.state.value}
-                      onBlur={field.handleBlur}
+                      onBlur={() => handleFieldBlurValidate(field)}
                       onChange={(event) => field.handleChange(event.target.value)}
                       id="clone-role-name"
-                      placeholder="ä¾å¦ï¼è¿ç»´ä¸å®¶ å¯æ¬"
+                      placeholder="例如：运维专家 副本"
                       aria-invalid={!field.state.meta.isValid}
                       autoComplete="off"
                       autoFocus
@@ -222,23 +230,23 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
                 </Field>
               )}
             </form.Field>
-            <form.Field name="code">
+            <form.Field name="code" validators={{ onChange: cloneFormSchema.shape.code }}>
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid}>
-                  <FieldLabel htmlFor="clone-role-code">å¯ä¸æ è¯ Code</FieldLabel>
+                  <FieldLabel htmlFor="clone-role-code">唯一标识 Code</FieldLabel>
                   <FieldContent>
                     <Input
                       name={field.name}
                       value={field.state.value}
-                      onBlur={field.handleBlur}
+                      onBlur={() => handleFieldBlurValidate(field)}
                       onChange={(event) => field.handleChange(event.target.value)}
                       id="clone-role-code"
                       className="font-mono"
-                      placeholder="ä¾å¦ï¼ops_expert_copy"
+                      placeholder="例如：ops_expert_copy"
                       aria-invalid={!field.state.meta.isValid}
                       autoComplete="off"
                     />
-                    <FieldDescription>å·²æ ¹æ®æ¥æºè§è²èªå¨çæï¼å¯èªè¡ä¿®æ¹ã</FieldDescription>
+                    <FieldDescription>已根据来源角色自动生成，可自行修改。</FieldDescription>
                     {!field.state.meta.isValid ? (
                       <FieldError errors={field.state.meta.errors} />
                     ) : null}
@@ -246,10 +254,10 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
                 </Field>
               )}
             </form.Field>
-            <form.Field name="expiresAt">
+            <form.Field name="expiresAt" validators={{ onChange: cloneFormSchema.shape.expiresAt }}>
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid}>
-                  <FieldLabel htmlFor="clone-role-expired-at">è¿ææ¶é´</FieldLabel>
+                  <FieldLabel htmlFor="clone-role-expired-at">过期时间</FieldLabel>
                   <FieldContent>
                     <Popover open={expiredAtOpen} onOpenChange={setExpiredAtOpen}>
                       <PopoverTrigger
@@ -266,7 +274,7 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
                       >
                         {field.state.value
                           ? EXPIRED_AT_FORMATTER.format(field.state.value)
-                          : 'çç©ºè¡¨ç¤ºé¿æææ'}
+                          : '留空表示长期有效'}
                         <CalendarIcon data-icon="inline-end" />
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -295,7 +303,7 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
                                 setExpiredAtOpen(false)
                               }}
                             >
-                              æ¸é¤ï¼é¿æææï¼
+                              清除（长期有效）
                             </Button>
                           </div>
                         ) : null}
@@ -308,19 +316,22 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
                 </Field>
               )}
             </form.Field>
-            <form.Field name="description">
+            <form.Field
+              name="description"
+              validators={{ onChange: cloneFormSchema.shape.description }}
+            >
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid}>
-                  <FieldLabel htmlFor="clone-role-description">è§è²æè¿°è¯´æ</FieldLabel>
+                  <FieldLabel htmlFor="clone-role-description">角色描述说明</FieldLabel>
                   <FieldContent>
                     <Textarea
                       name={field.name}
                       value={field.state.value}
-                      onBlur={field.handleBlur}
+                      onBlur={() => handleFieldBlurValidate(field)}
                       onChange={(event) => field.handleChange(event.target.value)}
                       id="clone-role-description"
                       rows={3}
-                      placeholder="æç¡®è¯¥è§è²çèè´£"
+                      placeholder="明确该角色的职责"
                       aria-invalid={!field.state.meta.isValid}
                     />
                     {!field.state.meta.isValid ? (
@@ -340,11 +351,11 @@ export function RoleCloneDialog({ currentRow, open, onOpenChange }: RoleCloneDia
             disabled={isPending}
             onClick={() => onOpenChange(false)}
           >
-            åæ¶
+            取消
           </Button>
           <Button type="submit" form="role-clone-form" disabled={isPending}>
             {isPending ? <Loader2 className="animate-spin" /> : <Copy />}
-            åé
+            克隆
           </Button>
         </DialogFooter>
       </DialogContent>

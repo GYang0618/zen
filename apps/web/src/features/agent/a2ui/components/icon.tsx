@@ -16,11 +16,20 @@ function camelToKebabCase(str: string): string {
   return str.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, '$1-$2').toLowerCase()
 }
 
-export function Icon({ props }: RendererProps<IconProps>) {
-  const { name, size = 16, className, color } = props
+export function A2uiDynamicIcon({
+  name,
+  size = 16,
+  className,
+  color,
+  fallback
+}: {
+  name: string
+  size?: number | string
+  className?: string
+  color?: string
+  fallback?: () => React.JSX.Element
+}) {
   if (!name) return null
-
-  // 尝试支持 kebab-case 或 camelCase 形式
   const normalizedName = camelToKebabCase(name) as IconName
 
   return (
@@ -32,14 +41,21 @@ export function Icon({ props }: RendererProps<IconProps>) {
         name={normalizedName}
         size={size}
         className="size-full"
-        fallback={() => (
-          <HelpCircle
-            size={typeof size === 'number' ? size : 16}
-            className="text-muted-foreground/60"
-            aria-hidden
-          />
-        )}
+        fallback={
+          fallback ??
+          (() => (
+            <HelpCircle
+              size={typeof size === 'number' ? size : 16}
+              className="text-muted-foreground/60"
+              aria-hidden
+            />
+          ))
+        }
       />
     </span>
   )
+}
+
+export function Icon({ props }: RendererProps<IconProps>) {
+  return <A2uiDynamicIcon {...props} />
 }

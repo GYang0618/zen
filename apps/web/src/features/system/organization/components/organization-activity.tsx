@@ -96,7 +96,9 @@ export function OrganizationActivity({ organizationId }: { organizationId: strin
                     </TimelineTitle>
                     <TimelineTimestamp>{item.timestamp}</TimelineTimestamp>
                   </TimelineHeader>
-                  <TimelineDescription>{item.description}</TimelineDescription>
+                  {item.description && item.description !== item.title ? (
+                    <TimelineDescription>{item.description}</TimelineDescription>
+                  ) : null}
                   {item.changes && item.changes.length > 0 ? (
                     <div className="mt-2 flex flex-col gap-1.5 rounded-lg border bg-muted/20 p-2 text-xs">
                       {item.changes.map((change, idx) => (

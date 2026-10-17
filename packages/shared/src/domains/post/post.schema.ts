@@ -183,6 +183,15 @@ export const linkOrganizationPositionSchema = z
 /** @deprecated 使用 linkOrganizationPositionSchema；保留别名兼容旧导入 */
 export const createPositionSchema = linkOrganizationPositionSchema
 
+export const batchUnlinkOrganizationPositionsSchema = z
+  .object({
+    positionIds: z
+      .array(idSchema)
+      .min(1, '至少选择一个岗位编制')
+      .describe('要解除关联的组织岗位编制 ID 列表')
+  })
+  .strict()
+
 export const updateOrganizationPositionSchema = z
   .object({
     headcount: z
@@ -250,6 +259,9 @@ export type JobProfileListItem = z.infer<typeof jobProfileListItemSchema>
 export type JobProfileDetail = z.infer<typeof jobProfileDetailSchema>
 export type JobProfileOrganizationLink = z.infer<typeof jobProfileOrganizationLinkSchema>
 export type LinkOrganizationPosition = z.infer<typeof linkOrganizationPositionSchema>
+export type BatchUnlinkOrganizationPositions = z.infer<
+  typeof batchUnlinkOrganizationPositionsSchema
+>
 /** @deprecated 使用 LinkOrganizationPosition */
 export type CreatePosition = LinkOrganizationPosition
 export type UpdateOrganizationPosition = z.infer<typeof updateOrganizationPositionSchema>

@@ -21,7 +21,9 @@ import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js'
 import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '../../common/swagger/index.js'
 import {
   addOrganizationMemberSchema,
+  batchRemoveMembersSchema,
   batchTransferMembersSchema,
+  batchUnlinkOrganizationPositionsSchema,
   changeOrganizationParentSchema,
   createOrganizationSchema,
   dissolveOrganizationSchema,
@@ -42,7 +44,9 @@ import { OrganizationService } from './organization.service.js'
 import type { AuthContext } from '@zen/shared'
 import type {
   AddOrganizationMemberDto,
+  BatchRemoveMembersDto,
   BatchTransferMembersDto,
+  BatchUnlinkOrganizationPositionsDto,
   ChangeOrganizationParentDto,
   CreateOrganizationDto,
   CreatePositionDto,
@@ -260,6 +264,19 @@ export class OrganizationController {
     await this.organizationService.removeMember(id, userId, auth)
   }
 
+  @Post(':id/members/batch-remove')
+  @RequirePermission(PermissionCode.ORG_UPDATE)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: '批量移除组织成员' })
+  @UsePipes(new ZodValidationPipe(batchRemoveMembersSchema))
+  async batchRemove(
+    @Param('id') id: string,
+    @Body() payload: BatchRemoveMembersDto,
+    @CurrentAuth() auth: AuthContext
+  ): Promise<void> {
+    await this.organizationService.batchRemoveMembers(id, payload, auth)
+  }
+
   @Post(':id/members/batch-transfer')
   @RequirePermission(PermissionCode.ORG_UPDATE)
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -316,6 +333,19 @@ export class OrganizationController {
     @CurrentAuth() auth: AuthContext
   ) {
     return this.organizationService.updatePositionRoles(id, positionId, payload, auth)
+  }
+
+  @Post(':id/positions/batch-unlink')
+  @RequirePermission(PermissionCode.POST_MANAGE)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: '批量解除组织岗位编制关联' })
+  @UsePipes(new ZodValidationPipe(batchUnlinkOrganizationPositionsSchema))
+  async batchUnlinkPositions(
+    @Param('id') id: string,
+    @Body() payload: BatchUnlinkOrganizationPositionsDto,
+    @CurrentAuth() auth: AuthContext
+  ): Promise<void> {
+    await this.organizationService.batchUnlinkPositions(id, payload, auth)
   }
 
   @Delete(':id/positions/:positionId')

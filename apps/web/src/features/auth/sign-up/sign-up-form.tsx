@@ -15,6 +15,8 @@ import {
 import { Loader2 } from 'lucide-react'
 import { z } from 'zod'
 
+import { handleFieldBlurValidate, validateConfirmPassword } from '@/lib/form/field-validation'
+
 import { useSignUpMutation } from '../mutations'
 import { ThirdPartyLogin } from '../third-party-login'
 
@@ -49,28 +51,6 @@ const formSchema = signUpFieldsSchema.refine((data) => data.password === data.co
 })
 
 type FormValues = z.infer<typeof formSchema>
-
-function createConfirmPasswordSchema(password: string) {
-  return z
-    .string()
-    .min(1, { error: '请确认密码', abort: true })
-    .refine((value) => value === password, {
-      error: '两次输入的密码不一致'
-    })
-}
-
-function validateConfirmPassword({
-  value,
-  fieldApi
-}: {
-  value: string
-  fieldApi: { form: { getFieldValue: (name: 'password') => string } }
-}) {
-  const result = createConfirmPasswordSchema(fieldApi.form.getFieldValue('password')).safeParse(
-    value
-  )
-  return result.success ? undefined : result.error.issues
-}
 
 export function SignUpForm() {
   const { mutate: signUp, isPending } = useSignUpMutation()
@@ -118,10 +98,7 @@ export function SignUpForm() {
               <Input
                 name={field.name}
                 value={field.state.value}
-                onBlur={() => {
-                  field.handleBlur()
-                  void field.validate('change')
-                }}
+                onBlur={() => handleFieldBlurValidate(field)}
                 onChange={(event) => field.handleChange(event.target.value)}
                 id="username"
                 type="text"
@@ -141,10 +118,7 @@ export function SignUpForm() {
               <Input
                 name={field.name}
                 value={field.state.value}
-                onBlur={() => {
-                  field.handleBlur()
-                  void field.validate('change')
-                }}
+                onBlur={() => handleFieldBlurValidate(field)}
                 onChange={(event) => field.handleChange(event.target.value)}
                 id="email"
                 placeholder="name@example.com"
@@ -168,10 +142,7 @@ export function SignUpForm() {
                   <Input
                     name={field.name}
                     value={field.state.value}
-                    onBlur={() => {
-                      field.handleBlur()
-                      void field.validate('change')
-                    }}
+                    onBlur={() => handleFieldBlurValidate(field)}
                     onChange={(event) => field.handleChange(event.target.value)}
                     id="password"
                     type="password"
@@ -197,10 +168,7 @@ export function SignUpForm() {
                   <Input
                     name={field.name}
                     value={field.state.value}
-                    onBlur={() => {
-                      field.handleBlur()
-                      void field.validate('change')
-                    }}
+                    onBlur={() => handleFieldBlurValidate(field)}
                     onChange={(event) => field.handleChange(event.target.value)}
                     id="confirm-password"
                     type="password"

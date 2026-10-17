@@ -21,6 +21,9 @@ export type OrganizationGraphNode = Node<OrganizationGraphNodeData, 'organizatio
 const NODE_SEPARATION = 32
 const RANK_SEPARATION = 64
 
+/** React Flow 内置三次贝塞尔边，从连接点沿布局方向平滑弯向目标。 */
+export const ORGANIZATION_GRAPH_EDGE_TYPE = 'default' as const
+
 export function collectVisibleOrganizations(
   nodes: Organization[],
   expandedIds: ReadonlySet<string>
@@ -142,7 +145,7 @@ export function buildOrganizationGraph(
         id: `${organization.id}-${child.id}`,
         source: organization.id,
         target: child.id,
-        type: 'smoothstep',
+        type: ORGANIZATION_GRAPH_EDGE_TYPE,
         selectable: false,
         focusable: false
       }))

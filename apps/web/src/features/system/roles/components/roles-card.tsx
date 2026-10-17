@@ -22,14 +22,18 @@ import { getRoleIconColorClassName, roleEffectiveStatusConfig } from '../data/da
 import { RolesRowActions } from './roles-row-actions'
 
 import type { RoleIcon, RoleListItem } from '@zen/shared'
+import type { ReactNode } from 'react'
 import type { ListSelectionActionProps } from '@/hooks'
 
 type RolesCardProps = ListSelectionActionProps & {
   role: RoleListItem
+  /** 替换默认操作菜单。不传时使用系统管理页的操作。 */
+  actions?: ReactNode
 }
 
 export function RolesCard({
   role,
+  actions,
   isSelecting,
   selected = false,
   onEnterSelecting,
@@ -85,13 +89,15 @@ export function RolesCard({
           </div>
         </Link>
         <CardAction>
-          <RolesRowActions
-            role={role}
-            isSelecting={isSelecting}
-            selected={selected}
-            onEnterSelecting={onEnterSelecting}
-            onSelectedChange={onSelectedChange}
-          />
+          {actions ?? (
+            <RolesRowActions
+              role={role}
+              isSelecting={isSelecting}
+              selected={selected}
+              onEnterSelecting={onEnterSelecting}
+              onSelectedChange={onSelectedChange}
+            />
+          )}
         </CardAction>
       </CardHeader>
       <CardContent>

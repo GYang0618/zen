@@ -1,4 +1,4 @@
-import { Link, useNavigate } from '@tanstack/react-router'
+import { Link, useRouter } from '@tanstack/react-router'
 import { PermissionCode } from '@zen/shared'
 import {
   Badge,
@@ -34,7 +34,7 @@ type OrganizationDetailProps = {
 type OrganizationDetailTab = 'members' | 'positions' | 'changes'
 
 export function OrganizationDetail({ organizationId }: OrganizationDetailProps) {
-  const navigate = useNavigate()
+  const { history } = useRouter()
   const { data: organization, isLoading, isError } = useOrganizationDetail(organizationId)
   const { getLabel } = useOrganizationTypeCatalog()
   const [activeTab, setActiveTab] = useState<OrganizationDetailTab>('members')
@@ -87,7 +87,7 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
             size="icon-lg"
             className="rounded-full"
             nativeButton={false}
-            render={<Link to="/system/organization" aria-label="返回组织管理" />}
+            onClick={() => history.go(-1)}
           >
             <ArrowLeft />
           </Button>
@@ -144,7 +144,7 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
             <div className="min-w-0 flex-1">
               <TabsContent value="members">
                 {activeTab === 'members' ? (
-                  <OrganizationMembers organizationId={organizationId} />
+                  <OrganizationMembers key={organizationId} organizationId={organizationId} />
                 ) : null}
               </TabsContent>
               <TabsContent value="positions">
@@ -168,7 +168,7 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
         open={mergeDialogOpen}
         onOpenChange={setMergeDialogOpen}
         sourceOrganization={organization}
-        onSuccess={() => void navigate({ to: '/system/organization' })}
+        onSuccess={() => history.go(-1)}
       />
     </>
   )

@@ -14,6 +14,8 @@ import {
 } from '@zen/ui'
 import { z } from 'zod'
 
+import { handleFieldBlurValidate } from '@/lib/form/field-validation'
+
 import { useUpdatePluginConfig } from './queries'
 
 import type { PluginListItem } from './api'
@@ -42,7 +44,6 @@ export function PluginConfigDialog({ plugin, onOpenChange }: PluginConfigDialogP
     defaultValues: {
       configText: JSON.stringify(plugin?.config ?? {}, null, 2)
     },
-    validators: { onChange: configSchema, onSubmit: configSchema },
     onSubmit: async ({ value }) => {
       if (!plugin) return
       const parsed = JSON.parse(value.configText) as Record<string, unknown>
@@ -65,7 +66,7 @@ export function PluginConfigDialog({ plugin, onOpenChange }: PluginConfigDialogP
           }}
         >
           <FieldGroup>
-            <form.Field name="configText">
+            <form.Field name="configText" validators={{ onChange: configSchema.shape.configText }}>
               {(field) => (
                 <Field>
                   <FieldLabel htmlFor="plugin-config">JSON 配置</FieldLabel>
@@ -73,7 +74,7 @@ export function PluginConfigDialog({ plugin, onOpenChange }: PluginConfigDialogP
                     id="plugin-config"
                     className="min-h-40 font-mono text-sm"
                     value={field.state.value}
-                    onBlur={field.handleBlur}
+                    onBlur={() => handleFieldBlurValidate(field)}
                     onChange={(event) => field.handleChange(event.target.value)}
                     aria-label="插件 JSON 配置"
                   />

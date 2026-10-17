@@ -22,6 +22,8 @@ import {
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
 
+import { handleFieldBlurValidate } from '@/lib/form/field-validation'
+
 import { useCreateJobProfileMutation, useUpdateJobProfileMutation } from '../queries'
 import { JOB_PROFILE_LEVEL_OPTIONS } from '../utils'
 import { JobProfileIconColorPicker } from './job-profile-icon-color-picker'
@@ -30,16 +32,21 @@ import { JobProfileIconPicker } from './job-profile-icon-picker'
 import type { JobProfileListItem } from '@zen/shared'
 
 const jobProfileFormSchema = z.object({
-  name: z.string().trim().min(1, '岗位名称不能为空').max(100),
+  name: z
+    .string()
+    .trim()
+    .min(1, { error: '岗位名称不能为空', abort: true })
+    .max(100, { error: '岗位名称不能超过100个字符', abort: true }),
   code: z
     .string()
     .trim()
-    .regex(/^POS-\d{4}$/i, '岗位编码格式为 POS-四位数字，如 POS-1001'),
+    .min(1, { error: '岗位编码不能为空', abort: true })
+    .regex(/^POS-\d{4}$/i, { error: '岗位编码格式为 POS-四位数字，如 POS-1001', abort: true }),
   level: z.enum(['P5', 'P6', 'P7', 'P8']),
-  family: z.string().trim().max(50),
+  family: z.string().trim().max(50, '岗位族不能超过50个字符'),
   icon: z.enum(JOB_PROFILE_ICON_VALUES).nullable(),
   iconColor: z.enum(JOB_PROFILE_ICON_COLOR_VALUES).nullable(),
-  description: z.string().trim().max(500)
+  description: z.string().trim().max(500, '岗位描述不能超过500个字符')
 })
 
 type JobProfileFormValues = z.infer<typeof jobProfileFormSchema>
@@ -88,7 +95,6 @@ export function JobProfileFormDialog({
   const [initialValues] = useState(() => createDefaultValues(mode === 'edit' ? currentRow : null))
   const form = useForm({
     defaultValues: initialValues,
-    validators: { onChange: jobProfileFormSchema },
     onSubmit: async ({ value }) => {
       await handleSubmit(jobProfileFormSchema.parse(value))
     }
@@ -152,14 +158,14 @@ export function JobProfileFormDialog({
           }}
         >
           <FieldGroup>
-            <form.Field name="name">
+            <form.Field name="name" validators={{ onChange: jobProfileFormSchema.shape.name }}>
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid || undefined}>
                   <FieldLabel htmlFor="job-profile-name">岗位名称</FieldLabel>
                   <Input
                     name={field.name}
                     value={field.state.value}
-                    onBlur={field.handleBlur}
+                    onBlur={() => handleFieldBlurValidate(field)}
                     onChange={(event) => field.handleChange(event.target.value)}
                     id="job-profile-name"
                     placeholder="例如：高级前端工程师"
@@ -174,14 +180,14 @@ export function JobProfileFormDialog({
               )}
             </form.Field>
 
-            <form.Field name="code">
+            <form.Field name="code" validators={{ onChange: jobProfileFormSchema.shape.code }}>
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid || undefined}>
                   <FieldLabel htmlFor="job-profile-code">岗位编码</FieldLabel>
                   <Input
                     name={field.name}
                     value={field.state.value}
-                    onBlur={field.handleBlur}
+                    onBlur={() => handleFieldBlurValidate(field)}
                     onChange={(event) => field.handleChange(event.target.value)}
                     id="job-profile-code"
                     placeholder="例如：POS-1001"
@@ -197,7 +203,7 @@ export function JobProfileFormDialog({
               )}
             </form.Field>
 
-            <form.Field name="icon">
+            <form.Field name="icon" validators={{ onChange: jobProfileFormSchema.shape.icon }}>
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid || undefined}>
                   <FieldLabel htmlFor="job-profile-icon">岗位图标</FieldLabel>
@@ -217,7 +223,10 @@ export function JobProfileFormDialog({
               )}
             </form.Field>
 
-            <form.Field name="iconColor">
+            <form.Field
+              name="iconColor"
+              validators={{ onChange: jobProfileFormSchema.shape.iconColor }}
+            >
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid || undefined}>
                   <FieldLabel htmlFor="job-profile-icon-color">图标颜色</FieldLabel>
@@ -237,7 +246,7 @@ export function JobProfileFormDialog({
             </form.Field>
 
             <div className="grid grid-cols-2 gap-4">
-              <form.Field name="level">
+              <form.Field name="level" validators={{ onChange: jobProfileFormSchema.shape.level }}>
                 {(field) => (
                   <Field data-invalid={!field.state.meta.isValid || undefined}>
                     <FieldLabel>标准职级</FieldLabel>
@@ -272,14 +281,17 @@ export function JobProfileFormDialog({
                 )}
               </form.Field>
 
-              <form.Field name="family">
+              <form.Field
+                name="family"
+                validators={{ onChange: jobProfileFormSchema.shape.family }}
+              >
                 {(field) => (
                   <Field data-invalid={!field.state.meta.isValid || undefined}>
                     <FieldLabel htmlFor="job-profile-family">岗位族</FieldLabel>
                     <Input
                       name={field.name}
                       value={field.state.value}
-                      onBlur={field.handleBlur}
+                      onBlur={() => handleFieldBlurValidate(field)}
                       onChange={(event) => field.handleChange(event.target.value)}
                       id="job-profile-family"
                       placeholder="例如：研发"
@@ -295,14 +307,17 @@ export function JobProfileFormDialog({
               </form.Field>
             </div>
 
-            <form.Field name="description">
+            <form.Field
+              name="description"
+              validators={{ onChange: jobProfileFormSchema.shape.description }}
+            >
               {(field) => (
                 <Field data-invalid={!field.state.meta.isValid || undefined}>
                   <FieldLabel htmlFor="job-profile-description">岗位描述</FieldLabel>
                   <Textarea
                     name={field.name}
                     value={field.state.value}
-                    onBlur={field.handleBlur}
+                    onBlur={() => handleFieldBlurValidate(field)}
                     onChange={(event) => field.handleChange(event.target.value)}
                     id="job-profile-description"
                     placeholder="简要说明岗位职责"

@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 
 import { Can } from '@/components/auth/can'
+import { enterSelectingCurrentItem } from '@/hooks'
 
 import { useUnlockUserMutation, useUpdateUsersStatusMutation } from '../mutations'
 import { useUsers } from '../users-provider'
@@ -101,7 +102,9 @@ export function UsersCardActions({
         {onEnterSelecting ? (
           <>
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={onEnterSelecting}>
+              <DropdownMenuItem
+                onClick={() => enterSelectingCurrentItem({ onEnterSelecting, onSelectedChange })}
+              >
                 选择
                 <DropdownMenuShortcut>
                   <CheckSquare />

@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react'
 
+import type { ReactNode } from 'react'
 import type { OrganizationGraphRankdir } from '../build-organization-graph'
 import type { Organization } from '../type'
 
@@ -8,6 +9,8 @@ export type OrganizationGraphActions = {
   rankdir: OrganizationGraphRankdir
   onDelete?: (org: Organization) => void
   onMerge?: (org: Organization) => void
+  /** 替换节点上的默认菜单。不传时使用配置、合并、删除。 */
+  renderMenu?: (organization: Organization) => ReactNode
 }
 
 const OrganizationGraphActionsContext = createContext<OrganizationGraphActions | null>(null)

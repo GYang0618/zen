@@ -29,7 +29,7 @@ import type { OrganizationGraphNode as OrganizationGraphFlowNode } from '../buil
 
 export function OrganizationGraphNode({ data, selected }: NodeProps<OrganizationGraphFlowNode>) {
   const { getLabel } = useOrganizationTypeCatalog()
-  const { onToggleExpand, rankdir, onDelete, onMerge } = useOrganizationGraphActions()
+  const { onToggleExpand, rankdir, onDelete, onMerge, renderMenu } = useOrganizationGraphActions()
   const [menuOpen, setMenuOpen] = useState(false)
   const { organization, hasChildren, isExpanded, hiddenChildCount } = data
   const { id, name, type, memberCount, leader } = organization
@@ -82,68 +82,72 @@ export function OrganizationGraphNode({ data, selected }: NodeProps<Organization
             ) : null}
           </div>
         </div>
-        <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-          <DropdownMenuTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                aria-label={`${name}更多操作`}
-                className={cn(
-                  'nodrag nopan absolute top-2 right-2 transition-opacity duration-200',
-                  menuOpen
-                    ? 'pointer-events-auto opacity-100'
-                    : 'pointer-events-none opacity-0 group-hover/org-node:pointer-events-auto group-hover/org-node:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100'
-                )}
-                onClick={(event) => event.stopPropagation()}
-                onMouseDown={(event) => event.stopPropagation()}
-              >
-                <MoreHorizontal />
-              </Button>
-            }
-          />
-          <DropdownMenuContent align="end" className="w-36">
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                render={
-                  <Link
-                    to="/system/organization/$id"
-                    params={{ id }}
-                    onClick={(event) => event.stopPropagation()}
-                  />
-                }
-                nativeButton={false}
-              >
-                <Settings className="size-4" />
-                <span>配置</span>
-              </DropdownMenuItem>
-              <Can permission={PermissionCode.ORG_UPDATE}>
+        {renderMenu ? (
+          renderMenu(organization)
+        ) : (
+          <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label={`${name}更多操作`}
+                  className={cn(
+                    'nodrag nopan absolute top-2 right-2 transition-opacity duration-200',
+                    menuOpen
+                      ? 'pointer-events-auto opacity-100'
+                      : 'pointer-events-none opacity-0 group-hover/org-node:pointer-events-auto group-hover/org-node:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100'
+                  )}
+                  onClick={(event) => event.stopPropagation()}
+                  onMouseDown={(event) => event.stopPropagation()}
+                >
+                  <MoreHorizontal />
+                </Button>
+              }
+            />
+            <DropdownMenuContent align="end" className="w-36">
+              <DropdownMenuGroup>
                 <DropdownMenuItem
+                  render={
+                    <Link
+                      to="/system/organization/$id"
+                      params={{ id }}
+                      onClick={(event) => event.stopPropagation()}
+                    />
+                  }
+                  nativeButton={false}
+                >
+                  <Settings className="size-4" />
+                  <span>配置</span>
+                </DropdownMenuItem>
+                <Can permission={PermissionCode.ORG_UPDATE}>
+                  <DropdownMenuItem
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      onMerge?.(organization)
+                    }}
+                  >
+                    <GitMerge className="size-4" />
+                    <span>合并组织</span>
+                  </DropdownMenuItem>
+                </Can>
+              </DropdownMenuGroup>
+              <Can permission={PermissionCode.ORG_DELETE}>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  variant="destructive"
                   onClick={(event) => {
                     event.stopPropagation()
-                    onMerge?.(organization)
+                    onDelete?.(organization)
                   }}
                 >
-                  <GitMerge className="size-4" />
-                  <span>合并组织</span>
+                  <Trash2 className="size-4" />
+                  <span>删除</span>
                 </DropdownMenuItem>
               </Can>
-            </DropdownMenuGroup>
-            <Can permission={PermissionCode.ORG_DELETE}>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                variant="destructive"
-                onClick={(event) => {
-                  event.stopPropagation()
-                  onDelete?.(organization)
-                }}
-              >
-                <Trash2 className="size-4" />
-                <span>删除</span>
-              </DropdownMenuItem>
-            </Can>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       <div className="mt-auto flex min-w-0 items-center gap-2">

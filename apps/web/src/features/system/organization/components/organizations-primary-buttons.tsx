@@ -11,14 +11,14 @@ export function OrganizationsPrimaryButtons() {
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      <Button size="lg" onClick={() => setOpen('add')}>
+        <Plus /> 创建组织
+      </Button>
       <Can permission={PermissionCode.ORG_UPDATE}>
         <Button size="lg" variant="outline" onClick={() => setOpen('type-catalog')}>
           <Layers /> 组织类型
         </Button>
       </Can>
-      <Button size="lg" onClick={() => setOpen('add')}>
-        <Plus /> 新增组织
-      </Button>
     </div>
   )
 }

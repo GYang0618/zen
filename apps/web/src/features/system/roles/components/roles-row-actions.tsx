@@ -14,6 +14,7 @@ import { Ban, CheckSquare, Copy, MoreHorizontal, Pencil, ShieldCheck, Trash } fr
 
 import { Can } from '@/components/auth/can'
 import { useUpdateRoleMutation } from '@/features/system/roles/mutations'
+import { enterSelectingCurrentItem } from '@/hooks'
 
 import { useRoles } from '../roles-provider'
 import { canChangeRoleStatus, isProtectedRole } from '../utils'
@@ -83,7 +84,9 @@ export function RolesRowActions({
       <DropdownMenuContent align="end" sideOffset={4}>
         <DropdownMenuGroup>
           {onEnterSelecting ? (
-            <DropdownMenuItem onClick={onEnterSelecting}>
+            <DropdownMenuItem
+              onClick={() => enterSelectingCurrentItem({ onEnterSelecting, onSelectedChange })}
+            >
               <CheckSquare /> 选择
             </DropdownMenuItem>
           ) : null}

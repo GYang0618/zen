@@ -24,14 +24,18 @@ import { formatJobProfileLevel, jobProfileStatusConfig } from '../utils'
 import { PostsRowActions } from './posts-row-actions'
 
 import type { JobProfileListItem } from '@zen/shared'
+import type { ReactNode } from 'react'
 import type { ListSelectionActionProps } from '@/hooks'
 
 type PostsCardProps = ListSelectionActionProps & {
   item: JobProfileListItem
+  /** 替换默认操作菜单。不传时使用系统管理页的操作。 */
+  actions?: ReactNode
 }
 
 export function PostsCard({
   item,
+  actions,
   isSelecting,
   selected = false,
   onEnterSelecting,
@@ -74,13 +78,15 @@ export function PostsCard({
             <Badge variant="outline" className={status.className}>
               {status.label}
             </Badge>
-            <PostsRowActions
-              item={item}
-              isSelecting={isSelecting}
-              selected={selected}
-              onEnterSelecting={onEnterSelecting}
-              onSelectedChange={onSelectedChange}
-            />
+            {actions ?? (
+              <PostsRowActions
+                item={item}
+                isSelecting={isSelecting}
+                selected={selected}
+                onEnterSelecting={onEnterSelecting}
+                onSelectedChange={onSelectedChange}
+              />
+            )}
           </div>
         </div>
       </CardHeader>

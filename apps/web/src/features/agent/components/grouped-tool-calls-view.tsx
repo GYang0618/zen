@@ -14,6 +14,8 @@ interface ToolResultMessage {
 interface GroupedToolCallsViewProps {
   toolCalls: ToolCallLike[]
   messages: ToolResultMessage[]
+  /** work：轨迹中的调用步骤。surface：专属结果界面。 */
+  placement?: 'work' | 'surface'
 }
 
 interface CopilotKitToolCall {
@@ -46,7 +48,7 @@ function findToolMessage(toolCallId: string, messages: ToolResultMessage[]) {
   })
 }
 
-/** 取证调用不展示专属结果界面，但工作轨迹里仍用默认工具步骤。 */
+/** 工作轨迹里的调用步骤。专属结果界面由回合末单独渲染。 */
 function EvidenceToolCard({
   toolCall,
   toolMessage
@@ -73,7 +75,11 @@ function EvidenceToolCard({
   )
 }
 
-export function GroupedToolCallsView({ toolCalls, messages }: GroupedToolCallsViewProps) {
+export function GroupedToolCallsView({
+  toolCalls,
+  messages,
+  placement = 'surface'
+}: GroupedToolCallsViewProps) {
   const renderToolCall = useRenderToolCall()
   const validToolCalls = toolCalls.filter(isValidToolCall)
 
@@ -83,9 +89,10 @@ export function GroupedToolCallsView({ toolCalls, messages }: GroupedToolCallsVi
     <>
       {validToolCalls.map((toolCall) => {
         const toolMessage = findToolMessage(toolCall.id, messages)
+        const showStep = placement === 'work' || isToolCallDisplayHidden(toolCall)
         return (
           <div key={toolCall.id} className="w-full">
-            {isToolCallDisplayHidden(toolCall) ? (
+            {showStep ? (
               <EvidenceToolCard toolCall={toolCall} toolMessage={toolMessage} />
             ) : (
               renderToolCall({

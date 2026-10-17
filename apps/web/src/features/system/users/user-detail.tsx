@@ -12,7 +12,7 @@ import {
   Skeleton,
   toast
 } from '@zen/ui'
-import { ArrowLeft, KeyRound, LockOpen, LogOut } from 'lucide-react'
+import { ArrowLeft, KeyRound, LockOpen, LogOut, MoreHorizontal } from 'lucide-react'
 
 import { Can } from '@/components/auth/can'
 import { EmptyState } from '@/components/empty-state'
@@ -131,6 +131,10 @@ function UserDetailContent() {
               <Button variant="destructive" onClick={() => setOpen('revoke-sessions')}>
                 <LogOut />
                 强制下线
+              </Button>
+
+              <Button size="icon" variant="outline">
+                <MoreHorizontal />
               </Button>
             </Can>
           </PageHeaderActions>

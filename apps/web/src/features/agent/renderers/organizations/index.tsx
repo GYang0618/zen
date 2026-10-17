@@ -9,22 +9,20 @@ import {
 import { parseToolResult } from '../../lib/parse-tool-result'
 import { OrganizationsList } from './organizations-list'
 
-import type { Organization as SharedOrganization } from '@zen/shared'
-import type { Organization } from '@/features/system/organization/type'
+import type { Organization, OrganizationTreeNode } from '@zen/shared'
 
-function buildTreeFromItems(items: SharedOrganization[]): Organization[] {
-  const map = new Map<string, Organization>()
-  const roots: Organization[] = []
+function buildTreeFromItems(items: Organization[]): OrganizationTreeNode[] {
+  const map = new Map<string, OrganizationTreeNode>()
+  const roots: OrganizationTreeNode[] = []
   for (const item of items) {
     map.set(item.id, { ...item, children: [] })
   }
   for (const item of items) {
-    const node = map.get(item.id)!
-    if (item.parentId && map.has(item.parentId)) {
-      map.get(item.parentId)!.children!.push(node)
-    } else {
-      roots.push(node)
-    }
+    const node = map.get(item.id)
+    if (!node) continue
+    const parent = item.parentId ? map.get(item.parentId) : undefined
+    if (parent) parent.children.push(node)
+    else roots.push(node)
   }
   return roots
 }
@@ -45,13 +43,11 @@ export function useOrganizationsRenderers() {
         if (status === 'executing') return <span className="shimmer">正在查询组织架构...</span>
         if (status === 'complete') {
           const data = parseToolResult(result, organizationTreeSchema)
-          const keyword = (parameters as { keyword?: string })?.keyword
           return (
             <OrganizationsList
               title={meta?.title ?? '组织架构查询结果'}
               description={meta?.description}
               treeData={data ?? []}
-              keyword={keyword}
             />
           )
         }
@@ -77,14 +73,12 @@ export function useOrganizationsRenderers() {
         if (status === 'executing') return <span className="shimmer">正在查询组织数据...</span>
         if (status === 'complete') {
           const data = parseToolResult(result, organizationPageSchema)
-          const keyword = (parameters as { keyword?: string })?.keyword
           const treeData = data?.items ? buildTreeFromItems(data.items) : undefined
           return (
             <OrganizationsList
               title={meta?.title ?? '组织架构查询结果'}
               description={meta?.description}
               treeData={treeData}
-              keyword={keyword}
             />
           )
         }

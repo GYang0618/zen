@@ -122,7 +122,7 @@ export function OrganizationDetailSideOverview({
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle>编制健康度看板</CardTitle>
+            <CardTitle>编制使用情况</CardTitle>
             {staffingStats.totalHeadcount === 0 ? (
               <Badge variant="outline">未设编制</Badge>
             ) : staffingStats.overCount > 0 ? (

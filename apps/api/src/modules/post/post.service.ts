@@ -15,7 +15,11 @@ import {
   toJobProfileResponse,
   toOrganizationPositionResponse
 } from './post.mapper.js'
-import { PostRepository } from './post.repository.js'
+import {
+  OrganizationPositionsMissingError,
+  OrganizationPositionsOccupiedError,
+  PostRepository
+} from './post.repository.js'
 
 import type {
   CreateJobProfileDto,
@@ -185,6 +189,28 @@ export class PostService {
     }
 
     await this.postRepo.deleteOrganizationPosition(positionId)
+  }
+
+  async batchUnlinkOrganizationPositions(
+    organizationId: string,
+    positionIds: string[]
+  ): Promise<void> {
+    try {
+      await this.postRepo.batchUnlinkOrganizationPositions(organizationId, positionIds)
+    } catch (error) {
+      if (error instanceof OrganizationPositionsMissingError) {
+        throw new NotFoundException('部分岗位编制不存在')
+      }
+      if (error instanceof OrganizationPositionsOccupiedError) {
+        const names = error.names.join('、')
+        throw new ConflictException(
+          names
+            ? `「${names}」仍有在岗人员，无法解除岗位关联；请先调整相关用户任职`
+            : '仍有在岗人员，无法解除岗位关联；请先调整相关用户任职'
+        )
+      }
+      throw error
+    }
   }
 
   async findOrganizationPosition(organizationId: string, positionId: string) {

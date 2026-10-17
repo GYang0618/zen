@@ -16,6 +16,12 @@ export function AreaChart({ props }: RendererProps<AreaChartProps>) {
     <ChartCardShell title={props.title} description={props.description}>
       <ChartContainer config={config} className="aspect-auto h-72 w-full">
         <RechartsArea accessibilityLayer data={data} margin={{ left: 8, right: 8 }}>
+          <defs>
+            <linearGradient id="single-area-gradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="var(--color-value)" stopOpacity={0.4} />
+              <stop offset="95%" stopColor="var(--color-value)" stopOpacity={0.05} />
+            </linearGradient>
+          </defs>
           <CartesianGrid vertical={false} />
           <XAxis
             dataKey="label"
@@ -36,8 +42,7 @@ export function AreaChart({ props }: RendererProps<AreaChartProps>) {
             type="monotone"
             dataKey="value"
             stroke="var(--color-value)"
-            fill="var(--color-value)"
-            fillOpacity={0.15}
+            fill="url(#single-area-gradient)"
             strokeWidth={2}
           />
         </RechartsArea>

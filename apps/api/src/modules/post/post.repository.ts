@@ -89,6 +89,25 @@ export const POST_WITH_PROFILE_INCLUDE = {
   _count: { select: { users: { where: { leftAt: null } } } }
 } satisfies Prisma.PostInclude
 
+/** 批量解除关联时，请求中的编制并非全部属于当前组织。事务内抛出以回滚。 */
+export class OrganizationPositionsMissingError extends Error {
+  constructor() {
+    super('部分岗位编制不存在')
+    this.name = 'OrganizationPositionsMissingError'
+  }
+}
+
+/** 批量解除关联时，部分编制仍有在岗人员。事务内抛出以回滚。 */
+export class OrganizationPositionsOccupiedError extends Error {
+  readonly names: string[]
+
+  constructor(names: string[]) {
+    super('仍有在岗人员，无法解除岗位关联')
+    this.name = 'OrganizationPositionsOccupiedError'
+    this.names = names
+  }
+}
+
 @Injectable()
 export class PostRepository {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
@@ -195,6 +214,31 @@ export class PostRepository {
 
   deleteOrganizationPosition(id: string) {
     return this.prisma.post.delete({ where: { id } })
+  }
+
+  async batchUnlinkOrganizationPositions(organizationId: string, positionIds: string[]) {
+    await this.prisma.$transaction(async (tx) => {
+      const positions = await tx.post.findMany({
+        where: { organizationId, id: { in: positionIds } },
+        select: {
+          id: true,
+          jobProfile: { select: { name: true } },
+          _count: { select: { users: { where: { leftAt: null } } } }
+        }
+      })
+      if (positions.length !== positionIds.length) {
+        throw new OrganizationPositionsMissingError()
+      }
+
+      const occupied = positions.filter((item) => item._count.users > 0)
+      if (occupied.length > 0) {
+        throw new OrganizationPositionsOccupiedError(occupied.map((item) => item.jobProfile.name))
+      }
+
+      await tx.post.deleteMany({
+        where: { organizationId, id: { in: positionIds } }
+      })
+    })
   }
 
   buildProfileWhere(input: {

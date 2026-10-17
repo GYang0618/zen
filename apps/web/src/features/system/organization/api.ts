@@ -2,7 +2,9 @@ import { request } from '@/lib/request'
 
 import type {
   AddOrganizationMember,
+  BatchRemoveMembers,
   BatchTransferMembers,
+  BatchUnlinkOrganizationPositions,
   ChangeOrganizationParent,
   CreateOrganization,
   DissolveOrganization,
@@ -62,6 +64,9 @@ export const organizationApi = {
   batchTransferMembers: (id: string, data: BatchTransferMembers) =>
     request.post<void, BatchTransferMembers>(`/organizations/${id}/members/batch-transfer`, data),
 
+  batchRemoveMembers: (id: string, data: BatchRemoveMembers) =>
+    request.post<void, BatchRemoveMembers>(`/organizations/${id}/members/batch-remove`, data),
+
   removeMember: (id: string, userId: string) =>
     request.delete<void>(`/organizations/${id}/members/${userId}`),
 
@@ -84,6 +89,12 @@ export const organizationApi = {
 
   removePosition: (id: string, positionId: string) =>
     request.delete<void>(`/organizations/${id}/positions/${positionId}`),
+
+  batchUnlinkPositions: (id: string, data: BatchUnlinkOrganizationPositions) =>
+    request.post<void, BatchUnlinkOrganizationPositions>(
+      `/organizations/${id}/positions/batch-unlink`,
+      data
+    ),
 
   listActivities: (id: string, params?: OrganizationActivitiesQuery) =>
     request.get<Paged<OrganizationActivity>>(`/organizations/${id}/activities`, { params }),
