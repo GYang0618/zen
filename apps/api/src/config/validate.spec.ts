@@ -6,6 +6,7 @@ const productionEnv = {
   JWT_SECRET: 'a-production-secret-that-is-long-enough',
   CORS_ORIGIN: 'https://zen.example.com',
   STORAGE_SECRET_KEY: 'a-production-storage-secret',
+  AGENT_INTERNAL_TOKEN: 'a-production-agent-internal-token-that-is-long-enough',
   COPILOT_THROTTLE: '120/m'
 }
 

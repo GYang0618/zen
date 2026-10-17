@@ -36,6 +36,7 @@ export function validate(rawEnv: Record<string, unknown>) {
     const jwtSecret = String(rawEnv.JWT_SECRET ?? '')
     const databaseUrl = String(rawEnv.DATABASE_URL ?? '')
     const storageSecret = String(rawEnv.STORAGE_SECRET_KEY ?? '')
+    const agentInternalToken = String(rawEnv.AGENT_INTERNAL_TOKEN ?? '')
 
     if (!corsOrigin || corsOrigin === '*') {
       throw new Error('环境变量校验失败 - 生产环境禁止使用 wildcard CORS_ORIGIN')
@@ -48,6 +49,9 @@ export function validate(rawEnv: Record<string, unknown>) {
     }
     if (!storageSecret || /zenminio_secret|change-me|your-storage/i.test(storageSecret)) {
       throw new Error('环境变量校验失败 - 生产环境必须提供非占位 STORAGE_SECRET_KEY')
+    }
+    if (!agentInternalToken || agentInternalToken.length < 32) {
+      throw new Error('环境变量校验失败 - 生产环境必须提供 AGENT_INTERNAL_TOKEN')
     }
   }
 

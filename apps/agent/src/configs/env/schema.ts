@@ -13,7 +13,12 @@ export const envSchema = z.object({
     .boolean()
     .optional()
     .describe('LangSmith 追踪是否启用（.env 中为 true/false）'),
-  LANGSMITH_PROJECT: z.string().optional().describe('LangSmith 项目')
+  LANGSMITH_PROJECT: z.string().optional().describe('LangSmith 项目'),
+  AGENT_INTERNAL_TOKEN: z
+    .string()
+    .min(32, 'AGENT_INTERNAL_TOKEN 必须至少 32 个字符')
+    .optional()
+    .describe('与 API 内部通信凭证')
 })
 
 export type Env = z.infer<typeof envSchema>

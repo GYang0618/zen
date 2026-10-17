@@ -8,9 +8,12 @@ import {
   UnauthorizedException
 } from '@nestjs/common'
 import { UserStatusCode } from '@prisma/client'
+import { createAuditDiff, DEFAULT_TENANT_ID } from '@zen/shared'
 
+import { AuditService } from '../../common/auth/audit.service.js'
 import { AuthContextService } from '../../common/auth/auth-context.service.js'
 import { MembershipService } from '../../common/auth/membership.service.js'
+import { getRequestAuditContext } from '../../common/auth/request-audit-context.js'
 import { SessionService } from '../../common/auth/session.service.js'
 import argon2 from '../../common/utils/argon2.js'
 import { PrismaService } from '../../infra/prisma/index.js'
@@ -35,6 +38,7 @@ export interface IssueSessionResult {
 export interface RefreshSessionMeta {
   ip?: string
   userAgent?: string
+  traceId?: string
 }
 
 export interface LoginMeta extends RefreshSessionMeta {
@@ -72,6 +76,7 @@ export class AuthService {
     @Inject(SessionService) private readonly sessionService: SessionService,
     @Inject(MembershipService) private readonly membershipService: MembershipService,
     @Inject(AuthContextService) private readonly authContextService: AuthContextService,
+    @Inject(AuditService) private readonly auditService: AuditService,
     @Inject(PrismaService) private readonly prisma: PrismaService
   ) {}
 
@@ -87,7 +92,8 @@ export class AuthService {
       identifier: dto.email,
       success: true,
       ip: meta.ip,
-      userAgent: meta.userAgent
+      userAgent: meta.userAgent,
+      traceId: meta.traceId
     })
 
     return await this.issueSessionFromListItem(createdUser)
@@ -104,6 +110,7 @@ export class AuthService {
         success: false,
         ip: meta.ip,
         userAgent: meta.userAgent,
+        traceId: meta.traceId,
         reason: AuthLoginReason.UserNotFound
       })
       throwAuthLoginError(AuthLoginReason.UserNotFound, '用户不存在')
@@ -121,6 +128,7 @@ export class AuthService {
         success: false,
         ip: meta.ip,
         userAgent: meta.userAgent,
+        traceId: meta.traceId,
         reason: readAuthFailureReason(error)
       })
       throw error
@@ -142,7 +150,8 @@ export class AuthService {
       identifier: dto.identifier,
       success: true,
       ip: meta.ip,
-      userAgent: meta.userAgent
+      userAgent: meta.userAgent,
+      traceId: meta.traceId
     })
     const userInfo = await this.userService.getUserInfoByUserId(user.id)
     const mustChangePassword = await this.resolveMustChangePassword(user.id)
@@ -177,7 +186,9 @@ export class AuthService {
       identifier: payload.email,
       success: true,
       ip: meta.ip,
-      userAgent: meta.userAgent
+      userAgent: meta.userAgent,
+      traceId: meta.traceId,
+      event: 'mfa'
     })
     const userInfo = await this.userService.getUserInfoByUserId(payload.sub)
     const mustChangePassword = await this.resolveMustChangePassword(payload.sub)
@@ -211,6 +222,13 @@ export class AuthService {
       where: { userId },
       data: { mfaEnabled: true, mfaType: 'TOTP' }
     })
+    this.auditService.enqueue({
+      actorId: userId,
+      action: 'auth.mfa.enabled',
+      resource: 'auth',
+      resourceId: userId,
+      diff: createAuditDiff({ summary: '开启了双因子认证（TOTP）' })
+    })
   }
 
   async disableMfa(userId: string, code: string): Promise<void> {
@@ -224,6 +242,13 @@ export class AuthService {
       where: { userId },
       data: { mfaEnabled: false, mfaType: 'OFF', mfaSecret: null }
     })
+    this.auditService.enqueue({
+      actorId: userId,
+      action: 'auth.mfa.disabled',
+      resource: 'auth',
+      resourceId: userId,
+      diff: createAuditDiff({ summary: '关闭了双因子认证' })
+    })
   }
 
   async refresh(userId: string): Promise<IssueSessionResult> {
@@ -236,18 +261,27 @@ export class AuthService {
     return await this.issueSession(user.id, userInfo, mustChangePassword)
   }
 
-  async logout(userId: string, refreshToken?: string) {
+  async logout(userId: string, refreshToken?: string, meta: RefreshSessionMeta = {}) {
     if (!refreshToken) {
       await this.sessionService.revokeAllForUser(userId)
-      return
+    } else {
+      const matched = await this.sessionService.findActiveMatching(userId, (hash) =>
+        argon2.verify(hash, `${REFRESH_TOKEN_HASH_PREFIX}${refreshToken}`)
+      )
+      if (matched) {
+        await this.sessionService.revokeById(matched.id)
+      }
     }
-
-    const matched = await this.sessionService.findActiveMatching(userId, (hash) =>
-      argon2.verify(hash, `${REFRESH_TOKEN_HASH_PREFIX}${refreshToken}`)
-    )
-    if (matched) {
-      await this.sessionService.revokeById(matched.id)
-    }
+    this.auditService.enqueue({
+      actorId: userId,
+      action: 'auth.logout',
+      resource: 'auth',
+      resourceId: userId,
+      ip: meta.ip,
+      userAgent: meta.userAgent,
+      traceId: meta.traceId,
+      diff: createAuditDiff({ summary: '注销退出当前登录会话' })
+    })
   }
 
   async getMe(userId: string) {
@@ -322,6 +356,14 @@ export class AuthService {
       }
     })
     await this.sessionService.revokeAllForUser(matched.userId)
+    this.auditService.enqueue({
+      actorId: matched.userId,
+      action: 'auth.password.reset',
+      resource: 'auth',
+      resourceId: matched.userId,
+      traceId: getRequestAuditContext()?.traceId,
+      diff: createAuditDiff({ summary: '通过重置令牌成功设置新密码' })
+    })
   }
 
   async changePassword(
@@ -350,6 +392,14 @@ export class AuthService {
         passwordExpireAt: null
       }
     })
+    this.auditService.enqueue({
+      actorId: userId,
+      action: 'auth.password.changed',
+      resource: 'auth',
+      resourceId: userId,
+      traceId: getRequestAuditContext()?.traceId,
+      diff: createAuditDiff({ summary: '修改了账号登录密码' })
+    })
   }
 
   private async resolveMustChangePassword(userId: string): Promise<boolean> {
@@ -370,16 +420,40 @@ export class AuthService {
     ip?: string
     userAgent?: string
     reason?: string
+    traceId?: string
+    event?: string
   }) {
     await this.prisma.loginEvent.create({
       data: {
+        tenantId: DEFAULT_TENANT_ID,
         userId: input.userId,
         identifier: input.identifier,
         success: input.success,
         ip: input.ip,
         userAgent: input.userAgent,
-        reason: input.reason
+        reason: input.reason,
+        traceId: input.traceId ?? getRequestAuditContext()?.traceId,
+        event: input.event ?? 'login'
       }
+    })
+
+    const action = input.success ? 'auth.login.success' : 'auth.login.failed'
+    const result = input.success ? 'SUCCESS' : 'FAILURE'
+    const summary = input.success
+      ? `账号 ${input.identifier} 登录系统成功`
+      : `账号 ${input.identifier} 登录失败：${input.reason ?? '密码错误'}`
+
+    this.auditService.enqueue({
+      actorId: input.userId,
+      action,
+      resource: 'auth',
+      resourceId: input.userId,
+      result,
+      errorCode: input.success ? undefined : input.reason,
+      ip: input.ip,
+      userAgent: input.userAgent,
+      traceId: input.traceId ?? getRequestAuditContext()?.traceId,
+      diff: createAuditDiff({ summary })
     })
   }
 
@@ -461,13 +535,36 @@ export class AuthService {
     }
 
     await this.createRefreshSession(userId, nextRefreshToken, expiresAt, meta)
+    this.auditService.enqueue({
+      actorId: userId,
+      action: 'auth.token.refreshed',
+      resource: 'auth',
+      resourceId: userId,
+      ip: meta.ip,
+      userAgent: meta.userAgent,
+      traceId: meta.traceId,
+      diff: createAuditDiff({ summary: '成功轮换并刷新访问令牌' })
+    })
   }
 
-  async assertRefreshTokenValid(userId: string, refreshToken: string) {
+  async assertRefreshTokenValid(
+    userId: string,
+    refreshToken: string,
+    meta: RefreshSessionMeta = {}
+  ) {
     const matched = await this.sessionService.findActiveMatching(userId, (hash) =>
       argon2.verify(hash, `${REFRESH_TOKEN_HASH_PREFIX}${refreshToken}`)
     )
     if (!matched) {
+      this.auditService.enqueue({
+        actorId: userId,
+        action: 'auth.token.reuse_detected',
+        resource: 'auth',
+        resourceId: userId,
+        result: 'DENIED',
+        traceId: meta.traceId,
+        diff: createAuditDiff({ summary: '检测到无效或已吊销的刷新令牌再次被使用' })
+      })
       throw new UnauthorizedException('刷新令牌无效或已过期')
     }
   }
@@ -508,6 +605,16 @@ export class AuthService {
         isLocked: true,
         loginAttempts: attempts,
         lockExpireAt
+      })
+      this.auditService.enqueue({
+        actorId: user.id,
+        action: 'auth.login.locked',
+        resource: 'auth',
+        resourceId: user.id,
+        result: 'FAILURE',
+        diff: createAuditDiff({
+          summary: `连续登录失败 ${attempts} 次，账号已被自动锁定 ${LOCK_DURATION_MINUTES} 分钟`
+        })
       })
       throwAuthLoginError(
         AuthLoginReason.AccountLocked,

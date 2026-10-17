@@ -1,13 +1,28 @@
 import { Catch, HttpException, HttpStatus, Inject } from '@nestjs/common'
 import { HttpAdapterHost } from '@nestjs/core'
+import { createAuditDiff, resolveRouteTitle } from '@zen/shared'
 import { Logger } from 'nestjs-pino'
 
 import { appConfig } from '../../config/index.js'
+import { AuditService } from '../auth/audit.service.js'
 import { resolveTraceId, TRACE_ID_HEADER } from '../utils/trace-id.js'
 
 import type { ArgumentsHost, ExceptionFilter } from '@nestjs/common'
 import type { AppConfig } from '../../config/index.js'
 import type { ApiErrorResponse } from '../interfaces/api-response.interface.js'
+
+const rateLimitAuditCache = new Map<string, number>()
+function shouldAuditRateLimit(key: string, now: number): boolean {
+  const last = rateLimitAuditCache.get(key)
+  if (last && now - last < 60_000) return false
+  rateLimitAuditCache.set(key, now)
+  if (rateLimitAuditCache.size > 2000) {
+    for (const [k, v] of rateLimitAuditCache.entries()) {
+      if (now - v >= 60_000) rateLimitAuditCache.delete(k)
+    }
+  }
+  return true
+}
 
 type HttpRequest = {
   id?: string
@@ -93,7 +108,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
     @Inject(Logger)
     private readonly logger: Logger,
     @Inject(appConfig.KEY)
-    private readonly appCfg: AppConfig
+    private readonly appCfg: AppConfig,
+    @Inject(AuditService)
+    private readonly audit: AuditService
   ) {}
 
   catch(exception: unknown, host: ArgumentsHost) {
@@ -119,13 +136,61 @@ export class AllExceptionsFilter implements ExceptionFilter {
     request.id = traceId
     response.setHeader?.(TRACE_ID_HEADER, traceId)
 
+    const requestPath = request.url.split('?')[0] ?? request.url
+    const apiPrefix = this.appCfg.apiPrefix.replace(/\/$/, '')
+    const routePath =
+      apiPrefix && requestPath.startsWith(apiPrefix)
+        ? requestPath.slice(apiPrefix.length) || '/'
+        : requestPath
+
+    if (statusCode === HttpStatus.FORBIDDEN) {
+      const title = resolveRouteTitle(request.method, routePath)
+      const attempted = title.replace(/了/, '')
+      this.audit.enqueue({
+        action: 'security.access.denied',
+        result: 'DENIED',
+        endpoint: `${request.method} ${routePath}`,
+        diff: createAuditDiff({
+          summary: `越权访问被拒绝：尝试${attempted}（${message}）`,
+          denied: {
+            attempted,
+            missing: []
+          },
+          request: {
+            method: request.method,
+            route: routePath,
+            status: 403
+          }
+        })
+      })
+    } else if (statusCode === HttpStatus.TOO_MANY_REQUESTS) {
+      const forwarded = request.headers['x-forwarded-for']
+      const ip = Array.isArray(forwarded) ? forwarded[0] : forwarded
+      const dedupeKey = `${ip ?? ''}_${request.method}_${routePath}`
+      if (shouldAuditRateLimit(dedupeKey, Date.now())) {
+        this.audit.enqueue({
+          action: 'security.rate_limited',
+          result: 'DENIED',
+          endpoint: `${request.method} ${routePath}`,
+          diff: createAuditDiff({
+            summary: `请求触发限流策略：${message}`,
+            request: {
+              method: request.method,
+              route: routePath,
+              status: 429
+            }
+          })
+        })
+      }
+    }
+
     const validationErrors = isHttpException ? extractValidationErrors(exception) : undefined
 
     const body: ApiErrorResponse = {
       code: statusCode,
       reason: isHttpException ? extractHttpExceptionReason(exception) : null,
       message,
-      path: request.url,
+      path: requestPath,
       traceId,
       timestamp: new Date().toISOString(),
       error: this.appCfg.isDev && !isHttpException ? serializeError(exception) : null,

@@ -10,6 +10,7 @@ import {
 
 import { PrismaService } from '../../infra/prisma/prisma.service.js'
 import { CopilotThreadService } from './copilot-thread.service.js'
+import { CopilotUsageService } from './copilot-usage.service.js'
 
 export interface GenerateTitleFromContentParams {
   threadId: string
@@ -25,7 +26,8 @@ export class CopilotTitleService {
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
-    @Inject(CopilotThreadService) private readonly threadService: CopilotThreadService
+    @Inject(CopilotThreadService) private readonly threadService: CopilotThreadService,
+    @Inject(CopilotUsageService) private readonly usageService: CopilotUsageService
   ) {}
 
   /**
@@ -127,6 +129,27 @@ export class CopilotTitleService {
 ${content.slice(0, 300)}`
 
       const response = await model.invoke(prompt)
+      const u = (
+        response as {
+          usage_metadata?: { input_tokens?: number; output_tokens?: number; total_tokens?: number }
+        }
+      ).usage_metadata
+      if (u) {
+        void this.usageService.recordUsage([
+          {
+            threadId,
+            callIndex: 0,
+            purpose: 'title',
+            provider: 'openai',
+            model: DEFAULT_AGENT_VERSIONS.model ?? 'qwen3.8-27b',
+            status: 'succeeded',
+            inputTokens: u.input_tokens ?? 0,
+            outputTokens: u.output_tokens ?? 0,
+            totalTokens: u.total_tokens ?? (u.input_tokens ?? 0) + (u.output_tokens ?? 0)
+          }
+        ])
+      }
+
       const text =
         typeof response.content === 'string' ? response.content : JSON.stringify(response.content)
 

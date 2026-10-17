@@ -2,10 +2,16 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 
 export type RequestAuditContext = {
   actorId?: string
+  actorType?: 'user' | 'agent' | 'system'
+  actorName?: string
   tenantId?: string
   ip?: string
   userAgent?: string
   traceId?: string
+  agentRunId?: string
+  agentToolName?: string
+  agentApprovalId?: string
+  audited?: boolean
 }
 
 const storage = new AsyncLocalStorage<RequestAuditContext>()
@@ -19,7 +25,7 @@ export function runWithRequestAuditContext<T>(callback: () => T): T {
 }
 
 /** 守卫解析出登录态后回填操作者信息（直接修改 store 引用，后续读取可见） */
-export function setRequestAuditContext(patch: RequestAuditContext): void {
+export function setRequestAuditContext(patch: Partial<RequestAuditContext>): void {
   const store = storage.getStore()
   if (!store) return
   Object.assign(store, patch)

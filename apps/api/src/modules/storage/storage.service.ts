@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import {
+  createAuditDiff,
   DEFAULT_PAGE,
   DEFAULT_PAGE_SIZE,
   DEFAULT_TENANT_ID,
@@ -179,7 +180,10 @@ export class StorageService {
       action: 'storage.upload.intent',
       resource: 'file_asset',
       resourceId: created.id,
-      diff: { purpose, size: input.size, originalName: input.originalName }
+      diff: createAuditDiff({
+        summary: `发起了文件「${input.originalName}」上传`,
+        meta: { purpose, size: input.size }
+      })
     })
 
     return this.toIntent(created, session)
@@ -277,7 +281,10 @@ export class StorageService {
       action: 'storage.upload.complete',
       resource: 'file_asset',
       resourceId: row.id,
-      diff: { size: head.size, detectedMime }
+      diff: createAuditDiff({
+        summary: `完成了文件「${row.originalName}」上传`,
+        meta: { size: head.size, detectedMime }
+      })
     })
 
     return toFileAssetDto(updated)
@@ -477,7 +484,10 @@ export class StorageService {
         action: 'storage.upload.deduplicated',
         resource: 'file_asset',
         resourceId: existing.id,
-        diff: { checksum: input.checksum, size: input.size }
+        diff: createAuditDiff({
+          summary: '复用了已有文件，跳过重复上传',
+          meta: { checksum: input.checksum, size: input.size }
+        })
       })
       return this.toDeduplicatedIntent(existing)
     }
@@ -517,7 +527,10 @@ export class StorageService {
       action: 'storage.upload.deduplicated',
       resource: 'file_asset',
       resourceId: existing.id,
-      diff: { discardedFileId: incoming.id }
+      diff: createAuditDiff({
+        summary: '检测到重复文件，已丢弃重复对象',
+        meta: { discardedFileId: incoming.id }
+      })
     })
     return kept
   }

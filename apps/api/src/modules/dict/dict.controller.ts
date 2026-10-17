@@ -9,8 +9,14 @@ import {
   UsePipes
 } from '@nestjs/common'
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger'
-import { createDictItemSchema, createDictTypeSchema, PermissionCode } from '@zen/shared'
+import {
+  createAuditDiff,
+  createDictItemSchema,
+  createDictTypeSchema,
+  PermissionCode
+} from '@zen/shared'
 
+import { AuditService } from '../../common/auth/audit.service.js'
 import { RequirePermission } from '../../common/decorators/require-permission.decorator.js'
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js'
 import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '../../common/swagger/index.js'
@@ -22,7 +28,10 @@ import type { CreateDictItem, CreateDictType, DictItem, DictType } from '@zen/sh
 @ApiBearerAuth(ACCESS_TOKEN_AUTH)
 @Controller('dict')
 export class DictController {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(AuditService) private readonly auditService: AuditService
+  ) {}
 
   @Get()
   @RequirePermission(PermissionCode.DICT_LIST)
@@ -85,6 +94,16 @@ export class DictController {
       },
       include: { items: true }
     })
+    this.auditService.enqueue({
+      action: 'system.dict.type_created',
+      resource: 'dict_type',
+      resourceId: created.id,
+      diff: createAuditDiff({
+        summary: `创建了字典类型「${created.name}（${created.code}）」`,
+        target: { id: created.id, name: created.name, code: created.code }
+      })
+    })
+
     return {
       id: created.id,
       code: created.code,
@@ -111,6 +130,16 @@ export class DictController {
         sort: payload.sort ?? 0,
         status: payload.status === 'disabled' ? 'DISABLED' : 'ACTIVE'
       }
+    })
+
+    this.auditService.enqueue({
+      action: 'system.dict.item_created',
+      resource: 'dict_item',
+      resourceId: created.id,
+      diff: createAuditDiff({
+        summary: `在字典「${type.name}」中新增了字典项「${created.label}」`,
+        target: { id: created.id, name: created.label, code: created.value }
+      })
     })
 
     return {

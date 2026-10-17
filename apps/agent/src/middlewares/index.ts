@@ -12,3 +12,4 @@ export {
   MODEL_RETRY_CONFIG,
   TOOL_RETRY_CONFIG
 } from './retry-policy'
+export { createUsageMiddleware } from './usage'

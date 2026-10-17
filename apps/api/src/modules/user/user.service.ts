@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { Gender, UserStatusCode } from '@prisma/client'
-import { completePageQuery } from '@zen/shared'
+import { completePageQuery, createAuditDiff, maskEmail, maskPhoneNumber } from '@zen/shared'
 
 import { applyUserListDataScope } from '../../common/auth/apply-data-scope.js'
 import { AuditService } from '../../common/auth/audit.service.js'
@@ -28,7 +28,7 @@ import {
 import { UserRepository } from './user.repository.js'
 
 import type { Prisma } from '@prisma/client'
-import type { AuthContext, UpdateMyProfile, UserGender } from '@zen/shared'
+import type { AuditDiffChange, AuthContext, UpdateMyProfile, UserGender } from '@zen/shared'
 import type { AuthConfig } from '../../config/index.js'
 import type { AssignUserRolesDto } from './dto/assign-user-roles.dto.js'
 import type { CreateUserDto } from './dto/create-user.dto.js'
@@ -134,7 +134,14 @@ export class UserService {
       action: 'system.user.created',
       resource: 'user',
       resourceId: created.id,
-      diff: { username: data.username, email: data.email, mustChangePassword: true }
+      diff: createAuditDiff({
+        summary: `创建了用户「${data.username}」`,
+        target: { id: created.id, name: data.username },
+        changes: [
+          { field: 'email', label: '邮箱', from: null, to: maskEmail(data.email) },
+          { field: 'mustChangePassword', label: '首次登录改密', from: null, to: '是' }
+        ]
+      })
     })
 
     const user = await this.getUserById(created.id)
@@ -227,12 +234,49 @@ export class UserService {
       }
     )
 
+    const changes: AuditDiffChange[] = []
+    if (data.nickname !== undefined) {
+      changes.push({
+        field: 'nickname',
+        label: '昵称',
+        from: existing.nickname ?? null,
+        to: data.nickname
+      })
+    }
+    if (data.bio !== undefined) {
+      changes.push({
+        field: 'bio',
+        label: '个人简介',
+        from: existing.profile?.remark ?? null,
+        to: data.bio
+      })
+    }
+    if (data.avatar !== undefined) {
+      changes.push({
+        field: 'avatar',
+        label: '头像',
+        from: existing.profile?.avatar ?? null,
+        to: data.avatar
+      })
+    }
+    if (data.phoneNumber !== undefined) {
+      changes.push({
+        field: 'phoneNumber',
+        label: '手机号',
+        from: existing.phoneNumber ? maskPhoneNumber(existing.phoneNumber) : null,
+        to: data.phoneNumber ? maskPhoneNumber(data.phoneNumber) : null
+      })
+    }
+
     await this.auditService.write({
       action: 'auth.profile.updated',
       resource: 'user',
       resourceId: userId,
       actorId: userId,
-      diff: data
+      diff: createAuditDiff({
+        summary: '更新了个人资料',
+        changes: changes.length > 0 ? changes : undefined
+      })
     })
 
     return this.getUserInfoByUserId(userId)
@@ -283,11 +327,49 @@ export class UserService {
     )
 
     await this.userRepo.ensureDomainData(id)
+
+    const changes: AuditDiffChange[] = []
+    if (data.nickname !== undefined && data.nickname !== existingUser.nickname) {
+      changes.push({
+        field: 'nickname',
+        label: '昵称',
+        from: existingUser.nickname ?? null,
+        to: data.nickname
+      })
+    }
+    if (data.email !== undefined && data.email !== existingUser.email) {
+      changes.push({
+        field: 'email',
+        label: '邮箱',
+        from: maskEmail(existingUser.email),
+        to: maskEmail(data.email)
+      })
+    }
+    if (data.phoneNumber !== undefined && data.phoneNumber !== existingUser.phoneNumber) {
+      changes.push({
+        field: 'phoneNumber',
+        label: '手机号',
+        from: existingUser.phoneNumber ? maskPhoneNumber(existingUser.phoneNumber) : null,
+        to: data.phoneNumber ? maskPhoneNumber(data.phoneNumber) : null
+      })
+    }
+    if (data.realName !== undefined && data.realName !== existingUser.profile?.realName) {
+      changes.push({
+        field: 'realName',
+        label: '真实姓名',
+        from: existingUser.profile?.realName ?? null,
+        to: data.realName
+      })
+    }
+
     await this.auditService.write({
       action: 'system.user.updated',
       resource: 'user',
       resourceId: id,
-      diff: data
+      diff: createAuditDiff({
+        summary: `更新了用户「${existingUser.profile?.realName ?? existingUser.nickname ?? existingUser.email}」的信息`,
+        changes: changes.length > 0 ? changes : undefined
+      })
     })
     const updatedUser = await this.userRepo.findActiveBasicInfoById(id)
     if (!updatedUser) throw new NotFoundException('用户不存在')
@@ -377,6 +459,21 @@ export class UserService {
     }
 
     await this.userRepo.softDeleteByIds(ids)
+    const names = users.map((u) => u.profile?.realName ?? u.nickname ?? u.username)
+    this.auditService.enqueue({
+      action: 'system.user.deleted',
+      resource: 'user',
+      resourceId: ids.join(','),
+      diff: createAuditDiff({
+        summary: `删除了用户：${names.join('、')} 共 ${names.length} 人（可恢复）`,
+        members: {
+          removed: users.map((u) => ({
+            id: u.id,
+            name: u.profile?.realName ?? u.nickname ?? u.username
+          }))
+        }
+      })
+    })
     return users.map((item) => this.toListItemFromFull(item))
   }
 
@@ -402,6 +499,21 @@ export class UserService {
     }
 
     await this.userRepo.deleteManyByIds(normalizedIds)
+    const names = users.map((u) => u.profile?.realName ?? u.nickname ?? u.username)
+    this.auditService.enqueue({
+      action: 'system.user.purged',
+      resource: 'user',
+      resourceId: normalizedIds.join(','),
+      diff: createAuditDiff({
+        summary: `彻底删除了用户：${names.join('、')} 共 ${names.length} 人，不可恢复`,
+        members: {
+          removed: users.map((u) => ({
+            id: u.id,
+            name: u.profile?.realName ?? u.nickname ?? u.username
+          }))
+        }
+      })
+    })
     return users.map((item) => this.toListItemFromFull(item))
   }
 
@@ -429,6 +541,21 @@ export class UserService {
     }
 
     await this.userRepo.restoreByIds(normalizedIds)
+    const names = deletedUsers.map((u) => u.profile?.realName ?? u.nickname ?? u.username)
+    this.auditService.enqueue({
+      action: 'system.user.restored',
+      resource: 'user',
+      resourceId: normalizedIds.join(','),
+      diff: createAuditDiff({
+        summary: `恢复了用户：${names.join('、')} 共 ${names.length} 人`,
+        members: {
+          added: deletedUsers.map((u) => ({
+            id: u.id,
+            name: u.profile?.realName ?? u.nickname ?? u.username
+          }))
+        }
+      })
+    })
     return deletedUsers.map((item) => this.toListItemFromFull(item))
   }
 
@@ -453,6 +580,24 @@ export class UserService {
 
     await this.userRepo.updateStatusByIds(normalizedIds, toUserStatusCode(payload.status))
     const updatedUsers = await this.userRepo.findManyWithDomainByIds(normalizedIds)
+    const names = updatedUsers.map((u) => u.profile?.realName ?? u.nickname ?? u.username)
+    const isEnable = payload.status === 'active'
+    this.auditService.enqueue({
+      action: 'system.user.status_changed',
+      resource: 'user',
+      resourceId: normalizedIds.join(','),
+      diff: createAuditDiff({
+        summary: `${isEnable ? '启用' : '停用'}了用户：${names.join('、')} 共 ${names.length} 人`,
+        changes: [
+          {
+            field: 'status',
+            label: '状态',
+            from: null,
+            to: payload.status
+          }
+        ]
+      })
+    })
     return updatedUsers.map((item) => this.toListItemFromFull(item))
   }
 
@@ -499,7 +644,17 @@ export class UserService {
       action: 'system.user.password_reset',
       resource: 'user',
       resourceId: id,
-      diff: { mustChangePassword }
+      diff: createAuditDiff({
+        summary: `重置了用户「${existing.profile?.realName ?? existing.nickname ?? existing.email}」的密码`,
+        changes: [
+          {
+            field: 'mustChangePassword',
+            label: '首次登录改密',
+            from: null,
+            to: mustChangePassword ? '是' : '否'
+          }
+        ]
+      })
     })
     return this.getUserListItemByUserId(id)
   }
@@ -551,7 +706,10 @@ export class UserService {
       action: 'system.user.primary_role_updated',
       resource: 'user',
       resourceId: userId,
-      diff: { primaryRoleId }
+      diff: createAuditDiff({
+        summary: '调整了用户主角色',
+        changes: [{ field: 'primaryRoleId', label: '主角色', from: null, to: primaryRoleId }]
+      })
     })
     await this.refreshUserAccess(userId, true)
 
@@ -621,7 +779,10 @@ export class UserService {
       action: 'system.user.roles_assigned',
       resource: 'user',
       resourceId: userId,
-      diff: { roleIds, roleCodes: nextCodes, primaryRoleId: resolvedPrimaryRoleId }
+      diff: createAuditDiff({
+        summary: `调整了用户角色：${nextCodes.join('、')}`,
+        members: { added: roles.map((role) => ({ id: role.id, name: role.name })) }
+      })
     })
     await this.refreshUserAccess(userId, options.revokeSessions)
   }
@@ -681,7 +842,10 @@ export class UserService {
       action: 'system.user.organizations_replaced',
       resource: 'user',
       resourceId: userId,
-      diff: { organizations }
+      diff: createAuditDiff({
+        summary: `调整了用户组织归属，共 ${organizations.length} 个组织`,
+        meta: { organizationIds: organizations.map((item) => item.organizationId) }
+      })
     })
     await this.refreshUserAccess(userId, options.revokeSessions)
   }

@@ -134,7 +134,12 @@ export function createDc10Articulation() {
   let wheelAngle = 0
   let fanAngle = 0
 
-  function writeDelta(name: string, translation: Cartesian3, rotation: Quaternion, scale: Cartesian3) {
+  function writeDelta(
+    name: string,
+    translation: Cartesian3,
+    rotation: Quaternion,
+    scale: Cartesian3
+  ) {
     const pose = nodes[name]
     const restInverse = inverseRest.get(name)
     if (!pose || !restInverse) return
@@ -148,7 +153,10 @@ export function createDc10Articulation() {
 
   function applyGear(time: number, roll: Quaternion | undefined) {
     for (const [name, tracks] of Object.entries(DC10_GEAR_TRACKS)) {
-      Cartesian3.clone(Cartesian3.fromArray(tracks.rest.translation, 0, scratchTranslation), scratchTranslation)
+      Cartesian3.clone(
+        Cartesian3.fromArray(tracks.rest.translation, 0, scratchTranslation),
+        scratchTranslation
+      )
       Quaternion.clone(Quaternion.unpack(tracks.rest.rotation, 0, scratchRotation), scratchRotation)
       Cartesian3.clone(Cartesian3.fromArray(tracks.rest.scale, 0, scratchScale), scratchScale)
       if (tracks.translation) {
@@ -201,7 +209,8 @@ export function createDc10Articulation() {
       if (gearExtension < target) gearExtension = Math.min(target, gearExtension + step)
       else if (gearExtension > target) gearExtension = Math.max(target, gearExtension - step)
 
-      const rolling = moving && (phase === 'taxi_start' || phase === 'taxi_end') && gearExtension > 0.85
+      const rolling =
+        moving && (phase === 'taxi_start' || phase === 'taxi_end') && gearExtension > 0.85
       if (rolling) wheelAngle += (speedMps * dt) / wheelRadiusMeters
       if (dt > 0) {
         const cruise = GIS_ROAM_CONFIG.plane.speedMps
@@ -210,7 +219,10 @@ export function createDc10Articulation() {
       }
 
       Quaternion.fromAxisAngle(WHEEL_AXLE, wheelAngle, scratchRoll)
-      applyGear((1 - gearExtension) * DC10_GEAR_DURATION_SECONDS, wheelAngle === 0 ? undefined : scratchRoll)
+      applyGear(
+        (1 - gearExtension) * DC10_GEAR_DURATION_SECONDS,
+        wheelAngle === 0 ? undefined : scratchRoll
+      )
       applyFans()
     }
   }

@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common'
 import { PluginInstallStatus } from '@prisma/client'
 import { filterActiveRegistryEntries, PLUGIN_REGISTRY, validatePlugins } from '@zen/plugin-sdk'
-import { DEFAULT_TENANT_ID } from '@zen/shared'
+import { createAuditDiff, DEFAULT_TENANT_ID } from '@zen/shared'
 
 import { AuditService } from '../../common/auth/audit.service.js'
 import { AuthContextService } from '../../common/auth/auth-context.service.js'
@@ -107,7 +107,10 @@ export class PluginService implements OnModuleInit {
       action: 'system.plugin.activated',
       resource: 'plugin',
       resourceId: pluginId,
-      diff: { version: entry.version }
+      diff: createAuditDiff({
+        summary: `启用了插件「${entry.name}」`,
+        meta: { version: entry.version }
+      })
     })
     await this.afterStateChange(tenantId)
 
@@ -138,7 +141,10 @@ export class PluginService implements OnModuleInit {
       action: 'system.plugin.deactivated',
       resource: 'plugin',
       resourceId: pluginId,
-      diff: { version: entry.version }
+      diff: createAuditDiff({
+        summary: `停用了插件「${entry.name}」`,
+        meta: { version: entry.version }
+      })
     })
     await this.afterStateChange(tenantId)
 
@@ -164,11 +170,16 @@ export class PluginService implements OnModuleInit {
       data: { config: parsed as Prisma.InputJsonValue }
     })
 
+    const updatedKeys = Object.keys(config)
     await this.auditService.write({
       action: 'system.plugin.config_updated',
       resource: 'plugin',
       resourceId: pluginId,
-      diff: parsed as Prisma.InputJsonValue
+      diff: createAuditDiff({
+        summary: `更新了插件「${entry.name}」配置，变更项：${updatedKeys.join('、') || '无'}（敏感值已隐藏）`,
+        target: { id: pluginId, name: entry.name },
+        meta: { updatedKeys }
+      })
     })
     this.pluginState.invalidate(tenantId)
 

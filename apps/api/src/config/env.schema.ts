@@ -89,6 +89,13 @@ export const envSchema = z
       .default(() => (process.env.NODE_ENV === 'development' ? 'off' : '60/m'))
       .describe('Copilot 路由限流紧凑表达式（如 "60/m", "off"）'),
 
+    /** Agent 进程向 API 上报用量时使用的内部凭证 */
+    AGENT_INTERNAL_TOKEN: z
+      .string()
+      .min(32, 'AGENT_INTERNAL_TOKEN 必须至少 32 个字符')
+      .optional()
+      .describe('Agent 内部服务通信凭证'),
+
     // ==================== Swagger 配置 ====================
     /** 是否启用 Swagger */
     SWAGGER_ENABLED: booleanEnv.default(true).describe('是否启用 Swagger API 文档'),

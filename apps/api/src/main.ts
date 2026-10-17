@@ -4,7 +4,9 @@ import { json, urlencoded } from 'express'
 import { Logger } from 'nestjs-pino'
 
 import { AppModule } from './app.module.js'
+import { AccessLogSink } from './common/access-log/access-log-sink.service.js'
 import { runWithRequestAuditContext } from './common/auth/request-audit-context.js'
+import { accessLogMiddleware } from './common/middleware/access-log.middleware.js'
 import { CONFIG_NAMESPACES } from './config/index.js'
 import { setupSwagger } from './swagger/setup-swagger.js'
 
@@ -28,8 +30,10 @@ async function bootstrap() {
   const appCfg = app.get<AppConfig>(CONFIG_NAMESPACES.APP)
   const securityCfg = app.get<SecurityConfig>(CONFIG_NAMESPACES.SECURITY)
   const swaggerCfg = app.get<SwaggerConfig>(CONFIG_NAMESPACES.SWAGGER)
+  const accessLogSink = app.get(AccessLogSink)
 
   app.use((_req: Request, _res: Response, next: NextFunction) => runWithRequestAuditContext(next))
+  app.use(accessLogMiddleware(accessLogSink))
   app.use(cookieParser())
 
   const normalizedPrefix = appCfg.apiPrefix.startsWith('/')

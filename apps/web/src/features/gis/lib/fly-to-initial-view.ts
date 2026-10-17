@@ -1,4 +1,4 @@
-import { Cartesian3, EasingFunction, Math as CesiumMath } from 'cesium'
+import { Cartesian3, Math as CesiumMath, EasingFunction } from 'cesium'
 
 import { GIS_INITIAL_VIEW } from '../constants'
 import { useGisStore } from '../stores/gis'

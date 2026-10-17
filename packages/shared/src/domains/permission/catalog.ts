@@ -1,4 +1,8 @@
-import { AUDIT_PERMISSIONS } from '../audit/permissions.js'
+import {
+  AI_PRICE_PERMISSIONS,
+  AI_QUOTA_PERMISSIONS,
+  AUDIT_PERMISSIONS
+} from '../audit/permissions.js'
 import { DICT_PERMISSIONS } from '../dict/permissions.js'
 import { FILE_PERMISSIONS, STORAGE_PERMISSIONS } from '../file/permissions.js'
 import { ORG_PERMISSIONS } from '../organization/permissions.js'
@@ -16,6 +20,8 @@ const KERNEL_PERMISSION_GROUPS = [
   ORG_PERMISSIONS,
   POST_PERMISSIONS,
   AUDIT_PERMISSIONS,
+  AI_QUOTA_PERMISSIONS,
+  AI_PRICE_PERMISSIONS,
   DICT_PERMISSIONS,
   PLUGIN_PERMISSIONS,
   FILE_PERMISSIONS,

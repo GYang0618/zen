@@ -283,6 +283,22 @@ model AgentRun {
   leaseOwner        String?         @map("lease_owner")
   leaseExpiresAt    DateTime?       @map("lease_expires_at")
   resumeCount       Int             @default(0) @map("resume_count")
+  /// 代谁执行（即 userId，冗余存一份显示名，用户删除后仍可读）
+  userName          String?         @map("user_name")
+  provider          String?
+  /// 实际使用的主模型（fallback 后可能和 modelVersion 不同）
+  model             String?
+  reasoningTokens   Int             @default(0) @map("reasoning_tokens")
+  cachedInputTokens Int             @default(0) @map("cached_input_tokens")
+  totalTokens       Int             @default(0) @map("total_tokens")
+  /// 成本，单位：微元（CNY × 1e6）
+  costMicros        BigInt          @default(0) @map("cost_micros")
+  stepCount         Int             @default(0) @map("step_count")
+  toolCallCount     Int             @default(0) @map("tool_call_count")
+  writeToolCount    Int             @default(0) @map("write_tool_count")
+  durationMs        Int?            @map("duration_ms")
+  /// 用量是否含估算（中止的调用没有 provider 回报）
+  usageEstimated    Boolean         @default(false) @map("usage_estimated")
   startedAt         DateTime?       @map("started_at")
   endedAt           DateTime?       @map("ended_at")
   createdAt         DateTime        @default(now()) @map("created_at")
@@ -295,8 +311,11 @@ model AgentRun {
   toolExecutions AgentToolExecution[]
   evaluations    AgentEvaluation[]
   artifacts      AgentArtifact[]
+  calls          AgentModelCall[]
 
+  @@index([tenantId, createdAt(sort: Desc)])
   @@index([tenantId, userId, createdAt])
+  @@index([tenantId, model, createdAt])
   @@index([threadId, createdAt])
   @@index([status, updatedAt])
   @@index([leaseExpiresAt])
@@ -368,20 +387,20 @@ model AgentEvent {
 
 /// 会话状态快照；reasoning/activity 会在写入前过滤。
 model AgentCheckpoint {
-  id         String   @id @default(cuid())
-  threadId   String   @map("thread_id")
-  runId      String   @map("run_id")
-  tenantId   String   @map("tenant_id")
-  version    Int
-  parentId   String?  @map("parent_id")
-  namespace  String   @default("default")
-  stateHash  String   @default("") @map("state_hash")
-  state      Json
-  summary    String?
-  createdAt  DateTime @default(now()) @map("created_at")
+  id        String   @id @default(cuid())
+  threadId  String   @map("thread_id")
+  runId     String   @map("run_id")
+  tenantId  String   @map("tenant_id")
+  version   Int
+  parentId  String?  @map("parent_id")
+  namespace String   @default("default")
+  stateHash String   @default("") @map("state_hash")
+  state     Json
+  summary   String?
+  createdAt DateTime @default(now()) @map("created_at")
 
-  thread AgentThread      @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  parent AgentCheckpoint? @relation("CheckpointLineage", fields: [parentId], references: [id], onDelete: SetNull)
+  thread   AgentThread       @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  parent   AgentCheckpoint?  @relation("CheckpointLineage", fields: [parentId], references: [id], onDelete: SetNull)
   children AgentCheckpoint[] @relation("CheckpointLineage")
 
   @@unique([threadId, version])
@@ -544,36 +563,121 @@ model AgentIdempotencyRecord {
   @@map("agent_idempotency_records")
 }
 
+/// 审计操作者类型
+enum AuditActorType {
+  USER   @map("user")
+  AGENT  @map("agent")
+  SYSTEM @map("system")
+}
+
+/// 审计结果
+enum AuditResult {
+  SUCCESS @map("success")
+  FAILURE @map("failure")
+  DENIED  @map("denied")
+}
+
 /// 操作审计日志
 model AuditLog {
   /// 审计 ID
-  id         String   @id @default(cuid())
+  id              String         @id @default(cuid())
   /// 租户 ID
-  tenantId   String   @map("tenant_id")
+  tenantId        String         @map("tenant_id")
   /// 操作者用户 ID
-  actorId    String?  @map("actor_id")
+  actorId         String?        @map("actor_id")
+  /// 操作者类型；Agent 代办时 actorId 仍为委托用户
+  actorType       AuditActorType @default(USER) @map("actor_type")
+  /// 冗余操作者名称，用户删除后仍可读
+  actorName       String?        @map("actor_name")
   /// 动作编码（如 system.user.created）
-  action     String
+  action          String
   /// 资源类型
-  resource   String?
+  resource        String?
   /// 资源 ID
-  resourceId String?  @map("resource_id")
+  resourceId      String?        @map("resource_id")
+  /// 资源显示名快照
+  resourceName    String?        @map("resource_name")
+  /// 执行结果
+  result          AuditResult    @default(SUCCESS)
+  /// 错误码
+  errorCode       String?        @map("error_code")
+  /// HTTP 方法 + 路由模板，如 PATCH /users/:id
+  endpoint        String?
   /// 客户端 IP
-  ip         String?
+  ip              String?
   /// User-Agent
-  userAgent  String?  @map("user_agent")
+  userAgent       String?        @map("user_agent")
   /// 请求追踪 ID
-  traceId    String?  @map("trace_id")
-  /// 变更摘要
-  diff       Json?
+  traceId         String?        @map("trace_id")
+  /// Agent 归因
+  agentRunId      String?        @map("agent_run_id")
+  agentToolName   String?        @map("agent_tool_name")
+  agentApprovalId String?        @map("agent_approval_id")
+  /// 变更摘要与 AuditDiff v1
+  diff            Json?
   /// 创建时间
-  createdAt  DateTime @default(now()) @map("created_at")
+  createdAt       DateTime       @default(now()) @map("created_at")
 
-  @@index([tenantId, createdAt])
-  @@index([actorId])
-  @@index([action])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([tenantId, resource, resourceId, createdAt])
+  @@index([tenantId, actorId, createdAt])
+  @@index([tenantId, action, createdAt])
+  @@index([agentRunId])
   @@index([traceId])
   @@map("audit_logs")
+}
+
+/// 调用方类型
+enum ApiCallerType {
+  USER      @map("user")
+  AGENT     @map("agent")
+  API_KEY   @map("api_key")
+  ANONYMOUS @map("anonymous")
+}
+
+/// 接口访问日志（采样，保留 30 天）
+model ApiAccessLog {
+  id            String        @id @default(cuid())
+  tenantId      String?       @map("tenant_id")
+  userId        String?       @map("user_id")
+  callerType    ApiCallerType @default(USER) @map("caller_type")
+  apiKeyId      String?       @map("api_key_id")
+  agentRunId    String?       @map("agent_run_id")
+  agentToolName String?       @map("agent_tool_name")
+  method        String
+  /// 路由模板，如 /users/:id
+  route         String
+  /// 简要标题快照，如「访问了用户列表」
+  title         String
+  status        Int
+  latencyMs     Int           @map("latency_ms")
+  ip            String?
+  userAgent     String?       @map("user_agent")
+  traceId       String        @map("trace_id")
+  sampled       Boolean       @default(false)
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([tenantId, userId, createdAt])
+  @@index([tenantId, route, createdAt])
+  @@index([agentRunId])
+  @@index([traceId])
+  @@map("api_access_logs")
+}
+
+/// 分钟级聚合（保留 1 年）
+model ApiAccessStat {
+  tenantId   String        @map("tenant_id")
+  bucket     DateTime
+  method     String
+  route      String
+  callerType ApiCallerType @map("caller_type")
+  count      Int
+  errorCount Int           @map("error_count")
+  p95Ms      Int           @map("p95_ms")
+
+  @@id([tenantId, bucket, method, route, callerType])
+  @@map("api_access_stats")
 }
 
 /// 租户成员资格（单租户阶段每个用户一条 default 成员记录）
@@ -1211,18 +1315,23 @@ model PasswordResetToken {
 /// 登录事件历史（可按用户/时间查询）
 model LoginEvent {
   id         String   @id @default(cuid())
+  tenantId   String   @default("cmtenant00000000000000001") @map("tenant_id")
   userId     String?  @map("user_id")
   identifier String
   success    Boolean
   ip         String?
   userAgent  String?  @map("user_agent")
   reason     String?
+  traceId    String?  @map("trace_id")
+  event      String   @default("login")
   createdAt  DateTime @default(now()) @map("created_at")
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  @@index([tenantId, createdAt])
   @@index([userId, createdAt])
   @@index([createdAt])
+  @@index([traceId])
   @@map("login_events")
 }
 
@@ -1340,4 +1449,135 @@ model JobRecord {
   @@index([tenantId, status])
   @@index([createdAt])
   @@map("job_records")
+}
+
+/// LLM 调用用途
+enum AgentCallPurpose {
+  CHAT          @map("chat")
+  SUMMARIZATION @map("summarization")
+  TITLE         @map("title")
+  FALLBACK      @map("fallback")
+}
+
+/// LLM 调用结果
+enum AgentCallStatus {
+  SUCCEEDED @map("succeeded")
+  FAILED    @map("failed")
+  ABORTED   @map("aborted")
+}
+
+/// 单次 LLM 调用用量（仅数字，不存 prompt 和 completion）
+model AgentModelCall {
+  id                String           @id @default(cuid())
+  tenantId          String           @map("tenant_id")
+  userId            String           @map("user_id")
+  /// 标题生成等不属于 Run 的调用为空
+  runId             String?          @map("run_id")
+  threadId          String?          @map("thread_id")
+  /// Run 内的调用序号，配合 runId 做幂等
+  callIndex         Int              @default(0) @map("call_index")
+  purpose           AgentCallPurpose @default(CHAT)
+  provider          String
+  model             String
+  status            AgentCallStatus  @default(SUCCEEDED)
+  inputTokens       Int              @default(0) @map("input_tokens")
+  outputTokens      Int              @default(0) @map("output_tokens")
+  reasoningTokens   Int              @default(0) @map("reasoning_tokens")
+  cachedInputTokens Int              @default(0) @map("cached_input_tokens")
+  totalTokens       Int              @default(0) @map("total_tokens")
+  estimated         Boolean          @default(false)
+  /// 价格快照（关联版本号并冗余单价，防止价格表被误删）
+  priceId           String?          @map("price_id")
+  priceSnapshot     Json?            @map("price_snapshot")
+  costMicros        BigInt           @default(0) @map("cost_micros")
+  latencyMs         Int?             @map("latency_ms")
+  firstTokenMs      Int?             @map("first_token_ms")
+  errorCode         String?          @map("error_code")
+  traceId           String?          @map("trace_id")
+  createdAt         DateTime         @default(now()) @map("created_at")
+
+  run AgentRun? @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, callIndex])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, userId, createdAt])
+  @@index([tenantId, model, createdAt])
+  @@map("agent_model_calls")
+}
+
+/// 模型价格（带版本，只追加不修改；单位：每百万 token 的微元价）
+model AiModelPrice {
+  id                 String    @id @default(cuid())
+  provider           String
+  model              String
+  currency           String    @default("CNY")
+  inputPerMTok       BigInt    @map("input_per_mtok")
+  cachedInputPerMTok BigInt?   @map("cached_input_per_mtok")
+  outputPerMTok      BigInt    @map("output_per_mtok")
+  reasoningPerMTok   BigInt?   @map("reasoning_per_mtok")
+  effectiveFrom      DateTime  @map("effective_from")
+  effectiveTo        DateTime? @map("effective_to")
+  createdBy          String?   @map("created_by")
+  createdAt          DateTime  @default(now()) @map("created_at")
+
+  @@index([provider, model, effectiveFrom])
+  @@map("ai_model_prices")
+}
+
+/// 日聚合（统计页面和配额判断都读这张表，长期保留）
+model AgentUsageDaily {
+  tenantId          String           @map("tenant_id")
+  date              DateTime         @db.Date
+  userId            String           @map("user_id")
+  model             String
+  purpose           AgentCallPurpose
+  runs              Int              @default(0)
+  modelCalls        Int              @default(0) @map("model_calls")
+  toolCalls         Int              @default(0) @map("tool_calls")
+  inputTokens       BigInt           @default(0) @map("input_tokens")
+  outputTokens      BigInt           @default(0) @map("output_tokens")
+  reasoningTokens   BigInt           @default(0) @map("reasoning_tokens")
+  cachedInputTokens BigInt           @default(0) @map("cached_input_tokens")
+  totalTokens       BigInt           @default(0) @map("total_tokens")
+  costMicros        BigInt           @default(0) @map("cost_micros")
+
+  @@id([tenantId, date, userId, model, purpose])
+  @@index([tenantId, date])
+  @@map("agent_usage_daily")
+}
+
+enum AiQuotaScope {
+  TENANT       @map("tenant")
+  USER         @map("user")
+  ORGANIZATION @map("organization")
+}
+
+enum AiQuotaPeriod {
+  DAY   @map("day")
+  MONTH @map("month")
+}
+
+enum AiQuotaMetric {
+  TOKENS @map("tokens")
+  COST   @map("cost")
+}
+
+/// AI 配额（软上限只预警，硬上限拒绝）
+model AiQuota {
+  id        String        @id @default(cuid())
+  tenantId  String        @map("tenant_id")
+  scope     AiQuotaScope
+  /// USER 对应 userId，ORGANIZATION 对应组织 ID，TENANT 为空
+  subjectId String?       @map("subject_id")
+  period    AiQuotaPeriod
+  metric    AiQuotaMetric
+  softLimit BigInt?       @map("soft_limit")
+  hardLimit BigInt?       @map("hard_limit")
+  enabled   Boolean       @default(true)
+  updatedBy String?       @map("updated_by")
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  @@unique([tenantId, scope, subjectId, period, metric])
+  @@map("ai_quotas")
 }

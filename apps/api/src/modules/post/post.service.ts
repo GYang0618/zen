@@ -5,7 +5,9 @@ import {
   Injectable,
   NotFoundException
 } from '@nestjs/common'
+import { createAuditDiff } from '@zen/shared'
 
+import { AuditService } from '../../common/auth/audit.service.js'
 import { paginate } from '../../common/pagination/index.js'
 import {
   fromApiJobProfileStatus,
@@ -21,6 +23,7 @@ import {
   PostRepository
 } from './post.repository.js'
 
+import type { AuditDiffChange } from '@zen/shared'
 import type {
   CreateJobProfileDto,
   FindJobProfilesQueryDto,
@@ -39,7 +42,10 @@ import type {
 
 @Injectable()
 export class PostService {
-  constructor(@Inject(PostRepository) private readonly postRepo: PostRepository) {}
+  constructor(
+    @Inject(PostRepository) private readonly postRepo: PostRepository,
+    @Inject(AuditService) private readonly auditService: AuditService
+  ) {}
 
   async findAll(query: FindJobProfilesQueryDto): Promise<JobProfilesPageResponse> {
     const resolvedStatus = Array.isArray(query.status)
@@ -91,6 +97,17 @@ export class PostService {
       iconColor: data.iconColor,
       status: fromApiJobProfileStatus(data.status ?? 'active')
     })
+
+    this.auditService.enqueue({
+      action: 'system.post.created',
+      resource: 'post',
+      resourceId: created.id,
+      diff: createAuditDiff({
+        summary: `创建了岗位「${created.name}（${created.code}）」`,
+        target: { id: created.id, name: created.name, code: created.code }
+      })
+    })
+
     return toJobProfileResponse(created)
   }
 
@@ -107,6 +124,32 @@ export class PostService {
       ...(data.iconColor !== undefined ? { iconColor: data.iconColor } : {}),
       ...(data.status !== undefined ? { status: fromApiJobProfileStatus(data.status) } : {})
     })
+
+    const changes: AuditDiffChange[] = []
+    if (data.name !== undefined && data.name !== existing.name) {
+      changes.push({ field: 'name', label: '岗位名称', from: existing.name, to: data.name })
+    }
+    if (data.level !== undefined && data.level !== existing.level) {
+      changes.push({ field: 'level', label: '职级', from: existing.level, to: data.level })
+    }
+    if (data.status !== undefined) {
+      const targetStatus = fromApiJobProfileStatus(data.status)
+      if (targetStatus !== existing.status) {
+        changes.push({ field: 'status', label: '状态', from: existing.status, to: targetStatus })
+      }
+    }
+
+    this.auditService.enqueue({
+      action: 'system.post.updated',
+      resource: 'post',
+      resourceId: id,
+      diff: createAuditDiff({
+        summary: `更新了岗位「${updated.name}」的信息`,
+        target: { id: updated.id, name: updated.name, code: updated.code },
+        changes: changes.length > 0 ? changes : undefined
+      })
+    })
+
     return toJobProfileResponse(updated)
   }
 
@@ -119,6 +162,16 @@ export class PostService {
     }
 
     await this.postRepo.deleteProfile(id)
+
+    this.auditService.enqueue({
+      action: 'system.post.deleted',
+      resource: 'post',
+      resourceId: id,
+      diff: createAuditDiff({
+        summary: `删除了岗位「${existing.name}」`,
+        target: { id: existing.id, name: existing.name, code: existing.code }
+      })
+    })
   }
 
   async listOrganizationPositions(organizationId: string): Promise<OrganizationPositionResponse[]> {

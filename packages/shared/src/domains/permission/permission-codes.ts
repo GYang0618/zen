@@ -1,4 +1,8 @@
-import { AUDIT_PERMISSIONS } from '../audit/permissions.js'
+import {
+  AI_PRICE_PERMISSIONS,
+  AI_QUOTA_PERMISSIONS,
+  AUDIT_PERMISSIONS
+} from '../audit/permissions.js'
 import { DICT_PERMISSIONS } from '../dict/permissions.js'
 import { FILE_PERMISSIONS, STORAGE_PERMISSIONS } from '../file/permissions.js'
 import { ORG_PERMISSIONS } from '../organization/permissions.js'
@@ -16,6 +20,8 @@ export const PermissionCode = {
   ...ORG_PERMISSIONS.codes,
   ...POST_PERMISSIONS.codes,
   ...AUDIT_PERMISSIONS.codes,
+  ...AI_QUOTA_PERMISSIONS.codes,
+  ...AI_PRICE_PERMISSIONS.codes,
   ...DICT_PERMISSIONS.codes,
   ...PLUGIN_PERMISSIONS.codes,
   ...FILE_PERMISSIONS.codes,

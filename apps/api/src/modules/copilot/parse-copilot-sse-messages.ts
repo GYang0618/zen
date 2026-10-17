@@ -20,6 +20,8 @@ export interface ParsedCopilotSseResult {
   messages: ThreadMessage[]
   threadId?: string
   runId?: string
+  status?: 'succeeded' | 'failed' | 'aborted'
+  endReason?: string
   /** 为 true 时消息来自非空 MESSAGES_SNAPSHOT，可以整段覆盖会话。 */
   authoritative: boolean
 }
@@ -200,6 +202,8 @@ export function parseCopilotSseThreadMessages(text: string): ParsedCopilotSseRes
 
   let threadId: string | undefined
   let runId: string | undefined
+  let runStatus: 'succeeded' | 'failed' | 'aborted' | undefined
+  let endReason: string | undefined
   let authoritative = false
   const timing = createMessageTimingRecorder()
   const messages: ThreadMessage[] = []
@@ -324,6 +328,14 @@ export function parseCopilotSseThreadMessages(text: string): ParsedCopilotSseRes
         })
         break
       }
+      case 'RUN_FINISHED':
+        runStatus = 'succeeded'
+        endReason = readString(event.endReason) ?? 'completed'
+        break
+      case 'RUN_ERROR':
+        runStatus = 'failed'
+        endReason = 'error'
+        break
       default:
         break
     }
@@ -337,6 +349,8 @@ export function parseCopilotSseThreadMessages(text: string): ParsedCopilotSseRes
   return {
     threadId,
     runId,
+    status: runStatus,
+    endReason,
     authoritative,
     messages: restoreDisplacedTurnPrefix(
       messages.filter(

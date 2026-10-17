@@ -63,15 +63,23 @@ export class AuthContextGuard implements CanActivate {
       throw new UnauthorizedException('权限已变更，请重新登录')
     }
 
+    const runId = request.get?.('x-agent-run-id')
+    const toolName = request.get?.('x-agent-tool-name')
+    const approvalId = request.get?.('x-agent-approval-id')
+
     setRequestAuditContext({
       actorId: request.auth.userId,
+      actorType: runId ? 'agent' : 'user',
       tenantId: request.auth.tenantId,
       ip: readClientIp(request),
       userAgent: request.get?.('user-agent') ?? undefined,
       traceId: resolveTraceId({
         existingId: request.id,
         headers: request.headers
-      })
+      }),
+      agentRunId: runId,
+      agentToolName: toolName,
+      agentApprovalId: approvalId
     })
 
     return true

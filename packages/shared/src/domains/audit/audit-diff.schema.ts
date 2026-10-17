@@ -26,6 +26,11 @@ export const auditDiffPermissionSchema = z.object({
   name: z.string()
 })
 
+export const auditDiffFilterSchema = z.object({
+  label: z.string(),
+  value: z.string()
+})
+
 export const auditDiffSchema = z.object({
   version: z.literal(AUDIT_DIFF_VERSION),
   summary: z.string().optional(),
@@ -43,10 +48,51 @@ export const auditDiffSchema = z.object({
       removed: z.array(auditDiffPermissionSchema).optional()
     })
     .optional(),
-  meta: z.record(z.string(), z.unknown()).optional()
+  meta: z.record(z.string(), z.unknown()).optional(),
+  /** 查询/导出：筛选条件（已翻译成中文 label）与命中条数 */
+  query: z
+    .object({
+      filters: z.array(auditDiffFilterSchema),
+      count: z.number().int().optional()
+    })
+    .optional(),
+  /** 敏感读取：被查看的主体与字段 */
+  sensitive: z
+    .object({
+      subject: auditDiffTargetSchema,
+      fields: z.array(z.object({ field: z.string(), label: z.string() }))
+    })
+    .optional(),
+  /** 拒绝：尝试的操作与缺少的权限 */
+  denied: z
+    .object({
+      attempted: z.string(),
+      missing: z.array(auditDiffPermissionSchema),
+      subject: auditDiffTargetSchema.optional()
+    })
+    .optional(),
+  /** 接口信息（越权、限流、Agent 调用时附带） */
+  request: z
+    .object({
+      method: z.string(),
+      route: z.string(),
+      status: z.number().int(),
+      latencyMs: z.number().int().optional()
+    })
+    .optional(),
+  /** Agent 归因 */
+  agent: z
+    .object({
+      toolName: z.string(),
+      runId: z.string().optional(),
+      approvalId: z.string().optional(),
+      approverName: z.string().optional()
+    })
+    .optional()
 })
 
 export type AuditDiff = z.infer<typeof auditDiffSchema>
+export type AuditDiffFilter = z.infer<typeof auditDiffFilterSchema>
 export type AuditDiffChange = z.infer<typeof auditDiffChangeSchema>
 export type AuditDiffMember = z.infer<typeof auditDiffMemberSchema>
 export type AuditDiffPermission = z.infer<typeof auditDiffPermissionSchema>

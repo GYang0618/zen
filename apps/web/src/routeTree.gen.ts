@@ -37,6 +37,8 @@ import { Route as AuthenticatedPluginsJobsRouteImport } from './routes/_authenti
 import { Route as AuthenticatedPluginsNotesRouteImport } from './routes/_authenticated/plugins/notes'
 import { Route as AuthenticatedPluginsNotificationsRouteImport } from './routes/_authenticated/plugins/notifications'
 import { Route as AuthenticatedSystemIdentityRouteRouteImport } from './routes/_authenticated/system/_identity/route'
+import { Route as AuthenticatedSystemAiQuotaRouteImport } from './routes/_authenticated/system/ai-quota'
+import { Route as AuthenticatedSystemAuditRouteImport } from './routes/_authenticated/system/audit'
 import { Route as AuthenticatedSystemDictRouteImport } from './routes/_authenticated/system/dict'
 import { Route as AuthenticatedSystemDictV2RouteImport } from './routes/_authenticated/system/dict-v2'
 import { Route as AuthenticatedSystemFilesRouteImport } from './routes/_authenticated/system/files'
@@ -206,6 +208,18 @@ const AuthenticatedSystemIdentityRouteRoute =
     id: '/_identity',
     getParentRoute: () => AuthenticatedSystemRouteRoute,
   } as any)
+const AuthenticatedSystemAiQuotaRoute =
+  AuthenticatedSystemAiQuotaRouteImport.update({
+    id: '/ai-quota',
+    path: '/ai-quota',
+    getParentRoute: () => AuthenticatedSystemRouteRoute,
+  } as any)
+const AuthenticatedSystemAuditRoute =
+  AuthenticatedSystemAuditRouteImport.update({
+    id: '/audit',
+    path: '/audit',
+    getParentRoute: () => AuthenticatedSystemRouteRoute,
+  } as any)
 const AuthenticatedSystemDictRoute = AuthenticatedSystemDictRouteImport.update({
   id: '/dict',
   path: '/dict',
@@ -355,6 +369,8 @@ export interface FileRoutesByFullPath {
   '/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
   '/plugins/notes': typeof AuthenticatedPluginsNotesRoute
   '/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
+  '/system/ai-quota': typeof AuthenticatedSystemAiQuotaRoute
+  '/system/audit': typeof AuthenticatedSystemAuditRoute
   '/system/dict': typeof AuthenticatedSystemDictRoute
   '/system/dict-v2': typeof AuthenticatedSystemDictV2Route
   '/system/files': typeof AuthenticatedSystemFilesRoute
@@ -400,6 +416,8 @@ export interface FileRoutesByTo {
   '/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
   '/plugins/notes': typeof AuthenticatedPluginsNotesRoute
   '/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
+  '/system/ai-quota': typeof AuthenticatedSystemAiQuotaRoute
+  '/system/audit': typeof AuthenticatedSystemAuditRoute
   '/system/dict': typeof AuthenticatedSystemDictRoute
   '/system/dict-v2': typeof AuthenticatedSystemDictV2Route
   '/system/files': typeof AuthenticatedSystemFilesRoute
@@ -451,6 +469,8 @@ export interface FileRoutesById {
   '/_authenticated/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
   '/_authenticated/plugins/notes': typeof AuthenticatedPluginsNotesRoute
   '/_authenticated/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
+  '/_authenticated/system/ai-quota': typeof AuthenticatedSystemAiQuotaRoute
+  '/_authenticated/system/audit': typeof AuthenticatedSystemAuditRoute
   '/_authenticated/system/dict': typeof AuthenticatedSystemDictRoute
   '/_authenticated/system/dict-v2': typeof AuthenticatedSystemDictV2Route
   '/_authenticated/system/files': typeof AuthenticatedSystemFilesRoute
@@ -500,6 +520,8 @@ export interface FileRouteTypes {
     | '/plugins/jobs'
     | '/plugins/notes'
     | '/plugins/notifications'
+    | '/system/ai-quota'
+    | '/system/audit'
     | '/system/dict'
     | '/system/dict-v2'
     | '/system/files'
@@ -545,6 +567,8 @@ export interface FileRouteTypes {
     | '/plugins/jobs'
     | '/plugins/notes'
     | '/plugins/notifications'
+    | '/system/ai-quota'
+    | '/system/audit'
     | '/system/dict'
     | '/system/dict-v2'
     | '/system/files'
@@ -595,6 +619,8 @@ export interface FileRouteTypes {
     | '/_authenticated/plugins/jobs'
     | '/_authenticated/plugins/notes'
     | '/_authenticated/plugins/notifications'
+    | '/_authenticated/system/ai-quota'
+    | '/_authenticated/system/audit'
     | '/_authenticated/system/dict'
     | '/_authenticated/system/dict-v2'
     | '/_authenticated/system/files'
@@ -826,6 +852,20 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/system'
       preLoaderRoute: typeof AuthenticatedSystemIdentityRouteRouteImport
+      parentRoute: typeof AuthenticatedSystemRouteRoute
+    }
+    '/_authenticated/system/ai-quota': {
+      id: '/_authenticated/system/ai-quota'
+      path: '/ai-quota'
+      fullPath: '/system/ai-quota'
+      preLoaderRoute: typeof AuthenticatedSystemAiQuotaRouteImport
+      parentRoute: typeof AuthenticatedSystemRouteRoute
+    }
+    '/_authenticated/system/audit': {
+      id: '/_authenticated/system/audit'
+      path: '/audit'
+      fullPath: '/system/audit'
+      preLoaderRoute: typeof AuthenticatedSystemAuditRouteImport
       parentRoute: typeof AuthenticatedSystemRouteRoute
     }
     '/_authenticated/system/dict': {
@@ -1145,6 +1185,8 @@ const AuthenticatedSystemIdentityRouteRouteWithChildren =
 
 interface AuthenticatedSystemRouteRouteChildren {
   AuthenticatedSystemIdentityRouteRoute: typeof AuthenticatedSystemIdentityRouteRouteWithChildren
+  AuthenticatedSystemAiQuotaRoute: typeof AuthenticatedSystemAiQuotaRoute
+  AuthenticatedSystemAuditRoute: typeof AuthenticatedSystemAuditRoute
   AuthenticatedSystemDictRoute: typeof AuthenticatedSystemDictRoute
   AuthenticatedSystemDictV2Route: typeof AuthenticatedSystemDictV2Route
   AuthenticatedSystemFilesRoute: typeof AuthenticatedSystemFilesRoute
@@ -1157,6 +1199,8 @@ const AuthenticatedSystemRouteRouteChildren: AuthenticatedSystemRouteRouteChildr
   {
     AuthenticatedSystemIdentityRouteRoute:
       AuthenticatedSystemIdentityRouteRouteWithChildren,
+    AuthenticatedSystemAiQuotaRoute: AuthenticatedSystemAiQuotaRoute,
+    AuthenticatedSystemAuditRoute: AuthenticatedSystemAuditRoute,
     AuthenticatedSystemDictRoute: AuthenticatedSystemDictRoute,
     AuthenticatedSystemDictV2Route: AuthenticatedSystemDictV2Route,
     AuthenticatedSystemFilesRoute: AuthenticatedSystemFilesRoute,

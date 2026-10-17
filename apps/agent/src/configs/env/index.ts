@@ -26,7 +26,8 @@ export const configs = {
   langsmithApiKey: env.LANGSMITH_API_KEY,
   langsmithEndpoint: env.LANGSMITH_ENDPOINT,
   langsmithTracing: env.LANGSMITH_TRACING,
-  langsmithProject: env.LANGSMITH_PROJECT
+  langsmithProject: env.LANGSMITH_PROJECT,
+  agentInternalToken: env.AGENT_INTERNAL_TOKEN
 }
 
 export const useEnv = () => configs

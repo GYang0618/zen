@@ -7,6 +7,7 @@ import { authConfig, securityConfig } from '../config/index.js'
 import { LoggerModule } from '../infra/logger/index.js'
 import { PrismaModule } from '../infra/prisma/index.js'
 import { TenantPluginStateService } from '../modules/plugin/tenant-plugin-state.service.js'
+import { AccessLogSink } from './access-log/access-log-sink.service.js'
 import { AgentIdempotencyService } from './auth/agent-idempotency.service.js'
 import { AuditService } from './auth/audit.service.js'
 import { AuthContextService } from './auth/auth-context.service.js'
@@ -19,7 +20,9 @@ import { AuthGuard } from './guards/auth.guard.js'
 import { AuthContextGuard } from './guards/auth-context.guard.js'
 import { PermissionGuard } from './guards/permission.guard.js'
 import { PluginActiveGuard } from './guards/plugin-active.guard.js'
+import { AccessMetaInterceptor } from './interceptors/access-meta.interceptor.js'
 import { AgentIdempotencyInterceptor } from './interceptors/agent-idempotency.interceptor.js'
+import { AuditInterceptor } from './interceptors/audit.interceptor.js'
 import { TransformInterceptor } from './interceptors/transform.interceptor.js'
 
 import type { AuthConfig, SecurityConfig } from '../config/index.js'
@@ -59,6 +62,7 @@ import type { AuthConfig, SecurityConfig } from '../config/index.js'
     AuthContextService,
     AgentIdempotencyService,
     AuditService,
+    AccessLogSink,
     SessionService,
     UserActivityService,
     MembershipService,
@@ -94,7 +98,15 @@ import type { AuthConfig, SecurityConfig } from '../config/index.js'
     },
     {
       provide: APP_INTERCEPTOR,
+      useClass: AccessMetaInterceptor
+    },
+    {
+      provide: APP_INTERCEPTOR,
       useClass: AgentIdempotencyInterceptor
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor
     }
   ],
   exports: [
@@ -102,6 +114,7 @@ import type { AuthConfig, SecurityConfig } from '../config/index.js'
     AuthContextService,
     AgentIdempotencyService,
     AuditService,
+    AccessLogSink,
     SessionService,
     UserActivityService,
     MembershipService,

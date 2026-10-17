@@ -6,20 +6,26 @@ import {
 } from '@copilotkit/runtime/v2'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
+import { AgentEndReason, AgentRunStatus } from '@prisma/client'
 import {
   A2UI_SURFACE_TOOL_NAME,
+  createAuditDiff,
   DEFAULT_AGENT_ID,
+  DEFAULT_AGENT_RUN_BUDGET,
   getZenA2uiInlineCatalog,
   PAGE_AGENT_ID,
   ZEN_A2UI_CATALOG_ID
 } from '@zen/shared'
 
+import { AuditService } from '../../common/auth/audit.service.js'
 import { AuthContextService } from '../../common/auth/auth-context.service.js'
 import { CONFIG_NAMESPACES } from '../../config/index.js'
+import { PrismaService } from '../../infra/prisma/index.js'
 import { defaultAgent, pageAgent } from './agents.js'
 import { stampMissingEventTimestamps } from './agui-message-timing.js'
 import { CopilotThreadService } from './copilot-thread.service.js'
 import { extractBearerToken } from './copilot-token.util.js'
+import { CopilotUsageService } from './copilot-usage.service.js'
 import {
   parseCopilotSseResponse,
   rewriteRunRequestWithoutDisplayMessages
@@ -61,7 +67,13 @@ export class CopilotService implements OnModuleInit {
     @Inject(AuthContextService)
     private readonly authContextService: AuthContextService,
     @Inject(CopilotThreadService)
-    private readonly threadService: CopilotThreadService
+    private readonly threadService: CopilotThreadService,
+    @Inject(CopilotUsageService)
+    private readonly usageService: CopilotUsageService,
+    @Inject(AuditService)
+    private readonly auditService: AuditService,
+    @Inject(PrismaService)
+    private readonly prisma: PrismaService
   ) {}
 
   onModuleInit() {
@@ -148,8 +160,22 @@ export class CopilotService implements OnModuleInit {
           if (route.method === 'agent/run') {
             try {
               const fullAuth = await this.authContextService.resolve(payload.sub)
+
+              // 预检 AI 配额
+              const quota = await this.usageService.checkQuota(fullAuth.tenantId, fullAuth.userId)
+              if (!quota.allowed) {
+                throw new Response(
+                  JSON.stringify({
+                    error: 'ai_quota_exceeded',
+                    message: quota.reason ?? 'AI 配额已用尽'
+                  }),
+                  { status: 429, headers: { 'content-type': 'application/json' } }
+                )
+              }
+
               const body = (await request.clone().json()) as {
                 threadId?: string
+                runId?: string
                 messages?: Array<{ role: string }>
               }
               if (body.threadId) {
@@ -159,9 +185,42 @@ export class CopilotService implements OnModuleInit {
                   agentId: route.agentId
                 })
               }
+
+              if (body.runId && body.threadId) {
+                const user = await this.prisma.user.findUnique({
+                  where: { id: fullAuth.userId },
+                  select: {
+                    profile: { select: { realName: true } },
+                    nickname: true,
+                    username: true
+                  }
+                })
+                const userName = user?.profile?.realName ?? user?.nickname ?? user?.username ?? null
+
+                await this.prisma.agentRun.upsert({
+                  where: { id: body.runId },
+                  update: {
+                    status: 'running',
+                    updatedAt: new Date()
+                  },
+                  create: {
+                    id: body.runId,
+                    threadId: body.threadId,
+                    tenantId: fullAuth.tenantId,
+                    userId: fullAuth.userId,
+                    userName,
+                    agentId: route.agentId,
+                    status: 'running',
+                    budget: DEFAULT_AGENT_RUN_BUDGET as unknown as object,
+                    startedAt: new Date()
+                  }
+                })
+              }
+
               return rewriteRunRequestWithoutDisplayMessages(request, body)
-            } catch {
-              // 忽略解析失败
+            } catch (err) {
+              if (err instanceof Response) throw err
+              // 忽略其他解析失败
             }
           }
 
@@ -251,21 +310,67 @@ export class CopilotService implements OnModuleInit {
 
   private async persistThreadSnapshotFromSse(response: Response): Promise<void> {
     try {
-      const { threadId, messages, authoritative } = await parseCopilotSseResponse(response)
-      if (!threadId || messages.length === 0) return
-      const authInfo = this.threadAuthMap.get(threadId)
-      if (!authInfo) return
+      const { threadId, runId, status, endReason, messages, authoritative } =
+        await parseCopilotSseResponse(response)
 
-      await this.threadService.saveThreadSnapshot({
-        threadId,
-        tenantId: authInfo.tenantId,
-        userId: authInfo.userId,
-        agentId: authInfo.agentId,
-        messages,
-        mode: authoritative ? 'replace' : 'append'
-      })
+      if (threadId && messages.length > 0) {
+        const authInfo = this.threadAuthMap.get(threadId)
+        if (authInfo) {
+          await this.threadService.saveThreadSnapshot({
+            threadId,
+            tenantId: authInfo.tenantId,
+            userId: authInfo.userId,
+            agentId: authInfo.agentId,
+            messages,
+            mode: authoritative ? 'replace' : 'append'
+          })
+        }
+      }
+
+      if (runId) {
+        const finalStatus =
+          status === 'failed'
+            ? AgentRunStatus.failed
+            : status === 'aborted'
+              ? AgentRunStatus.cancelled
+              : AgentRunStatus.succeeded
+        const finalEndReason =
+          endReason === 'aborted'
+            ? AgentEndReason.cancelled
+            : endReason === 'error'
+              ? AgentEndReason.model_error
+              : AgentEndReason.completed
+        const existing = await this.prisma.agentRun.findUnique({ where: { id: runId } })
+        const now = new Date()
+        const durationMs = existing?.startedAt ? now.getTime() - existing.startedAt.getTime() : null
+
+        await this.prisma.agentRun.updateMany({
+          where: { id: runId },
+          data: {
+            status: finalStatus,
+            endReason: finalEndReason,
+            endedAt: now,
+            durationMs: durationMs ?? undefined
+          }
+        })
+
+        if (finalStatus === AgentRunStatus.failed) {
+          this.auditService.enqueue({
+            tenantId: existing?.tenantId,
+            actorId: existing?.userId,
+            action: 'agent.run.failed',
+            resource: 'agent_run',
+            resourceId: runId,
+            result: 'FAILURE',
+            diff: createAuditDiff({
+              summary: `AI 任务执行失败${endReason ? `：${endReason}` : ''}`,
+              meta: { endReason, status }
+            })
+          })
+        }
+      }
     } catch (error) {
-      this.logger.error({ err: error }, '从 SSE 持久化会话快照失败')
+      this.logger.error({ err: error }, '从 SSE 持久化会话快照与 Run 状态失败')
     }
   }
 

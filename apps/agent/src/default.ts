@@ -6,7 +6,8 @@ import { CHAT_FILESYSTEM_TOOL_NAMES, ChatStorageBackend } from '@/files/chat-sto
 import {
   createDefaultAgentMiddleware,
   createFrontendToolsMiddleware,
-  createMessageImageMiddleware
+  createMessageImageMiddleware,
+  createUsageMiddleware
 } from '@/middlewares'
 import { createModel } from '@/models'
 import {
@@ -49,6 +50,7 @@ export function createDefaultAgent() {
     stateSchema: AgentStateSchema,
     contextSchema: ContextSchema,
     middleware: [
+      createUsageMiddleware('chat'),
       createFrontendToolsMiddleware([
         ...coreTools.map((tool) => tool.name),
         ...CHAT_FILESYSTEM_TOOL_NAMES

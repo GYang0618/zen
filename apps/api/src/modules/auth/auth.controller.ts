@@ -165,7 +165,11 @@ export class AuthController {
       throw new UnauthorizedException('刷新令牌无效或已过期')
     }
 
-    await this.authService.assertRefreshTokenValid(payload.sub, refreshToken)
+    await this.authService.assertRefreshTokenValid(
+      payload.sub,
+      refreshToken,
+      this.requestMeta(request)
+    )
 
     const { session, refreshToken: nextRefreshToken } = await this.authService.refresh(payload.sub)
     await this.rotateRefreshToken(reply, payload.sub, refreshToken, nextRefreshToken, request)
@@ -183,7 +187,7 @@ export class AuthController {
     if (refreshToken) {
       try {
         const payload = await this.tokenService.verifyRefreshToken(refreshToken)
-        await this.authService.logout(payload.sub, refreshToken)
+        await this.authService.logout(payload.sub, refreshToken, this.requestMeta(request))
       } catch {
         // ignore
       }
@@ -214,7 +218,8 @@ export class AuthController {
   private requestMeta(request: Request) {
     return {
       ip: request.ip,
-      userAgent: request.get('user-agent') ?? undefined
+      userAgent: request.get('user-agent') ?? undefined,
+      traceId: (request as Request & { id?: string }).id
     }
   }
 
@@ -241,10 +246,12 @@ export class AuthController {
   ) {
     const maxAgeSeconds = durationToSeconds(this.authCfg.refreshExpiresIn)
     const refreshTokenExpiresAt = new Date(Date.now() + maxAgeSeconds * 1000)
-    await this.authService.createRefreshSession(userId, refreshToken, refreshTokenExpiresAt, {
-      ip: request.ip,
-      userAgent: request.get('user-agent') ?? undefined
-    })
+    await this.authService.createRefreshSession(
+      userId,
+      refreshToken,
+      refreshTokenExpiresAt,
+      this.requestMeta(request)
+    )
 
     this.writeRefreshCookie(reply, refreshToken, refreshTokenExpiresAt)
   }
@@ -263,10 +270,7 @@ export class AuthController {
       previousRefreshToken,
       nextRefreshToken,
       refreshTokenExpiresAt,
-      {
-        ip: request.ip,
-        userAgent: request.get('user-agent') ?? undefined
-      }
+      this.requestMeta(request)
     )
 
     this.writeRefreshCookie(reply, nextRefreshToken, refreshTokenExpiresAt)

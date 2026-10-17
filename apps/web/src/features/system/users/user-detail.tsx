@@ -14,6 +14,7 @@ import {
 } from '@zen/ui'
 import { ArrowLeft, KeyRound, LockOpen, LogOut, MoreHorizontal } from 'lucide-react'
 
+import { EntityAuditTimeline } from '@/components/audit'
 import { Can } from '@/components/auth/can'
 import { EmptyState } from '@/components/empty-state'
 import { AppHeader, Main } from '@/components/layouts'
@@ -132,6 +133,11 @@ function UserDetailContent() {
                 <LogOut />
                 强制下线
               </Button>
+              <EntityAuditTimeline
+                resource="user"
+                resourceId={user.id}
+                resourceName={displayName}
+              />
 
               <Button size="icon" variant="outline">
                 <MoreHorizontal />

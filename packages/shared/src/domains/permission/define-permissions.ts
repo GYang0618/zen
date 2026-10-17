@@ -9,6 +9,10 @@ export const PERMISSION_CODE_PATTERN = /^[a-z][a-z0-9_-]*:[a-z][a-z0-9_-]*:[a-z]
 const CODE_SEGMENT_PATTERN = /^[a-z][a-z0-9_-]*$/
 const KERNEL_NAMESPACE = 'system'
 
+type ReplaceHyphenWithUnderscore<S extends string> = S extends `${infer Head}-${infer Tail}`
+  ? `${Head}_${ReplaceHyphenWithUnderscore<Tail>}`
+  : S
+
 export type KernelPermissionGroup<
   TNamespace extends string = string,
   TResource extends string = string,
@@ -16,7 +20,9 @@ export type KernelPermissionGroup<
 > = {
   entries: PermissionCatalogEntry[]
   codes: {
-    readonly [K in TItems[number]['action'] as Uppercase<`${TResource}_${K}`>]: `${TNamespace}:${TResource}:${K}`
+    readonly [K in TItems[number]['action'] as Uppercase<
+      ReplaceHyphenWithUnderscore<`${TResource}_${K}`>
+    >]: `${TNamespace}:${TResource}:${K}`
   }
 }
 
