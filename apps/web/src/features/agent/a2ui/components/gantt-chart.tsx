@@ -168,9 +168,16 @@ export function GanttChart({ props }: RendererProps<GanttChartProps>) {
                       : task.points
                     : null
 
-                // 计算当前任务在 dates 中的索引区间
-                const startIdx = dates.findIndex((d) => String(d) === String(task.start))
-                const endIdx = dates.findIndex((d) => String(d) === String(task.end))
+                // 计算当前任务在 dates 中的索引区间（兼顾 start/startDate 与 end/endDate）
+                const rawStart =
+                  task.start ??
+                  (task as unknown as { startDate?: string | number }).startDate ??
+                  dates[0]
+                const rawEnd =
+                  task.end ?? (task as unknown as { endDate?: string | number }).endDate ?? rawStart
+
+                const startIdx = dates.findIndex((d) => String(d) === String(rawStart))
+                const endIdx = dates.findIndex((d) => String(d) === String(rawEnd))
 
                 const validStart = startIdx !== -1 ? startIdx : 0
                 const validEnd = endIdx !== -1 ? endIdx : validStart

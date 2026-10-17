@@ -141,72 +141,82 @@ export function UptimeCard({ props }: RendererProps<UptimeCardProps>) {
 
               {/* 服务状态行列表 */}
               <div className="space-y-3">
-                {services.map((item, sIdx) => (
-                  <div key={`${item.service}-${sIdx}`} className="flex items-center gap-3 text-xs">
-                    {/* 服务名称 */}
-                    <div className="w-24 sm:w-28 shrink-0 font-medium text-foreground truncate">
-                      {item.service}
+                {services.map((item, sIdx) => {
+                  const serviceName =
+                    item.service ||
+                    (item as unknown as { name?: string }).name ||
+                    `Service ${sIdx + 1}`
+                  const rawDays =
+                    item.days || (item as unknown as { statuses?: unknown[] }).statuses
+                  const daysList = Array.isArray(rawDays) ? rawDays : []
+
+                  return (
+                    <div key={`${serviceName}-${sIdx}`} className="flex items-center gap-3 text-xs">
+                      {/* 服务名称 */}
+                      <div className="w-24 sm:w-28 shrink-0 font-medium text-foreground truncate">
+                        {serviceName}
+                      </div>
+
+                      {/* 30 天状态药丸块 */}
+                      <div
+                        className="grid flex-1 gap-1"
+                        style={{ gridTemplateColumns: `repeat(${numDays}, minmax(0, 1fr))` }}
+                      >
+                        {daysList.map((dayEntry, dIdx) => {
+                          const status: UptimeStatus =
+                            typeof dayEntry === 'string' ? dayEntry : dayEntry.status
+                          const dateLabel =
+                            typeof dayEntry === 'object' && dayEntry.date
+                              ? dayEntry.date
+                              : dateLabels[dIdx] || `Day ${dIdx + 1}`
+                          const note =
+                            typeof dayEntry === 'object' && dayEntry.note ? dayEntry.note : status
+
+                          const statusText =
+                            status === 'operational'
+                              ? operationalLabel
+                              : status === 'degraded'
+                                ? degradedLabel
+                                : outageLabel
+
+                          const pillNode = (
+                            <div
+                              tabIndex={0}
+                              role="button"
+                              aria-label={`${item.service} ${dateLabel}: ${statusText}`}
+                              className={cn(
+                                'h-6 w-full rounded-[4px] transition-transform hover:scale-110 focus-visible:outline-hidden',
+                                STATUS_CLASSES[status]
+                              )}
+                            />
+                          )
+
+                          return (
+                            <Tooltip key={`pill-${item.service}-${dIdx}`}>
+                              <TooltipTrigger render={pillNode} />
+                              <TooltipContent
+                                side="top"
+                                className="rounded-md bg-foreground px-2 py-1 text-xs text-background shadow-md font-mono"
+                              >
+                                <div className="font-semibold">
+                                  {item.service} · {dateLabel}
+                                </div>
+                                <div className="text-[10px] text-background/80 capitalize">
+                                  {note}
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          )
+                        })}
+                      </div>
+
+                      {/* 可用率百分比 */}
+                      <div className="w-16 shrink-0 text-right font-mono text-xs font-semibold tabular-nums text-foreground/90">
+                        {item.uptime || '100.00%'}
+                      </div>
                     </div>
-
-                    {/* 30 天状态药丸块 */}
-                    <div
-                      className="grid flex-1 gap-1"
-                      style={{ gridTemplateColumns: `repeat(${numDays}, minmax(0, 1fr))` }}
-                    >
-                      {item.days.map((dayEntry, dIdx) => {
-                        const status: UptimeStatus =
-                          typeof dayEntry === 'string' ? dayEntry : dayEntry.status
-                        const dateLabel =
-                          typeof dayEntry === 'object' && dayEntry.date
-                            ? dayEntry.date
-                            : dateLabels[dIdx] || `Day ${dIdx + 1}`
-                        const note =
-                          typeof dayEntry === 'object' && dayEntry.note ? dayEntry.note : status
-
-                        const statusText =
-                          status === 'operational'
-                            ? operationalLabel
-                            : status === 'degraded'
-                              ? degradedLabel
-                              : outageLabel
-
-                        const pillNode = (
-                          <div
-                            tabIndex={0}
-                            role="button"
-                            aria-label={`${item.service} ${dateLabel}: ${statusText}`}
-                            className={cn(
-                              'h-6 w-full rounded-[4px] transition-transform hover:scale-110 focus-visible:outline-hidden',
-                              STATUS_CLASSES[status]
-                            )}
-                          />
-                        )
-
-                        return (
-                          <Tooltip key={`pill-${item.service}-${dIdx}`}>
-                            <TooltipTrigger render={pillNode} />
-                            <TooltipContent
-                              side="top"
-                              className="rounded-md bg-foreground px-2 py-1 text-xs text-background shadow-md font-mono"
-                            >
-                              <div className="font-semibold">
-                                {item.service} · {dateLabel}
-                              </div>
-                              <div className="text-[10px] text-background/80 capitalize">
-                                {note}
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        )
-                      })}
-                    </div>
-
-                    {/* 可用率百分比 */}
-                    <div className="w-16 shrink-0 text-right font-mono text-xs font-semibold tabular-nums text-foreground/90">
-                      {item.uptime || '100.00%'}
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           </div>

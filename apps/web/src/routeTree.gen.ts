@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as authRouteRouteImport } from './routes/(auth)/route'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as A2uiPreviewRouteImport } from './routes/a2ui-preview'
 import { Route as authChangePasswordRouteImport } from './routes/(auth)/change-password'
 import { Route as authForgotPasswordRouteImport } from './routes/(auth)/forgot-password'
 import { Route as authResetPasswordRouteImport } from './routes/(auth)/reset-password'
@@ -64,6 +65,11 @@ const authRouteRoute = authRouteRouteImport.update({
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const A2uiPreviewRoute = A2uiPreviewRouteImport.update({
+  id: '/a2ui-preview',
+  path: '/a2ui-preview',
   getParentRoute: () => rootRouteImport,
 } as any)
 const authChangePasswordRoute = authChangePasswordRouteImport.update({
@@ -327,6 +333,7 @@ const AuthenticatedSystemIdentityUsersUserIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedWorkbenchIndexRoute
+  '/a2ui-preview': typeof A2uiPreviewRoute
   '/ai': typeof AuthenticatedAiRouteRouteWithChildren
   '/plugins': typeof AuthenticatedPluginsRouteRouteWithChildren
   '/system': typeof AuthenticatedSystemRouteRouteWithChildren
@@ -372,6 +379,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof AuthenticatedWorkbenchIndexRoute
+  '/a2ui-preview': typeof A2uiPreviewRoute
   '/ai': typeof AuthenticatedAiRouteRouteWithChildren
   '/plugins': typeof AuthenticatedPluginsRouteRouteWithChildren
   '/system': typeof AuthenticatedSystemRouteRouteWithChildren
@@ -418,6 +426,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/(auth)': typeof authRouteRouteWithChildren
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/a2ui-preview': typeof A2uiPreviewRoute
   '/_authenticated/_other': typeof AuthenticatedOtherRouteRouteWithChildren
   '/_authenticated/_workbench': typeof AuthenticatedWorkbenchRouteRouteWithChildren
   '/_authenticated/ai': typeof AuthenticatedAiRouteRouteWithChildren
@@ -469,6 +478,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/a2ui-preview'
     | '/ai'
     | '/plugins'
     | '/system'
@@ -514,6 +524,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/a2ui-preview'
     | '/ai'
     | '/plugins'
     | '/system'
@@ -559,6 +570,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/(auth)'
     | '/_authenticated'
+    | '/a2ui-preview'
     | '/_authenticated/_other'
     | '/_authenticated/_workbench'
     | '/_authenticated/ai'
@@ -610,6 +622,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   authRouteRoute: typeof authRouteRouteWithChildren
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  A2uiPreviewRoute: typeof A2uiPreviewRoute
   Errors401Route: typeof Errors401Route
   Errors403Route: typeof Errors403Route
   Errors404Route: typeof Errors404Route
@@ -631,6 +644,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/a2ui-preview': {
+      id: '/a2ui-preview'
+      path: '/a2ui-preview'
+      fullPath: '/a2ui-preview'
+      preLoaderRoute: typeof A2uiPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(auth)/change-password': {
@@ -1173,6 +1193,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   authRouteRoute: authRouteRouteWithChildren,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  A2uiPreviewRoute: A2uiPreviewRoute,
   Errors401Route: Errors401Route,
   Errors403Route: Errors403Route,
   Errors404Route: Errors404Route,

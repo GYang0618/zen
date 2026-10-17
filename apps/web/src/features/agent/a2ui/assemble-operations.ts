@@ -8,15 +8,35 @@ const A2UI_PROTOCOL_VERSION = 'v0.9' as const
  */
 export function assembleRenderA2uiOperations(
   args: Record<string, unknown>,
-  fallbackSurfaceId: string
+  targetSurfaceId?: string
 ): Array<Record<string, unknown>> | null {
-  const components = args.components
-  if (!Array.isArray(components) || components.length === 0) return null
+  const rawComponents = args.components
+  if (!Array.isArray(rawComponents) || rawComponents.length === 0) return null
+
+  const components = rawComponents.map((comp) => {
+    if (
+      comp &&
+      typeof comp === 'object' &&
+      !Array.isArray(comp) &&
+      'props' in comp &&
+      typeof comp.props === 'object' &&
+      comp.props !== null &&
+      !Array.isArray(comp.props)
+    ) {
+      const { props: innerProps, ...rest } = comp as {
+        props: Record<string, unknown>
+        [k: string]: unknown
+      }
+      return { ...rest, ...innerProps }
+    }
+    return comp
+  })
 
   const surfaceId =
-    typeof args.surfaceId === 'string' && args.surfaceId.trim().length > 0
+    targetSurfaceId ||
+    (typeof args.surfaceId === 'string' && args.surfaceId.trim().length > 0
       ? args.surfaceId
-      : fallbackSurfaceId
+      : 'a2ui-surface')
 
   const operations: Array<Record<string, unknown>> = [
     {

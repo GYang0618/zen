@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import { envSchema } from './schema'
 
 export function loadEnv() {

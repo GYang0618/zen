@@ -223,17 +223,22 @@ export function extractA2UISurfaces(
 
         const actualOpSurfaceId = getOperationSurfaceId(operations[0])
 
-        // 如果操作里的 surfaceId 已经被通道 1 提取过，关联 toolCallId 并跳过，彻底杜绝重复
+        // 如果操作里的 surfaceId 已经被通道 1 提取过且未关联 toolCallId，关联后跳过
         if (actualOpSurfaceId && seenSurfaceIds.has(actualOpSurfaceId)) {
-          seenSurfaceIds.add(fallbackSurfaceId)
           const existing = surfaces.find((s) => s.surfaceId === actualOpSurfaceId)
           if (existing && !existing.toolCallId) {
+            seenSurfaceIds.add(fallbackSurfaceId)
             existing.toolCallId = toolCallId
+            continue
           }
-          continue
         }
 
-        const finalSurfaceId = actualOpSurfaceId || fallbackSurfaceId
+        // 若不同工具调用重用了相同 surfaceId，为新调用附加 toolCallId 确保每个徽标可独立查看对应画布
+        let finalSurfaceId = actualOpSurfaceId || fallbackSurfaceId
+        if (seenSurfaceIds.has(finalSurfaceId)) {
+          finalSurfaceId = `${finalSurfaceId}_${toolCallId}`
+          operations = assembleRenderA2uiOperations(args, finalSurfaceId) || operations
+        }
         if (seenSurfaceIds.has(finalSurfaceId)) continue
 
         seenSurfaceIds.add(finalSurfaceId)
