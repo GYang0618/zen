@@ -33,7 +33,17 @@ type MinuteBucketKey = string
 type MinuteBucketVal = {
   count: number
   errorCount: number
-  latencies: number[]
+  latencySumMs: bigint
+  latencyLt10Ms: number
+  latency10To25Ms: number
+  latency25To50Ms: number
+  latency50To100Ms: number
+  latency100To250Ms: number
+  latency250To500Ms: number
+  latency500To1000Ms: number
+  latency1000To2500Ms: number
+  latency2500To5000Ms: number
+  latencyGte5000Ms: number
 }
 
 @Injectable()
@@ -87,16 +97,39 @@ export class AccessLogSink implements OnApplicationShutdown {
     const bucketKey = `${tenantId}|${bucketDate.toISOString()}|${raw.method.toUpperCase()}|${raw.route}|${callerType}`
     let bucket = this.minuteBuckets.get(bucketKey)
     if (!bucket) {
-      bucket = { count: 0, errorCount: 0, latencies: [] }
+      bucket = {
+        count: 0,
+        errorCount: 0,
+        latencySumMs: 0n,
+        latencyLt10Ms: 0,
+        latency10To25Ms: 0,
+        latency25To50Ms: 0,
+        latency50To100Ms: 0,
+        latency100To250Ms: 0,
+        latency250To500Ms: 0,
+        latency500To1000Ms: 0,
+        latency1000To2500Ms: 0,
+        latency2500To5000Ms: 0,
+        latencyGte5000Ms: 0
+      }
       this.minuteBuckets.set(bucketKey, bucket)
     }
     bucket.count++
     if (raw.status >= 400) {
       bucket.errorCount++
     }
-    if (bucket.latencies.length < 200) {
-      bucket.latencies.push(raw.latencyMs)
-    }
+    const latencyMs = Number.isFinite(raw.latencyMs) ? Math.max(0, Math.trunc(raw.latencyMs)) : 0
+    bucket.latencySumMs += BigInt(latencyMs)
+    if (latencyMs < 10) bucket.latencyLt10Ms++
+    else if (latencyMs < 25) bucket.latency10To25Ms++
+    else if (latencyMs < 50) bucket.latency25To50Ms++
+    else if (latencyMs < 100) bucket.latency50To100Ms++
+    else if (latencyMs < 250) bucket.latency100To250Ms++
+    else if (latencyMs < 500) bucket.latency250To500Ms++
+    else if (latencyMs < 1000) bucket.latency500To1000Ms++
+    else if (latencyMs < 2500) bucket.latency1000To2500Ms++
+    else if (latencyMs < 5000) bucket.latency2500To5000Ms++
+    else bucket.latencyGte5000Ms++
 
     // 2. 采样入库详细日志
     const sampled = this.shouldSample(
@@ -161,10 +194,7 @@ export class AccessLogSink implements OnApplicationShutdown {
         const bucket = new Date(bucketIso)
         const callerType = callerTypeStr as ApiCallerType
 
-        // 计算 p95 耗时
-        val.latencies.sort((a, b) => a - b)
-        const p95Idx = Math.floor(val.latencies.length * 0.95)
-        const p95Ms = val.latencies[p95Idx] ?? (val.latencies[0] || 0)
+        const p95Ms = this.estimateP95(val)
 
         await this.prisma.apiAccessStat.upsert({
           where: {
@@ -179,7 +209,18 @@ export class AccessLogSink implements OnApplicationShutdown {
           update: {
             count: { increment: val.count },
             errorCount: { increment: val.errorCount },
-            p95Ms: Math.max(p95Ms, 0)
+            p95Ms,
+            latencySumMs: { increment: val.latencySumMs },
+            latencyLt10Ms: { increment: val.latencyLt10Ms },
+            latency10To25Ms: { increment: val.latency10To25Ms },
+            latency25To50Ms: { increment: val.latency25To50Ms },
+            latency50To100Ms: { increment: val.latency50To100Ms },
+            latency100To250Ms: { increment: val.latency100To250Ms },
+            latency250To500Ms: { increment: val.latency250To500Ms },
+            latency500To1000Ms: { increment: val.latency500To1000Ms },
+            latency1000To2500Ms: { increment: val.latency1000To2500Ms },
+            latency2500To5000Ms: { increment: val.latency2500To5000Ms },
+            latencyGte5000Ms: { increment: val.latencyGte5000Ms }
           },
           create: {
             tenantId,
@@ -189,7 +230,18 @@ export class AccessLogSink implements OnApplicationShutdown {
             callerType,
             count: val.count,
             errorCount: val.errorCount,
-            p95Ms
+            p95Ms,
+            latencySumMs: val.latencySumMs,
+            latencyLt10Ms: val.latencyLt10Ms,
+            latency10To25Ms: val.latency10To25Ms,
+            latency25To50Ms: val.latency25To50Ms,
+            latency50To100Ms: val.latency50To100Ms,
+            latency100To250Ms: val.latency100To250Ms,
+            latency250To500Ms: val.latency250To500Ms,
+            latency500To1000Ms: val.latency500To1000Ms,
+            latency1000To2500Ms: val.latency1000To2500Ms,
+            latency2500To5000Ms: val.latency2500To5000Ms,
+            latencyGte5000Ms: val.latencyGte5000Ms
           }
         })
       }
@@ -198,6 +250,28 @@ export class AccessLogSink implements OnApplicationShutdown {
     } finally {
       this.isFlushingStats = false
     }
+  }
+
+  private estimateP95(bucket: MinuteBucketVal): number {
+    const target = Math.ceil(bucket.count * 0.95)
+    const bounds: Array<[number, number]> = [
+      [bucket.latencyLt10Ms, 10],
+      [bucket.latency10To25Ms, 25],
+      [bucket.latency25To50Ms, 50],
+      [bucket.latency50To100Ms, 100],
+      [bucket.latency100To250Ms, 250],
+      [bucket.latency250To500Ms, 500],
+      [bucket.latency500To1000Ms, 1000],
+      [bucket.latency1000To2500Ms, 2500],
+      [bucket.latency2500To5000Ms, 5000],
+      [bucket.latencyGte5000Ms, 5000]
+    ]
+    let cumulative = 0
+    for (const [count, upperBound] of bounds) {
+      cumulative += count
+      if (cumulative >= target) return upperBound
+    }
+    return 0
   }
 
   async onApplicationShutdown(): Promise<void> {

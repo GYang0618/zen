@@ -9,8 +9,10 @@ import {
   UsePipes
 } from '@nestjs/common'
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger'
-import { AuditActorType, AuditResult } from '@prisma/client'
+import { AgentCallPurpose, AgentCallStatus, AuditActorType, AuditResult } from '@prisma/client'
 import {
+  agentModelCallsToolQuerySchema,
+  auditStatsQuerySchema,
   DEFAULT_TENANT_ID,
   describeAgentRun,
   describeAudit,
@@ -26,6 +28,8 @@ import { buildPaginationMeta, paginate } from '../../common/pagination/index.js'
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js'
 import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '../../common/swagger/index.js'
 import { PrismaService } from '../../infra/prisma/index.js'
+import { StorageService } from '../storage/storage.service.js'
+import { AuditStatsService } from './audit-stats.service.js'
 
 import type { AgentRunStatus, ApiCallerType, Prisma } from '@prisma/client'
 import type { Request } from 'express'
@@ -68,7 +72,20 @@ const accessLogQuerySchema = z.object({
   callerType: z.enum(['user', 'agent', 'api_key', 'anonymous']).optional(),
   route: z.string().trim().min(1).optional(),
   status: z.coerce.number().int().optional(),
+  statuses: z
+    .union([z.string(), z.array(z.coerce.number().int())])
+    .optional()
+    .transform((val) => {
+      if (!val) return undefined
+      if (Array.isArray(val)) return val
+      return val
+        .split(',')
+        .map((s) => Number(s.trim()))
+        .filter((n) => !Number.isNaN(n))
+    }),
+  statusCategory: z.enum(['normal', 'error']).optional(),
   minLatencyMs: z.coerce.number().int().nonnegative().optional(),
+  maxLatencyMs: z.coerce.number().int().nonnegative().optional(),
   onlyErrors: z.coerce.boolean().optional(),
   traceId: z.string().trim().min(1).optional(),
   agentRunId: z.string().trim().min(1).optional(),
@@ -96,13 +113,42 @@ type AuditQuery = z.infer<typeof auditQuerySchema>
 type LoginEventQuery = z.infer<typeof loginEventQuerySchema>
 type AccessLogQuery = z.infer<typeof accessLogQuerySchema>
 type StatsQuery = z.infer<typeof statsQuerySchema>
+type AuditStatsQuery = z.infer<typeof auditStatsQuerySchema>
 type AgentRunsQuery = z.infer<typeof agentRunsQuerySchema>
+type AgentModelCallsQuery = z.infer<typeof agentModelCallsToolQuerySchema>
 
 @ApiTags('操作与安全审计')
 @ApiBearerAuth(ACCESS_TOKEN_AUTH)
 @Controller('audit')
 export class AuditController {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(AuditStatsService) private readonly statsService: AuditStatsService,
+    @Inject(StorageService) private readonly storageService: StorageService
+  ) {}
+
+  private async enrichUsersWithAvatar<
+    T extends {
+      id: string
+      username: string
+      nickname: string | null
+      email: string
+      phoneNumber: string | null
+      profile: { realName: string | null; avatar: string | null } | null
+    }
+  >(users: T[]) {
+    return Promise.all(
+      users.map(async (u) => ({
+        id: u.id,
+        username: u.username,
+        nickname: u.nickname,
+        realName: u.profile?.realName ?? null,
+        email: u.email,
+        phoneNumber: u.phoneNumber,
+        avatar: await this.storageService.resolveAvatarUrl(u.profile?.avatar)
+      }))
+    )
+  }
 
   @Get()
   @RequirePermission(PermissionCode.AUDIT_LIST)
@@ -110,12 +156,15 @@ export class AuditController {
   @ApiOkResponse({ description: '查询成功' })
   @ApiStandardErrorResponses()
   @UsePipes(new ZodValidationPipe(auditQuerySchema, { types: ['query'] }))
-  async list(@Query() query: AuditQuery) {
+  async list(
+    @Query() query: AuditQuery,
+    @Req() req: Request & { auth?: { tenantId: string; permissions: string[]; isAdmin?: boolean } }
+  ) {
     const page = query.page ?? 1
     const pageSize = query.pageSize ?? 20
 
     const where: Prisma.AuditLogWhereInput = {
-      tenantId: DEFAULT_TENANT_ID,
+      tenantId: req.auth?.tenantId ?? DEFAULT_TENANT_ID,
       ...(query.action ? { action: { contains: query.action } } : {}),
       ...(query.resource ? { resource: query.resource } : {}),
       ...(query.resourceId ? { resourceId: query.resourceId } : {}),
@@ -184,17 +233,23 @@ export class AuditController {
               id: true,
               username: true,
               nickname: true,
-              profile: { select: { realName: true } }
+              email: true,
+              phoneNumber: true,
+              profile: { select: { realName: true, avatar: true } }
             }
           })
         : []
-    const actorNames = new Map(
-      actors.map((actor) => [actor.id, actor.profile?.realName ?? actor.nickname ?? actor.username])
-    )
+    const resolvedActors = await this.enrichUsersWithAvatar(actors)
+    const actorMap = new Map(resolvedActors.map((actor) => [actor.id, actor]))
 
     return {
       items: items.map((item) => {
-        const rawActorName = item.actorName ?? (item.actorId ? actorNames.get(item.actorId) : null)
+        const actorDetail = item.actorId ? (actorMap.get(item.actorId) ?? null) : null
+        const rawActorName =
+          item.actorName ??
+          (actorDetail
+            ? (actorDetail.realName ?? actorDetail.nickname ?? actorDetail.username)
+            : null)
         const diff = parseAuditDiff(item.diff)
         const presentation = describeAudit(item.action, diff)
         const actorType = item.actorType.toLowerCase()
@@ -240,6 +295,7 @@ export class AuditController {
           actorType,
           actorName: rawActorName,
           actorDisplay: actorDisplayName,
+          actor: actorDetail,
           action: item.action,
           actionLabel: presentation.title,
           title: presentation.title,
@@ -257,7 +313,10 @@ export class AuditController {
           agentRunId: item.agentRunId,
           agentToolName: item.agentToolName,
           agentApprovalId: item.agentApprovalId,
-          diff: item.diff,
+          diff:
+            req.auth?.isAdmin || req.auth?.permissions?.includes(PermissionCode.AUDIT_DETAIL)
+              ? item.diff
+              : undefined,
           createdAt: item.createdAt.toISOString()
         }
       }),
@@ -265,17 +324,103 @@ export class AuditController {
     }
   }
 
-  @Get('login-events')
+  @Get('stats/overview')
+  @RequirePermission({
+    codes: [
+      PermissionCode.AUDIT_LIST,
+      PermissionCode.AUDIT_LOGIN,
+      PermissionCode.AUDIT_ACCESS,
+      PermissionCode.AUDIT_AGENT
+    ],
+    mode: 'all'
+  })
+  @ApiOperation({ summary: '获取统一审计概览统计' })
+  @ApiStandardErrorResponses()
+  @UsePipes(new ZodValidationPipe(auditStatsQuerySchema, { types: ['query'] }))
+  getOverviewStats(
+    @Query() query: AuditStatsQuery,
+    @Req() req: Request & { auth?: { tenantId: string } }
+  ) {
+    return this.statsService.overview(req.auth?.tenantId ?? DEFAULT_TENANT_ID, query)
+  }
+
+  @Get('stats/operations')
   @RequirePermission(PermissionCode.AUDIT_LIST)
+  @ApiOperation({ summary: '按操作、资源、结果和操作者统计审计日志' })
+  @ApiStandardErrorResponses()
+  @UsePipes(new ZodValidationPipe(auditStatsQuerySchema, { types: ['query'] }))
+  getOperationStats(
+    @Query() query: AuditStatsQuery,
+    @Req() req: Request & { auth?: { tenantId: string } }
+  ) {
+    return this.statsService.operations(req.auth?.tenantId ?? DEFAULT_TENANT_ID, query)
+  }
+
+  @Get('stats/logins')
+  @RequirePermission(PermissionCode.AUDIT_LOGIN)
+  @ApiOperation({ summary: '获取登录事件成功率与事件类型分布' })
+  @ApiStandardErrorResponses()
+  @UsePipes(new ZodValidationPipe(auditStatsQuerySchema, { types: ['query'] }))
+  getLoginStats(
+    @Query() query: AuditStatsQuery,
+    @Req() req: Request & { auth?: { tenantId: string } }
+  ) {
+    return this.statsService.logins(req.auth?.tenantId ?? DEFAULT_TENANT_ID, query)
+  }
+
+  @Get('stats/security')
+  @RequirePermission({
+    codes: [PermissionCode.AUDIT_LIST, PermissionCode.AUDIT_LOGIN],
+    mode: 'all'
+  })
+  @ApiOperation({ summary: '获取拒绝访问、失败操作、限流和登录失败统计' })
+  @ApiStandardErrorResponses()
+  @UsePipes(new ZodValidationPipe(auditStatsQuerySchema, { types: ['query'] }))
+  getSecurityStats(
+    @Query() query: AuditStatsQuery,
+    @Req() req: Request & { auth?: { tenantId: string } }
+  ) {
+    return this.statsService.security(req.auth?.tenantId ?? DEFAULT_TENANT_ID, query)
+  }
+
+  @Get('stats/access')
+  @RequirePermission(PermissionCode.AUDIT_ACCESS)
+  @ApiOperation({ summary: '获取接口调用量、错误率、调用方和 Top 路由统计' })
+  @ApiStandardErrorResponses()
+  @UsePipes(new ZodValidationPipe(auditStatsQuerySchema, { types: ['query'] }))
+  getAccessStatistics(
+    @Query() query: AuditStatsQuery,
+    @Req() req: Request & { auth?: { tenantId: string } }
+  ) {
+    return this.statsService.access(req.auth?.tenantId ?? DEFAULT_TENANT_ID, query)
+  }
+
+  @Get('stats/agent')
+  @RequirePermission(PermissionCode.AUDIT_AGENT)
+  @ApiOperation({ summary: '获取 Agent 运行、模型用量、Token 和成本统计' })
+  @ApiStandardErrorResponses()
+  @UsePipes(new ZodValidationPipe(auditStatsQuerySchema, { types: ['query'] }))
+  getAgentStatistics(
+    @Query() query: AuditStatsQuery,
+    @Req() req: Request & { auth?: { tenantId: string } }
+  ) {
+    return this.statsService.agent(req.auth?.tenantId ?? DEFAULT_TENANT_ID, query)
+  }
+
+  @Get('login-events')
+  @RequirePermission(PermissionCode.AUDIT_LOGIN)
   @ApiOperation({ summary: '分页查询登录历史' })
   @ApiOkResponse({ description: '查询成功' })
   @ApiStandardErrorResponses()
   @UsePipes(new ZodValidationPipe(loginEventQuerySchema, { types: ['query'] }))
-  async listLoginEvents(@Query() query: LoginEventQuery) {
+  async listLoginEvents(
+    @Query() query: LoginEventQuery,
+    @Req() req: Request & { auth?: { tenantId: string } }
+  ) {
     const page = query.page ?? 1
     const pageSize = query.pageSize ?? 20
     const where: Prisma.LoginEventWhereInput = {
-      tenantId: DEFAULT_TENANT_ID,
+      tenantId: req.auth?.tenantId ?? DEFAULT_TENANT_ID,
       ...(query.userId ? { userId: query.userId } : {}),
       ...(query.identifier
         ? { identifier: { contains: query.identifier, mode: 'insensitive' as const } }
@@ -304,20 +449,58 @@ export class AuditController {
         })
     })
 
+    const userIds = [...new Set(items.flatMap((item) => (item.userId ? [item.userId] : [])))]
+    const identifiers = [...new Set(items.map((item) => item.identifier))]
+    const users = await this.prisma.user.findMany({
+      where: {
+        OR: [
+          ...(userIds.length > 0 ? [{ id: { in: userIds } }] : []),
+          ...(identifiers.length > 0
+            ? [{ username: { in: identifiers } }, { email: { in: identifiers } }]
+            : [])
+        ]
+      },
+      select: {
+        id: true,
+        username: true,
+        nickname: true,
+        email: true,
+        phoneNumber: true,
+        profile: { select: { realName: true, avatar: true } }
+      }
+    })
+
+    const resolvedUsers = await this.enrichUsersWithAvatar(users)
+    const userMapById = new Map(resolvedUsers.map((u) => [u.id, u]))
+    const userMapByIdentifier = new Map(
+      resolvedUsers.flatMap((u) => [
+        [u.username.toLowerCase(), u],
+        [u.email.toLowerCase(), u]
+      ])
+    )
+
     return {
-      items: items.map((item) => ({
-        id: item.id,
-        tenantId: item.tenantId,
-        userId: item.userId,
-        identifier: item.identifier,
-        event: item.event,
-        success: item.success,
-        ip: item.ip,
-        userAgent: item.userAgent,
-        reason: item.reason,
-        traceId: item.traceId,
-        createdAt: item.createdAt.toISOString()
-      })),
+      items: items.map((item) => {
+        const user =
+          (item.userId ? userMapById.get(item.userId) : null) ??
+          userMapByIdentifier.get(item.identifier.toLowerCase()) ??
+          null
+
+        return {
+          id: item.id,
+          tenantId: item.tenantId,
+          userId: item.userId,
+          user,
+          identifier: item.identifier,
+          event: item.event,
+          success: item.success,
+          ip: item.ip,
+          userAgent: item.userAgent,
+          reason: item.reason,
+          traceId: item.traceId,
+          createdAt: item.createdAt.toISOString()
+        }
+      }),
       pagination: pagination ?? buildPaginationMeta(page, pageSize, items.length)
     }
   }
@@ -328,25 +511,36 @@ export class AuditController {
   @ApiOkResponse({ description: '查询成功' })
   @ApiStandardErrorResponses()
   @UsePipes(new ZodValidationPipe(accessLogQuerySchema, { types: ['query'] }))
-  async listAccessLogs(@Query() query: AccessLogQuery) {
+  async listAccessLogs(
+    @Query() query: AccessLogQuery,
+    @Req() req: Request & { auth?: { tenantId: string } }
+  ) {
     const page = query.page ?? 1
     const pageSize = query.pageSize ?? 20
 
     const where: Prisma.ApiAccessLogWhereInput = {
-      tenantId: DEFAULT_TENANT_ID,
+      tenantId: req.auth?.tenantId ?? DEFAULT_TENANT_ID,
       ...(query.method ? { method: query.method.toUpperCase() } : {}),
       ...(query.userId ? { userId: query.userId } : {}),
       ...(query.callerType ? { callerType: query.callerType.toUpperCase() as ApiCallerType } : {}),
       ...(query.route ? { route: { contains: query.route } } : {}),
-      ...(query.status || query.onlyErrors
+      ...(query.statusCategory === 'normal'
+        ? { status: { lt: 400 } }
+        : query.statusCategory === 'error' || query.onlyErrors
+          ? { status: { gte: 400 } }
+          : query.statuses && query.statuses.length > 0
+            ? { status: { in: query.statuses } }
+            : query.status
+              ? { status: { equals: query.status } }
+              : {}),
+      ...(query.minLatencyMs !== undefined || query.maxLatencyMs !== undefined
         ? {
-            status: {
-              ...(query.status ? { equals: query.status } : {}),
-              ...(query.onlyErrors ? { gte: 400 } : {})
+            latencyMs: {
+              ...(query.minLatencyMs !== undefined ? { gte: query.minLatencyMs } : {}),
+              ...(query.maxLatencyMs !== undefined ? { lte: query.maxLatencyMs } : {})
             }
           }
         : {}),
-      ...(query.minLatencyMs !== undefined ? { latencyMs: { gte: query.minLatencyMs } } : {}),
       ...(query.traceId ? { traceId: query.traceId } : {}),
       ...(query.agentRunId ? { agentRunId: query.agentRunId } : {}),
       ...(query.startDate || query.endDate
@@ -372,11 +566,30 @@ export class AuditController {
         })
     })
 
+    const userIds = [...new Set(items.flatMap((item) => (item.userId ? [item.userId] : [])))]
+    const users =
+      userIds.length > 0
+        ? await this.prisma.user.findMany({
+            where: { id: { in: userIds } },
+            select: {
+              id: true,
+              username: true,
+              nickname: true,
+              email: true,
+              phoneNumber: true,
+              profile: { select: { realName: true, avatar: true } }
+            }
+          })
+        : []
+    const resolvedUsers = await this.enrichUsersWithAvatar(users)
+    const userMap = new Map(resolvedUsers.map((u) => [u.id, u]))
+
     return {
       items: items.map((item) => ({
         id: item.id,
         tenantId: item.tenantId,
         userId: item.userId,
+        user: item.userId ? (userMap.get(item.userId) ?? null) : null,
         callerType: item.callerType,
         apiKeyId: item.apiKeyId,
         agentRunId: item.agentRunId,
@@ -400,73 +613,39 @@ export class AuditController {
   @ApiOperation({ summary: '获取接口访问聚合统计与 Top 路由' })
   @ApiStandardErrorResponses()
   @UsePipes(new ZodValidationPipe(statsQuerySchema, { types: ['query'] }))
-  async getAccessStats(@Query() query: StatsQuery) {
+  async getAccessStats(
+    @Query() query: StatsQuery,
+    @Req() req: Request & { auth?: { tenantId: string } }
+  ) {
     const days = query.days ?? 7
-    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
-
-    const stats = await this.prisma.apiAccessStat.findMany({
-      where: {
-        tenantId: DEFAULT_TENANT_ID,
-        bucket: { gte: since }
-      }
+    const stats = await this.statsService.access(req.auth?.tenantId ?? DEFAULT_TENANT_ID, {
+      days,
+      top: 10
     })
-
-    let totalCalls = 0
-    let totalErrors = 0
-    let agentCalls = 0
-    let weightedLatency = 0
-
-    const topMap = new Map<
-      string,
-      { method: string; route: string; count: number; errorCount: number; maxP95: number }
-    >()
-
-    for (const s of stats) {
-      totalCalls += s.count
-      totalErrors += s.errorCount
-      if (s.callerType === 'AGENT') {
-        agentCalls += s.count
-      }
-      weightedLatency += s.p95Ms * s.count
-
-      const key = `${s.method} ${s.route}`
-      const existing = topMap.get(key)
-      if (existing) {
-        existing.count += s.count
-        existing.errorCount += s.errorCount
-        existing.maxP95 = Math.max(existing.maxP95, s.p95Ms)
-      } else {
-        topMap.set(key, {
-          method: s.method,
-          route: s.route,
-          count: s.count,
-          errorCount: s.errorCount,
-          maxP95: s.p95Ms
-        })
-      }
-    }
-
-    const topRoutes = Array.from(topMap.values())
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10)
-      .map((item) => ({
-        ...item,
-        title: resolveRouteTitle(item.method, item.route),
-        avgLatencyMs: item.maxP95,
-        errorRate: item.count > 0 ? item.errorCount / item.count : 0
-      }))
+    const agentCalls = stats.byCaller.find((item) => item.callerType === 'AGENT')?.count ?? 0
 
     return {
-      totalCalls,
-      errorCount: totalErrors,
-      errorRate: totalCalls > 0 ? totalErrors / totalCalls : 0,
-      avgLatencyMs: totalCalls > 0 ? Math.round(weightedLatency / totalCalls) : 0,
-      p95LatencyMs: totalCalls > 0 ? Math.round(weightedLatency / totalCalls) : 0,
+      totalCalls: stats.requestCount,
+      errorCount: stats.errorCount,
+      errorRate: stats.errorRate,
+      avgLatencyMs: stats.meanMs,
+      p95LatencyMs: stats.p95EstimateMs,
+      latencyCoverageCount: stats.coverageCount,
+      latencyCoverageRatio: stats.coverageRatio,
+      p95Bucket: stats.p95Bucket,
+      p95IsLowerBound: stats.p95IsLowerBound,
+      p95IsHistogramEstimate: true,
       agentCallCount: agentCalls,
-      agentCallRatio: totalCalls > 0 ? agentCalls / totalCalls : 0,
-      p95Ms: totalCalls > 0 ? Math.round(weightedLatency / totalCalls) : 0,
-      agentPercentage: totalCalls > 0 ? agentCalls / totalCalls : 0,
-      topRoutes
+      agentCallRatio: stats.requestCount ? agentCalls / stats.requestCount : 0,
+      p95Ms: stats.p95EstimateMs,
+      agentPercentage: stats.requestCount ? agentCalls / stats.requestCount : 0,
+      topRoutes: stats.topRoutes.map((item) => ({
+        ...item,
+        title: resolveRouteTitle(item.method, item.route),
+        avgLatencyMs: item.meanMs,
+        p95LatencyMs: item.p95EstimateMs,
+        errorRate: item.count ? item.errorCount / item.count : 0
+      }))
     }
   }
 
@@ -475,13 +654,16 @@ export class AuditController {
   @ApiOperation({ summary: '获取 Agent Token 用量统计指标' })
   @ApiStandardErrorResponses()
   @UsePipes(new ZodValidationPipe(statsQuerySchema, { types: ['query'] }))
-  async getAgentStats(@Query() query: StatsQuery) {
+  async getAgentStats(
+    @Query() query: StatsQuery,
+    @Req() req: Request & { auth?: { tenantId: string } }
+  ) {
     const days = query.days ?? 7
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
 
     const daily = await this.prisma.agentUsageDaily.findMany({
       where: {
-        tenantId: DEFAULT_TENANT_ID,
+        tenantId: req.auth?.tenantId ?? DEFAULT_TENANT_ID,
         date: { gte: since }
       },
       orderBy: { date: 'asc' }
@@ -521,7 +703,7 @@ export class AuditController {
     }
 
     const runs = await this.prisma.agentRun.findMany({
-      where: { tenantId: DEFAULT_TENANT_ID, createdAt: { gte: since } },
+      where: { tenantId: req.auth?.tenantId ?? DEFAULT_TENANT_ID, createdAt: { gte: since } },
       select: { userId: true, createdAt: true }
     })
     const todayStart = new Date()
@@ -555,12 +737,15 @@ export class AuditController {
   @ApiOperation({ summary: '分页查询 Agent 执行任务列表' })
   @ApiStandardErrorResponses()
   @UsePipes(new ZodValidationPipe(agentRunsQuerySchema, { types: ['query'] }))
-  async listAgentRuns(@Query() query: AgentRunsQuery) {
+  async listAgentRuns(
+    @Query() query: AgentRunsQuery,
+    @Req() req: Request & { auth?: { tenantId: string } }
+  ) {
     const page = query.page ?? 1
     const pageSize = query.pageSize ?? 20
 
     const where: Prisma.AgentRunWhereInput = {
-      tenantId: DEFAULT_TENANT_ID,
+      tenantId: req.auth?.tenantId ?? DEFAULT_TENANT_ID,
       ...(query.userId ? { userId: query.userId } : {}),
       ...(query.model ? { model: query.model } : {}),
       ...(query.status ? { status: query.status.toLowerCase() as AgentRunStatus } : {}),
@@ -587,6 +772,24 @@ export class AuditController {
         })
     })
 
+    const userIds = [...new Set(items.flatMap((run) => (run.userId ? [run.userId] : [])))]
+    const users =
+      userIds.length > 0
+        ? await this.prisma.user.findMany({
+            where: { id: { in: userIds } },
+            select: {
+              id: true,
+              username: true,
+              nickname: true,
+              email: true,
+              phoneNumber: true,
+              profile: { select: { realName: true, avatar: true } }
+            }
+          })
+        : []
+    const resolvedUsers = await this.enrichUsersWithAvatar(users)
+    const userMap = new Map(resolvedUsers.map((u) => [u.id, u]))
+
     return {
       items: items.map((run) => {
         const presentation = describeAgentRun(run)
@@ -596,8 +799,9 @@ export class AuditController {
           threadId: run.threadId,
           userId: run.userId,
           userName: run.userName,
-          provider: run.provider ?? 'unknown',
-          model: run.model ?? 'unknown',
+          user: run.userId ? (userMap.get(run.userId) ?? null) : null,
+          provider: run.provider,
+          model: run.model,
           status: run.status,
           endReason: run.endReason,
           inputTokens: run.inputTokens,
@@ -605,6 +809,7 @@ export class AuditController {
           reasoningTokens: run.reasoningTokens,
           cachedInputTokens: run.cachedInputTokens,
           totalTokens: run.totalTokens,
+          usageReported: run.modelCalls > 0 || run.totalTokens > 0,
           costMicros: Number(run.costMicros),
           stepCount: run.stepCount,
           toolCallCount: run.toolCallCount,
@@ -615,6 +820,59 @@ export class AuditController {
           endedAt: run.endedAt?.toISOString() ?? null
         }
       }),
+      pagination: pagination ?? buildPaginationMeta(page, pageSize, items.length)
+    }
+  }
+
+  @Get('agent/model-calls')
+  @RequirePermission(PermissionCode.AUDIT_AGENT)
+  @ApiOperation({ summary: '分页查询 Agent 模型调用与 Token 用量明细' })
+  @ApiStandardErrorResponses()
+  @UsePipes(new ZodValidationPipe(agentModelCallsToolQuerySchema, { types: ['query'] }))
+  async listAgentModelCalls(
+    @Query() query: AgentModelCallsQuery,
+    @Req() req: Request & { auth?: { tenantId: string } }
+  ) {
+    const page = query.page ?? 1
+    const pageSize = query.pageSize ?? 20
+    const where: Prisma.AgentModelCallWhereInput = {
+      tenantId: req.auth?.tenantId ?? DEFAULT_TENANT_ID,
+      ...(query.userId ? { userId: query.userId } : {}),
+      ...(query.runId ? { runId: query.runId } : {}),
+      ...(query.model ? { model: query.model } : {}),
+      ...(query.purpose
+        ? {
+            purpose: AgentCallPurpose[query.purpose.toUpperCase() as keyof typeof AgentCallPurpose]
+          }
+        : {}),
+      ...(query.status
+        ? { status: AgentCallStatus[query.status.toUpperCase() as keyof typeof AgentCallStatus] }
+        : {}),
+      ...(query.estimated !== undefined ? { estimated: query.estimated === 'true' } : {}),
+      ...(query.startDate || query.endDate
+        ? {
+            createdAt: {
+              ...(query.startDate ? { gte: new Date(query.startDate) } : {}),
+              ...(query.endDate ? { lte: new Date(query.endDate) } : {})
+            }
+          }
+        : {})
+    }
+    const { items, pagination } = await paginate({
+      page,
+      pageSize,
+      count: () => this.prisma.agentModelCall.count({ where }),
+      findMany: ({ skip, take }) =>
+        this.prisma.agentModelCall.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take
+        })
+    })
+
+    return {
+      items: items.map((call) => ({ ...call, costMicros: Number(call.costMicros) })),
       pagination: pagination ?? buildPaginationMeta(page, pageSize, items.length)
     }
   }
@@ -646,8 +904,27 @@ export class AuditController {
 
     const presentation = describeAgentRun(run)
 
+    const user = run.userId
+      ? await this.prisma.user.findUnique({
+          where: { id: run.userId },
+          select: {
+            id: true,
+            username: true,
+            nickname: true,
+            email: true,
+            phoneNumber: true,
+            profile: { select: { realName: true, avatar: true } }
+          }
+        })
+      : null
+    const resolvedUser = user ? ((await this.enrichUsersWithAvatar([user]))[0] ?? null) : null
+
     return {
       ...run,
+      user: resolvedUser,
+      provider: run.provider,
+      model: run.model,
+      usageReported: run.modelCalls > 0 || run.totalTokens > 0,
       costMicros: Number(run.costMicros),
       title: presentation.title,
       description: presentation.description,

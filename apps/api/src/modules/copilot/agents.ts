@@ -5,6 +5,7 @@ import {
   AGENT_MEMORY_CONFIGURABLE_KEY,
   AGENT_MODEL_METADATA_CONFIGURABLE_KEY,
   AGENT_PERMISSIONS_CONFIGURABLE_KEY,
+  AGENT_RUN_ID_CONFIGURABLE_KEY,
   AGENT_TENANT_ID_CONFIGURABLE_KEY,
   AGENT_THREAD_ID_CONFIGURABLE_KEY,
   AGENT_USER_ID_CONFIGURABLE_KEY,
@@ -37,6 +38,7 @@ export const defaultAgent = ({
   auth,
   locale = 'zh-CN',
   threadId,
+  runId,
   memory
 }: {
   deploymentUrl: string
@@ -44,6 +46,7 @@ export const defaultAgent = ({
   auth?: Pick<AuthContext, 'tenantId' | 'userId' | 'permissions'>
   locale?: string
   threadId?: string
+  runId?: string
   memory?: string
 }) => {
   const configurable = {
@@ -51,6 +54,7 @@ export const defaultAgent = ({
     ...(auth?.tenantId ? { [AGENT_TENANT_ID_CONFIGURABLE_KEY]: auth.tenantId } : {}),
     ...(auth?.userId ? { [AGENT_USER_ID_CONFIGURABLE_KEY]: auth.userId } : {}),
     ...(threadId ? { [AGENT_THREAD_ID_CONFIGURABLE_KEY]: threadId } : {}),
+    ...(runId ? { [AGENT_RUN_ID_CONFIGURABLE_KEY]: runId } : {}),
     [AGENT_LOCALE_CONFIGURABLE_KEY]: locale,
     [AGENT_PERMISSIONS_CONFIGURABLE_KEY]: auth?.permissions ?? [],
     [AGENT_MODEL_METADATA_CONFIGURABLE_KEY]: {

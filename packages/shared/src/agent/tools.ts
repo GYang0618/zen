@@ -13,6 +13,7 @@ export const toolJsonSchema = z.object({ type: z.literal('object') }).catchall(z
 
 export const toolExecutionPolicySchema = z.object({
   permissionCode: permissionCodeSchema.optional(),
+  permissionCodes: z.array(permissionCodeSchema).min(1).optional(),
   riskLevel: toolRiskLevelSchema,
   sideEffect: toolSideEffectSchema,
   requiresApproval: z.boolean(),

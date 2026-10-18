@@ -1,4 +1,6 @@
 import {
+  AGENT_RUN_ID_CONFIGURABLE_KEY,
+  AGENT_THREAD_ID_CONFIGURABLE_KEY,
   copilotMessageSchema,
   copilotRunEventSchema,
   copilotToolResultSchema,
@@ -14,7 +16,9 @@ describe('Copilot agent registration', () => {
   it('default agent 使用 default_agent 和统一运行预算', () => {
     const agent = defaultAgent({
       deploymentUrl: 'http://langgraph.test',
-      accessToken: 'token'
+      accessToken: 'token',
+      runId: 'run-1',
+      threadId: 'thread-1'
     })
 
     expect(agent.graphId).toBe(DEFAULT_AGENT_GRAPH_ID)
@@ -22,6 +26,8 @@ describe('Copilot agent registration', () => {
       recursion_limit: DEFAULT_AGENT_RUN_BUDGET.recursionLimit,
       configurable: {
         accessToken: 'token',
+        [AGENT_RUN_ID_CONFIGURABLE_KEY]: 'run-1',
+        [AGENT_THREAD_ID_CONFIGURABLE_KEY]: 'thread-1',
         locale: 'zh-CN',
         permissions: [],
         modelMetadata: {

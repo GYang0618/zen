@@ -535,16 +535,6 @@ export class AuthService {
     }
 
     await this.createRefreshSession(userId, nextRefreshToken, expiresAt, meta)
-    this.auditService.enqueue({
-      actorId: userId,
-      action: 'auth.token.refreshed',
-      resource: 'auth',
-      resourceId: userId,
-      ip: meta.ip,
-      userAgent: meta.userAgent,
-      traceId: meta.traceId,
-      diff: createAuditDiff({ summary: '成功轮换并刷新访问令牌' })
-    })
   }
 
   async assertRefreshTokenValid(

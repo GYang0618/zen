@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@zen/ui'
 import { Activity, Bot, FileText, LogIn } from 'lucide-react'
 import { useState } from 'react'
@@ -7,28 +8,23 @@ import { AppPageHeader } from '@/components/layouts/app-page-header'
 
 import { AccessLogTable } from './components/access-log-table'
 import { AccessStatsCards } from './components/access-stats-cards'
-import { AgentRunDetailSheet } from './components/agent-run-detail-sheet'
 import { AgentUsageView } from './components/agent-usage-view'
 import { LoginEventTable } from './components/login-event-table'
 import { OperationAuditTable } from './components/operation-audit-table'
 import { useAccessStats } from './queries'
 
 export function AuditPage() {
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('operations')
-  const [filterAgentRunId, setFilterAgentRunId] = useState<string | undefined>()
-  const [detailRunId, setDetailRunId] = useState<string | null>(null)
 
   const { data: accessStats, isLoading: accessStatsLoading } = useAccessStats()
 
-  // 跨 Tab 联动：从 AI 任务跳转到操作审计
-  const handleFilterOperationAudit = (agentRunId: string) => {
-    setFilterAgentRunId(agentRunId)
-    setActiveTab('operations')
-  }
-
-  // 跨 Tab 联动：从操作审计或访问日志深钻 Agent 任务
+  // 跨 Tab 联动：从操作审计或访问日志深钻 Agent 任务详情页
   const handleNavigateAgentRun = (runId: string) => {
-    setDetailRunId(runId)
+    void navigate({
+      to: '/system/ai-usage/$id',
+      params: { id: runId }
+    })
   }
 
   return (
@@ -62,10 +58,7 @@ export function AuditPage() {
           </TabsList>
 
           <TabsContent value="operations" className="space-y-4">
-            <OperationAuditTable
-              initialAgentRunId={filterAgentRunId}
-              onNavigateAgentRun={handleNavigateAgentRun}
-            />
+            <OperationAuditTable onNavigateAgentRun={handleNavigateAgentRun} />
           </TabsContent>
 
           <TabsContent value="logins" className="space-y-4">
@@ -78,16 +71,10 @@ export function AuditPage() {
           </TabsContent>
 
           <TabsContent value="ai" className="space-y-4">
-            <AgentUsageView onFilterOperationAudit={handleFilterOperationAudit} />
+            <AgentUsageView onViewDetail={handleNavigateAgentRun} />
           </TabsContent>
         </Tabs>
       </Main>
-
-      <AgentRunDetailSheet
-        runId={detailRunId}
-        open={Boolean(detailRunId)}
-        onOpenChange={(open) => !open && setDetailRunId(null)}
-      />
     </>
   )
 }

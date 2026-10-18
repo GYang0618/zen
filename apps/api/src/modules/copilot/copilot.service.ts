@@ -84,6 +84,13 @@ export class CopilotService implements OnModuleInit {
     const baseOptions = {
       runner,
       agents: async ({ request }: AgentFactoryContext) => {
+        const body = (await request
+          .clone()
+          .json()
+          .catch(() => ({}))) as {
+          runId?: string
+          threadId?: string
+        }
         const token = extractBearerToken(request.headers)
         let auth: Pick<AuthContext, 'tenantId' | 'userId' | 'permissions'> | undefined
         if (token) {
@@ -106,7 +113,9 @@ export class CopilotService implements OnModuleInit {
           [DEFAULT_AGENT_ID]: defaultAgent({
             deploymentUrl,
             accessToken: token ?? undefined,
-            auth
+            auth,
+            runId: body.runId,
+            threadId: body.threadId
           }),
           [PAGE_AGENT_ID]: pageAgent({
             deploymentUrl,
@@ -210,6 +219,8 @@ export class CopilotService implements OnModuleInit {
                     userId: fullAuth.userId,
                     userName,
                     agentId: route.agentId,
+                    provider: 'openai',
+                    model: 'deepseek-flash',
                     status: 'running',
                     budget: DEFAULT_AGENT_RUN_BUDGET as unknown as object,
                     startedAt: new Date()

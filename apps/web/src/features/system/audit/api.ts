@@ -11,6 +11,16 @@ export interface AuditPresentationSection {
   }>
 }
 
+export interface AuditActorDetail {
+  id: string
+  username: string
+  nickname: string | null
+  realName: string | null
+  email: string | null
+  phoneNumber: string | null
+  avatar: string | null
+}
+
 export interface AuditLogItem {
   id: string
   tenantId: string
@@ -18,6 +28,7 @@ export interface AuditLogItem {
   actorId: string | null
   actorName: string | null
   actorDisplay: string
+  actor?: AuditActorDetail | null
   action: string
   actionLabel: string
   resource: string | null
@@ -43,6 +54,7 @@ export interface LoginEventItem {
   id: string
   tenantId: string
   userId: string | null
+  user?: AuditActorDetail | null
   identifier: string
   event: string
   success: boolean
@@ -57,6 +69,7 @@ export interface ApiAccessLogItem {
   id: string
   tenantId: string
   userId: string | null
+  user?: AuditActorDetail | null
   callerType: string
   apiKeyId: string | null
   agentRunId: string | null
@@ -109,13 +122,16 @@ export interface AgentUsageStatsSummary {
 export interface AgentRunItem {
   id: string
   tenantId: string
+  threadId?: string | null
   userId: string
   userName: string | null
+  user?: AuditActorDetail | null
   title: string | null
-  provider: string
-  model: string
+  provider: string | null
+  model: string | null
   status: string
   totalTokens: number
+  usageReported?: boolean
   costMicros: number
   durationMs: number | null
   stepCount: number
@@ -208,7 +224,11 @@ export interface ApiAccessLogQuery {
   callerType?: string
   userId?: string
   agentRunId?: string
+  status?: number
+  statuses?: number[]
+  statusCategory?: 'normal' | 'error'
   minLatencyMs?: number
+  maxLatencyMs?: number
   onlyErrors?: boolean
   from?: string
   to?: string

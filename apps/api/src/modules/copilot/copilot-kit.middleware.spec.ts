@@ -36,6 +36,26 @@ function createMiddleware(
 }
 
 describe('CopilotKitMiddleware', () => {
+  it('用量上报请求交给 Nest controller，不转发给 CopilotKit adapter', async () => {
+    const { handler, middleware } = createMiddleware()
+    const res = { status: jest.fn().mockReturnThis(), json: jest.fn() }
+    const next = jest.fn()
+    const req = {
+      method: 'POST',
+      headers: { 'x-agent-internal-token': 'internal-token' },
+      ip: '10.0.0.6',
+      path: '/api/copilot/runtime/usage',
+      originalUrl: '/api/copilot/runtime/usage?batch=1',
+      get: () => undefined,
+      body: { items: [] }
+    }
+
+    await middleware.use(req as never, res as never, next)
+
+    expect(next).toHaveBeenCalledTimes(1)
+    expect(handler).not.toHaveBeenCalled()
+  })
+
   it('匿名或未授权请求直接交给 Express adapter 处理（由 hooks.onRequest 统一校验）', async () => {
     const { handler, middleware } = createMiddleware(jest.fn(), {
       throttle: { ttl: 60_000, limit: 100 }

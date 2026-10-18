@@ -52,7 +52,9 @@ export async function flushUsageQueue(): Promise<void> {
   const batch = queue.splice(0, BATCH_SIZE)
 
   try {
-    const url = `${configs.apiBaseUrl.replace(/\/$/, '')}/copilot/runtime/usage`
+    const baseUrl = configs.apiBaseUrl.replace(/\/$/, '')
+    const prefix = baseUrl.endsWith('/api') ? '' : '/api'
+    const url = `${baseUrl}${prefix}/copilot/runtime/usage`
     const headers: Record<string, string> = {
       'content-type': 'application/json'
     }

@@ -37,8 +37,11 @@ const WRITE_POLICY = {
   idempotencyPolicy: 'run-tool-call'
 } as const satisfies Omit<ToolExecutionPolicy, 'permissionCode'>
 
-function read(permissionCode?: string): ToolExecutionPolicy {
-  return { ...READ_POLICY, permissionCode }
+function read(permissionCode?: string | readonly string[]): ToolExecutionPolicy {
+  if (typeof permissionCode === 'string' || permissionCode === undefined) {
+    return { ...READ_POLICY, permissionCode }
+  }
+  return { ...READ_POLICY, permissionCodes: [...permissionCode] }
 }
 
 function write(permissionCode: string, requiresApproval = false): ToolExecutionPolicy {
@@ -119,6 +122,24 @@ export const TOOL_EXECUTION_POLICIES = {
   create_job_profile: write(PermissionCode.POST_MANAGE),
   update_job_profile_info: write(PermissionCode.POST_MANAGE),
   delete_job_profile: destructive(PermissionCode.POST_MANAGE),
+
+  query_audit_logs: read(PermissionCode.AUDIT_LIST),
+  query_login_events: read(PermissionCode.AUDIT_LOGIN),
+  query_api_access_logs: read(PermissionCode.AUDIT_ACCESS),
+  query_agent_runs: read(PermissionCode.AUDIT_AGENT),
+  query_agent_model_calls: read(PermissionCode.AUDIT_AGENT),
+  query_agent_run_detail: read(PermissionCode.AUDIT_AGENT),
+  query_audit_overview_stats: read([
+    PermissionCode.AUDIT_LIST,
+    PermissionCode.AUDIT_LOGIN,
+    PermissionCode.AUDIT_ACCESS,
+    PermissionCode.AUDIT_AGENT
+  ]),
+  query_operation_audit_stats: read(PermissionCode.AUDIT_LIST),
+  query_login_audit_stats: read(PermissionCode.AUDIT_LOGIN),
+  query_security_audit_stats: read([PermissionCode.AUDIT_LIST, PermissionCode.AUDIT_LOGIN]),
+  query_api_access_stats: read(PermissionCode.AUDIT_ACCESS),
+  query_agent_usage_stats: read(PermissionCode.AUDIT_AGENT),
 
   ls: read(PermissionCode.FILE_READ),
   read_file: read(PermissionCode.FILE_READ),

@@ -2,6 +2,58 @@ import { ZEN_A2UI_CATALOG_ID } from '@zen/shared'
 
 const A2UI_PROTOCOL_VERSION = 'v0.9' as const
 
+function normalizeComponents(value: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(value)) return []
+
+  let generatedId = 0
+  let firstValidComponent = true
+  return value.flatMap((item) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return []
+
+    const component = item as Record<string, unknown>
+    const nestedProps = component.props
+    const flattened: Record<string, unknown> =
+      nestedProps && typeof nestedProps === 'object' && !Array.isArray(nestedProps)
+        ? { ...component, ...(nestedProps as Record<string, unknown>) }
+        : { ...component }
+    delete flattened.props
+
+    if (typeof flattened.component !== 'string' || flattened.component.trim().length === 0) {
+      return []
+    }
+
+    if (typeof flattened.id !== 'string' || flattened.id.trim().length === 0) {
+      flattened.id = firstValidComponent ? 'root' : `component-${generatedId++}`
+    }
+    firstValidComponent = false
+    return [flattened]
+  })
+}
+
+/** Repair missing component ids on both direct tool arguments and native A2UI operations. */
+export function normalizeA2uiOperations(
+  operations: Array<Record<string, unknown>>
+): Array<Record<string, unknown>> {
+  return operations.map((operation) => {
+    const updateComponents = operation.updateComponents
+    if (
+      !updateComponents ||
+      typeof updateComponents !== 'object' ||
+      Array.isArray(updateComponents)
+    ) {
+      return operation
+    }
+    const payload = updateComponents as Record<string, unknown>
+    return {
+      ...operation,
+      updateComponents: {
+        ...payload,
+        components: normalizeComponents(payload.components)
+      }
+    }
+  })
+}
+
 /**
  * 将官方 `render_a2ui({ surfaceId, components, data })` 参数转成 A2UI v0.9 操作列表。
  * 形状与 `@ag-ui/a2ui-toolkit` 的 `assembleOps({ intent: 'create' })` 一致。
@@ -13,24 +65,8 @@ export function assembleRenderA2uiOperations(
   const rawComponents = args.components
   if (!Array.isArray(rawComponents) || rawComponents.length === 0) return null
 
-  const components = rawComponents.map((comp) => {
-    if (
-      comp &&
-      typeof comp === 'object' &&
-      !Array.isArray(comp) &&
-      'props' in comp &&
-      typeof comp.props === 'object' &&
-      comp.props !== null &&
-      !Array.isArray(comp.props)
-    ) {
-      const { props: innerProps, ...rest } = comp as {
-        props: Record<string, unknown>
-        [k: string]: unknown
-      }
-      return { ...rest, ...innerProps }
-    }
-    return comp
-  })
+  const components = normalizeComponents(rawComponents)
+  if (components.length === 0) return null
 
   const surfaceId =
     targetSurfaceId ||
@@ -57,5 +93,5 @@ export function assembleRenderA2uiOperations(
     })
   }
 
-  return operations
+  return normalizeA2uiOperations(operations)
 }

@@ -34,6 +34,11 @@ export class CopilotKitMiddleware implements NestMiddleware {
   ) {}
 
   async use(req: CopilotRequest, res: Response, next: NextFunction): Promise<void> {
+    const requestPath = (req.originalUrl || req.url).split('?')[0] ?? ''
+    if (req.method === 'POST' && requestPath.endsWith('/copilot/runtime/usage')) {
+      return next()
+    }
+
     if (!this.allowCopilotRequest(req, res)) return
 
     const accessToken = extractBearerToken(req.headers)

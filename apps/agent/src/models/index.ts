@@ -7,6 +7,7 @@ export function createModel(options: QwenModelOptions = {}) {
     model: 'deepseek-flash',
     temperature: 0,
     streaming: true,
+    streamUsage: true,
     ...options
   })
 }

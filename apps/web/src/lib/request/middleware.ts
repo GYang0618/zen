@@ -57,7 +57,6 @@ export const globalErrorMiddleware = createErrorMiddleware((error) => {
   const message = fallbackMessage(status)
 
   if (status === 401 && !isAuthRecoveryExcludedRequestUrl(error.config?.url)) {
-    useAuthStore.getState().clearAuth()
     return Promise.reject(new ApiClientError(data ?? buildFallback(status, message)))
   }
 

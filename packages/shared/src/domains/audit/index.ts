@@ -1,5 +1,6 @@
 export * from './api-route-titles.js'
 export * from './audit-diff.schema.js'
 export * from './audit-presenter.js'
+export * from './audit-query.schema.js'
 export * from './mask.js'
 export * from './permissions.js'

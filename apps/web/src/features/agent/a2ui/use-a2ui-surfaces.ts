@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef } from 'react'
 
 import { isToolCallDisplayHidden, parseToolCallArguments } from '../lib/group-tool-calls'
 import { useAgentCanvasStore } from '../stores/agent-canvas'
-import { assembleRenderA2uiOperations } from './assemble-operations'
+import { assembleRenderA2uiOperations, normalizeA2uiOperations } from './assemble-operations'
 import { readA2uiArgsTitle } from './resolve-a2ui-title'
 
 export interface A2UISurfaceDescriptor {
@@ -75,10 +75,11 @@ function readRecord(value: unknown): Record<string, unknown> | undefined {
 
 function readOperations(value: unknown): Array<Record<string, unknown>> | null {
   if (!Array.isArray(value) || value.length === 0) return null
-  return value.filter(
+  const operations = value.filter(
     (item): item is Record<string, unknown> =>
       Boolean(item) && typeof item === 'object' && !Array.isArray(item)
   )
+  return operations.length > 0 ? normalizeA2uiOperations(operations) : null
 }
 
 function inferSurfaceTitle(operations: Array<Record<string, unknown>>): string {

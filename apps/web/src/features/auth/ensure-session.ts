@@ -7,7 +7,7 @@ import { useAuthStore } from '@/stores'
 import { authApi } from './api'
 
 /**
- * 保证内存中有可用登录态。无会话或刷新失败时跳转登录页。
+ * 保证内存中有可用登录态。只有刷新令牌明确失效时才跳转登录页。
  */
 export async function ensureAuthenticatedSession(redirectPath: string): Promise<void> {
   const existingToken = useAuthStore.getState().accessToken
@@ -22,10 +22,13 @@ export async function ensureAuthenticatedSession(redirectPath: string): Promise<
     if (isForbidden(error)) {
       throw redirect({ to: '/errors/403', replace: true })
     }
-    throw redirect({
-      to: '/sign-in',
-      search: { redirect: redirectPath },
-      replace: true
-    })
+    if (isSessionExpired(error)) {
+      throw redirect({
+        to: '/sign-in',
+        search: { redirect: redirectPath },
+        replace: true
+      })
+    }
+    throw error
   }
 }

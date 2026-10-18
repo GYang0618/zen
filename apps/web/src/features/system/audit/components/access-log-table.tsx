@@ -1,340 +1,296 @@
-import {
-  Badge,
-  Button,
-  Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Spinner,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@zen/ui'
-import {
-  AlertTriangle,
-  Bot,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  RefreshCw,
-  Search,
-  User
-} from 'lucide-react'
-import { useState } from 'react'
+import { getCoreRowModel, getSortedRowModel, useReactTable } from '@tanstack/react-table'
+import { Tabs, TabsList, TabsTrigger } from '@zen/ui'
+import { History, Table2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { useAccessLogs } from '../queries'
+import { DataTable, DataTableToolbar } from '@/components/data-table'
+import { flattenPages } from '@/lib/infinite-list'
 
+import { useAccessLogs, useAccessLogsInfiniteQuery } from '../queries'
+import { getAccessLogColumns } from './access-log-columns'
+import { AccessLogTimelineView } from './access-log-timeline-view'
+
+import type { ColumnFiltersState, SortingState, VisibilityState } from '@tanstack/react-table'
 import type { ApiAccessLogQuery } from '../api'
 
-function getMethodBadge(method: string) {
-  const m = method.toUpperCase()
-  if (m === 'GET') {
-    return (
-      <Badge
-        variant="outline"
-        className="border-blue-500/30 font-mono text-[11px] text-blue-600 dark:text-blue-400"
-      >
-        GET
-      </Badge>
-    )
+const METHOD_OPTIONS = [
+  { label: 'GET', value: 'GET' },
+  { label: 'POST', value: 'POST' },
+  { label: 'PUT', value: 'PUT' },
+  { label: 'DELETE', value: 'DELETE' }
+]
+
+const STATUS_GROUPS = [
+  {
+    heading: '正常状态 (2xx / 3xx)',
+    quickAction: {
+      label: '正常',
+      values: ['200', '201', '204', '301', '302', '304']
+    },
+    options: [
+      { label: '200 OK', value: '200' },
+      { label: '201 Created', value: '201' },
+      { label: '204 No Content', value: '204' },
+      { label: '301 Moved Permanently', value: '301' },
+      { label: '302 Found', value: '302' },
+      { label: '304 Not Modified', value: '304' }
+    ]
+  },
+  {
+    heading: '异常状态 (4xx / 5xx)',
+    quickAction: {
+      label: '异常',
+      values: ['400', '401', '403', '404', '422', '429', '500', '502', '503', '504']
+    },
+    options: [
+      { label: '400 Bad Request', value: '400' },
+      { label: '401 Unauthorized', value: '401' },
+      { label: '403 Forbidden', value: '403' },
+      { label: '404 Not Found', value: '404' },
+      { label: '422 Unprocessable', value: '422' },
+      { label: '429 Too Many Requests', value: '429' },
+      { label: '500 Internal Error', value: '500' },
+      { label: '502 Bad Gateway', value: '502' },
+      { label: '503 Service Unavailable', value: '503' },
+      { label: '504 Gateway Timeout', value: '504' }
+    ]
   }
-  if (m === 'POST') {
-    return (
-      <Badge
-        variant="outline"
-        className="border-emerald-500/30 font-mono text-[11px] text-emerald-600 dark:text-emerald-400"
-      >
-        POST
-      </Badge>
-    )
-  }
-  if (m === 'PUT' || m === 'PATCH') {
-    return (
-      <Badge
-        variant="outline"
-        className="border-amber-500/30 font-mono text-[11px] text-amber-600 dark:text-amber-400"
-      >
-        {m}
-      </Badge>
-    )
-  }
-  if (m === 'DELETE') {
-    return (
-      <Badge
-        variant="outline"
-        className="border-destructive/30 font-mono text-[11px] text-destructive"
-      >
-        DELETE
-      </Badge>
-    )
-  }
-  return (
-    <Badge variant="outline" className="font-mono text-[11px]">
-      {m}
-    </Badge>
-  )
-}
+]
+
+const LATENCY_OPTIONS = [
+  { label: '极速 (< 100ms)', value: 'fast' },
+  { label: '正常 (100ms - 300ms)', value: 'normal' },
+  { label: '较慢 (300ms - 1000ms)', value: 'sluggish' },
+  { label: '慢请求 (1s - 3s)', value: 'slow' },
+  { label: '严重延迟 (> 3s)', value: 'critical' }
+]
 
 interface AccessLogTableProps {
   onNavigateAgentRun?: (runId: string) => void
+  onRefetchReady?: (refetch: () => void) => void
 }
 
-export function AccessLogTable({ onNavigateAgentRun }: AccessLogTableProps) {
+export function AccessLogTable({ onNavigateAgentRun, onRefetchReady }: AccessLogTableProps) {
   const [params, setParams] = useState<ApiAccessLogQuery>({
     page: 1,
-    pageSize: 15
+    pageSize: 10
   })
-  const [routeInput, setRouteInput] = useState('')
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [view, setView] = useState<'table' | 'timeline'>('table')
 
-  const { data, isLoading, isFetching, refetch } = useAccessLogs(params)
-  const items = data?.items ?? []
-  const total = data?.pagination.total ?? 0
-  const totalPages = data?.pagination.totalPages ?? 1
+  const {
+    data: tableData,
+    isLoading: isTableLoading,
+    isFetching: isTableFetching,
+    refetch: refetchTable
+  } = useAccessLogs(params)
+  const tableItems = tableData?.items ?? []
+  const totalPages = tableData?.pagination?.totalPages ?? 1
 
-  const handleSearch = () => {
+  const infiniteFilters = useMemo(
+    () => ({
+      method: params.method,
+      route: params.route,
+      userId: params.userId,
+      callerType: params.callerType,
+      statuses: params.statuses,
+      minLatencyMs: params.minLatencyMs,
+      maxLatencyMs: params.maxLatencyMs,
+      from: params.from,
+      to: params.to
+    }),
+    [
+      params.method,
+      params.route,
+      params.userId,
+      params.callerType,
+      params.statuses,
+      params.minLatencyMs,
+      params.maxLatencyMs,
+      params.from,
+      params.to
+    ]
+  )
+
+  const {
+    data: infiniteData,
+    isLoading: isTimelineLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch: refetchInfinite
+  } = useAccessLogsInfiniteQuery(infiniteFilters)
+
+  const timelineItems = useMemo(() => flattenPages(infiniteData), [infiniteData])
+
+  const handleRefetch = useCallback(() => {
+    if (view === 'table') {
+      void refetchTable()
+    } else {
+      void refetchInfinite()
+    }
+  }, [view, refetchTable, refetchInfinite])
+
+  useEffect(() => {
+    onRefetchReady?.(handleRefetch)
+  }, [onRefetchReady, handleRefetch])
+
+  const columns = useMemo(() => getAccessLogColumns(onNavigateAgentRun), [onNavigateAgentRun])
+
+  const handleRouteChange = useCallback((value: string) => {
     setParams((prev) => ({
       ...prev,
       page: 1,
-      route: routeInput.trim() || undefined
+      route: value.trim() || undefined
     }))
-  }
+  }, [])
 
-  const handleMethodChange = (val: string | null) => {
-    setParams((prev) => ({
-      ...prev,
-      page: 1,
-      method: !val || val === 'ALL' ? undefined : val
-    }))
-  }
+  const handleColumnFiltersChange = useCallback(
+    (updaterOrValue: ColumnFiltersState | ((old: ColumnFiltersState) => ColumnFiltersState)) => {
+      setColumnFilters((prev) => {
+        const next = typeof updaterOrValue === 'function' ? updaterOrValue(prev) : updaterOrValue
+        const methodFilter = next.find((f) => f.id === 'method')?.value as string[] | undefined
+        const statusFilter = next.find((f) => f.id === 'status')?.value as string[] | undefined
+        const latencyFilter = next.find((f) => f.id === 'latencyMs')?.value as string[] | undefined
 
-  const toggleOnlyErrors = () => {
-    setParams((prev) => ({
-      ...prev,
-      page: 1,
-      onlyErrors: !prev.onlyErrors
-    }))
-  }
+        let minLatencyMs: number | undefined
+        let maxLatencyMs: number | undefined
 
-  const toggleSlowRequests = () => {
-    setParams((prev) => ({
-      ...prev,
-      page: 1,
-      minLatencyMs: prev.minLatencyMs ? undefined : 1000
-    }))
-  }
+        if (latencyFilter && latencyFilter.length > 0) {
+          const mins: number[] = []
+          const maxs: number[] = []
+          let hasNoMax = false
+          for (const v of latencyFilter) {
+            if (v === 'fast') {
+              mins.push(0)
+              maxs.push(100)
+            } else if (v === 'normal') {
+              mins.push(100)
+              maxs.push(300)
+            } else if (v === 'sluggish') {
+              mins.push(300)
+              maxs.push(1000)
+            } else if (v === 'slow') {
+              mins.push(1000)
+              maxs.push(3000)
+            } else if (v === 'critical') {
+              mins.push(3000)
+              hasNoMax = true
+            }
+          }
+          const minVal = Math.min(...mins)
+          minLatencyMs = minVal > 0 ? minVal : undefined
+          maxLatencyMs = hasNoMax ? undefined : Math.max(...maxs)
+        }
+
+        const statuses =
+          statusFilter && statusFilter.length > 0 ? statusFilter.map(Number) : undefined
+
+        setParams((p) => ({
+          ...p,
+          page: 1,
+          method: methodFilter && methodFilter.length === 1 ? methodFilter[0] : undefined,
+          statuses,
+          status: undefined,
+          onlyErrors: undefined,
+          minLatencyMs,
+          maxLatencyMs
+        }))
+
+        return next
+      })
+    },
+    []
+  )
+
+  const table = useReactTable({
+    data: tableItems,
+    columns,
+    pageCount: totalPages,
+    state: {
+      sorting,
+      pagination: {
+        pageIndex: (params.page ?? 1) - 1,
+        pageSize: params.pageSize ?? 10
+      },
+      columnVisibility,
+      columnFilters
+    },
+    manualPagination: true,
+    manualFiltering: true,
+    onSortingChange: setSorting,
+    onPaginationChange: (updater) => {
+      const current = {
+        pageIndex: (params.page ?? 1) - 1,
+        pageSize: params.pageSize ?? 10
+      }
+      const next = typeof updater === 'function' ? updater(current) : updater
+      setParams((prev) => ({
+        ...prev,
+        page: next.pageIndex + 1,
+        pageSize: next.pageSize
+      }))
+    },
+    onColumnVisibilityChange: setColumnVisibility,
+    onColumnFiltersChange: handleColumnFiltersChange,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel()
+  })
 
   return (
     <div className="space-y-4">
-      {/* 搜索与快捷过滤条 */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <div className="relative w-64">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="过滤路由路径..."
-              className="pl-8 text-sm"
-              value={routeInput}
-              onChange={(e) => setRouteInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            />
-          </div>
-          <Button type="button" variant="secondary" size="sm" onClick={handleSearch}>
-            过滤
-          </Button>
+      <DataTableToolbar
+        table={table}
+        searchPlaceholder="过滤接口路由路径..."
+        searchValue={params.route}
+        onSearchChange={handleRouteChange}
+        filters={[
+          {
+            columnId: 'method',
+            title: '请求方法',
+            options: METHOD_OPTIONS
+          },
+          {
+            columnId: 'status',
+            title: '状态码',
+            groups: STATUS_GROUPS,
+            contentClassName: 'w-64'
+          },
+          {
+            columnId: 'latencyMs',
+            title: '响应耗时',
+            options: LATENCY_OPTIONS,
+            contentClassName: 'w-56'
+          }
+        ]}
+        viewSwitch={
+          <Tabs value={view} onValueChange={(v) => setView(v as 'table' | 'timeline')}>
+            <TabsList className="h-8">
+              <TabsTrigger value="table" className="h-7 px-2" aria-label="表格视图">
+                <Table2 className="size-3.5" />
+              </TabsTrigger>
+              <TabsTrigger value="timeline" className="h-7 px-2" aria-label="时间线视图">
+                <History className="size-3.5" />
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        }
+      />
 
-          <Select value={params.method ?? 'ALL'} onValueChange={handleMethodChange}>
-            <SelectTrigger className="w-28">
-              <SelectValue placeholder="HTTP 方法" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">全部方法</SelectItem>
-              <SelectItem value="GET">GET</SelectItem>
-              <SelectItem value="POST">POST</SelectItem>
-              <SelectItem value="PUT">PUT</SelectItem>
-              <SelectItem value="DELETE">DELETE</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Button
-            type="button"
-            variant={params.onlyErrors ? 'destructive' : 'outline'}
-            size="sm"
-            className="gap-1.5"
-            onClick={toggleOnlyErrors}
-          >
-            <AlertTriangle className="h-3.5 w-3.5" />
-            仅异常 (4xx/5xx)
-          </Button>
-
-          <Button
-            type="button"
-            variant={params.minLatencyMs ? 'secondary' : 'outline'}
-            size="sm"
-            className="gap-1.5"
-            onClick={toggleSlowRequests}
-          >
-            <Clock className="h-3.5 w-3.5" />
-            慢请求 (&gt;1s)
-          </Button>
-        </div>
-
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="gap-1.5"
-          onClick={() => refetch()}
-          disabled={isFetching}
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
-          刷新
-        </Button>
-      </div>
-
-      {/* 数据表格 */}
-      <div className="rounded-md border border-border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-36">请求时间</TableHead>
-              <TableHead className="w-20">方法</TableHead>
-              <TableHead>接口路由 & 功能描述</TableHead>
-              <TableHead className="w-24">状态码</TableHead>
-              <TableHead className="w-24">响应耗时</TableHead>
-              <TableHead className="w-32">调用主体</TableHead>
-              <TableHead className="w-36">客户端 IP</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={7} className="h-40 text-center">
-                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                    <Spinner />
-                    <span>正在检索 API 访问日志...</span>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : items.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="h-40 text-center text-muted-foreground">
-                  暂无匹配的访问日志
-                </TableCell>
-              </TableRow>
-            ) : (
-              items.map((log) => {
-                const isError = log.status >= 400
-                const isSlow = log.latencyMs >= 1000
-
-                return (
-                  <TableRow key={log.id} className="hover:bg-muted/40">
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {new Date(log.createdAt).toLocaleTimeString()}
-                    </TableCell>
-                    <TableCell>{getMethodBadge(log.method)}</TableCell>
-                    <TableCell>
-                      <div className="space-y-0.5">
-                        <div className="font-mono text-xs font-medium text-foreground">
-                          {log.route}
-                        </div>
-                        <div className="text-[11px] text-muted-foreground">{log.title}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {isError ? (
-                        <Badge variant="destructive" className="font-mono text-xs">
-                          {log.status}
-                        </Badge>
-                      ) : (
-                        <Badge
-                          variant="outline"
-                          className="border-emerald-500/30 font-mono text-xs text-emerald-600 dark:text-emerald-400"
-                        >
-                          {log.status}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={`font-mono text-xs ${isSlow ? 'font-bold text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}
-                      >
-                        {log.latencyMs} ms
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        {log.callerType === 'AGENT' ? (
-                          <div className="flex items-center gap-1">
-                            <Bot className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
-                            {log.agentRunId && onNavigateAgentRun ? (
-                              <button
-                                type="button"
-                                className="font-mono text-xs text-purple-600 underline-offset-4 hover:underline dark:text-purple-400"
-                                onClick={() => onNavigateAgentRun(log.agentRunId!)}
-                              >
-                                Agent
-                              </button>
-                            ) : (
-                              <span className="text-xs text-purple-600 dark:text-purple-400">
-                                Agent
-                              </span>
-                            )}
-                          </div>
-                        ) : log.callerType === 'ANONYMOUS' ? (
-                          <span className="text-xs text-muted-foreground">匿名访客</span>
-                        ) : (
-                          <div className="flex items-center gap-1 text-xs text-foreground">
-                            <User className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span>{log.userId ? '已认证用户' : '用户'}</span>
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {log.ip || '-'}
-                    </TableCell>
-                  </TableRow>
-                )
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* 分页控制 */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <div>共 {total} 条访问日志（写操作与异常全量，普通读请求按比例采样）</div>
-        <div className="flex items-center gap-2">
-          <span>
-            第 {params.page ?? 1} / {totalPages} 页
-          </span>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-7 w-7 p-0"
-            disabled={(params.page ?? 1) <= 1}
-            onClick={() => setParams((p) => ({ ...p, page: (p.page ?? 1) - 1 }))}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-7 w-7 p-0"
-            disabled={(params.page ?? 1) >= totalPages}
-            onClick={() => setParams((p) => ({ ...p, page: (p.page ?? 1) + 1 }))}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+      {view === 'table' ? (
+        <DataTable table={table} isLoading={isTableLoading} isFetching={isTableFetching} />
+      ) : (
+        <AccessLogTimelineView
+          items={timelineItems}
+          isLoading={isTimelineLoading}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          onLoadMore={() => void fetchNextPage()}
+          onNavigateAgentRun={onNavigateAgentRun}
+        />
+      )}
     </div>
   )
 }

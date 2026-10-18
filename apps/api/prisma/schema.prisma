@@ -667,14 +667,25 @@ model ApiAccessLog {
 
 /// 分钟级聚合（保留 1 年）
 model ApiAccessStat {
-  tenantId   String        @map("tenant_id")
-  bucket     DateTime
-  method     String
-  route      String
-  callerType ApiCallerType @map("caller_type")
-  count      Int
-  errorCount Int           @map("error_count")
-  p95Ms      Int           @map("p95_ms")
+  tenantId          String        @map("tenant_id")
+  bucket            DateTime
+  method            String
+  route             String
+  callerType        ApiCallerType @map("caller_type")
+  count             Int
+  errorCount        Int           @map("error_count")
+  p95Ms             Int           @map("p95_ms")
+  latencySumMs      BigInt        @default(0) @map("latency_sum_ms")
+  latencyLt10Ms     Int           @default(0) @map("latency_lt_10_ms")
+  latency10To25Ms   Int           @default(0) @map("latency_10_to_25_ms")
+  latency25To50Ms   Int           @default(0) @map("latency_25_to_50_ms")
+  latency50To100Ms  Int           @default(0) @map("latency_50_to_100_ms")
+  latency100To250Ms Int           @default(0) @map("latency_100_to_250_ms")
+  latency250To500Ms Int           @default(0) @map("latency_250_to_500_ms")
+  latency500To1000Ms Int          @default(0) @map("latency_500_to_1000_ms")
+  latency1000To2500Ms Int         @default(0) @map("latency_1000_to_2500_ms")
+  latency2500To5000Ms Int         @default(0) @map("latency_2500_to_5000_ms")
+  latencyGte5000Ms  Int           @default(0) @map("latency_gte_5000_ms")
 
   @@id([tenantId, bucket, method, route, callerType])
   @@map("api_access_stats")

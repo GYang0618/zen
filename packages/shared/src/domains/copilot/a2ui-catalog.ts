@@ -1122,6 +1122,10 @@ export const ZEN_A2UI_COMPOSITION_GUIDE = `
    - 增减流水核算：优先用 WaterfallChart
    - 服务可用性追踪：优先用 UptimeCard
    - 敏捷排期与项目计划：优先用 GanttChart
+   - 审计 API 访问统计（响应含 trend、byCaller、topRoutes）：用 GaugeChart 展示总体 errorRate；用 ComposedChart 展示 trend 中 requestCount（柱）与 errorRate（折线，先乘 100 转百分数）；用 DonutChart 展示 byCaller 占比；用 HorizontalBarChart 展示 topRoutes 调用量或错误数排行。仪表盘至少采用两种不同的图表类型，避免重复表达同一指标。
+   - 审计操作统计：byAction / byResource 用 HorizontalBarChart 展示排行，byResult / byActorType 用 DonutChart 展示构成；不要把不同维度拼成没有共同含义的系列。
+   - 登录统计：trend 有数据时用 LineChart 展示每日登录量；successRate 用 GaugeChart；byEvent 用 DonutChart。没有 trend 字段时，不得伪造时间序列。
+   - 趋势规则：只有接口明确返回按时间分桶的数据时才使用折线、面积、热力或活动日历；只有同一分类含多个可比数值系列时才使用分组/堆叠图。缺少支撑维度时选用排行、构成、KPI 与表格，不生成示例或估算数据。
 7. 图表组件自身的 title 尽量填写；description 仅在需要补充上下文时填写，标题已足够则省略；不要传 color，配色由主题 token 自动决定
 8. Timeline 时间线支持丰富模式（请避免千篇一律只用同一种带圆圈图标的风格）：
    - 跨多天/多阶段活动记录优先使用 groups 分组模式（按日期「2026年X月X日」断开连线，组头连组内）

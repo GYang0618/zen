@@ -1,3 +1,4 @@
+import { auditTools } from './modules/audit'
 import { organizationTools } from './modules/organization'
 import { postTools } from './modules/post'
 import { roleTools } from './modules/role'
@@ -8,7 +9,13 @@ import { getToolExecutionPolicy } from './policy'
  * Default Agent 的唯一 Tool 聚合边界。
  * 插件 Tool 暂不装载；恢复时在此接入生成注册表即可。
  */
-export const coreTools = [...userTools, ...roleTools, ...organizationTools, ...postTools]
+export const coreTools = [
+  ...userTools,
+  ...roleTools,
+  ...organizationTools,
+  ...postTools,
+  ...auditTools
+]
 
 function assertUniqueToolNames(tools: readonly { name: string }[]): void {
   const seen = new Set<string>()

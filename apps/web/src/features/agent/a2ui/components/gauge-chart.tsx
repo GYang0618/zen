@@ -83,7 +83,7 @@ export function GaugeChart({ props }: RendererProps<GaugeChartProps>) {
         </ChartContainer>
 
         {/* 仪表盘中心数值与辅助标签 */}
-        <div className="absolute top-[42%] flex flex-col items-center text-center">
+        <div className="absolute top-[48%] flex max-w-[160px] flex-col items-center px-2 text-center">
           <div className="flex items-baseline gap-0.5">
             <span className="font-mono text-3xl font-bold tracking-tight text-foreground">
               {value.toLocaleString()}

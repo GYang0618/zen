@@ -22,12 +22,28 @@ type DataTableToolbarProps<TData> = {
   filters?: {
     columnId: Extract<keyof TData, string>
     title: string
-    options: {
+    options?: {
       label: string
       value: string
       icon?: React.ComponentType<{ className?: string }>
     }[]
+    groups?: {
+      heading?: string
+      quickAction?: {
+        label: string
+        values: string[]
+      }
+      options: {
+        label: string
+        value: string
+        icon?: React.ComponentType<{ className?: string }>
+      }[]
+    }[]
+    contentClassName?: string
   }[]
+  actions?: React.ReactNode
+  /** 位于视图控制按钮之后的扩展插槽（如表格/时间线视图切换器） */
+  viewSwitch?: React.ReactNode
 }
 
 export function DataTableToolbar<TData>({
@@ -37,7 +53,9 @@ export function DataTableToolbar<TData>({
   searchValue,
   onSearchChange,
   searchDebounceMs = 300,
-  filters = []
+  filters = [],
+  actions,
+  viewSwitch
 }: DataTableToolbarProps<TData>) {
   const isControlledSearch = typeof onSearchChange === 'function'
   const [localSearch, setLocalSearch] = useState(searchValue ?? '')
@@ -96,6 +114,8 @@ export function DataTableToolbar<TData>({
                 column={column}
                 title={filter.title}
                 options={filter.options}
+                groups={filter.groups}
+                contentClassName={filter.contentClassName}
               />
             )
           })}
@@ -118,7 +138,11 @@ export function DataTableToolbar<TData>({
           </Button>
         )}
       </div>
-      <DataTableViewOptions table={table} />
+      <div className="flex items-center gap-2">
+        {actions}
+        <DataTableViewOptions table={table} />
+        {viewSwitch}
+      </div>
     </div>
   )
 }
