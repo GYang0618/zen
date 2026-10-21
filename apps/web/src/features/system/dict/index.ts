@@ -1,1 +1,6 @@
-export { DictPage } from './dict'
+export * from './api'
+export { Dict } from './dict'
+export { DictDetail } from './dict-detail'
+export { DictNew } from './dict-new'
+export * from './mutations'
+export * from './queries'

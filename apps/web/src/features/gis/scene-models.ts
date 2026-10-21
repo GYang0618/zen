@@ -18,14 +18,15 @@ export type GisSceneModelCategoryId = keyof typeof GIS_SCENE_MODEL_CATEGORY_LABE
  * 场景模型目录。登记 id、名称、类别、GLB 地址和预览图地址。
  * 预览图在 public/models/previews，文件名与模型文件同名。
  * 同一 category 有多个模型时，用户只说类别则随机选一个，点名具体名称才用对应模型。
+ * heightMeters 是 glTF 向上轴（Y）的真实高度。Sketchfab 导出的单位常常不是米，部署时用它把模型缩放到真实尺寸；文件本身已是米的模型不写这个字段。
  */
 export const GIS_SCENE_MODELS = [
   {
     id: 'pedestrian',
     label: '人物',
     category: 'person',
-    uri: '/models/人.glb',
-    preview: '/models/previews/人.png'
+    uri: '/models/cesium_man.glb',
+    preview: '/models/previews/cesium_man.png'
   },
   /** Casual Grey Shirt And Dark Denim，restore50，CC BY 4.0，https://sketchfab.com/3d-models/casual-grey-shirt-and-dark-denim-fd865b137fc240f295d44869a3b17138 */
   {
@@ -57,7 +58,8 @@ export const GIS_SCENE_MODELS = [
     label: 'Sophia（索菲亚）',
     category: 'person',
     uri: '/models/sophia.glb',
-    preview: '/models/previews/sophia.jpg'
+    preview: '/models/previews/sophia.jpg',
+    heightMeters: 1.7
   },
   /** Mr Man Walking，Instinto Ideal Studio，CC BY 4.0，https://sketchfab.com/3d-models/mr-man-walking-98ccac2b0e2845789b6f789978ca06ed */
   {
@@ -65,7 +67,8 @@ export const GIS_SCENE_MODELS = [
     label: '步行男士',
     category: 'person',
     uri: '/models/mr_man_walking.glb',
-    preview: '/models/previews/mr_man_walking.jpg'
+    preview: '/models/previews/mr_man_walking.jpg',
+    heightMeters: 1.8
   },
   {
     id: 'vehicle',
@@ -79,7 +82,8 @@ export const GIS_SCENE_MODELS = [
     label: '螺旋桨飞机',
     category: 'aircraft',
     uri: '/models/airplane.glb',
-    preview: '/models/previews/airplane.png'
+    preview: '/models/previews/airplane.png',
+    heightMeters: 3.2
   },
   /** DC-10-30 FedEx，mudkipz321，CC BY 4.0，https://sketchfab.com/3d-models/dc-10-30-fedex-b71df28e7cf1464dadd04b6f0e076c77 */
   {
@@ -115,14 +119,16 @@ export const GIS_SCENE_MODELS = [
     label: '树木灌木',
     category: 'vegetation',
     uri: '/models/trees_and_bush_pack_lowpoly.glb',
-    preview: '/models/previews/trees_and_bush_pack_lowpoly.png'
+    preview: '/models/previews/trees_and_bush_pack_lowpoly.png',
+    heightMeters: 16
   },
   {
     id: 'building',
     label: '建筑',
     category: 'building',
     uri: '/models/building.glb',
-    preview: '/models/previews/building.png'
+    preview: '/models/previews/building.png',
+    heightMeters: 30
   },
   /** StreetLight，ZakAttttack，CC BY 4.0 */
   {
@@ -130,7 +136,8 @@ export const GIS_SCENE_MODELS = [
     label: '路灯',
     category: 'streetlight',
     uri: '/models/streetlight.glb',
-    preview: '/models/previews/streetlight.png'
+    preview: '/models/previews/streetlight.png',
+    heightMeters: 9
   },
   /** Rooftop Utility Pole，TomasKiniulis，CC BY 4.0 */
   {
@@ -138,15 +145,17 @@ export const GIS_SCENE_MODELS = [
     label: '电线杆',
     category: 'utility',
     uri: '/models/rooftop_utility_pole.glb',
-    preview: '/models/previews/rooftop_utility_pole.png'
+    preview: '/models/previews/rooftop_utility_pole.png',
+    heightMeters: 12
   },
-  /** Surveillance Cam，Marcel Schanz，CC BY 4.0 */
+  /** Surveillance Cam，Marcel Schanz，CC BY 4.0。壁挂枪机含支架，竖直方向约 0.25 米。 */
   {
     id: 'surveillanceCam',
     label: '监控摄像头',
     category: 'surveillance',
     uri: '/models/surveillance_cam.glb',
-    preview: '/models/previews/surveillance_cam.png'
+    preview: '/models/previews/surveillance_cam.png',
+    heightMeters: 0.25
   },
   /** Traffic Light，miwaVV，CC BY 4.0 */
   {
@@ -154,6 +163,7 @@ export const GIS_SCENE_MODELS = [
     label: '信号灯（红绿灯）',
     category: 'traffic',
     uri: '/models/traffic_light.glb',
-    preview: '/models/previews/traffic_light.png'
+    preview: '/models/previews/traffic_light.png',
+    heightMeters: 7
   }
 ] as const

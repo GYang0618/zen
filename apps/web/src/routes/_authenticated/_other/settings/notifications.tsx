@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Bell } from 'lucide-react'
 
-import { SettingsNotifications } from '@/features/settings-v2/notifications'
+import { SettingsNotifications } from '@/features/settings/notifications'
 
 export const Route = createFileRoute('/_authenticated/_other/settings/notifications')({
   component: SettingsNotifications,

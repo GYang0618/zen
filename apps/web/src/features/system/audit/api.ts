@@ -19,6 +19,7 @@ export interface AuditActorDetail {
   email: string | null
   phoneNumber: string | null
   avatar: string | null
+  deletedAt?: string | null
 }
 
 export interface AuditLogItem {

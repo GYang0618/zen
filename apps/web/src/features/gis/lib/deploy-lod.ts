@@ -52,7 +52,8 @@ export function readDeployScene(viewer: Viewer): DeploySceneContext {
 
 /**
  * 由实测包围盒、部署缩放和当前场景计算瓦片几何误差。
- * 模型直径投影到 {@link GIS_DEPLOY_LOD.targetPixels} 时开始加载。
+ * 模型直径投影到 {@link GIS_DEPLOY_LOD.targetPixels} 时开始加载，
+ * 并且不会晚于 {@link GIS_DEPLOY_LOD.minLoadDistanceMeters}。
  */
 export function computeDeployLod(
   bounds: GlbBounds,
@@ -63,8 +64,12 @@ export function computeDeployLod(
   const safeScale = scale > 0 ? scale : 1
   const diameterMeters = Math.max(bounds.size[0], bounds.size[1], bounds.size[2]) * safeScale
   const radiusMeters = bounds.radius * safeScale
-  const geometricError =
+  const sizeError =
     (Math.max(diameterMeters, 0.01) * scene.maximumScreenSpaceError) / GIS_DEPLOY_LOD.targetPixels
+  const geometricError = Math.max(
+    sizeError,
+    geometricErrorForLoadDistance(GIS_DEPLOY_LOD.minLoadDistanceMeters, scene)
+  )
   const loadDistanceMeters = loadDistanceFor(geometricError, scene)
   const cameraDistanceMeters = distanceToAnchor(scene, anchor)
   const screenSpaceError = screenSpaceErrorAt(geometricError, cameraDistanceMeters, scene)
@@ -83,8 +88,19 @@ export function computeDeployLod(
 }
 
 function loadDistanceFor(geometricError: number, scene: DeploySceneContext): number {
-  const denominator = 2 * Math.tan(scene.fovyRadians * 0.5)
+  const denominator = projectionDenominator(scene)
   return (geometricError * scene.screenHeight) / (scene.maximumScreenSpaceError * denominator)
+}
+
+function geometricErrorForLoadDistance(distanceMeters: number, scene: DeploySceneContext): number {
+  return (
+    (distanceMeters * scene.maximumScreenSpaceError * projectionDenominator(scene)) /
+    scene.screenHeight
+  )
+}
+
+function projectionDenominator(scene: DeploySceneContext): number {
+  return 2 * Math.tan(scene.fovyRadians * 0.5)
 }
 
 function screenSpaceErrorAt(
@@ -92,7 +108,7 @@ function screenSpaceErrorAt(
   distanceMeters: number,
   scene: DeploySceneContext
 ): number {
-  const denominator = 2 * Math.tan(scene.fovyRadians * 0.5)
+  const denominator = projectionDenominator(scene)
   const distance = Math.max(distanceMeters, 1)
   return (geometricError * scene.screenHeight) / (distance * denominator)
 }

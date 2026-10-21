@@ -70,6 +70,7 @@ const PopupAssistantMessage = Object.assign(function PopupAssistantMessage({
       includeInlineTools
       showWorkingPlaceholder
       showCanvas={false}
+      generativePlacement="inline"
       onRetry={onRegenerate ? () => onRegenerate(message) : undefined}
     />
   )

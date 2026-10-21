@@ -25,7 +25,7 @@ export function AiUsagePage() {
 
       <Main className="flex flex-1 flex-col gap-4 sm:gap-6">
         <AppPageHeader
-          title="AI用量治理"
+          title="用量与成本"
           description="统计 AI Agent 任务流水、Token 消耗分布与多模型费用明细"
           actions={
             <Button

@@ -33,7 +33,7 @@ export function AgentUsageView({ onViewDetail, onRefetchReady }: AgentUsageViewP
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">累计 Token 用量</CardTitle>
-            <BrainCircuit className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+            <BrainCircuit className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {statsLoading || !stats ? (
@@ -50,13 +50,13 @@ export function AgentUsageView({ onViewDetail, onRefetchReady }: AgentUsageViewP
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">累计 AI 成本</CardTitle>
-            <Coins className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <Coins className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {statsLoading || !stats ? (
               <Skeleton className="h-7 w-28" />
             ) : (
-              <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+              <div className="text-2xl font-bold text-foreground">
                 {formatCostMicros(stats.totalCostMicros ?? 0)}
               </div>
             )}
@@ -104,7 +104,7 @@ export function AgentUsageView({ onViewDetail, onRefetchReady }: AgentUsageViewP
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-              <Cpu className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              <Cpu className="h-4 w-4 text-muted-foreground" />
               主流模型消耗分布
             </CardTitle>
           </CardHeader>
@@ -117,7 +117,7 @@ export function AgentUsageView({ onViewDetail, onRefetchReady }: AgentUsageViewP
                   <div key={m.model} className="space-y-1.5 rounded-md border border-border p-3">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-mono font-medium text-foreground">{m.model}</span>
-                      <span className="text-amber-600 dark:text-amber-400 font-medium">
+                      <span className="font-medium text-foreground">
                         {formatCostMicros(m.costMicros ?? 0)}
                       </span>
                     </div>

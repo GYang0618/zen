@@ -36,12 +36,11 @@ import { Route as AuthenticatedAiPluginsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedPluginsJobsRouteImport } from './routes/_authenticated/plugins/jobs'
 import { Route as AuthenticatedPluginsNotesRouteImport } from './routes/_authenticated/plugins/notes'
 import { Route as AuthenticatedPluginsNotificationsRouteImport } from './routes/_authenticated/plugins/notifications'
+import { Route as AuthenticatedSystemGovernanceRouteRouteImport } from './routes/_authenticated/system/_governance/route'
 import { Route as AuthenticatedSystemIdentityRouteRouteImport } from './routes/_authenticated/system/_identity/route'
 import { Route as AuthenticatedSystemMonitorRouteRouteImport } from './routes/_authenticated/system/_monitor/route'
-import { Route as AuthenticatedSystemAiQuotaRouteImport } from './routes/_authenticated/system/ai-quota'
 import { Route as AuthenticatedSystemAuditRouteImport } from './routes/_authenticated/system/audit'
 import { Route as AuthenticatedSystemDictRouteImport } from './routes/_authenticated/system/dict'
-import { Route as AuthenticatedSystemDictV2RouteImport } from './routes/_authenticated/system/dict-v2'
 import { Route as AuthenticatedSystemFilesRouteImport } from './routes/_authenticated/system/files'
 import { Route as AuthenticatedSystemIconSetRouteImport } from './routes/_authenticated/system/icon-set'
 import { Route as AuthenticatedSystemPetsRouteImport } from './routes/_authenticated/system/pets'
@@ -54,18 +53,21 @@ import { Route as AuthenticatedOtherSettingsProfileRouteImport } from './routes/
 import { Route as AuthenticatedOtherSettingsSystemRouteImport } from './routes/_authenticated/_other/settings/system'
 import { Route as AuthenticatedWorkbenchChatIndexRouteImport } from './routes/_authenticated/_workbench/chat/index'
 import { Route as AuthenticatedWorkbenchChatThreadIdRouteImport } from './routes/_authenticated/_workbench/chat/$threadId'
+import { Route as AuthenticatedSystemGovernanceAiQuotaRouteImport } from './routes/_authenticated/system/_governance/ai-quota'
+import { Route as AuthenticatedSystemGovernanceAiUsageRouteImport } from './routes/_authenticated/system/_governance/ai-usage'
 import { Route as AuthenticatedSystemIdentityOrganizationRouteImport } from './routes/_authenticated/system/_identity/organization'
 import { Route as AuthenticatedSystemIdentityPostsRouteImport } from './routes/_authenticated/system/_identity/posts'
 import { Route as AuthenticatedSystemIdentityRolesRouteImport } from './routes/_authenticated/system/_identity/roles'
 import { Route as AuthenticatedSystemIdentityUsersRouteImport } from './routes/_authenticated/system/_identity/users'
-import { Route as AuthenticatedSystemMonitorAiUsageRouteImport } from './routes/_authenticated/system/_monitor/ai-usage'
 import { Route as AuthenticatedSystemMonitorAuditLogsRouteImport } from './routes/_authenticated/system/_monitor/audit-logs'
 import { Route as AuthenticatedSystemMonitorInterfaceDefenseRouteImport } from './routes/_authenticated/system/_monitor/interface-defense'
 import { Route as AuthenticatedSystemMonitorLoginLogsRouteImport } from './routes/_authenticated/system/_monitor/login-logs'
+import { Route as AuthenticatedSystemDictIdRouteImport } from './routes/_authenticated/system/dict_.$id'
+import { Route as AuthenticatedSystemDictNewRouteImport } from './routes/_authenticated/system/dict_.new'
+import { Route as AuthenticatedSystemGovernanceAiUsageIdRouteImport } from './routes/_authenticated/system/_governance/ai-usage_.$id'
 import { Route as AuthenticatedSystemIdentityOrganizationIdRouteImport } from './routes/_authenticated/system/_identity/organization_.$id'
 import { Route as AuthenticatedSystemIdentityRolesIdRouteImport } from './routes/_authenticated/system/_identity/roles_.$id'
 import { Route as AuthenticatedSystemIdentityUsersUserIdRouteImport } from './routes/_authenticated/system/_identity/users_.$userId'
-import { Route as AuthenticatedSystemMonitorAiUsageIdRouteImport } from './routes/_authenticated/system/_monitor/ai-usage_.$id'
 
 const authRouteRoute = authRouteRouteImport.update({
   id: '/(auth)',
@@ -209,6 +211,11 @@ const AuthenticatedPluginsNotificationsRoute =
     path: '/notifications',
     getParentRoute: () => AuthenticatedPluginsRouteRoute,
   } as any)
+const AuthenticatedSystemGovernanceRouteRoute =
+  AuthenticatedSystemGovernanceRouteRouteImport.update({
+    id: '/_governance',
+    getParentRoute: () => AuthenticatedSystemRouteRoute,
+  } as any)
 const AuthenticatedSystemIdentityRouteRoute =
   AuthenticatedSystemIdentityRouteRouteImport.update({
     id: '/_identity',
@@ -217,12 +224,6 @@ const AuthenticatedSystemIdentityRouteRoute =
 const AuthenticatedSystemMonitorRouteRoute =
   AuthenticatedSystemMonitorRouteRouteImport.update({
     id: '/_monitor',
-    getParentRoute: () => AuthenticatedSystemRouteRoute,
-  } as any)
-const AuthenticatedSystemAiQuotaRoute =
-  AuthenticatedSystemAiQuotaRouteImport.update({
-    id: '/ai-quota',
-    path: '/ai-quota',
     getParentRoute: () => AuthenticatedSystemRouteRoute,
   } as any)
 const AuthenticatedSystemAuditRoute =
@@ -236,12 +237,6 @@ const AuthenticatedSystemDictRoute = AuthenticatedSystemDictRouteImport.update({
   path: '/dict',
   getParentRoute: () => AuthenticatedSystemRouteRoute,
 } as any)
-const AuthenticatedSystemDictV2Route =
-  AuthenticatedSystemDictV2RouteImport.update({
-    id: '/dict-v2',
-    path: '/dict-v2',
-    getParentRoute: () => AuthenticatedSystemRouteRoute,
-  } as any)
 const AuthenticatedSystemFilesRoute =
   AuthenticatedSystemFilesRouteImport.update({
     id: '/files',
@@ -313,6 +308,18 @@ const AuthenticatedWorkbenchChatThreadIdRoute =
     path: '/$threadId',
     getParentRoute: () => AuthenticatedWorkbenchChatRouteRoute,
   } as any)
+const AuthenticatedSystemGovernanceAiQuotaRoute =
+  AuthenticatedSystemGovernanceAiQuotaRouteImport.update({
+    id: '/ai-quota',
+    path: '/ai-quota',
+    getParentRoute: () => AuthenticatedSystemGovernanceRouteRoute,
+  } as any)
+const AuthenticatedSystemGovernanceAiUsageRoute =
+  AuthenticatedSystemGovernanceAiUsageRouteImport.update({
+    id: '/ai-usage',
+    path: '/ai-usage',
+    getParentRoute: () => AuthenticatedSystemGovernanceRouteRoute,
+  } as any)
 const AuthenticatedSystemIdentityOrganizationRoute =
   AuthenticatedSystemIdentityOrganizationRouteImport.update({
     id: '/organization',
@@ -337,12 +344,6 @@ const AuthenticatedSystemIdentityUsersRoute =
     path: '/users',
     getParentRoute: () => AuthenticatedSystemIdentityRouteRoute,
   } as any)
-const AuthenticatedSystemMonitorAiUsageRoute =
-  AuthenticatedSystemMonitorAiUsageRouteImport.update({
-    id: '/ai-usage',
-    path: '/ai-usage',
-    getParentRoute: () => AuthenticatedSystemMonitorRouteRoute,
-  } as any)
 const AuthenticatedSystemMonitorAuditLogsRoute =
   AuthenticatedSystemMonitorAuditLogsRouteImport.update({
     id: '/audit-logs',
@@ -361,6 +362,24 @@ const AuthenticatedSystemMonitorLoginLogsRoute =
     path: '/login-logs',
     getParentRoute: () => AuthenticatedSystemMonitorRouteRoute,
   } as any)
+const AuthenticatedSystemDictIdRoute =
+  AuthenticatedSystemDictIdRouteImport.update({
+    id: '/dict_/$id',
+    path: '/dict/$id',
+    getParentRoute: () => AuthenticatedSystemRouteRoute,
+  } as any)
+const AuthenticatedSystemDictNewRoute =
+  AuthenticatedSystemDictNewRouteImport.update({
+    id: '/dict_/new',
+    path: '/dict/new',
+    getParentRoute: () => AuthenticatedSystemRouteRoute,
+  } as any)
+const AuthenticatedSystemGovernanceAiUsageIdRoute =
+  AuthenticatedSystemGovernanceAiUsageIdRouteImport.update({
+    id: '/ai-usage_/$id',
+    path: '/ai-usage/$id',
+    getParentRoute: () => AuthenticatedSystemGovernanceRouteRoute,
+  } as any)
 const AuthenticatedSystemIdentityOrganizationIdRoute =
   AuthenticatedSystemIdentityOrganizationIdRouteImport.update({
     id: '/organization_/$id',
@@ -378,12 +397,6 @@ const AuthenticatedSystemIdentityUsersUserIdRoute =
     id: '/users_/$userId',
     path: '/users/$userId',
     getParentRoute: () => AuthenticatedSystemIdentityRouteRoute,
-  } as any)
-const AuthenticatedSystemMonitorAiUsageIdRoute =
-  AuthenticatedSystemMonitorAiUsageIdRouteImport.update({
-    id: '/ai-usage_/$id',
-    path: '/ai-usage/$id',
-    getParentRoute: () => AuthenticatedSystemMonitorRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -410,10 +423,8 @@ export interface FileRoutesByFullPath {
   '/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
   '/plugins/notes': typeof AuthenticatedPluginsNotesRoute
   '/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
-  '/system/ai-quota': typeof AuthenticatedSystemAiQuotaRoute
   '/system/audit': typeof AuthenticatedSystemAuditRoute
   '/system/dict': typeof AuthenticatedSystemDictRoute
-  '/system/dict-v2': typeof AuthenticatedSystemDictV2Route
   '/system/files': typeof AuthenticatedSystemFilesRoute
   '/system/icon-set': typeof AuthenticatedSystemIconSetRoute
   '/system/pets': typeof AuthenticatedSystemPetsRoute
@@ -425,19 +436,22 @@ export interface FileRoutesByFullPath {
   '/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
   '/settings/system': typeof AuthenticatedOtherSettingsSystemRoute
   '/chat/$threadId': typeof AuthenticatedWorkbenchChatThreadIdRoute
+  '/system/ai-quota': typeof AuthenticatedSystemGovernanceAiQuotaRoute
+  '/system/ai-usage': typeof AuthenticatedSystemGovernanceAiUsageRoute
   '/system/organization': typeof AuthenticatedSystemIdentityOrganizationRoute
   '/system/posts': typeof AuthenticatedSystemIdentityPostsRoute
   '/system/roles': typeof AuthenticatedSystemIdentityRolesRoute
   '/system/users': typeof AuthenticatedSystemIdentityUsersRoute
-  '/system/ai-usage': typeof AuthenticatedSystemMonitorAiUsageRoute
   '/system/audit-logs': typeof AuthenticatedSystemMonitorAuditLogsRoute
   '/system/interface-defense': typeof AuthenticatedSystemMonitorInterfaceDefenseRoute
   '/system/login-logs': typeof AuthenticatedSystemMonitorLoginLogsRoute
+  '/system/dict/$id': typeof AuthenticatedSystemDictIdRoute
+  '/system/dict/new': typeof AuthenticatedSystemDictNewRoute
   '/chat/': typeof AuthenticatedWorkbenchChatIndexRoute
+  '/system/ai-usage/$id': typeof AuthenticatedSystemGovernanceAiUsageIdRoute
   '/system/organization/$id': typeof AuthenticatedSystemIdentityOrganizationIdRoute
   '/system/roles/$id': typeof AuthenticatedSystemIdentityRolesIdRoute
   '/system/users/$userId': typeof AuthenticatedSystemIdentityUsersUserIdRoute
-  '/system/ai-usage/$id': typeof AuthenticatedSystemMonitorAiUsageIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AuthenticatedWorkbenchIndexRoute
@@ -462,10 +476,8 @@ export interface FileRoutesByTo {
   '/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
   '/plugins/notes': typeof AuthenticatedPluginsNotesRoute
   '/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
-  '/system/ai-quota': typeof AuthenticatedSystemAiQuotaRoute
   '/system/audit': typeof AuthenticatedSystemAuditRoute
   '/system/dict': typeof AuthenticatedSystemDictRoute
-  '/system/dict-v2': typeof AuthenticatedSystemDictV2Route
   '/system/files': typeof AuthenticatedSystemFilesRoute
   '/system/icon-set': typeof AuthenticatedSystemIconSetRoute
   '/system/pets': typeof AuthenticatedSystemPetsRoute
@@ -477,19 +489,22 @@ export interface FileRoutesByTo {
   '/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
   '/settings/system': typeof AuthenticatedOtherSettingsSystemRoute
   '/chat/$threadId': typeof AuthenticatedWorkbenchChatThreadIdRoute
+  '/system/ai-quota': typeof AuthenticatedSystemGovernanceAiQuotaRoute
+  '/system/ai-usage': typeof AuthenticatedSystemGovernanceAiUsageRoute
   '/system/organization': typeof AuthenticatedSystemIdentityOrganizationRoute
   '/system/posts': typeof AuthenticatedSystemIdentityPostsRoute
   '/system/roles': typeof AuthenticatedSystemIdentityRolesRoute
   '/system/users': typeof AuthenticatedSystemIdentityUsersRoute
-  '/system/ai-usage': typeof AuthenticatedSystemMonitorAiUsageRoute
   '/system/audit-logs': typeof AuthenticatedSystemMonitorAuditLogsRoute
   '/system/interface-defense': typeof AuthenticatedSystemMonitorInterfaceDefenseRoute
   '/system/login-logs': typeof AuthenticatedSystemMonitorLoginLogsRoute
+  '/system/dict/$id': typeof AuthenticatedSystemDictIdRoute
+  '/system/dict/new': typeof AuthenticatedSystemDictNewRoute
   '/chat': typeof AuthenticatedWorkbenchChatIndexRoute
+  '/system/ai-usage/$id': typeof AuthenticatedSystemGovernanceAiUsageIdRoute
   '/system/organization/$id': typeof AuthenticatedSystemIdentityOrganizationIdRoute
   '/system/roles/$id': typeof AuthenticatedSystemIdentityRolesIdRoute
   '/system/users/$userId': typeof AuthenticatedSystemIdentityUsersUserIdRoute
-  '/system/ai-usage/$id': typeof AuthenticatedSystemMonitorAiUsageIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -513,6 +528,7 @@ export interface FileRoutesById {
   '/errors/503': typeof Errors503Route
   '/_authenticated/_other/settings': typeof AuthenticatedOtherSettingsRouteRouteWithChildren
   '/_authenticated/_workbench/chat': typeof AuthenticatedWorkbenchChatRouteRouteWithChildren
+  '/_authenticated/system/_governance': typeof AuthenticatedSystemGovernanceRouteRouteWithChildren
   '/_authenticated/system/_identity': typeof AuthenticatedSystemIdentityRouteRouteWithChildren
   '/_authenticated/system/_monitor': typeof AuthenticatedSystemMonitorRouteRouteWithChildren
   '/_authenticated/_workbench/bim': typeof AuthenticatedWorkbenchBimRoute
@@ -521,10 +537,8 @@ export interface FileRoutesById {
   '/_authenticated/plugins/jobs': typeof AuthenticatedPluginsJobsRoute
   '/_authenticated/plugins/notes': typeof AuthenticatedPluginsNotesRoute
   '/_authenticated/plugins/notifications': typeof AuthenticatedPluginsNotificationsRoute
-  '/_authenticated/system/ai-quota': typeof AuthenticatedSystemAiQuotaRoute
   '/_authenticated/system/audit': typeof AuthenticatedSystemAuditRoute
   '/_authenticated/system/dict': typeof AuthenticatedSystemDictRoute
-  '/_authenticated/system/dict-v2': typeof AuthenticatedSystemDictV2Route
   '/_authenticated/system/files': typeof AuthenticatedSystemFilesRoute
   '/_authenticated/system/icon-set': typeof AuthenticatedSystemIconSetRoute
   '/_authenticated/system/pets': typeof AuthenticatedSystemPetsRoute
@@ -537,19 +551,22 @@ export interface FileRoutesById {
   '/_authenticated/_other/settings/profile': typeof AuthenticatedOtherSettingsProfileRoute
   '/_authenticated/_other/settings/system': typeof AuthenticatedOtherSettingsSystemRoute
   '/_authenticated/_workbench/chat/$threadId': typeof AuthenticatedWorkbenchChatThreadIdRoute
+  '/_authenticated/system/_governance/ai-quota': typeof AuthenticatedSystemGovernanceAiQuotaRoute
+  '/_authenticated/system/_governance/ai-usage': typeof AuthenticatedSystemGovernanceAiUsageRoute
   '/_authenticated/system/_identity/organization': typeof AuthenticatedSystemIdentityOrganizationRoute
   '/_authenticated/system/_identity/posts': typeof AuthenticatedSystemIdentityPostsRoute
   '/_authenticated/system/_identity/roles': typeof AuthenticatedSystemIdentityRolesRoute
   '/_authenticated/system/_identity/users': typeof AuthenticatedSystemIdentityUsersRoute
-  '/_authenticated/system/_monitor/ai-usage': typeof AuthenticatedSystemMonitorAiUsageRoute
   '/_authenticated/system/_monitor/audit-logs': typeof AuthenticatedSystemMonitorAuditLogsRoute
   '/_authenticated/system/_monitor/interface-defense': typeof AuthenticatedSystemMonitorInterfaceDefenseRoute
   '/_authenticated/system/_monitor/login-logs': typeof AuthenticatedSystemMonitorLoginLogsRoute
+  '/_authenticated/system/dict_/$id': typeof AuthenticatedSystemDictIdRoute
+  '/_authenticated/system/dict_/new': typeof AuthenticatedSystemDictNewRoute
   '/_authenticated/_workbench/chat/': typeof AuthenticatedWorkbenchChatIndexRoute
+  '/_authenticated/system/_governance/ai-usage_/$id': typeof AuthenticatedSystemGovernanceAiUsageIdRoute
   '/_authenticated/system/_identity/organization_/$id': typeof AuthenticatedSystemIdentityOrganizationIdRoute
   '/_authenticated/system/_identity/roles_/$id': typeof AuthenticatedSystemIdentityRolesIdRoute
   '/_authenticated/system/_identity/users_/$userId': typeof AuthenticatedSystemIdentityUsersUserIdRoute
-  '/_authenticated/system/_monitor/ai-usage_/$id': typeof AuthenticatedSystemMonitorAiUsageIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -577,10 +594,8 @@ export interface FileRouteTypes {
     | '/plugins/jobs'
     | '/plugins/notes'
     | '/plugins/notifications'
-    | '/system/ai-quota'
     | '/system/audit'
     | '/system/dict'
-    | '/system/dict-v2'
     | '/system/files'
     | '/system/icon-set'
     | '/system/pets'
@@ -592,19 +607,22 @@ export interface FileRouteTypes {
     | '/settings/profile'
     | '/settings/system'
     | '/chat/$threadId'
+    | '/system/ai-quota'
+    | '/system/ai-usage'
     | '/system/organization'
     | '/system/posts'
     | '/system/roles'
     | '/system/users'
-    | '/system/ai-usage'
     | '/system/audit-logs'
     | '/system/interface-defense'
     | '/system/login-logs'
+    | '/system/dict/$id'
+    | '/system/dict/new'
     | '/chat/'
+    | '/system/ai-usage/$id'
     | '/system/organization/$id'
     | '/system/roles/$id'
     | '/system/users/$userId'
-    | '/system/ai-usage/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -629,10 +647,8 @@ export interface FileRouteTypes {
     | '/plugins/jobs'
     | '/plugins/notes'
     | '/plugins/notifications'
-    | '/system/ai-quota'
     | '/system/audit'
     | '/system/dict'
-    | '/system/dict-v2'
     | '/system/files'
     | '/system/icon-set'
     | '/system/pets'
@@ -644,19 +660,22 @@ export interface FileRouteTypes {
     | '/settings/profile'
     | '/settings/system'
     | '/chat/$threadId'
+    | '/system/ai-quota'
+    | '/system/ai-usage'
     | '/system/organization'
     | '/system/posts'
     | '/system/roles'
     | '/system/users'
-    | '/system/ai-usage'
     | '/system/audit-logs'
     | '/system/interface-defense'
     | '/system/login-logs'
+    | '/system/dict/$id'
+    | '/system/dict/new'
     | '/chat'
+    | '/system/ai-usage/$id'
     | '/system/organization/$id'
     | '/system/roles/$id'
     | '/system/users/$userId'
-    | '/system/ai-usage/$id'
   id:
     | '__root__'
     | '/(auth)'
@@ -679,6 +698,7 @@ export interface FileRouteTypes {
     | '/errors/503'
     | '/_authenticated/_other/settings'
     | '/_authenticated/_workbench/chat'
+    | '/_authenticated/system/_governance'
     | '/_authenticated/system/_identity'
     | '/_authenticated/system/_monitor'
     | '/_authenticated/_workbench/bim'
@@ -687,10 +707,8 @@ export interface FileRouteTypes {
     | '/_authenticated/plugins/jobs'
     | '/_authenticated/plugins/notes'
     | '/_authenticated/plugins/notifications'
-    | '/_authenticated/system/ai-quota'
     | '/_authenticated/system/audit'
     | '/_authenticated/system/dict'
-    | '/_authenticated/system/dict-v2'
     | '/_authenticated/system/files'
     | '/_authenticated/system/icon-set'
     | '/_authenticated/system/pets'
@@ -703,19 +721,22 @@ export interface FileRouteTypes {
     | '/_authenticated/_other/settings/profile'
     | '/_authenticated/_other/settings/system'
     | '/_authenticated/_workbench/chat/$threadId'
+    | '/_authenticated/system/_governance/ai-quota'
+    | '/_authenticated/system/_governance/ai-usage'
     | '/_authenticated/system/_identity/organization'
     | '/_authenticated/system/_identity/posts'
     | '/_authenticated/system/_identity/roles'
     | '/_authenticated/system/_identity/users'
-    | '/_authenticated/system/_monitor/ai-usage'
     | '/_authenticated/system/_monitor/audit-logs'
     | '/_authenticated/system/_monitor/interface-defense'
     | '/_authenticated/system/_monitor/login-logs'
+    | '/_authenticated/system/dict_/$id'
+    | '/_authenticated/system/dict_/new'
     | '/_authenticated/_workbench/chat/'
+    | '/_authenticated/system/_governance/ai-usage_/$id'
     | '/_authenticated/system/_identity/organization_/$id'
     | '/_authenticated/system/_identity/roles_/$id'
     | '/_authenticated/system/_identity/users_/$userId'
-    | '/_authenticated/system/_monitor/ai-usage_/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -920,6 +941,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPluginsNotificationsRouteImport
       parentRoute: typeof AuthenticatedPluginsRouteRoute
     }
+    '/_authenticated/system/_governance': {
+      id: '/_authenticated/system/_governance'
+      path: ''
+      fullPath: '/system'
+      preLoaderRoute: typeof AuthenticatedSystemGovernanceRouteRouteImport
+      parentRoute: typeof AuthenticatedSystemRouteRoute
+    }
     '/_authenticated/system/_identity': {
       id: '/_authenticated/system/_identity'
       path: ''
@@ -934,13 +962,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSystemMonitorRouteRouteImport
       parentRoute: typeof AuthenticatedSystemRouteRoute
     }
-    '/_authenticated/system/ai-quota': {
-      id: '/_authenticated/system/ai-quota'
-      path: '/ai-quota'
-      fullPath: '/system/ai-quota'
-      preLoaderRoute: typeof AuthenticatedSystemAiQuotaRouteImport
-      parentRoute: typeof AuthenticatedSystemRouteRoute
-    }
     '/_authenticated/system/audit': {
       id: '/_authenticated/system/audit'
       path: '/audit'
@@ -953,13 +974,6 @@ declare module '@tanstack/react-router' {
       path: '/dict'
       fullPath: '/system/dict'
       preLoaderRoute: typeof AuthenticatedSystemDictRouteImport
-      parentRoute: typeof AuthenticatedSystemRouteRoute
-    }
-    '/_authenticated/system/dict-v2': {
-      id: '/_authenticated/system/dict-v2'
-      path: '/dict-v2'
-      fullPath: '/system/dict-v2'
-      preLoaderRoute: typeof AuthenticatedSystemDictV2RouteImport
       parentRoute: typeof AuthenticatedSystemRouteRoute
     }
     '/_authenticated/system/files': {
@@ -1046,6 +1060,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWorkbenchChatThreadIdRouteImport
       parentRoute: typeof AuthenticatedWorkbenchChatRouteRoute
     }
+    '/_authenticated/system/_governance/ai-quota': {
+      id: '/_authenticated/system/_governance/ai-quota'
+      path: '/ai-quota'
+      fullPath: '/system/ai-quota'
+      preLoaderRoute: typeof AuthenticatedSystemGovernanceAiQuotaRouteImport
+      parentRoute: typeof AuthenticatedSystemGovernanceRouteRoute
+    }
+    '/_authenticated/system/_governance/ai-usage': {
+      id: '/_authenticated/system/_governance/ai-usage'
+      path: '/ai-usage'
+      fullPath: '/system/ai-usage'
+      preLoaderRoute: typeof AuthenticatedSystemGovernanceAiUsageRouteImport
+      parentRoute: typeof AuthenticatedSystemGovernanceRouteRoute
+    }
     '/_authenticated/system/_identity/organization': {
       id: '/_authenticated/system/_identity/organization'
       path: '/organization'
@@ -1074,13 +1102,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSystemIdentityUsersRouteImport
       parentRoute: typeof AuthenticatedSystemIdentityRouteRoute
     }
-    '/_authenticated/system/_monitor/ai-usage': {
-      id: '/_authenticated/system/_monitor/ai-usage'
-      path: '/ai-usage'
-      fullPath: '/system/ai-usage'
-      preLoaderRoute: typeof AuthenticatedSystemMonitorAiUsageRouteImport
-      parentRoute: typeof AuthenticatedSystemMonitorRouteRoute
-    }
     '/_authenticated/system/_monitor/audit-logs': {
       id: '/_authenticated/system/_monitor/audit-logs'
       path: '/audit-logs'
@@ -1102,6 +1123,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSystemMonitorLoginLogsRouteImport
       parentRoute: typeof AuthenticatedSystemMonitorRouteRoute
     }
+    '/_authenticated/system/dict_/$id': {
+      id: '/_authenticated/system/dict_/$id'
+      path: '/dict/$id'
+      fullPath: '/system/dict/$id'
+      preLoaderRoute: typeof AuthenticatedSystemDictIdRouteImport
+      parentRoute: typeof AuthenticatedSystemRouteRoute
+    }
+    '/_authenticated/system/dict_/new': {
+      id: '/_authenticated/system/dict_/new'
+      path: '/dict/new'
+      fullPath: '/system/dict/new'
+      preLoaderRoute: typeof AuthenticatedSystemDictNewRouteImport
+      parentRoute: typeof AuthenticatedSystemRouteRoute
+    }
+    '/_authenticated/system/_governance/ai-usage_/$id': {
+      id: '/_authenticated/system/_governance/ai-usage_/$id'
+      path: '/ai-usage/$id'
+      fullPath: '/system/ai-usage/$id'
+      preLoaderRoute: typeof AuthenticatedSystemGovernanceAiUsageIdRouteImport
+      parentRoute: typeof AuthenticatedSystemGovernanceRouteRoute
+    }
     '/_authenticated/system/_identity/organization_/$id': {
       id: '/_authenticated/system/_identity/organization_/$id'
       path: '/organization/$id'
@@ -1122,13 +1164,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/system/users/$userId'
       preLoaderRoute: typeof AuthenticatedSystemIdentityUsersUserIdRouteImport
       parentRoute: typeof AuthenticatedSystemIdentityRouteRoute
-    }
-    '/_authenticated/system/_monitor/ai-usage_/$id': {
-      id: '/_authenticated/system/_monitor/ai-usage_/$id'
-      path: '/ai-usage/$id'
-      fullPath: '/system/ai-usage/$id'
-      preLoaderRoute: typeof AuthenticatedSystemMonitorAiUsageIdRouteImport
-      parentRoute: typeof AuthenticatedSystemMonitorRouteRoute
     }
   }
 }
@@ -1265,6 +1300,27 @@ const AuthenticatedPluginsRouteRouteWithChildren =
     AuthenticatedPluginsRouteRouteChildren,
   )
 
+interface AuthenticatedSystemGovernanceRouteRouteChildren {
+  AuthenticatedSystemGovernanceAiQuotaRoute: typeof AuthenticatedSystemGovernanceAiQuotaRoute
+  AuthenticatedSystemGovernanceAiUsageRoute: typeof AuthenticatedSystemGovernanceAiUsageRoute
+  AuthenticatedSystemGovernanceAiUsageIdRoute: typeof AuthenticatedSystemGovernanceAiUsageIdRoute
+}
+
+const AuthenticatedSystemGovernanceRouteRouteChildren: AuthenticatedSystemGovernanceRouteRouteChildren =
+  {
+    AuthenticatedSystemGovernanceAiQuotaRoute:
+      AuthenticatedSystemGovernanceAiQuotaRoute,
+    AuthenticatedSystemGovernanceAiUsageRoute:
+      AuthenticatedSystemGovernanceAiUsageRoute,
+    AuthenticatedSystemGovernanceAiUsageIdRoute:
+      AuthenticatedSystemGovernanceAiUsageIdRoute,
+  }
+
+const AuthenticatedSystemGovernanceRouteRouteWithChildren =
+  AuthenticatedSystemGovernanceRouteRoute._addFileChildren(
+    AuthenticatedSystemGovernanceRouteRouteChildren,
+  )
+
 interface AuthenticatedSystemIdentityRouteRouteChildren {
   AuthenticatedSystemIdentityOrganizationRoute: typeof AuthenticatedSystemIdentityOrganizationRoute
   AuthenticatedSystemIdentityPostsRoute: typeof AuthenticatedSystemIdentityPostsRoute
@@ -1299,25 +1355,19 @@ const AuthenticatedSystemIdentityRouteRouteWithChildren =
   )
 
 interface AuthenticatedSystemMonitorRouteRouteChildren {
-  AuthenticatedSystemMonitorAiUsageRoute: typeof AuthenticatedSystemMonitorAiUsageRoute
   AuthenticatedSystemMonitorAuditLogsRoute: typeof AuthenticatedSystemMonitorAuditLogsRoute
   AuthenticatedSystemMonitorInterfaceDefenseRoute: typeof AuthenticatedSystemMonitorInterfaceDefenseRoute
   AuthenticatedSystemMonitorLoginLogsRoute: typeof AuthenticatedSystemMonitorLoginLogsRoute
-  AuthenticatedSystemMonitorAiUsageIdRoute: typeof AuthenticatedSystemMonitorAiUsageIdRoute
 }
 
 const AuthenticatedSystemMonitorRouteRouteChildren: AuthenticatedSystemMonitorRouteRouteChildren =
   {
-    AuthenticatedSystemMonitorAiUsageRoute:
-      AuthenticatedSystemMonitorAiUsageRoute,
     AuthenticatedSystemMonitorAuditLogsRoute:
       AuthenticatedSystemMonitorAuditLogsRoute,
     AuthenticatedSystemMonitorInterfaceDefenseRoute:
       AuthenticatedSystemMonitorInterfaceDefenseRoute,
     AuthenticatedSystemMonitorLoginLogsRoute:
       AuthenticatedSystemMonitorLoginLogsRoute,
-    AuthenticatedSystemMonitorAiUsageIdRoute:
-      AuthenticatedSystemMonitorAiUsageIdRoute,
   }
 
 const AuthenticatedSystemMonitorRouteRouteWithChildren =
@@ -1326,32 +1376,35 @@ const AuthenticatedSystemMonitorRouteRouteWithChildren =
   )
 
 interface AuthenticatedSystemRouteRouteChildren {
+  AuthenticatedSystemGovernanceRouteRoute: typeof AuthenticatedSystemGovernanceRouteRouteWithChildren
   AuthenticatedSystemIdentityRouteRoute: typeof AuthenticatedSystemIdentityRouteRouteWithChildren
   AuthenticatedSystemMonitorRouteRoute: typeof AuthenticatedSystemMonitorRouteRouteWithChildren
-  AuthenticatedSystemAiQuotaRoute: typeof AuthenticatedSystemAiQuotaRoute
   AuthenticatedSystemAuditRoute: typeof AuthenticatedSystemAuditRoute
   AuthenticatedSystemDictRoute: typeof AuthenticatedSystemDictRoute
-  AuthenticatedSystemDictV2Route: typeof AuthenticatedSystemDictV2Route
   AuthenticatedSystemFilesRoute: typeof AuthenticatedSystemFilesRoute
   AuthenticatedSystemIconSetRoute: typeof AuthenticatedSystemIconSetRoute
   AuthenticatedSystemPetsRoute: typeof AuthenticatedSystemPetsRoute
   AuthenticatedSystemPluginsRoute: typeof AuthenticatedSystemPluginsRoute
+  AuthenticatedSystemDictIdRoute: typeof AuthenticatedSystemDictIdRoute
+  AuthenticatedSystemDictNewRoute: typeof AuthenticatedSystemDictNewRoute
 }
 
 const AuthenticatedSystemRouteRouteChildren: AuthenticatedSystemRouteRouteChildren =
   {
+    AuthenticatedSystemGovernanceRouteRoute:
+      AuthenticatedSystemGovernanceRouteRouteWithChildren,
     AuthenticatedSystemIdentityRouteRoute:
       AuthenticatedSystemIdentityRouteRouteWithChildren,
     AuthenticatedSystemMonitorRouteRoute:
       AuthenticatedSystemMonitorRouteRouteWithChildren,
-    AuthenticatedSystemAiQuotaRoute: AuthenticatedSystemAiQuotaRoute,
     AuthenticatedSystemAuditRoute: AuthenticatedSystemAuditRoute,
     AuthenticatedSystemDictRoute: AuthenticatedSystemDictRoute,
-    AuthenticatedSystemDictV2Route: AuthenticatedSystemDictV2Route,
     AuthenticatedSystemFilesRoute: AuthenticatedSystemFilesRoute,
     AuthenticatedSystemIconSetRoute: AuthenticatedSystemIconSetRoute,
     AuthenticatedSystemPetsRoute: AuthenticatedSystemPetsRoute,
     AuthenticatedSystemPluginsRoute: AuthenticatedSystemPluginsRoute,
+    AuthenticatedSystemDictIdRoute: AuthenticatedSystemDictIdRoute,
+    AuthenticatedSystemDictNewRoute: AuthenticatedSystemDictNewRoute,
   }
 
 const AuthenticatedSystemRouteRouteWithChildren =

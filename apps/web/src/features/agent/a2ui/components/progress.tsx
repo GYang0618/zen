@@ -21,11 +21,7 @@ export function Progress({ props }: RendererProps<A2uiProgressProps>) {
           {label ? (
             <ProgressLabel className="font-medium text-foreground">{label}</ProgressLabel>
           ) : null}
-          {showValue ? (
-            <ProgressValue className="ml-auto font-mono text-muted-foreground">
-              {(formattedValue) => (formattedValue == null ? null : `${formattedValue}%`)}
-            </ProgressValue>
-          ) : null}
+          {showValue ? <ProgressValue className="ml-auto font-mono text-muted-foreground" /> : null}
         </div>
       ) : null}
     </BaseProgress>

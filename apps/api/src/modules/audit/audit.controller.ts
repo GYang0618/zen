@@ -134,6 +134,7 @@ export class AuditController {
       nickname: string | null
       email: string
       phoneNumber: string | null
+      deletedAt?: Date | null
       profile: { realName: string | null; avatar: string | null } | null
     }
   >(users: T[]) {
@@ -145,6 +146,7 @@ export class AuditController {
         realName: u.profile?.realName ?? null,
         email: u.email,
         phoneNumber: u.phoneNumber,
+        deletedAt: u.deletedAt?.toISOString() ?? null,
         avatar: await this.storageService.resolveAvatarUrl(u.profile?.avatar)
       }))
     )
@@ -235,6 +237,7 @@ export class AuditController {
               nickname: true,
               email: true,
               phoneNumber: true,
+              deletedAt: true,
               profile: { select: { realName: true, avatar: true } }
             }
           })
@@ -245,11 +248,11 @@ export class AuditController {
     return {
       items: items.map((item) => {
         const actorDetail = item.actorId ? (actorMap.get(item.actorId) ?? null) : null
-        const rawActorName =
-          item.actorName ??
-          (actorDetail
-            ? (actorDetail.realName ?? actorDetail.nickname ?? actorDetail.username)
-            : null)
+        const rawActorName = actorDetail
+          ? (actorDetail.realName ?? actorDetail.nickname ?? actorDetail.username)
+          : item.actorId
+            ? null
+            : item.actorName
         const diff = parseAuditDiff(item.diff)
         const presentation = describeAudit(item.action, diff)
         const actorType = item.actorType.toLowerCase()
@@ -577,6 +580,7 @@ export class AuditController {
               nickname: true,
               email: true,
               phoneNumber: true,
+              deletedAt: true,
               profile: { select: { realName: true, avatar: true } }
             }
           })

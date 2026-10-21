@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { MonitorCog } from 'lucide-react'
 
-import { SettingsSystem } from '@/features/settings-v2/system'
+import { SettingsSystem } from '@/features/settings/system'
 
 export const Route = createFileRoute('/_authenticated/_other/settings/system')({
   component: SettingsSystem,

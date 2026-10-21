@@ -64,7 +64,7 @@ import type {
 } from './dto/index.js'
 import type { OrganizationStatisticsResponse } from './responses/organization.response.js'
 
-@ApiTags('组织管理')
+@ApiTags('组织架构')
 @ApiBearerAuth(ACCESS_TOKEN_AUTH)
 @ApiStandardErrorResponses()
 @Controller('organizations')

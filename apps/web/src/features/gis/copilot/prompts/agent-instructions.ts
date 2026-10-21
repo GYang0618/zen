@@ -76,8 +76,8 @@ export const GIS_AGENT_INSTRUCTIONS = `
        - 暂停：\`playbackAction: 'pause'\`；继续：\`playbackAction: 'resume'\`；重头开始：\`playbackAction: 'restart'\`；停止退出：\`playbackAction: 'stop'\`。
 
 4. **模型测量工具 (\`gis_analyze_model\`)**：
-   - 读取目录中的 GLB，返回实测包围盒和尺寸（米）。
-   - 用户问模型有多大，或部署前要核对尺寸时调用。不要编造长宽高。
+   - 返回对齐真实尺寸后的包围盒（米），不是 GLB 文件里的原始单位。
+   - 用户问模型有多大，或部署前要核对尺寸时调用。不要编造长宽高，也不要据此把 scale 设得很大。
 
 5. **部署加载分析工具 (\`gis_analyze_deploy_lod\`)**：
    - 按模型实测尺寸、部署位置和当前相机，计算贴地偏移、几何误差，以及缩放到多近才会加载。
@@ -87,7 +87,9 @@ export const GIS_AGENT_INSTRUCTIONS = `
    - 可部署目录中的任意模型：${formatSceneModelGuide()}。
    - ${formatSceneModelVariantGuide()}
    - 用 \`modelId\` 或 \`category\` 指定模型。不要传手写的包围盒或 LOD。
-   - 工具会重新测量 GLB，并按当前位置和当前场景计算加载距离。远距离只保留空瓦片，缩进加载距离后才请求模型。
+   - 路灯传 \`streetlight\`，电线杆传 \`utilityPole\`，监控摄像头传 \`surveillanceCam\`。不要用电线杆代替路灯。
+   - \`scale\` 省略。1 已经是真实尺寸。只有用户明确说放大或缩小才传。
+   - 工具会按真实高度缩放，并飞到模型旁边。摄像头在城市全景里很小，飞近后才能看清，不要为了看见它把 scale 放大。
    - 用户可以指定标记点名称（如“在点位1放一盏路灯”）或者直接提供经纬度坐标。
 
 7. **模型目录 (\`gis_scene_model_catalog\`)**：

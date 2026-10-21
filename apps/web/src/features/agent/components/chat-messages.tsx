@@ -31,7 +31,12 @@ import {
   groupMessagesIntoTurns,
   turnHasFoldableWork
 } from '../lib/group-chat-turns'
-import { resolveTurnGenerativeToolCalls, resolveTurnToolCalls } from '../lib/group-tool-calls'
+import {
+  isChatSurfaceToolCall,
+  isTurnFinalDisplayToolCall,
+  resolveTurnGenerativeToolCalls,
+  resolveTurnToolCalls
+} from '../lib/group-tool-calls'
 import { useAgentChatInputStore } from '../stores/agent-chat-input'
 import { ChatAssistantActions } from './chat-assistant-actions'
 import { ChatCanvasBadge, ChatCanvasGeneratingBadge } from './chat-canvas-badge'
@@ -77,6 +82,12 @@ export interface AssistantMessageItemProps {
   showCanvas?: boolean
   /** 为 false 时不在这条消息上挂生成式结果。轨迹内的步骤改由回合统一放到外面。 */
   showGenerative?: boolean
+  /**
+   * 生成式工具的呈现位置：
+   * - 'turn'（默认）：汇集到本轮最后一条助手消息后展示（适用于 Chat 模式的回合收束）
+   * - 'inline'：仅在发起该工具调用的本条消息就地展示，不随回合转移到最后一条消息后（适用于 Popup 模式）
+   */
+  generativePlacement?: 'turn' | 'inline'
   /** 工作轨迹里的过程说明，和轨迹外的最终回复区分开。 */
   placement?: 'answer' | 'work'
   onRetry?: () => void
@@ -91,6 +102,7 @@ export function AssistantMessageItem({
   showWorkingPlaceholder = false,
   showCanvas = true,
   showGenerative = true,
+  generativePlacement = 'turn',
   placement = 'answer',
   onRetry
 }: AssistantMessageItemProps) {
@@ -115,13 +127,29 @@ export function AssistantMessageItem({
     [isRunning, message.id, messages]
   )
   const turnGenerativeTools = useMemo(
-    () => (message.id ? resolveTurnGenerativeToolCalls(messages, message.id) : null),
-    [message.id, messages]
+    () =>
+      message.id && generativePlacement === 'turn'
+        ? resolveTurnGenerativeToolCalls(messages, message.id)
+        : null,
+    [generativePlacement, message.id, messages]
   )
+  const ownGenerativeToolCalls = useMemo(() => {
+    if (!message.toolCalls?.length) return []
+    return message.toolCalls.filter(
+      (toolCall) => isTurnFinalDisplayToolCall(toolCall) || isChatSurfaceToolCall(toolCall)
+    )
+  }, [message.toolCalls])
+
+  const generativeToolCalls = useMemo(() => {
+    if (!showGenerative) return []
+    if (generativePlacement === 'inline') {
+      return ownGenerativeToolCalls
+    }
+    return turnGenerativeTools?.shouldRender ? turnGenerativeTools.toolCalls : []
+  }, [generativePlacement, ownGenerativeToolCalls, showGenerative, turnGenerativeTools])
+
   const showA2uiSlot = Boolean(turnA2uiTools?.shouldRender && turnA2uiTools.toolCalls.length > 0)
-  const showGenerativeSlot = Boolean(
-    showGenerative && turnGenerativeTools?.shouldRender && turnGenerativeTools.toolCalls.length > 0
-  )
+  const showGenerativeSlot = generativeToolCalls.length > 0
   const canvasGeneration = useMemo(() => {
     if (!showCanvas || !isRunning || !isLastAssistant || !message.id || showA2uiSlot) {
       return undefined
@@ -193,12 +221,9 @@ export function AssistantMessageItem({
       {showCanvas && showA2uiSlot && turnA2uiTools && (
         <ChatCanvasBadge toolCalls={turnA2uiTools.toolCalls} messages={messages as never} />
       )}
-      {showGenerativeSlot && turnGenerativeTools && (
+      {showGenerativeSlot && (
         <div className="w-full">
-          <GroupedToolCallsView
-            toolCalls={turnGenerativeTools.toolCalls}
-            messages={messages as never}
-          />
+          <GroupedToolCallsView toolCalls={generativeToolCalls} messages={messages as never} />
         </div>
       )}
       {isLastAssistant && !isRunning && onRetry && (

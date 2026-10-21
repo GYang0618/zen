@@ -58,8 +58,7 @@ const STATUS_GROUPS = [
 ]
 
 const LATENCY_OPTIONS = [
-  { label: '极速 (< 100ms)', value: 'fast' },
-  { label: '正常 (100ms - 300ms)', value: 'normal' },
+  { label: '正常 (< 300ms)', value: 'normal' },
   { label: '较慢 (300ms - 1000ms)', value: 'sluggish' },
   { label: '慢请求 (1s - 3s)', value: 'slow' },
   { label: '严重延迟 (> 3s)', value: 'critical' }
@@ -163,11 +162,8 @@ export function AccessLogTable({ onNavigateAgentRun, onRefetchReady }: AccessLog
           const maxs: number[] = []
           let hasNoMax = false
           for (const v of latencyFilter) {
-            if (v === 'fast') {
+            if (v === 'normal') {
               mins.push(0)
-              maxs.push(100)
-            } else if (v === 'normal') {
-              mins.push(100)
               maxs.push(300)
             } else if (v === 'sluggish') {
               mins.push(300)

@@ -52,7 +52,7 @@ const tree: RouteTreeNode = {
                   fullPath: '/system/users',
                   options: {
                     staticData: {
-                      title: '用户管理',
+                      title: '成员管理',
                       order: 10,
                       icon: UserRoundCog,
                       permissions: ['system:user:list']
@@ -63,7 +63,7 @@ const tree: RouteTreeNode = {
                   fullPath: '/system/roles',
                   options: {
                     staticData: {
-                      title: '角色管理',
+                      title: '角色与权限',
                       order: 20,
                       permissions: ['system:role:list']
                     }
@@ -164,8 +164,8 @@ describe('buildNavGroupsFromRouteTree', () => {
     const identity = system?.items[0]
     expect(identity).toMatchObject({ title: '身份权限' })
     expect(identity && 'items' in identity ? identity.items : []).toEqual([
-      expect.objectContaining({ title: '用户管理', url: '/system/users' }),
-      expect.objectContaining({ title: '角色管理', url: '/system/roles' })
+      expect.objectContaining({ title: '成员管理', url: '/system/users' }),
+      expect.objectContaining({ title: '角色与权限', url: '/system/roles' })
     ])
 
     expect(system?.items[1]).toMatchObject({
@@ -279,6 +279,6 @@ describe('buildChildNavLinksFromRouteTree', () => {
       ['system:user:list']
     )
 
-    expect(links).toEqual([expect.objectContaining({ title: '用户管理', url: '/system/users' })])
+    expect(links).toEqual([expect.objectContaining({ title: '成员管理', url: '/system/users' })])
   })
 })

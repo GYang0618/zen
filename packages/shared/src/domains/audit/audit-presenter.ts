@@ -93,6 +93,7 @@ export const AUDIT_ACTION_LABELS: Record<string, AuditTitleEntry> = {
   // 存储文件
   'storage.file.uploaded': { title: '上传了文件', fallback: '上传了文件' },
   'storage.file.deleted': { title: '删除了文件', fallback: '删除了文件' },
+  'storage.file.preview_url': { title: '预览了文件', fallback: '获取了文件预览地址' },
   'storage.file.download_url': { title: '获取了下载地址', fallback: '获取了文件临时下载地址' },
   'storage.file.delete': { title: '删除了文件', fallback: '删除了文件' },
   'storage.file.restore': { title: '恢复了文件', fallback: '恢复了文件' },

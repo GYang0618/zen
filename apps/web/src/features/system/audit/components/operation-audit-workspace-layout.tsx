@@ -7,7 +7,7 @@ import { OperationAuditSideOverview } from './operation-audit-side-overview'
 import type { ReactNode, RefObject } from 'react'
 import type { AuditLogItem } from '../api'
 
-/** 与组织管理 OrganizationSideOverview 的 `w-95` 对齐 */
+/** 与组织架构 OrganizationSideOverview 的 `w-95` 对齐 */
 const SIDE_OVERVIEW_WIDTH = '23.75rem'
 /** 与 Tailwind `@5xl` 一致：容器不足时降级为 Drawer */
 const COMPACT_MAX_WIDTH_PX = 1024

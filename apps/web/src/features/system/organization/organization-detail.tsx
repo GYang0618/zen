@@ -69,7 +69,7 @@ export function OrganizationDetail({ organizationId }: OrganizationDetailProps) 
               render={<Link to="/system/organization" />}
               nativeButton={false}
             >
-              返回组织管理
+              返回组织架构
             </Button>
           </div>
         </Main>

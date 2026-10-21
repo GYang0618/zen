@@ -28,21 +28,23 @@ export function AuditActorCell({
   const isAgent = normalizedType === 'agent' || Boolean(agentRunId)
   const isSystem = normalizedType === 'system'
   const isAnonymous = normalizedType === 'anonymous'
+  const isUnknownUser = !isAgent && !isSystem && !isAnonymous && Boolean(identifier) && !actor
 
   // 主体名称：优先真实姓名 -> 昵称 -> 用户名 -> 传入的 actorName -> identifier -> 兜底
-  const name =
-    actor?.realName ||
-    actor?.nickname ||
-    actor?.username ||
-    actorName ||
-    identifier ||
-    actorDisplay ||
-    (isSystem ? '系统内核' : isAnonymous ? '匿名访客' : isAgent ? '智能助手' : '未知用户')
+  const name = isUnknownUser
+    ? '未知用户'
+    : actor?.realName ||
+      actor?.nickname ||
+      actor?.username ||
+      actorName ||
+      (isUnknownUser ? undefined : identifier) ||
+      actorDisplay ||
+      (isSystem ? '系统内核' : isAnonymous ? '匿名访客' : isAgent ? '智能助手' : '未知用户')
 
   // 账号文本：例如 @sun.qi
   const username =
     actor?.username ||
-    identifier ||
+    (isUnknownUser ? undefined : identifier) ||
     (isAgent && agentRunId ? agentRunId.slice(0, 10) : undefined) ||
     (isSystem ? 'system' : isAnonymous ? 'anonymous' : 'user')
 
@@ -86,6 +88,11 @@ export function AuditActorCell({
       <span className="flex min-w-0 flex-col">
         <span className="flex items-center gap-1.5 truncate">
           <span className="truncate text-sm font-medium text-foreground">{name}</span>
+          {actor?.deletedAt && (
+            <Badge variant="outline" className="h-4.5 px-1.5 py-0 text-xs text-muted-foreground">
+              账号已删除
+            </Badge>
+          )}
           {isAgent && (
             <Badge
               variant="secondary"

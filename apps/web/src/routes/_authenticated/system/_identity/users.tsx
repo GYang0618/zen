@@ -20,7 +20,7 @@ export const Route = createFileRoute('/_authenticated/system/_identity/users')({
   validateSearch: usersSearchSchema,
   loaderDeps: ({ search }) => search,
   staticData: {
-    title: '用户管理',
+    title: '成员管理',
     description: '管理账号、角色归属与组织岗位',
     icon: UserRoundCog,
     order: 10,

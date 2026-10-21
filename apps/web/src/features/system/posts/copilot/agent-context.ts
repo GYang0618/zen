@@ -4,7 +4,7 @@ import { AGENT_INSTRUCTIONS } from './prompts/agent-instructions'
 
 export function useCopilotAgentContext() {
   useAgentContext({
-    description: '岗位管理模块的操作范围与可用工具说明',
+    description: '岗位与职级模块的操作范围与可用工具说明',
     value: AGENT_INSTRUCTIONS
   })
 }

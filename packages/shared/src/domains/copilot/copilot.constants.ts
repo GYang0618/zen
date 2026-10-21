@@ -28,6 +28,9 @@ export const AGENT_MODEL_METADATA_CONFIGURABLE_KEY = 'modelMetadata'
  *（2×before_model + model_request + 3×after_model + tools），首轮另有 before_agent。
  * 按 maxModelCalls 估算：8 + 7×(maxModelCalls-1) ≈ 113，取 128。
  * `maxTotalTokens` 是整轮累计用量，不是单次上下文窗口。
+ * `maxOutputTokensPerModelCall` 同时封顶思维链和正式输出（含 render_a2ui 参数）。
+ * 取值对齐 DeepSeek 思考模式的 64K 默认输出，并低于模型上限与整轮 256K 预算，
+ * 避免一次生成把整轮额度用完。
  * `timeoutMs` 是无事件空闲超时，有流式事件会续期；人工审批期间不计时。
  */
 export const DEFAULT_AGENT_RUN_BUDGET = {
@@ -35,7 +38,7 @@ export const DEFAULT_AGENT_RUN_BUDGET = {
   maxModelCalls: 16,
   maxTotalTokens: 256_000,
   maxFailures: 4,
-  maxOutputTokensPerModelCall: 4096,
+  maxOutputTokensPerModelCall: 65_536,
   timeoutMs: 180_000,
   maxConcurrentRuns: 3,
   maxMemoriesPerUser: 200,

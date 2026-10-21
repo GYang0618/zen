@@ -104,7 +104,7 @@ export const userOrganizationInputSchema = z.object({
 })
 
 /**
- * 管理端用户详情。偏好设置仍走 `/auth/me`，不进入用户管理协议。
+ * 管理端用户详情。偏好设置仍走 `/auth/me`，不进入成员管理协议。
  */
 export const userSchema = z.object({
   id: z.string().describe('用户 ID'),

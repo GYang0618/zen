@@ -109,7 +109,7 @@ export function AiQuotaPage() {
 
       <Main className="flex flex-1 flex-col gap-6">
         <AppPageHeader
-          title="AI 配额与模型计费治理"
+          title="模型与配额"
           description="配置租户/部门/用户的 AI 调用用量硬上限与告警线，维护多模型版本化微元计价表"
           actions={
             <Button

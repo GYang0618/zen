@@ -26,6 +26,7 @@ interface DataTableProps<TData> {
   error?: ReactNode
   empty?: ReactNode
   className?: string
+  onRowClick?: (row: TData) => void
 }
 
 export function DataTable<TData>({
@@ -37,7 +38,8 @@ export function DataTable<TData>({
   isError = false,
   error = '加载失败，请重试。',
   empty = '没有结果.',
-  className
+  className,
+  onRowClick
 }: DataTableProps<TData>) {
   const rows = table.getRowModel().rows
   const showSkeleton = isLoading && rows.length === 0
@@ -133,7 +135,19 @@ export function DataTable<TData>({
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
                   data-active={row.id === activeRowId}
-                  className="group/row"
+                  className={cn('group/row', onRowClick && 'cursor-pointer')}
+                  onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+                  onKeyDown={
+                    onRowClick
+                      ? (event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            onRowClick(row.original)
+                          }
+                        }
+                      : undefined
+                  }
+                  tabIndex={onRowClick ? 0 : undefined}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell

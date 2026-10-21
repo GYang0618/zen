@@ -3,7 +3,7 @@ import { defineKernelPermissions } from '../permission/define-permissions.js'
 export const ROLE_PERMISSIONS = defineKernelPermissions({
   namespace: 'system',
   resource: 'role',
-  moduleLabel: '角色管理',
+  moduleLabel: '角色与权限',
   items: [
     { action: 'list', name: '查看角色列表', description: '分页查询角色列表' },
     { action: 'create', name: '创建角色', description: '创建自定义角色' },

@@ -150,7 +150,14 @@ export function AccessLogTimelineView({
 
             {group.list.map((item) => {
               const isError = item.status >= 400
-              const isSlow = item.latencyMs >= 1000
+              const latencyClass =
+                item.latencyMs >= 3000
+                  ? 'font-bold text-red-600 dark:text-red-400'
+                  : item.latencyMs >= 1000
+                    ? 'font-bold text-yellow-600 dark:text-yellow-400'
+                    : item.latencyMs >= 300
+                      ? 'font-medium text-orange-600 dark:text-orange-400'
+                      : 'text-emerald-600 dark:text-emerald-400'
               const parsedUa = parseUserAgent(item.userAgent)
 
               return (
@@ -194,13 +201,7 @@ export function AccessLogTimelineView({
                           >
                             {item.status}
                           </Badge>
-                          <span
-                            className={`font-mono text-sm ${
-                              isSlow
-                                ? 'font-bold text-amber-600 dark:text-amber-400'
-                                : 'text-muted-foreground'
-                            }`}
-                          >
+                          <span className={`font-mono text-sm ${latencyClass}`}>
                             {item.latencyMs} ms
                           </span>
                           <TimelineTimestamp className="font-mono text-sm text-muted-foreground whitespace-nowrap">

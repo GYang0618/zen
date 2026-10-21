@@ -1,8 +1,8 @@
 'use no memo'
 
 import { createColumnHelper } from '@tanstack/react-table'
-import { Badge, Button } from '@zen/ui'
-import { AlertTriangle, CheckCircle2, Eye, ShieldAlert } from 'lucide-react'
+import { Badge } from '@zen/ui'
+import { AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-react'
 
 import { DataTableColumnHeader } from '@/components/data-table'
 
@@ -12,16 +12,20 @@ import type { AuditLogItem } from '../api'
 
 const columnHelper = createColumnHelper<AuditLogItem>()
 
-export function getOperationAuditColumns(
-  onViewDetail: (log: AuditLogItem) => void,
-  activeLogId?: string | null
-) {
+export function getOperationAuditColumns() {
   return [
     columnHelper.accessor('createdAt', {
       header: ({ column }) => <DataTableColumnHeader column={column} title="时间" />,
       cell: ({ row }) => (
         <span className="font-mono text-sm text-muted-foreground whitespace-nowrap">
-          {new Date(row.original.createdAt).toLocaleString()}
+          {new Date(row.original.createdAt).toLocaleString(undefined, {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+          })}
         </span>
       ),
       meta: { title: '时间' }
@@ -131,31 +135,6 @@ export function getOperationAuditColumns(
         )
       },
       meta: { title: 'IP / 端点' }
-    }),
-
-    columnHelper.display({
-      id: 'actions',
-      header: () => <span className="sr-only">操作</span>,
-      enableSorting: false,
-      enableHiding: false,
-      cell: ({ row }) => {
-        const isActive = activeLogId === row.original.id
-        return (
-          <div className="text-right">
-            <Button
-              type="button"
-              variant={isActive ? 'secondary' : 'ghost'}
-              size="sm"
-              className="h-7 w-7 p-0"
-              onClick={() => onViewDetail(row.original)}
-              aria-label="查看详情"
-            >
-              <Eye className="h-3.5 w-3.5" />
-              <span className="sr-only">详情</span>
-            </Button>
-          </div>
-        )
-      }
     })
   ]
 }

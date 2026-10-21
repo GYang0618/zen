@@ -130,7 +130,7 @@ export function getAgentRunsColumns({ onViewDetail }: AgentRunsColumnsOptions) {
     columnHelper.accessor('costMicros', {
       header: ({ column }) => <DataTableColumnHeader column={column} title="预估费用" />,
       cell: ({ row }) => (
-        <span className="font-mono text-sm text-amber-600 dark:text-amber-400 whitespace-nowrap">
+        <span className="font-mono text-sm text-foreground whitespace-nowrap">
           {row.original.usageReported === false
             ? '未采集'
             : formatCostMicros(row.original.costMicros ?? 0)}

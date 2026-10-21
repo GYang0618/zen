@@ -172,6 +172,10 @@ export function CesiumProvider({ children, options }: CesiumProviderProps) {
     setupBaseLayer(instance)
 
     setViewer(instance)
+    if (import.meta.env.DEV) {
+      // biome-ignore lint/suspicious/noExplicitAny: DEV 调试挂载
+      ;(window as any).__cesiumViewer = instance
+    }
 
     const removePostRender = instance.scene.postRender.addEventListener(() => {
       setIsReady(true)
@@ -186,6 +190,10 @@ export function CesiumProvider({ children, options }: CesiumProviderProps) {
       removePostRender()
       setIsReady(false)
       setViewer(null)
+      if (import.meta.env.DEV) {
+        // biome-ignore lint/suspicious/noExplicitAny: DEV 调试清理
+        delete (window as any).__cesiumViewer
+      }
       if (!instance.isDestroyed()) {
         instance.camera.cancelFlight()
         instance.destroy()

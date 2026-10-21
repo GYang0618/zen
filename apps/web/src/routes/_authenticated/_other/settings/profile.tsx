@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { UserRoundCog } from 'lucide-react'
 
-import { SettingsProfile } from '@/features/settings-v2/profile'
+import { SettingsProfile } from '@/features/settings/profile'
 
 export const Route = createFileRoute('/_authenticated/_other/settings/profile')({
   component: SettingsProfile,

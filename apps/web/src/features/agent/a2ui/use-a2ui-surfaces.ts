@@ -6,7 +6,9 @@ import { useEffect, useMemo, useRef } from 'react'
 import { isToolCallDisplayHidden, parseToolCallArguments } from '../lib/group-tool-calls'
 import { useAgentCanvasStore } from '../stores/agent-canvas'
 import { assembleRenderA2uiOperations, normalizeA2uiOperations } from './assemble-operations'
-import { readA2uiArgsTitle } from './resolve-a2ui-title'
+import { resolveA2uiToolCallTitle } from './resolve-a2ui-title'
+
+import type { ToolCallLike } from '../lib/group-tool-calls'
 
 export interface A2UISurfaceDescriptor {
   surfaceId: string
@@ -80,6 +82,31 @@ function readOperations(value: unknown): Array<Record<string, unknown>> | null {
       Boolean(item) && typeof item === 'object' && !Array.isArray(item)
   )
   return operations.length > 0 ? normalizeA2uiOperations(operations) : null
+}
+
+function findAssistantToolCall(messages: unknown[], toolCallId: string): ToolCallLike | undefined {
+  for (const message of messages) {
+    if (!message || typeof message !== 'object') continue
+    const assistantMsg = message as AssistantMessageLike
+    if (assistantMsg.role !== 'assistant' || !Array.isArray(assistantMsg.toolCalls)) continue
+    const found = assistantMsg.toolCalls.find((toolCall) => toolCall.id === toolCallId)
+    if (found) return found
+  }
+  return undefined
+}
+
+/**
+ * 画布标题与对话触发器共用 resolveA2uiToolCallTitle。
+ * 有关联的 render_a2ui 时用它的界面标题，避免落到第一张卡片的标题上。
+ */
+function resolveSurfaceTitle(
+  messages: unknown[],
+  toolCallId: string | undefined,
+  operations: Array<Record<string, unknown>>
+): string {
+  const toolCall = toolCallId ? findAssistantToolCall(messages, toolCallId) : undefined
+  if (!toolCall) return inferSurfaceTitle(operations)
+  return resolveA2uiToolCallTitle(toolCall)
 }
 
 function inferSurfaceTitle(operations: Array<Record<string, unknown>>): string {
@@ -164,7 +191,7 @@ export function extractA2UISurfaces(
 
           surfaces.push({
             surfaceId: opSurfaceId,
-            title: inferSurfaceTitle(rawOps),
+            title: resolveSurfaceTitle(messages, matchedToolCallId, rawOps),
             toolCallId: matchedToolCallId,
             activityId: activityMsg.id,
             isExecuting: Boolean(isRunning && content?.status === 'building'),
@@ -193,8 +220,7 @@ export function extractA2UISurfaces(
         const args = parseToolCallArguments(toolCall)
         if (!args || isToolCallDisplayHidden(toolCall)) continue
 
-        const explicitTitle = readA2uiArgsTitle(args)
-        let title = explicitTitle ?? '生成式界面'
+        const title = resolveA2uiToolCallTitle(toolCall)
         let operations: Array<Record<string, unknown>> | null = null
 
         const toolResultMsg = messages.find(
@@ -218,18 +244,15 @@ export function extractA2UISurfaces(
 
         if (!operations || operations.length === 0) continue
 
-        if (!explicitTitle) {
-          title = inferSurfaceTitle(operations)
-        }
-
         const actualOpSurfaceId = getOperationSurfaceId(operations[0])
 
-        // 如果操作里的 surfaceId 已经被通道 1 提取过且未关联 toolCallId，关联后跳过
+        // 活动消息先建好的画布只带了组件树标题。补上工具调用后，改用与触发器相同的界面标题。
         if (actualOpSurfaceId && seenSurfaceIds.has(actualOpSurfaceId)) {
           const existing = surfaces.find((s) => s.surfaceId === actualOpSurfaceId)
           if (existing && !existing.toolCallId) {
             seenSurfaceIds.add(fallbackSurfaceId)
             existing.toolCallId = toolCallId
+            existing.title = title
             continue
           }
         }

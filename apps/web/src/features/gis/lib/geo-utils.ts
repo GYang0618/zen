@@ -8,7 +8,7 @@ import {
   sampleTerrainMostDetailed
 } from 'cesium'
 
-import { GIS_ROAM_CONFIG, GIS_ROAM_THRESHOLDS } from '../constants'
+import { GIS_DEPLOY_LOD, GIS_ROAM_CONFIG, GIS_ROAM_THRESHOLDS } from '../constants'
 import { deployedObjectBoundingSphere } from './build-deploy-tileset'
 
 import type { Viewer } from 'cesium'
@@ -198,13 +198,25 @@ export function flyToMarker(
   })
 }
 
-/** 按模型世界包围球取景，使整个模型落在画面内并进入 3D Tiles 加载范围。 */
+/** 按模型世界包围球取景，相机停在加载距离之内，避免小模型被近裁剪面切掉。 */
 export function flyToDeployedObject(viewer: Viewer, object: GisDeployedObject) {
   const sphere = deployedObjectBoundingSphere(object)
   viewer.camera.flyToBoundingSphere(sphere, {
-    offset: new HeadingPitchRange(viewer.camera.heading, CesiumMath.toRadians(-35), 0),
+    offset: new HeadingPitchRange(
+      viewer.camera.heading,
+      CesiumMath.toRadians(-35),
+      viewRangeMeters(object.radiusMeters, object.loadDistanceMeters)
+    ),
     duration: 1.5
   })
+}
+
+function viewRangeMeters(radiusMeters: number, loadDistanceMeters: number): number {
+  const radius = Math.max(radiusMeters, 0.5)
+  const framed = radius / Math.tan(CesiumMath.toRadians(GIS_DEPLOY_LOD.viewHalfFovDeg))
+  const outsideMesh = radius * 1.2
+  const insideLoad = Math.max(loadDistanceMeters * GIS_DEPLOY_LOD.viewRangeLoadRatio, outsideMesh)
+  return Math.min(Math.max(framed, outsideMesh), insideLoad)
 }
 
 /**

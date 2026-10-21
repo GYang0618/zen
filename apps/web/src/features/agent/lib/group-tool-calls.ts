@@ -36,9 +36,11 @@ export function getToolCallName(toolCall: ToolCallLike | undefined): string | un
   return name && name.length > 0 ? name : undefined
 }
 
-const chatSurfaceToolNames = new Set<string>()
+const DEFAULT_CHAT_SURFACE_TOOLS = ['gis_scene_model_catalog', 'object_properties'] as const
 
-/** useHumanInTheLoop 的界面挂到回合末，不进入工作轨迹。调用方在模块加载时登记名称。 */
+const chatSurfaceToolNames = new Set<string>(DEFAULT_CHAT_SURFACE_TOOLS)
+
+/** useHumanInTheLoop 或生成式 UI 的界面挂到回合末，不进入工作轨迹。调用方在模块加载时登记名称。 */
 export function registerChatSurfaceTool(name: string) {
   chatSurfaceToolNames.add(name)
 }

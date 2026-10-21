@@ -8,7 +8,7 @@ import type { UpdateMyProfile } from '@zen/shared'
 import type { MeResponse } from '@/features/auth/api'
 
 export const settingsV2Keys = {
-  all: ['settings-v2'] as const,
+  all: ['settings'] as const,
   me: () => [...settingsV2Keys.all, 'me'] as const
 }
 

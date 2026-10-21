@@ -2,7 +2,7 @@ import { useFrontendTool } from '@copilotkit/react-core/v2'
 import { useNavigate } from '@tanstack/react-router'
 import { findJobProfilesQuerySchema } from '@zen/shared'
 
-/** 将岗位目录查询条件同步到岗位管理页 */
+/** 将岗位目录查询条件同步到岗位与职级页 */
 export function useJobProfileQueryTool() {
   const navigate = useNavigate()
   useFrontendTool({

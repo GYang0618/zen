@@ -75,15 +75,20 @@ export const API_ROUTE_TITLES: Record<string, string> = {
   'PATCH /posts/:id': '更新了岗位信息',
   'DELETE /posts/:id': '删除了岗位',
 
-  // 字典
-  'GET /dict/types': '访问了字典类型列表',
-  'POST /dict/types': '创建了字典类型',
-  'PATCH /dict/types/:id': '更新了字典类型',
-  'DELETE /dict/types/:id': '删除了字典类型',
-  'GET /dict/items': '访问了字典项列表',
-  'POST /dict/items': '创建了字典项',
-  'PATCH /dict/items/:id': '更新了字典项',
-  'DELETE /dict/items/:id': '删除了字典项',
+  // 数据字典 v2
+  'GET /dictionary/folders': '访问了字典目录列表',
+  'POST /dictionary/folders': '创建了字典目录',
+  'PATCH /dictionary/folders/:id': '更新了字典目录',
+  'DELETE /dictionary/folders/:id': '删除了字典目录',
+  'GET /dictionary/dictionaries': '访问了字典列表',
+  'POST /dictionary/dictionaries': '创建了字典',
+  'PATCH /dictionary/dictionaries/:id': '更新了字典',
+  'DELETE /dictionary/dictionaries/:id': '删除了字典',
+  'GET /dictionary/dictionaries/:id/options': '访问了字典选项',
+  'POST /dictionary/dictionaries/:id/options': '创建了字典选项',
+  'PATCH /dictionary/options/:id': '更新了字典选项',
+  'DELETE /dictionary/options/:id': '删除了字典选项',
+  'PATCH /dictionary/dictionaries/:id/options/order': '调整了字典选项顺序',
 
   // 插件
   'GET /plugins': '访问了插件列表',

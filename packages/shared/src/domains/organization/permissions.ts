@@ -3,7 +3,7 @@ import { defineKernelPermissions } from '../permission/define-permissions.js'
 export const ORG_PERMISSIONS = defineKernelPermissions({
   namespace: 'system',
   resource: 'org',
-  moduleLabel: '组织管理',
+  moduleLabel: '组织架构',
   items: [
     { action: 'list', name: '查看组织', description: '查询组织树与成员' },
     { action: 'create', name: '创建组织', description: '创建组织节点' },

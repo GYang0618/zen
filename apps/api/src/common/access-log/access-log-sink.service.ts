@@ -79,7 +79,7 @@ export class AccessLogSink implements OnApplicationShutdown {
   ): boolean {
     const m = method.toUpperCase()
     // 写操作、失败、Agent 调用、慢请求全量入库
-    if (m !== 'GET' && m !== 'HEAD' && m !== 'OPTIONS') return true
+    if (m !== 'GET' && m !== 'HEAD') return true
     if (status >= 400) return true
     if (hasAgent) return true
     if (latencyMs >= 1000) return true
@@ -88,6 +88,8 @@ export class AccessLogSink implements OnApplicationShutdown {
   }
 
   record(raw: RawAccessRecord): void {
+    if (raw.method.toUpperCase() === 'OPTIONS') return
+
     const callerType = this.resolveCallerType(raw.callerType)
     const tenantId = raw.tenantId ?? DEFAULT_TENANT_ID
     const now = new Date()

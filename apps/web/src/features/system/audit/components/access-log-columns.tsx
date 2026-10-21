@@ -66,7 +66,12 @@ export function getAccessLogColumns(_onNavigateAgentRun?: (runId: string) => voi
       header: ({ column }) => <DataTableColumnHeader column={column} title="请求时间" />,
       cell: ({ row }) => (
         <span className="font-mono text-sm text-muted-foreground whitespace-nowrap">
-          {new Date(row.original.createdAt).toLocaleTimeString()}
+          {new Date(row.original.createdAt).toLocaleTimeString(undefined, {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            fractionalSecondDigits: 3
+          })}
         </span>
       ),
       meta: { title: '请求时间' }
@@ -120,11 +125,16 @@ export function getAccessLogColumns(_onNavigateAgentRun?: (runId: string) => voi
       header: ({ column }) => <DataTableColumnHeader column={column} title="响应耗时" />,
       cell: ({ row }) => {
         const latency = row.original.latencyMs
-        const isSlow = latency >= 1000
+        const latencyClass =
+          latency >= 3000
+            ? 'font-bold text-red-600 dark:text-red-400'
+            : latency >= 1000
+              ? 'font-bold text-yellow-600 dark:text-yellow-400'
+              : latency >= 300
+                ? 'font-medium text-orange-600 dark:text-orange-400'
+                : 'text-emerald-600 dark:text-emerald-400'
         return (
-          <span
-            className={`font-mono text-sm whitespace-nowrap ${isSlow ? 'font-bold text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}
-          >
+          <span className={`font-mono text-sm whitespace-nowrap ${latencyClass}`}>
             {latency} ms
           </span>
         )

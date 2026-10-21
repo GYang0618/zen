@@ -146,7 +146,7 @@ export function OrganizationCreatePositionDialog({
                       <SelectValue
                         placeholder={
                           availableProfiles.length === 0
-                            ? '暂无可关联岗位，请先在岗位管理中创建'
+                            ? '暂无可关联岗位，请先在岗位与职级中创建'
                             : '选择岗位'
                         }
                       />

@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Moon,
   PieChart,
+  Shapes,
   Sun
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -28,6 +29,7 @@ import {
   WaterfallChart
 } from '@/features/agent/a2ui/components'
 import { AgentRuntimeSimulator } from '@/features/agent/a2ui/preview/agent-runtime-simulator'
+import { CatalogGallery } from '@/features/agent/a2ui/preview/catalog-gallery'
 
 import type { RendererProps } from '@copilotkit/a2ui-renderer'
 import type React from 'react'
@@ -63,6 +65,7 @@ export const Route = createFileRoute('/a2ui-preview')({
 type ComponentTab =
   | 'agent-e2e'
   | 'all'
+  | 'catalog'
   | 'stat-card'
   | 'breakdown-card'
   | 'donut-chart'
@@ -77,6 +80,7 @@ type ComponentTab =
 const TABS: Array<{ id: ComponentTab; label: string; icon: typeof Layers }> = [
   { id: 'agent-e2e', label: '🤖 Agent 真实调用实测 (E2E Pipeline)', icon: Bot },
   { id: 'all', label: '全部概览 (All)', icon: LayoutDashboard },
+  { id: 'catalog', label: '其余组件目录', icon: Shapes },
   { id: 'stat-card', label: '1. StatCard', icon: DollarSign },
   { id: 'breakdown-card', label: '2. BreakdownCard', icon: Layers },
   { id: 'donut-chart', label: '3. DonutChart', icon: PieChart },
@@ -527,7 +531,7 @@ function A2uiPreviewPage() {
             </div>
             <div>
               <h1 className="text-sm font-semibold tracking-tight">A2UI Component Gallery</h1>
-              <p className="text-[11px] text-muted-foreground">全量设计组件视觉与交互测试沙箱</p>
+              <p className="text-[11px] text-muted-foreground">zen catalog 可生成组件的视觉沙箱</p>
             </div>
           </div>
 
@@ -641,6 +645,8 @@ function A2uiPreviewPage() {
           {/* 0. Agent 真实调用实测 (Agent Runtime E2E) */}
           {activeTab === 'agent-e2e' && <AgentRuntimeSimulator />}
 
+          {activeTab === 'catalog' && <CatalogGallery />}
+
           {/* 1. 全部概览 (All Overview) */}
           {activeTab === 'all' && (
             <div className="space-y-8">
@@ -737,6 +743,8 @@ function A2uiPreviewPage() {
                 </div>
                 <RenderA2ui component={GanttChart} props={ganttProps} />
               </section>
+
+              <CatalogGallery />
             </div>
           )}
 

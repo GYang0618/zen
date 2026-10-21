@@ -946,7 +946,7 @@
           }
         ],
         "summary": "创建用户",
-        "tags": ["用户管理"]
+        "tags": ["成员管理"]
       },
       "get": {
         "description": "支持关键字、状态、角色筛选及排序，返回 items 与 pagination。",
@@ -1086,7 +1086,7 @@
           }
         ],
         "summary": "分页查询用户列表",
-        "tags": ["用户管理"]
+        "tags": ["成员管理"]
       },
       "delete": {
         "description": "删除指定用户，禁止删除当前登录用户自身。",
@@ -1150,7 +1150,7 @@
           }
         ],
         "summary": "批量删除用户",
-        "tags": ["用户管理"]
+        "tags": ["成员管理"]
       }
     },
     "/api/user/{id}": {
@@ -1217,7 +1217,7 @@
           }
         ],
         "summary": "获取用户详情",
-        "tags": ["用户管理"]
+        "tags": ["成员管理"]
       },
       "patch": {
         "description": "按 ID 更新用户资料。用户名与密码不可通过此接口修改。",
@@ -1292,7 +1292,7 @@
           }
         ],
         "summary": "更新用户",
-        "tags": ["用户管理"]
+        "tags": ["成员管理"]
       }
     },
     "/api/user/restore": {
@@ -1358,7 +1358,7 @@
           }
         ],
         "summary": "批量恢复已软删除用户",
-        "tags": ["用户管理"]
+        "tags": ["成员管理"]
       }
     },
     "/api/user/status": {
@@ -1424,7 +1424,7 @@
           }
         ],
         "summary": "批量更新用户状态",
-        "tags": ["用户管理"]
+        "tags": ["成员管理"]
       }
     },
     "/api/user/{id}/unlock": {
@@ -1488,7 +1488,7 @@
           }
         ],
         "summary": "解锁用户账号",
-        "tags": ["用户管理"]
+        "tags": ["成员管理"]
       }
     },
     "/api/user/{id}/reset-password": {
@@ -1552,7 +1552,7 @@
           }
         ],
         "summary": "管理员重置用户密码并可选强制改密",
-        "tags": ["用户管理"]
+        "tags": ["成员管理"]
       }
     },
     "/api/user/{id}/revoke-sessions": {
@@ -1616,7 +1616,7 @@
           }
         ],
         "summary": "强制下线用户全部会话",
-        "tags": ["用户管理"]
+        "tags": ["成员管理"]
       }
     },
     "/api/user/{id}/roles": {
@@ -1701,7 +1701,7 @@
           }
         ],
         "summary": "覆盖式分配用户角色",
-        "tags": ["用户管理"]
+        "tags": ["成员管理"]
       }
     },
     "/api/user/{id}/organizations": {
@@ -1799,7 +1799,7 @@
           }
         ],
         "summary": "覆盖式同步用户组织归属",
-        "tags": ["用户管理"]
+        "tags": ["成员管理"]
       }
     },
     "/api/user/hard": {
@@ -1865,7 +1865,7 @@
           }
         ],
         "summary": "批量物理删除用户",
-        "tags": ["用户管理"]
+        "tags": ["成员管理"]
       }
     },
     "/api/role": {
@@ -1914,7 +1914,7 @@
           }
         ],
         "summary": "创建角色",
-        "tags": ["角色管理"]
+        "tags": ["角色与权限"]
       },
       "get": {
         "description": "支持关键字、状态、数据范围筛选。",
@@ -1961,7 +1961,7 @@
           }
         ],
         "summary": "分页查询角色列表",
-        "tags": ["角色管理"]
+        "tags": ["角色与权限"]
       },
       "delete": {
         "description": "禁止删除系统内置角色或仍有成员的角色。",
@@ -2019,7 +2019,7 @@
           }
         ],
         "summary": "批量删除角色",
-        "tags": ["角色管理"]
+        "tags": ["角色与权限"]
       }
     },
     "/api/role/permissions": {
@@ -2068,7 +2068,7 @@
           }
         ],
         "summary": "获取权限目录",
-        "tags": ["角色管理"]
+        "tags": ["角色与权限"]
       }
     },
     "/api/role/permission-catalog": {
@@ -2116,7 +2116,7 @@
           }
         ],
         "summary": "获取权限目录（别名）",
-        "tags": ["角色管理"]
+        "tags": ["角色与权限"]
       }
     },
     "/api/role/{id}": {
@@ -2175,7 +2175,7 @@
           }
         ],
         "summary": "获取角色详情",
-        "tags": ["角色管理"]
+        "tags": ["角色与权限"]
       },
       "patch": {
         "description": "更新角色基础信息、状态或数据范围。",
@@ -2232,7 +2232,7 @@
           }
         ],
         "summary": "更新角色",
-        "tags": ["角色管理"]
+        "tags": ["角色与权限"]
       }
     },
     "/api/role/{id}/clone": {
@@ -2291,7 +2291,7 @@
           }
         ],
         "summary": "克隆角色",
-        "tags": ["角色管理"]
+        "tags": ["角色与权限"]
       }
     },
     "/api/role/{id}/members": {
@@ -2350,7 +2350,7 @@
           }
         ],
         "summary": "查询角色关联用户",
-        "tags": ["角色管理"]
+        "tags": ["角色与权限"]
       },
       "post": {
         "description": "将指定用户追加绑定到当前角色。",
@@ -2418,7 +2418,7 @@
           }
         ],
         "summary": "绑定用户到角色",
-        "tags": ["角色管理"]
+        "tags": ["角色与权限"]
       }
     },
     "/api/role/{id}/members/{userId}": {
@@ -2486,7 +2486,7 @@
           }
         ],
         "summary": "解绑角色用户",
-        "tags": ["角色管理"]
+        "tags": ["角色与权限"]
       }
     },
     "/api/role/{id}/permissions": {
@@ -2545,7 +2545,7 @@
           }
         ],
         "summary": "保存角色权限",
-        "tags": ["角色管理"]
+        "tags": ["角色与权限"]
       },
       "patch": {
         "operationId": "RoleController_assignPermissionsPatch",
@@ -2601,7 +2601,7 @@
           }
         ],
         "summary": "保存角色权限（兼容 PATCH）",
-        "tags": ["角色管理"]
+        "tags": ["角色与权限"]
       }
     },
     "/api/role/{id}/data-scope": {
@@ -2660,7 +2660,7 @@
           }
         ],
         "summary": "保存角色数据范围",
-        "tags": ["角色管理"]
+        "tags": ["角色与权限"]
       }
     },
     "/api/audit": {
@@ -2812,7 +2812,7 @@
           }
         ],
         "summary": "查询组织列表",
-        "tags": ["组织管理"]
+        "tags": ["组织架构"]
       },
       "post": {
         "operationId": "OrganizationController_create",
@@ -2858,7 +2858,7 @@
           }
         ],
         "summary": "创建组织",
-        "tags": ["组织管理"]
+        "tags": ["组织架构"]
       }
     },
     "/api/organizations/tree": {
@@ -2925,7 +2925,7 @@
           }
         ],
         "summary": "获取按名称排序的组织树",
-        "tags": ["组织管理"]
+        "tags": ["组织架构"]
       }
     },
     "/api/organizations/type-catalog": {
@@ -2973,7 +2973,7 @@
           }
         ],
         "summary": "获取本企业组织类型目录",
-        "tags": ["组织管理"]
+        "tags": ["组织架构"]
       },
       "patch": {
         "operationId": "OrganizationController_updateTypeCatalog",
@@ -3019,7 +3019,7 @@
           }
         ],
         "summary": "更新本企业组织类型开关与名称",
-        "tags": ["组织管理"]
+        "tags": ["组织架构"]
       }
     },
     "/api/organizations/{id}": {
@@ -3077,7 +3077,7 @@
           }
         ],
         "summary": "获取组织详情",
-        "tags": ["组织管理"]
+        "tags": ["组织架构"]
       },
       "patch": {
         "operationId": "OrganizationController_update",
@@ -3132,7 +3132,7 @@
           }
         ],
         "summary": "更新组织基础信息",
-        "tags": ["组织管理"]
+        "tags": ["组织架构"]
       },
       "delete": {
         "description": "仅允许删除没有下级组织、成员和岗位的组织。",
@@ -3189,7 +3189,7 @@
           }
         ],
         "summary": "删除组织",
-        "tags": ["组织管理"]
+        "tags": ["组织架构"]
       }
     },
     "/api/organizations/{id}/dissolve": {
@@ -3248,7 +3248,7 @@
           }
         ],
         "summary": "解散组织与分流安置向导",
-        "tags": ["组织管理"]
+        "tags": ["组织架构"]
       }
     },
     "/api/organizations/{id}/merge": {
@@ -3307,7 +3307,7 @@
           }
         ],
         "summary": "组织合并向导",
-        "tags": ["组织管理"]
+        "tags": ["组织架构"]
       }
     },
     "/api/organizations/{id}/leader": {
@@ -3364,7 +3364,7 @@
           }
         ],
         "summary": "变更组织负责人",
-        "tags": ["组织管理"]
+        "tags": ["组织架构"]
       }
     },
     "/api/organizations/{id}/parent": {
@@ -3421,7 +3421,7 @@
           }
         ],
         "summary": "变更组织父级，不支持手工排序",
-        "tags": ["组织管理"]
+        "tags": ["组织架构"]
       }
     },
     "/api/organizations/{id}/members": {
@@ -3478,7 +3478,7 @@
           }
         ],
         "summary": "获取组织成员",
-        "tags": ["组织管理"]
+        "tags": ["组织架构"]
       },
       "post": {
         "operationId": "OrganizationController_addMember",
@@ -3533,7 +3533,7 @@
           }
         ],
         "summary": "批量添加组织成员",
-        "tags": ["组织管理"]
+        "tags": ["组织架构"]
       }
     },
     "/api/organizations/{id}/members/{userId}": {
@@ -3598,7 +3598,7 @@
           }
         ],
         "summary": "移除组织成员",
-        "tags": ["组织管理"]
+        "tags": ["组织架构"]
       }
     },
     "/api/organizations/{id}/members/batch-transfer": {
@@ -3655,7 +3655,7 @@
           }
         ],
         "summary": "批量跨部门调动组织成员",
-        "tags": ["组织管理"]
+        "tags": ["组织架构"]
       }
     },
     "/api/organizations/{id}/positions": {
@@ -3712,7 +3712,7 @@
           }
         ],
         "summary": "获取组织岗位编制",
-        "tags": ["组织管理"]
+        "tags": ["组织架构"]
       },
       "post": {
         "operationId": "OrganizationController_createPosition",
@@ -3767,7 +3767,7 @@
           }
         ],
         "summary": "关联岗位目录并设置编制",
-        "tags": ["组织管理"]
+        "tags": ["组织架构"]
       }
     },
     "/api/organizations/{id}/positions/{positionId}": {
@@ -3832,7 +3832,7 @@
           }
         ],
         "summary": "更新组织岗位编制",
-        "tags": ["组织管理"]
+        "tags": ["组织架构"]
       },
       "delete": {
         "operationId": "OrganizationController_removePosition",
@@ -3895,7 +3895,7 @@
           }
         ],
         "summary": "解除组织岗位编制关联",
-        "tags": ["组织管理"]
+        "tags": ["组织架构"]
       }
     },
     "/api/organizations/{id}/positions/{positionId}/roles": {
@@ -3960,7 +3960,7 @@
           }
         ],
         "summary": "配置岗位编制基准角色（PBAC）",
-        "tags": ["组织管理"]
+        "tags": ["组织架构"]
       }
     },
     "/api/organizations/{id}/activities": {
@@ -4024,7 +4024,7 @@
           }
         ],
         "summary": "分页获取组织活动",
-        "tags": ["组织管理"]
+        "tags": ["组织架构"]
       }
     },
     "/api/posts": {
@@ -4072,7 +4072,7 @@
           }
         ],
         "summary": "分页查询岗位目录",
-        "tags": ["岗位管理"]
+        "tags": ["岗位与职级"]
       },
       "post": {
         "operationId": "PostController_create",
@@ -4118,7 +4118,7 @@
           }
         ],
         "summary": "创建岗位目录",
-        "tags": ["岗位管理"]
+        "tags": ["岗位与职级"]
       }
     },
     "/api/posts/{id}": {
@@ -4176,7 +4176,7 @@
           }
         ],
         "summary": "获取岗位目录详情",
-        "tags": ["岗位管理"]
+        "tags": ["岗位与职级"]
       },
       "patch": {
         "operationId": "PostController_update",
@@ -4232,7 +4232,7 @@
           }
         ],
         "summary": "更新岗位目录",
-        "tags": ["岗位管理"]
+        "tags": ["岗位与职级"]
       },
       "delete": {
         "description": "仅允许删除未关联任何组织编制的岗位；已关联编制请先解除关联，或改为停用。",
@@ -4289,7 +4289,7 @@
           }
         ],
         "summary": "删除岗位目录",
-        "tags": ["岗位管理"]
+        "tags": ["岗位与职级"]
       }
     },
     "/api/dict": {

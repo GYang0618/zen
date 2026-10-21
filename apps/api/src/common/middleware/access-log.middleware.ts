@@ -11,7 +11,7 @@ const SKIP_PATHS = /^\/(health|metrics|favicon\.ico|assets|\.well-known)/i
 
 export function accessLogMiddleware(sink: AccessLogSink) {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (SKIP_PATHS.test(req.path)) {
+    if (req.method.toUpperCase() === 'OPTIONS' || SKIP_PATHS.test(req.path)) {
       return next()
     }
 

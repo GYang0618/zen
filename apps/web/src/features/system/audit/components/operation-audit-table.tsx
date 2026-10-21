@@ -19,8 +19,7 @@ import type { AuditLogItem, AuditQuery } from '../api'
 const ACTOR_TYPE_OPTIONS = [
   { label: '自然人', value: 'user' },
   { label: 'AI Agent', value: 'agent' },
-  { label: '系统内核', value: 'system' },
-  { label: '匿名', value: 'anonymous' }
+  { label: '系统内核', value: 'system' }
 ]
 
 const RESULT_OPTIONS = [
@@ -112,10 +111,7 @@ export function OperationAuditTable({
     setActiveLog((prev) => (prev?.id === log.id ? null : log))
   }, [])
 
-  const columns = useMemo(
-    () => getOperationAuditColumns(handleToggleDetail, activeLog?.id),
-    [handleToggleDetail, activeLog?.id]
-  )
+  const columns = useMemo(() => getOperationAuditColumns(), [])
 
   const handleKeywordChange = useCallback((value: string) => {
     setParams((prev) => ({
@@ -246,7 +242,12 @@ export function OperationAuditTable({
         onNavigateAgentRun={onNavigateAgentRun}
       >
         {view === 'table' ? (
-          <DataTable table={table} isLoading={isTableLoading} isFetching={isTableFetching} />
+          <DataTable
+            table={table}
+            isLoading={isTableLoading}
+            isFetching={isTableFetching}
+            onRowClick={handleToggleDetail}
+          />
         ) : (
           <OperationAuditTimelineView
             items={timelineItems}

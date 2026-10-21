@@ -56,7 +56,7 @@ export const GIS_SCENE_MODEL_ID_ENUM = GIS_SCENE_MODEL_IDS
 
 /** 漫游按载具 id 取地址，地址只来自场景模型目录。 */
 export const GIS_MODEL_PATHS = {
-  pedestrian: sceneModelUri('sophia'),
+  pedestrian: sceneModelUri('pedestrian'),
   vehicle: sceneModelUri('vehicle'),
   airplane: sceneModelUri('dc10'),
   fighter: sceneModelUri('fighter'),
@@ -127,7 +127,19 @@ export const GIS_DEPLOY_LOD = {
   /** geohash 精度 7，格子边长约 150 米 */
   geohashPrecision: 7,
   /** 格子根节点使用足够大的几何误差，由每个模型自己的几何误差决定是否加载 */
-  cellGeometricError: 1_000_000
+  cellGeometricError: 1_000_000,
+  /**
+   * 小模型（摄像头约 0.3 米）按像素阈值只有贴到几十米内才加载。
+   * 至少在这个距离内加载，飞到包围球时模型已经在场。
+   */
+  minLoadDistanceMeters: 200,
+  /**
+   * 取景距离占加载距离的比例。必须小于 1。
+   * 大于加载距离时，相机会停在包围球外，模型尚未请求，看起来像定位到了空地。
+   */
+  viewRangeLoadRatio: 0.6,
+  /** 取景时让包围球约占垂直视场的这一半角 */
+  viewHalfFovDeg: 22
 } as const
 
 /** 漫游载具距离阈值（米） */
@@ -197,24 +209,28 @@ export const GIS_ROAM_CONFIG = {
     altitudeOffset: 0,
     clampToGround: true,
     /**
-     * Sophia 网格按厘米导出，约 1.72m 高。漫游按 0.01 缩成米。
-     * 脚底在缩放后的 glTF 上轴 -0.027m，贴地时把原点抬到这个高度。
+     * Cesium 标准步行人物模型（Cesium_Man），原始全高 1.506m。
+     * 按 1.15 缩放后身高约 1.73m（成年人标准身高）。
+     * 脚底在局部原点 Z=0，贴地时无需额外抬升。
      */
-    modelScale: 0.01,
-    originLiftMeters: 0.027,
+    modelScale: 1.15,
+    originLiftMeters: 0,
     label: '步行漫游',
     headingCorrectionDeg: 0,
     freeOverviewDistanceMeters: 40,
     firstPerson: {
-      /** 原点在脚底。眼高约 1.55m。第一人称会隐藏模型。 */
-      offset: { x: 0.0, y: 0.0, z: 1.55 },
+      /** 原点在脚底。眼高约 1.65m。第一人称会隐藏模型。 */
+      offset: { x: 0.0, y: 0.0, z: 1.65 },
       pitchDeg: -2,
       headingDeg: 0,
       bobbing: null
     },
     thirdPerson: {
-      /** 原点在脚底，相机在身后约 5m、离地约 2.6m。 */
-      offset: { x: -5.0, y: 0.0, z: 2.6 },
+      /**
+       * 原点在脚底，相机在身后约 5.2m、离地约 2.6m，俯角 -12°。
+       * 视野完整覆盖头部至迈步双腿，且全身完全处于底部 Dock 栏上方。
+       */
+      offset: { x: -5.2, y: 0.0, z: 2.6 },
       pitchDeg: -12,
       headingDeg: 0,
       bobbing: null

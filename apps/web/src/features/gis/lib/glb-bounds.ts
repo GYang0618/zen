@@ -42,11 +42,20 @@ const gltfSchema = z.object({
     .array(
       z.object({
         mesh: z.number().optional(),
+        skin: z.number().optional(),
         children: z.array(z.number()).optional(),
         matrix: z.array(z.number()).length(16).optional(),
         translation: vec3Schema.optional(),
         rotation: z.tuple([z.number(), z.number(), z.number(), z.number()]).optional(),
         scale: vec3Schema.optional()
+      })
+    )
+    .optional(),
+  skins: z
+    .array(
+      z.object({
+        inverseBindMatrices: z.number().optional(),
+        joints: z.array(z.number())
       })
     )
     .optional(),
@@ -62,6 +71,9 @@ const gltfSchema = z.object({
 
 type GltfDocument = z.infer<typeof gltfSchema>
 type GltfNode = NonNullable<GltfDocument['nodes']>[number]
+type GltfSkin = NonNullable<GltfDocument['skins']>[number]
+type GltfMesh = NonNullable<GltfDocument['meshes']>[number]
+type GltfAccessor = NonNullable<GltfDocument['accessors']>[number]
 
 export type GlbBounds = {
   min: [number, number, number]
@@ -107,7 +119,11 @@ export function measureGlb(uri: string): Promise<GlbBounds> {
   return pending
 }
 
-/** 从 GLB 二进制解析网格包围盒。单位按 glTF 约定为米。 */
+/**
+ * 从 GLB 二进制解析网格包围盒。单位按 glTF 约定为米。
+ * 蒙皮网格按 Cesium 的绘制公式量顶点：inverseTransformation 不除掉缩放，
+ * 根节点上的单位换算会让关节矩阵再缩小一次。
+ */
 export function parseGlbBounds(data: ArrayBuffer): GlbBounds {
   const { document, bin } = readGlb(data)
   const corners = collectWorldCorners(document, bin)
@@ -169,28 +185,188 @@ function visitNode(
   const node = nodes[index]
   if (!node) return
   const world = worldMatrix(index, nodes, parents, worlds)
-  appendMeshCorners(node.mesh, world, document, bin, corners)
+  appendMeshCorners(node, world, document, bin, nodes, parents, worlds, corners)
   for (const child of node.children ?? []) {
     visitNode(child, nodes, document, bin, parents, worlds, corners)
   }
 }
 
 function appendMeshCorners(
-  meshIndex: number | undefined,
+  node: GltfNode,
   world: number[],
   document: GltfDocument,
   bin: Uint8Array,
+  nodes: GltfNode[],
+  parents: Map<number, number>,
+  worlds: Map<number, number[]>,
   corners: Array<[number, number, number]>
 ): void {
-  if (meshIndex === undefined) return
-  const mesh = document.meshes?.[meshIndex]
+  if (node.mesh === undefined) return
+  const mesh = document.meshes?.[node.mesh]
   if (!mesh) return
+  const skin = node.skin === undefined ? undefined : document.skins?.[node.skin]
+  if (skin) {
+    appendSkinnedMesh(skin, mesh, world, document, bin, nodes, parents, worlds, corners)
+    return
+  }
   for (const primitive of mesh.primitives) {
     const accessorIndex = primitive.attributes.POSITION
     if (accessorIndex === undefined) continue
     const box = accessorBox(document, bin, accessorIndex)
     if (!box) continue
     pushTransformedCorners(world, box.min, box.max, corners)
+  }
+}
+
+/** 按 Cesium 蒙皮公式把顶点变到网格世界坐标。逆矩阵与 Matrix4.inverseTransformation 一致。 */
+function appendSkinnedMesh(
+  skin: GltfSkin,
+  mesh: GltfMesh,
+  meshWorld: number[],
+  document: GltfDocument,
+  bin: Uint8Array,
+  nodes: GltfNode[],
+  parents: Map<number, number>,
+  worlds: Map<number, number[]>,
+  corners: Array<[number, number, number]>
+): void {
+  const jointMatrices = cesiumJointMatrices(skin, meshWorld, document, bin, nodes, parents, worlds)
+  for (const primitive of mesh.primitives) {
+    const positions = readAccessorVectors(document, bin, primitive.attributes.POSITION, 3, false)
+    const joints = readAccessorVectors(document, bin, primitive.attributes.JOINTS_0, 4, true)
+    const weights = readAccessorVectors(document, bin, primitive.attributes.WEIGHTS_0, 4, false)
+    if (!positions || !joints || !weights) {
+      const accessorIndex = primitive.attributes.POSITION
+      const box = accessorIndex === undefined ? null : accessorBox(document, bin, accessorIndex)
+      if (box) pushTransformedCorners(meshWorld, box.min, box.max, corners)
+      continue
+    }
+    const count = Math.min(positions.length, joints.length, weights.length)
+    for (let vertex = 0; vertex < count; vertex += 1) {
+      corners.push(
+        transformPoint(
+          meshWorld,
+          ...skinVertex(positions[vertex], joints[vertex], weights[vertex], jointMatrices)
+        )
+      )
+    }
+  }
+}
+
+function skinVertex(
+  position: number[],
+  joints: number[],
+  weights: number[],
+  jointMatrices: number[][]
+): [number, number, number] {
+  const skinned: [number, number, number] = [0, 0, 0]
+  for (let influence = 0; influence < 4; influence += 1) {
+    const weight = weights[influence] ?? 0
+    if (weight === 0) continue
+    const matrix = jointMatrices[Math.round(joints[influence] ?? 0)] ?? IDENTITY
+    const point = transformPoint(matrix, position[0] ?? 0, position[1] ?? 0, position[2] ?? 0)
+    skinned[0] += weight * point[0]
+    skinned[1] += weight * point[1]
+    skinned[2] += weight * point[2]
+  }
+  return skinned
+}
+
+function cesiumJointMatrices(
+  skin: GltfSkin,
+  meshWorld: number[],
+  document: GltfDocument,
+  bin: Uint8Array,
+  nodes: GltfNode[],
+  parents: Map<number, number>,
+  worlds: Map<number, number[]>
+): number[][] {
+  const inverseMesh = inverseRigidTransform(meshWorld)
+  const binds = readBindMatrices(document, bin, skin)
+  return skin.joints.map((joint, index) => {
+    const jointWorld = worldMatrix(joint, nodes, parents, worlds)
+    return multiplyMatrix(inverseMesh, multiplyMatrix(jointWorld, binds[index] ?? IDENTITY))
+  })
+}
+
+/** 与 Cesium Matrix4.inverseTransformation 相同：转置 3x3，不除掉缩放。 */
+function inverseRigidTransform(matrix: number[]): number[] {
+  const [m0, m1, m2] = [matrix[0] ?? 0, matrix[1] ?? 0, matrix[2] ?? 0]
+  const [m4, m5, m6] = [matrix[4] ?? 0, matrix[5] ?? 0, matrix[6] ?? 0]
+  const [m8, m9, m10] = [matrix[8] ?? 0, matrix[9] ?? 0, matrix[10] ?? 0]
+  const [vX, vY, vZ] = [matrix[12] ?? 0, matrix[13] ?? 0, matrix[14] ?? 0]
+  return [
+    m0,
+    m4,
+    m8,
+    0,
+    m1,
+    m5,
+    m9,
+    0,
+    m2,
+    m6,
+    m10,
+    0,
+    -m0 * vX - m1 * vY - m2 * vZ,
+    -m4 * vX - m5 * vY - m6 * vZ,
+    -m8 * vX - m9 * vY - m10 * vZ,
+    1
+  ]
+}
+
+function readBindMatrices(document: GltfDocument, bin: Uint8Array, skin: GltfSkin): number[][] {
+  const accessorIndex = skin.inverseBindMatrices
+  if (accessorIndex === undefined) return skin.joints.map(() => IDENTITY)
+  const accessor = document.accessors?.[accessorIndex]
+  const layout = accessor ? accessorLayout(document, bin, accessor, 16) : null
+  if (!layout || accessor?.componentType !== 5126) return skin.joints.map(() => IDENTITY)
+  return Array.from({ length: accessor.count }, (_, index) => {
+    const matrix: number[] = []
+    for (let element = 0; element < 16; element += 1) {
+      matrix.push(layout.data.getFloat32(layout.start + index * layout.stride + element * 4, true))
+    }
+    return matrix
+  })
+}
+
+function readAccessorVectors(
+  document: GltfDocument,
+  bin: Uint8Array,
+  accessorIndex: number | undefined,
+  width: number,
+  rawInteger: boolean
+): number[][] | null {
+  if (accessorIndex === undefined) return null
+  const accessor = document.accessors?.[accessorIndex]
+  if (!accessor || accessor.type !== (width === 3 ? 'VEC3' : 'VEC4')) return null
+  const layout = accessorLayout(document, bin, accessor, width)
+  if (!layout) return null
+  const source = rawInteger ? { ...accessor, normalized: false } : accessor
+  return Array.from({ length: accessor.count }, (_, index) => {
+    const origin = layout.start + index * layout.stride
+    const values: number[] = []
+    for (let axis = 0; axis < width; axis += 1) {
+      values.push(readComponent(layout.data, origin + axis * layout.componentBytes, source))
+    }
+    return values
+  })
+}
+
+function accessorLayout(
+  document: GltfDocument,
+  bin: Uint8Array,
+  accessor: GltfAccessor,
+  width: number
+): { data: DataView; start: number; stride: number; componentBytes: number } | null {
+  const view = document.bufferViews?.[accessor.bufferView ?? -1]
+  const componentBytes = COMPONENT_BYTES[accessor.componentType]
+  if (view?.buffer !== 0 || !componentBytes) return null
+  return {
+    data: new DataView(bin.buffer, bin.byteOffset, bin.byteLength),
+    start: (view.byteOffset ?? 0) + (accessor.byteOffset ?? 0),
+    stride: view.byteStride ?? componentBytes * width,
+    componentBytes
   }
 }
 

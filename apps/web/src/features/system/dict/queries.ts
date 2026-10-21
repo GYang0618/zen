@@ -1,42 +1,43 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { toast } from '@zen/ui'
+import { queryOptions, useQuery } from '@tanstack/react-query'
 
 import { dictApi } from './api'
 
-import type { CreateDictItem, CreateDictType } from '@zen/shared'
+import type { DictListParams } from './api'
 
 export const dictKeys = {
-  all: ['dict'] as const,
-  list: () => [...dictKeys.all, 'list'] as const
+  all: ['dictionary'] as const,
+  workspaces: () => [...dictKeys.all, 'workspaces'] as const,
+  list: (params?: DictListParams) => [...dictKeys.all, 'list', params] as const,
+  detail: (id: string) => [...dictKeys.all, 'detail', id] as const
 }
 
-export function useDictList() {
-  return useQuery({
-    queryKey: dictKeys.list(),
-    queryFn: () => dictApi.list()
+export const workspacesQueryOptions = () =>
+  queryOptions({
+    queryKey: dictKeys.workspaces(),
+    queryFn: () => dictApi.getWorkspaces()
   })
+
+export const dictionaryListQueryOptions = (params?: DictListParams) =>
+  queryOptions({
+    queryKey: dictKeys.list(params),
+    queryFn: () => dictApi.getDictionaryList(params)
+  })
+
+export const dictionaryDetailQueryOptions = (id: string) =>
+  queryOptions({
+    queryKey: dictKeys.detail(id),
+    queryFn: () => dictApi.getDictionaryDetail(id),
+    enabled: Boolean(id)
+  })
+
+export function useWorkspacesQuery() {
+  return useQuery(workspacesQueryOptions())
 }
 
-export function useCreateDictType() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (data: CreateDictType) => dictApi.createType(data),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: dictKeys.all })
-      toast.add({ title: '字典类型已创建', type: 'success' })
-    },
-    onError: (error: Error) => toast.add({ title: error.message || '创建失败', type: 'error' })
-  })
+export function useDictionaryListQuery(params?: DictListParams) {
+  return useQuery(dictionaryListQueryOptions(params))
 }
 
-export function useCreateDictItem() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (data: CreateDictItem) => dictApi.createItem(data),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: dictKeys.all })
-      toast.add({ title: '字典项已创建', type: 'success' })
-    },
-    onError: (error: Error) => toast.add({ title: error.message || '创建失败', type: 'error' })
-  })
+export function useDictionaryDetailQuery(id: string) {
+  return useQuery(dictionaryDetailQueryOptions(id))
 }

@@ -4,7 +4,7 @@ import { Bot } from 'lucide-react'
 
 import { AgentRunDetailPage } from '@/features/system/audit'
 
-export const Route = createFileRoute('/_authenticated/system/_monitor/ai-usage_/$id')({
+export const Route = createFileRoute('/_authenticated/system/_governance/ai-usage_/$id')({
   component: AgentRunDetailPage,
   staticData: {
     title: 'Agent 任务详情',

@@ -34,7 +34,7 @@ import type {
 } from './dto/index.js'
 import type { PostStatisticsResponse } from './responses/post.response.js'
 
-@ApiTags('岗位管理')
+@ApiTags('岗位与职级')
 @ApiBearerAuth(ACCESS_TOKEN_AUTH)
 @ApiStandardErrorResponses()
 @Controller('posts')

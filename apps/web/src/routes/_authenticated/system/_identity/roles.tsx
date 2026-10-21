@@ -21,7 +21,7 @@ export const Route = createFileRoute('/_authenticated/system/_identity/roles')({
   validateSearch: rolesSearchSchema,
   loaderDeps: ({ search }) => search,
   staticData: {
-    title: '角色管理',
+    title: '角色与权限',
     description: '以卡片与详情页配置角色权限、数据范围与关联用户',
     icon: KeyRound,
     order: 20,

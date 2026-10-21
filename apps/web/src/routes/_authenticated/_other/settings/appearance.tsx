@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Palette } from 'lucide-react'
 
-import { SettingsAppearance } from '@/features/settings-v2/appearance'
+import { SettingsAppearance } from '@/features/settings/appearance'
 
 export const Route = createFileRoute('/_authenticated/_other/settings/appearance')({
   component: SettingsAppearance,

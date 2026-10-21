@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { PawPrint } from 'lucide-react'
 
-import { SettingsPet } from '@/features/settings-v2/pet'
+import { SettingsPet } from '@/features/settings/pet'
 
 export const Route = createFileRoute('/_authenticated/_other/settings/pet')({
   component: SettingsPet,

@@ -112,7 +112,7 @@ describe('formatRoleAuditLog', () => {
   it('格式化权限变更并支持截断预览', () => {
     const permissions = Array.from({ length: 8 }, (_, index) => ({
       code: `role:perm_${index}`,
-      module: index < 4 ? '角色管理' : '用户管理',
+      module: index < 4 ? '角色与权限' : '成员管理',
       name: `权限${index + 1}`
     }))
 
@@ -127,7 +127,7 @@ describe('formatRoleAuditLog', () => {
     )
 
     expect(formatted.description).toContain('新增')
-    expect(formatted.description).toContain('角色管理（')
+    expect(formatted.description).toContain('角色与权限（')
     expect(formatted.permissionSections).toHaveLength(2)
 
     const preview = flattenPermissionPreview(

@@ -77,7 +77,7 @@ import type {
   UserStatisticsResponse
 } from './responses/user.response.js'
 
-@ApiTags('用户管理')
+@ApiTags('成员管理')
 @ApiBearerAuth(ACCESS_TOKEN_AUTH)
 @Controller('user')
 export class UserController {

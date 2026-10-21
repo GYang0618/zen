@@ -20,7 +20,7 @@ export const Route = createFileRoute('/_authenticated/system/_identity/posts')({
   validateSearch: postsSearchSchema,
   loaderDeps: ({ search }) => search,
   staticData: {
-    title: '岗位管理',
+    title: '岗位与职级',
     description: '维护可跨组织复用的岗位目录标准',
     icon: BriefcaseBusiness,
     order: 25,

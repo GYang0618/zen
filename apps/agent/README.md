@@ -21,7 +21,7 @@ pnpm run openapi:generate
 
 用户 JWT 链路：前端 `Authorization` → `api/copilot` Controller → `CopilotService` → `LangGraphAgent.assistantConfig.configurable.accessToken` → agent 工具从 `RunnableConfig` 读取。
 
-## 用户管理工具（LangChain）
+## 成员管理工具（LangChain）
 
 `src/tools/user.ts` 提供 8 个工具，与后端 `UserController` 一一对应，经 OpenAPI SDK 调用：
 

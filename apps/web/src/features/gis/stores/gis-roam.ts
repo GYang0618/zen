@@ -398,3 +398,8 @@ export const useGisRoamStore = create<GisRoamState>((set, get) => ({
     set({ remainingRealSeconds, roamProgress })
   }
 }))
+
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  // biome-ignore lint/suspicious/noExplicitAny: DEV 调试挂载
+  ;(window as any).__roamStore = useGisRoamStore
+}

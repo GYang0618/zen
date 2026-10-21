@@ -7,6 +7,7 @@ import { useCesium } from '../../cesium-provider'
 import { findSceneModel, formatSceneModelGuide, GIS_SCENE_MODEL_ID_ENUM } from '../../constants'
 import { analyzeDeployment } from '../../lib/analyze-deployment'
 import { measureGlb } from '../../lib/glb-bounds'
+import { catalogHeightMeters, realWorldSize } from '../../lib/model-real-size'
 
 const modelIdSchema = z
   .enum(GIS_SCENE_MODEL_ID_ENUM)
@@ -24,7 +25,7 @@ export function useModelAnalysisTools() {
   useFrontendTool({
     name: 'gis_analyze_model',
     description:
-      '读取目录中的 GLB，测量真实包围盒和尺寸（米）。不要使用手写的长宽高。用户询问模型有多大、或部署前需要核对模型尺寸时调用。',
+      '读取目录中的模型，返回对齐真实尺寸后的包围盒（米）。不要使用手写的长宽高，也不要据此再传一个很大的 scale。用户询问模型有多大、或部署前需要核对尺寸时调用。',
     parameters: z.object({ modelId: modelIdSchema }),
     handler: async ({ modelId }) => {
       const model = findSceneModel(modelId)
@@ -33,17 +34,19 @@ export function useModelAnalysisTools() {
       }
       try {
         const bounds = await measureGlb(model.uri)
+        const [x, y, z] = realWorldSize(bounds, catalogHeightMeters(model))
+        const radius = Math.hypot(x, y, z) / 2
         return {
           status: 'success',
           modelId: model.id,
           label: model.label,
           sizeMeters: {
-            x: roundMeters(bounds.size[0]),
-            y: roundMeters(bounds.size[1]),
-            z: roundMeters(bounds.size[2])
+            x: roundMeters(x),
+            y: roundMeters(y),
+            z: roundMeters(z)
           },
-          radiusMeters: roundMeters(bounds.radius),
-          message: `「${model.label}」实测尺寸 X ${roundMeters(bounds.size[0])} 米、Y ${roundMeters(bounds.size[1])} 米、Z ${roundMeters(bounds.size[2])} 米，包围球半径 ${roundMeters(bounds.radius)} 米。glTF 的 Y 轴向上。`
+          radiusMeters: roundMeters(radius),
+          message: `「${model.label}」真实尺寸 X ${roundMeters(x)} 米、Y ${roundMeters(y)} 米、Z ${roundMeters(z)} 米。Y 轴向上。部署时 scale 省略即可，1 表示这个真实尺寸。`
         }
       } catch (error) {
         return { status: 'error', message: errorMessage(error) }
@@ -59,7 +62,10 @@ export function useModelAnalysisTools() {
     parameters: z.object({
       modelId: modelIdSchema,
       position: positionSchema,
-      scale: z.number().optional().describe('在实测米制尺寸上的均匀缩放，默认 1')
+      scale: z
+        .number()
+        .optional()
+        .describe('在真实尺寸上的均匀倍率，默认 1。不要为了看得更清而放大')
     }),
     handler: async ({ modelId, position, scale }) => {
       try {

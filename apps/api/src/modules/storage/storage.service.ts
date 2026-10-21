@@ -349,7 +349,8 @@ export class StorageService {
       filename: row.originalName
     })
     await this.audit.write({
-      action: 'storage.file.download_url',
+      action:
+        disposition === 'attachment' ? 'storage.file.download_url' : 'storage.file.preview_url',
       resource: 'file_asset',
       resourceId: row.id
     })

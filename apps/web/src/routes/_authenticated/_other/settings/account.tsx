@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Wrench } from 'lucide-react'
 
-import { SettingsAccount } from '@/features/settings-v2/account'
+import { SettingsAccount } from '@/features/settings/account'
 
 export const Route = createFileRoute('/_authenticated/_other/settings/account')({
   component: SettingsAccount,

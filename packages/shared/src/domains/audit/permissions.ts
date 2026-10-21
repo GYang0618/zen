@@ -22,7 +22,7 @@ export const AUDIT_PERMISSIONS = defineKernelPermissions({
 export const AI_QUOTA_PERMISSIONS = defineKernelPermissions({
   namespace: 'system',
   resource: 'ai-quota',
-  moduleLabel: 'AI 配额',
+  moduleLabel: '模型与配额',
   items: [
     { action: 'list', name: '查看 AI 配额', description: '查询租户与主体 AI 配额' },
     { action: 'manage', name: '管理 AI 配额', description: '配置 AI 配额与限额规则' }
@@ -32,6 +32,6 @@ export const AI_QUOTA_PERMISSIONS = defineKernelPermissions({
 export const AI_PRICE_PERMISSIONS = defineKernelPermissions({
   namespace: 'system',
   resource: 'ai-price',
-  moduleLabel: 'AI 模型价格',
+  moduleLabel: '模型与配额',
   items: [{ action: 'manage', name: '管理模型价格', description: '配置与发布 AI 模型单价版本' }]
 } as const)

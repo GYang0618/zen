@@ -3,6 +3,7 @@ import { encodeDeployCell } from './deploy-cell'
 import { computeDeployLod, readDeployScene } from './deploy-lod'
 import { sampleGroundHeight } from './geo-utils'
 import { measureGlb } from './glb-bounds'
+import { catalogHeightMeters, deploymentScale } from './model-real-size'
 
 import type { Viewer } from 'cesium'
 import type { GisSceneModelId } from '../constants'
@@ -43,7 +44,8 @@ export async function analyzeDeployment(
   const bounds = await measureGlb(model.uri)
   const height = input.height ?? (await sampleGroundHeight(viewer, input.longitude, input.latitude))
   const anchor = { longitude: input.longitude, latitude: input.latitude, height }
-  const lod = computeDeployLod(bounds, input.scale ?? 1, readDeployScene(viewer), anchor)
+  const scale = deploymentScale(bounds, catalogHeightMeters(model), input.scale)
+  const lod = computeDeployLod(bounds, scale, readDeployScene(viewer), anchor)
 
   return {
     ...lod,

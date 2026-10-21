@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common'
 
-import { DictController } from './dict.controller.js'
+import { DictionaryController } from './dictionary.controller.js'
 
 @Module({
-  controllers: [DictController]
+  controllers: [DictionaryController]
 })
 export class DictModule {}

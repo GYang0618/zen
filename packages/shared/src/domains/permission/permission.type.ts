@@ -5,7 +5,7 @@ export type PermissionCatalogSource = 'kernel' | `plugin:${string}`
 export interface PermissionCatalogEntry {
   code: string
   name: string
-  /** 矩阵分组展示名，如「用户管理」 */
+  /** 矩阵分组展示名，如「成员管理」 */
   module: string
   resource: string
   action: string

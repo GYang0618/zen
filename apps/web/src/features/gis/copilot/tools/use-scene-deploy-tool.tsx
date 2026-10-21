@@ -1,5 +1,4 @@
 import { useFrontendTool } from '@copilotkit/react-core/v2'
-import { toast } from '@zen/ui'
 import { z } from 'zod'
 
 import { emptyToolRender } from '@/components/ai/empty-tool-render'
@@ -44,7 +43,12 @@ const sceneDeploySchema = z.object({
     .describe('部署点的经纬度。未指定 targetMarker 时使用'),
   name: z.string().optional().describe('该实例的自定义名称'),
   heading: z.number().optional().describe('航向角（度，正北为 0）'),
-  scale: z.number().optional().describe('在 GLB 实测米制尺寸上的均匀缩放，默认 1')
+  scale: z
+    .number()
+    .optional()
+    .describe(
+      '在真实尺寸上的均匀倍率，默认 1。只有用户明确要求放大或缩小时才传，例如一半大小传 0.5'
+    )
 })
 
 export function useSceneDeployTool() {
@@ -52,7 +56,7 @@ export function useSceneDeployTool() {
 
   useFrontendTool({
     name: 'gis_scene_deploy',
-    description: `在三维场景中部署目录里的任意 GLB。尺寸、包围盒和加载距离会按模型文件、部署位置和当前场景自动计算，缩放到加载距离内才请求模型。可选模型：${formatSceneModelGuide()}。${formatSceneModelVariantGuide()}`,
+    description: `在三维场景中部署目录里的模型。尺寸按目录中的真实高度对齐，scale 省略就是真实大小，不要自行放大。路灯用 streetlight，电线杆用 utilityPole，监控摄像头用 surveillanceCam。部署后会飞到模型旁边；摄像头这类小模型在城市全景里很小，飞近后才能看清。可选模型：${formatSceneModelGuide()}。${formatSceneModelVariantGuide()}`,
     parameters: sceneDeploySchema,
     handler: async ({ modelId, category, targetMarker, position, name, heading, scale }) => {
       const model = modelId
@@ -107,7 +111,6 @@ export function useSceneDeployTool() {
 
         flyToDeployedObject(viewer, deployed)
         const coordStr = formatCoordinates(analysis.longitude, analysis.latitude, analysis.height)
-        toast.add({ title: `已在场景部署「${objectName}」`, type: 'success' })
 
         return {
           status: 'success',

@@ -260,13 +260,18 @@ export function OperationAuditSideOverview({
 
           <Separator />
 
-          {/* 主体基本信息（头像、昵称、邮箱、手机号等，对齐组织管理基本信息） */}
+          {/* 主体基本信息（头像、昵称、邮箱、手机号等，对齐组织架构基本信息） */}
           <div>
             <Item className="mb-4 p-0">
               <ItemMedia>{renderAvatar()}</ItemMedia>
               <ItemContent>
                 <ItemTitle className="text-lg leading-6 flex items-center gap-2 font-semibold">
                   <span className="truncate max-w-40">{actorDisplayName}</span>
+                  {actor?.deletedAt && (
+                    <Badge variant="outline" className="text-xs text-muted-foreground">
+                      账号已删除
+                    </Badge>
+                  )}
                   {renderActorBadge()}
                 </ItemTitle>
                 <ItemDescription className="leading-5 text-xs text-muted-foreground truncate">

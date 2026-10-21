@@ -62,7 +62,7 @@ const roleMembersQuerySchema = z.object({
   pageSize: z.coerce.number().int().positive().max(100).optional()
 })
 
-@ApiTags('角色管理')
+@ApiTags('角色与权限')
 @ApiBearerAuth(ACCESS_TOKEN_AUTH)
 @Controller('role')
 export class RoleController {
