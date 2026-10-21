@@ -12,6 +12,7 @@ import { parseThreadIdFromPath } from '@/stores'
 
 import { useChatAgent } from '../context/chat-agent-context'
 import { useChatAttachments } from '../hooks/use-chat-attachments'
+import { abortAgentHttpStream } from '../lib/abort-agent-http-stream'
 import { deriveThreadTitle } from '../lib/derive-thread-title'
 import { generateThreadTitle } from '../lib/generate-thread-title'
 import { useAgentChatInputStore } from '../stores/agent-chat-input'
@@ -188,6 +189,8 @@ export function ChatInput({
       } catch (abortError) {
         console.error('AgentChat: abortRun fallback failed', abortError)
       }
+    } finally {
+      abortAgentHttpStream(agent)
     }
   }
 

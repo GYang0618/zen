@@ -25,16 +25,90 @@ const agents = {
   page: { graphId: PAGE_AGENT_GRAPH_ID }
 } as const
 
-/** 补上正文切到工具调用时被适配器丢掉的 TOOL_CALL_START。 */
+function userStopped(): DOMException {
+  return new DOMException('The operation was aborted.', 'AbortError')
+}
+
+/**
+ * 适配器自带的 abortRun 会拿 CopilotKit 的 runId 去取消 LangGraph。
+ * 真正的服务端 run id 要等流事件才写回，而且取消一旦记下就不再重试，流也不会主动断开。
+ * 这里改成：立刻中止这条流的请求，并按 thread 取消仍在跑的 LangGraph run。
+ */
 class StreamingLangGraphAgent extends LangGraphAgent {
+  private stoppedByUser = false
+  private streamAbort: AbortController | undefined
+
+  override abortRun(): void {
+    this.stoppedByUser = true
+    this.streamAbort?.abort(userStopped())
+    this.closeRun()
+    this.cancelActiveThreadRuns()
+  }
+
+  override runAgentStream(
+    ...args: Parameters<LangGraphAgent['runAgentStream']>
+  ): ReturnType<LangGraphAgent['runAgentStream']> {
+    if (!this.stoppedByUser) return super.runAgentStream(...args)
+    this.closeSubscriber(args[1])
+    return Promise.resolve()
+  }
+
+  override prepareStream(
+    ...args: Parameters<LangGraphAgent['prepareStream']>
+  ): ReturnType<LangGraphAgent['prepareStream']> {
+    if (this.stoppedByUser) return Promise.reject(userStopped())
+    return super.prepareStream(this.withStopSignal(args[0]), args[1])
+  }
+
+  override prepareRegenerateStream(
+    ...args: Parameters<LangGraphAgent['prepareRegenerateStream']>
+  ): ReturnType<LangGraphAgent['prepareRegenerateStream']> {
+    if (this.stoppedByUser) return Promise.reject(userStopped())
+    return super.prepareRegenerateStream(this.withStopSignal(args[0]), args[1])
+  }
+
   override dispatchEvent(event: ProcessedEvents): boolean {
+    if (this.stoppedByUser) return false
     if (typeof event.timestamp !== 'number') event.timestamp = Date.now()
     return super.dispatchEvent(event)
   }
 
   override handleSingleEvent(event: unknown): void {
+    if (this.stoppedByUser) return
     if (bridgeOpenTextToToolCall(this, event)) return
     super.handleSingleEvent(event)
+  }
+
+  private withStopSignal<T extends Parameters<LangGraphAgent['prepareStream']>[0]>(input: T): T {
+    const abort = new AbortController()
+    this.streamAbort = abort
+    return {
+      ...input,
+      forwardedProps: {
+        ...input.forwardedProps,
+        signal: abort.signal,
+        onDisconnect: 'cancel'
+      }
+    }
+  }
+
+  private closeRun(): void {
+    this.closeSubscriber(this.subscriber)
+  }
+
+  private closeSubscriber(
+    subscriber: { closed: boolean; error: (error: unknown) => void } | undefined
+  ): void {
+    if (!subscriber || subscriber.closed) return
+    subscriber.error(userStopped())
+  }
+
+  private cancelActiveThreadRuns(): void {
+    const threadId = this.activeRun?.threadId || this.threadId
+    if (!threadId) return
+    void this.client.runs
+      .cancelMany({ threadId, status: 'all', action: 'interrupt' })
+      .catch(() => undefined)
   }
 }
 

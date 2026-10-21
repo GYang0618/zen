@@ -1,12 +1,13 @@
 'use client'
 
-import { useCopilotChatConfiguration } from '@copilotkit/react-core/v2'
+import { useCopilotChatConfiguration, useCopilotKit } from '@copilotkit/react-core/v2'
 import { Button, cn } from '@zen/ui'
 import { Mic, Paperclip, Send, Square } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
-import { usePopupAgent } from '../context/popup-agent-context'
+import { POPUP_AGENT_ID, usePopupAgent } from '../context/popup-agent-context'
+import { abortAgentHttpStream } from '../lib/abort-agent-http-stream'
 import { useAgentChatInputStore } from '../stores/agent-chat-input'
 
 import type { CopilotChatInputProps } from '@copilotkit/react-core/v2'
@@ -26,6 +27,7 @@ export function PopupChatInput({
   className
 }: CopilotChatInputProps) {
   const configuration = useCopilotChatConfiguration()
+  const { copilotkit } = useCopilotKit()
   const { threadId } = usePopupAgent()
   const labels = configuration?.labels
 
@@ -119,6 +121,8 @@ export function PopupChatInput({
   const handlePrimaryAction = useCallback(() => {
     if (isRunning) {
       onStop?.()
+      const runningAgent = copilotkit.getAgent(POPUP_AGENT_ID)
+      if (runningAgent) abortAgentHttpStream(runningAgent)
       return
     }
 
@@ -130,7 +134,7 @@ export function PopupChatInput({
       setInternalValue('')
     }
     onChange?.('')
-  }, [isRunning, onStop, inputValue, onSubmitMessage, isControlled, onChange])
+  }, [copilotkit, isRunning, onStop, inputValue, onSubmitMessage, isControlled, onChange])
 
   const attachButton = (
     <Button

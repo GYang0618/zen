@@ -56,6 +56,7 @@ export function copilotKitBasePath(apiPrefix: string): string {
 export class CopilotService implements OnModuleInit {
   private readonly logger = new Logger(CopilotService.name)
   private handler!: ReturnType<typeof createCopilotExpressHandler>
+  private runner!: InMemoryAgentRunner
   private readonly threadAuthMap = new Map<
     string,
     { tenantId: string; userId: string; agentId: string }
@@ -83,10 +84,10 @@ export class CopilotService implements OnModuleInit {
   onModuleInit() {
     const { deploymentUrl } = this.langgraphCfg
 
-    const runner = new InMemoryAgentRunner()
+    this.runner = new InMemoryAgentRunner()
 
     const baseOptions = {
-      runner,
+      runner: this.runner,
       agents: async ({ request }: AgentFactoryContext) => {
         const body = (await request
           .clone()
@@ -197,6 +198,7 @@ export class CopilotService implements OnModuleInit {
                   userId: fullAuth.userId,
                   agentId: route.agentId
                 })
+                this.stopRunWhenClientLeaves(body.threadId, request.signal)
               }
 
               if (body.runId && body.threadId) {
@@ -279,6 +281,20 @@ export class CopilotService implements OnModuleInit {
         }
       }
     })
+  }
+
+  /** 浏览器断开 SSE 时，runner 默认只取消订阅，LangGraph 会继续跑。 */
+  private stopRunWhenClientLeaves(threadId: string, signal: AbortSignal): void {
+    const stop = () => {
+      void this.runner.stop({ threadId }).catch((error: unknown) => {
+        this.logger.warn({ err: error, threadId }, '客户端断开后停止 Agent 运行失败')
+      })
+    }
+    if (signal.aborted) {
+      stop()
+      return
+    }
+    signal.addEventListener('abort', stop, { once: true })
   }
 
   private guardSnapshotStream(response: Response): Response {
