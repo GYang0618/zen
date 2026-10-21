@@ -285,6 +285,12 @@ export const roleMembersPageSchema = paged(roleMemberSchema)
 export const rolesQueryToolSchema = toolCallMetaSchema.extend(rolesQuerySchema.shape)
 export type RolesQueryTool = z.infer<typeof rolesQueryToolSchema>
 
+const roleShareItemSchema = z.object({
+  label: z.string().describe('分类名称'),
+  value: z.number().int().nonnegative().describe('数量'),
+  percentage: z.number().describe('占该分布合计的百分比，0-100')
+})
+
 export const roleStatisticsSchema = z.object({
   total: z.number().int().nonnegative().describe('角色总数'),
   byKind: z.object({
@@ -306,6 +312,7 @@ export const roleStatisticsSchema = z.object({
   binding: z.object({
     assignedUserTotal: z.number().int().nonnegative().describe('已分配角色的独立用户总数'),
     emptyRoleCount: z.number().int().nonnegative().describe('未分配任何用户的空置角色数'),
+    averagePermissionsPerRole: z.number().describe('平均每个角色绑定的权限数'),
     topRoles: z
       .array(
         z.object({
@@ -315,8 +322,50 @@ export const roleStatisticsSchema = z.object({
           userCount: z.number().int().nonnegative().describe('绑定用户数')
         })
       )
-      .describe('绑定用户数排名前 5 的角色')
-  })
+      .describe('绑定用户数排名前 5 的角色'),
+    topRolesByPermissions: z
+      .array(
+        z.object({
+          id: z.string().describe('角色 ID'),
+          name: z.string().describe('角色名称'),
+          code: z.string().describe('角色编码'),
+          permissionCount: z.number().int().nonnegative().describe('绑定权限数')
+        })
+      )
+      .describe('绑定权限数排名前 5 的角色（集权度最高角色，用于 HorizontalBarChart）')
+  }),
+  series: z
+    .object({
+      rates: z.object({
+        utilizationRate: z
+          .number()
+          .describe('有成员的角色 / 角色总数，0-1。GaugeChart 的 value 用该值×100'),
+        permissionConcentrationRate: z
+          .number()
+          .describe('权限数前 5 的角色所绑定权限之和 / 全部角色权限绑定，0-1。GaugeChart 同上')
+      }),
+      kindDistribution: z
+        .array(roleShareItemSchema)
+        .describe('系统角色与自定义角色构成，供 DonutChart'),
+      statusDistribution: z
+        .array(roleShareItemSchema)
+        .describe('互斥的生效状态：启用、禁用、已过期。已过期不再计入启用或禁用。供 DonutChart'),
+      dataScopeDistribution: z
+        .array(roleShareItemSchema)
+        .describe('数量大于 0 的数据范围构成。完整零值仍看 byDataScope。供 DonutChart'),
+      roleComparison: z
+        .array(
+          z.object({
+            label: z.string().describe('角色名称'),
+            userCount: z.number().int().nonnegative().describe('绑定用户数'),
+            permissionCount: z.number().int().nonnegative().describe('绑定权限数')
+          })
+        )
+        .describe(
+          '按成员数取前 8 个角色，同时给出权限数。GroupedBarChart 的 series key 为 userCount（成员）与 permissionCount（权限）'
+        )
+    })
+    .describe('图表可直接绑定的序列，与上方原始计数来自同一次聚合')
 })
 
 export const roleStatisticsToolSchema = toolCallMetaSchema.extend({})

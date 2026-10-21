@@ -6,6 +6,9 @@ import {
   ZEN_MESSAGE_TIMING_METADATA_KEY
 } from '@zen/shared'
 
+import { createHistoryTimingWriter } from './agui-message-timing.js'
+
+import type { HistoryTimingWriter } from './agui-message-timing.js'
 import type { ThreadMessage } from './copilot-thread.service.js'
 
 /** 仅在 Copilot connect 请求内部传递，响应发出前不会回给浏览器。 */
@@ -280,17 +283,9 @@ function snapshotKeepsHistory(messages: unknown[], seen: SeenUserTurns): boolean
   )
 }
 
-function filterSseBlock(block: string, seen: SeenUserTurns): string {
-  const dataLine = block.split('\n').find((line) => line.trimStart().startsWith('data:'))
-  if (!dataLine) return `${block}\n\n`
-
-  let event: unknown
-  try {
-    event = JSON.parse(dataLine.trimStart().slice('data:'.length).trim())
-  } catch {
-    return `${block}\n\n`
-  }
-  if (!isRecord(event) || typeof event.type !== 'string') return `${block}\n\n`
+function filterSseBlock(block: string, seen: SeenUserTurns, timing: HistoryTimingWriter): string {
+  const event = readSseEvent(block)
+  if (!event) return `${block}\n\n`
 
   if (
     event.type === 'RUN_STARTED' &&
@@ -303,7 +298,49 @@ function filterSseBlock(block: string, seen: SeenUserTurns): string {
     if (!snapshotKeepsHistory(event.messages, seen)) return ''
     rememberUsers(seen, event.messages)
   }
-  return `${block}\n\n`
+  timing.rewrite(event)
+  return `${replaceSseDataLine(block, event)}\n\n`
+}
+
+function readSseEvent(block: string): Record<string, unknown> | undefined {
+  const dataLine = block.split('\n').find((line) => line.trimStart().startsWith('data:'))
+  if (!dataLine) return undefined
+  try {
+    const event: unknown = JSON.parse(dataLine.trimStart().slice('data:'.length).trim())
+    if (!isRecord(event) || typeof event.type !== 'string') return undefined
+    return event
+  } catch {
+    return undefined
+  }
+}
+
+function replaceSseDataLine(block: string, event: Record<string, unknown>): string {
+  const lines = block.split('\n')
+  const index = lines.findIndex((line) => line.trimStart().startsWith('data:'))
+  if (index < 0) return block
+  const line = lines[index] ?? ''
+  const prefix = line.slice(0, line.indexOf('data:'))
+  lines[index] = `${prefix}data: ${JSON.stringify(event)}`
+  return lines.join('\n')
+}
+
+/** 给已经结束的运行时回放补上计时。进行中的连接不能整段缓冲。 */
+export function rewriteSseTextWithTiming(text: string, stored: ThreadMessage[]): string {
+  const timing = createHistoryTimingWriter(stored)
+  const parts = text.split('\n\n')
+  const tail = parts.pop() ?? ''
+  const blocks = parts
+    .filter((part) => part.length > 0)
+    .map((part) => rewriteIdleBlock(part, timing))
+  const pending = tail.trim().length > 0 ? rewriteIdleBlock(tail, timing) : ''
+  return [...blocks, pending].filter((part) => part.length > 0).join('')
+}
+
+function rewriteIdleBlock(block: string, timing: HistoryTimingWriter): string {
+  const event = readSseEvent(block)
+  if (!event) return `${block}\n\n`
+  timing.rewrite(event)
+  return `${replaceSseDataLine(block, event)}\n\n`
 }
 
 /** 丢掉空快照，以及会抹掉已出现用户轮次的快照。 */
@@ -312,13 +349,14 @@ export function filterRegressiveSnapshotStream(
   preserved: ThreadMessage[] = []
 ): ReadableStream<Uint8Array> {
   const seen: SeenUserTurns = { ids: new Set<string>(), texts: [] }
+  const timing = createHistoryTimingWriter(preserved)
   rememberUsers(seen, preserved)
   const decoder = new TextDecoder()
   const encoder = new TextEncoder()
   let buffer = ''
 
   const push = (controller: TransformStreamDefaultController<Uint8Array>, blocks: string[]) => {
-    const output = blocks.map((block) => filterSseBlock(block, seen)).join('')
+    const output = blocks.map((block) => filterSseBlock(block, seen, timing)).join('')
     if (output.length > 0) controller.enqueue(encoder.encode(output))
   }
 

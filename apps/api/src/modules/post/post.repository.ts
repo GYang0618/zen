@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { POSITION_MEMBER_PREVIEW_LIMIT } from '@zen/shared'
 
+import { withShare } from '../../common/stats/series.js'
 import { PrismaService } from '../../infra/prisma/prisma.service.js'
 
 import type { JobProfileStatus, Prisma } from '@prisma/client'
@@ -317,7 +318,10 @@ export class PostRepository {
       this.prisma.post.findMany({
         where: postWhere,
         select: {
+          id: true,
           headcount: true,
+          jobProfile: { select: { name: true } },
+          organization: { select: { name: true } },
           _count: {
             select: {
               users: { where: { leftAt: null } }
@@ -357,20 +361,42 @@ export class PostRepository {
     let fullCount = 0
     let overstaffedCount = 0
     let vacantCount = 0
+    const fillCounts = { 空缺: 0, 缺编: 0, 满编: 0, 超编: 0 }
+    const staffingPoints: StaffingPoint[] = []
 
-    for (const p of postsWithUsers) {
-      const actual = p._count.users
-      if (actual === 0) {
-        vacantCount++
-      }
-      if (actual < p.headcount) {
-        understaffedCount++
-      } else if (actual === p.headcount) {
-        fullCount++
-      } else {
-        overstaffedCount++
-      }
+    for (const post of postsWithUsers) {
+      const actual = post._count.users
+      const plan = post.headcount
+      if (actual === 0) vacantCount += 1
+      if (actual < plan) understaffedCount += 1
+      else if (actual === plan) fullCount += 1
+      else overstaffedCount += 1
+
+      const category = classifyStaffing(plan, actual)
+      fillCounts[category] += 1
+      staffingPoints.push({
+        label: `${post.jobProfile.name} · ${post.organization.name}`,
+        plan,
+        actual,
+        category
+      })
     }
+
+    const totalPlan = planHeadcountAggregate._sum.headcount ?? 0
+    const overallFillRate = totalPlan > 0 ? Number((actualHeadcount / totalPlan).toFixed(4)) : 0
+
+    const topUnderstaffedPositions = postsWithUsers
+      .filter((p) => p._count.users < p.headcount)
+      .map((p) => ({
+        id: p.id,
+        postName: p.jobProfile.name,
+        orgName: p.organization.name,
+        planHeadcount: p.headcount,
+        actualHeadcount: p._count.users,
+        vacantHeadcount: p.headcount - p._count.users
+      }))
+      .sort((a, b) => b.vacantHeadcount - a.vacantHeadcount)
+      .slice(0, 5)
 
     return {
       profiles: {
@@ -384,13 +410,63 @@ export class PostRepository {
         totalCount: positionTotal,
         activeCount: activePositions,
         frozenCount: frozenPositions,
-        totalPlanHeadcount: planHeadcountAggregate._sum.headcount ?? 0,
+        totalPlanHeadcount: totalPlan,
         totalActualHeadcount: actualHeadcount,
+        overallFillRate,
         understaffedCount,
         fullCount,
         overstaffedCount,
-        vacantCount
+        vacantCount,
+        topUnderstaffedPositions
+      },
+      series: {
+        levelDistribution: withShare(
+          Object.entries(byLevel).map(([label, value]) => ({ label, value }))
+        ),
+        familyDistribution: withShare(
+          byFamily.map((item) => ({ label: item.family, value: item.count }))
+        ),
+        fillMix: withShare([
+          { label: '空缺', value: fillCounts.空缺 },
+          { label: '缺编', value: fillCounts.缺编 },
+          { label: '满编', value: fillCounts.满编 },
+          { label: '超编', value: fillCounts.超编 }
+        ]),
+        staffingComparison: [...staffingPoints]
+          .sort(
+            (left, right) => Math.abs(right.plan - right.actual) - Math.abs(left.plan - left.actual)
+          )
+          .slice(0, STAFFING_COMPARISON_LIMIT)
+          .map(({ label, plan, actual }) => ({ label, plan, actual })),
+        staffingScatter: [...staffingPoints]
+          .sort((left, right) => right.plan - left.plan || right.actual - left.actual)
+          .slice(0, STAFFING_SCATTER_LIMIT)
+          .map(({ label, plan, actual, category }) => ({
+            label,
+            x: plan,
+            y: actual,
+            category
+          }))
       }
     }
   }
+}
+
+const STAFFING_COMPARISON_LIMIT = 8
+const STAFFING_SCATTER_LIMIT = 40
+
+type StaffingCategory = '空缺' | '缺编' | '满编' | '超编'
+
+interface StaffingPoint {
+  label: string
+  plan: number
+  actual: number
+  category: StaffingCategory
+}
+
+function classifyStaffing(plan: number, actual: number): StaffingCategory {
+  if (actual === 0 && plan > 0) return '空缺'
+  if (actual < plan) return '缺编'
+  if (actual > plan) return '超编'
+  return '满编'
 }

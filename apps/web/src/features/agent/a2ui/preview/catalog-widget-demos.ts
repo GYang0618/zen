@@ -279,6 +279,34 @@ export const PRIMITIVE_DEMOS: CatalogDemo[] = [
     { id: 'avatar-lg', component: 'Avatar', name: '陈予', fallback: '予', size: 'lg' },
     { id: 'avatar-badge', component: 'Avatar', name: '平台', fallback: '平', badge: '3' }
   ]),
+  catalogDemo('tooltip', 'Tooltip', '可见文案按容器截断，悬停展示完整说明。', [
+    {
+      id: 'root',
+      component: 'Column',
+      gap: 12,
+      children: ['tip-route', 'tip-badge']
+    },
+    {
+      id: 'tip-route',
+      component: 'Tooltip',
+      text: 'GET /api/audit/access',
+      content: 'GET /api/audit/access · 近 24 小时 147 次，主要来自匿名调用',
+      side: 'top'
+    },
+    {
+      id: 'tip-badge',
+      component: 'Tooltip',
+      child: 'tip-badge-label',
+      content: '错误率 7.08%，170 / 2,400，主要来自匿名调用与缺少鉴权的健康检查。',
+      side: 'bottom'
+    },
+    {
+      id: 'tip-badge-label',
+      component: 'Badge',
+      text: '错误率 7.08%',
+      variant: 'outline'
+    }
+  ]),
   catalogDemo('badge', 'Badge', '状态与分类用的轻量标签。', [
     {
       id: 'root',

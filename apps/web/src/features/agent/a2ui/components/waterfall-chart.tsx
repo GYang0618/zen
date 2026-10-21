@@ -2,6 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle, cn } from '@zen/ui'
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react'
 import { useMemo } from 'react'
 
+import { OverflowText } from './overflow-text'
+
 import type { RendererProps } from '@copilotkit/a2ui-renderer'
 
 export interface WaterfallStep {
@@ -45,9 +47,9 @@ export function WaterfallChart({ props }: RendererProps<WaterfallChartProps>) {
   const isUp = trend === 'up'
   const isDown = trend === 'down'
 
-  const totalLabel = legend?.totalLabel ?? 'Total'
-  const gainLabel = legend?.gainLabel ?? 'Gain'
-  const lossLabel = legend?.lossLabel ?? 'Loss'
+  const totalLabel = legend?.totalLabel ?? '合计'
+  const gainLabel = legend?.gainLabel ?? '增加'
+  const lossLabel = legend?.lossLabel ?? '减少'
 
   // 计算每个步骤的起始值、结束值与累积值
   const computedSteps = useMemo(() => {
@@ -98,21 +100,21 @@ export function WaterfallChart({ props }: RendererProps<WaterfallChartProps>) {
   const axisSpan = axisMax - axisMin || 1
 
   return (
-    <Card className={cn('h-full w-full', className)}>
+    <Card className={cn('@container/chart h-full w-full', className)}>
       <CardHeader className="space-y-1 pb-3">
-        <CardTitle className="text-sm sm:text-base font-semibold text-foreground">
-          {title}
+        <CardTitle className="min-w-0 text-sm font-semibold text-foreground @sm/chart:text-base">
+          <OverflowText>{title}</OverflowText>
         </CardTitle>
 
         {value && (
           <div className="flex items-baseline gap-2.5 pt-1">
-            <span className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            <span className="font-mono text-2xl font-bold tracking-tight text-foreground @sm/chart:text-3xl">
               {value}
             </span>
             {trendValue && (
               <span
                 className={cn(
-                  'flex items-center gap-0.5 font-mono text-xs sm:text-sm font-medium',
+                  'flex items-center gap-0.5 font-mono text-xs font-medium @sm/chart:text-sm',
                   isUp
                     ? 'text-emerald-600 dark:text-emerald-400'
                     : isDown
@@ -153,15 +155,16 @@ export function WaterfallChart({ props }: RendererProps<WaterfallChartProps>) {
             return (
               <div key={`${step.label}-${idx}`} className="flex items-center gap-3 text-xs py-0.5">
                 {/* 标签列 */}
-                <div
-                  className={cn(
-                    'w-24 sm:w-28 shrink-0 truncate',
-                    step.type === 'total'
-                      ? 'font-semibold text-foreground'
-                      : 'text-muted-foreground'
-                  )}
-                >
-                  {step.label}
+                <div className="w-24 shrink-0 @sm/chart:w-28">
+                  <OverflowText
+                    className={
+                      step.type === 'total'
+                        ? 'font-semibold text-foreground'
+                        : 'text-muted-foreground'
+                    }
+                  >
+                    {step.label}
+                  </OverflowText>
                 </div>
 
                 {/* 瀑布条轨道容器 */}
@@ -179,7 +182,7 @@ export function WaterfallChart({ props }: RendererProps<WaterfallChartProps>) {
                 {/* 右侧数值 */}
                 <div
                   className={cn(
-                    'w-20 sm:w-24 shrink-0 text-right font-mono tabular-nums',
+                    'w-20 shrink-0 text-right font-mono tabular-nums @sm/chart:w-24',
                     step.type === 'total'
                       ? 'font-bold text-foreground'
                       : 'font-medium text-foreground/90'

@@ -28,6 +28,7 @@ import {
   UptimeCard,
   WaterfallChart
 } from '@/features/agent/a2ui/components'
+import { buildDemoActivityDays } from '@/features/agent/a2ui/preview/activity-demo-days'
 import { AgentRuntimeSimulator } from '@/features/agent/a2ui/preview/agent-runtime-simulator'
 import { CatalogGallery } from '@/features/agent/a2ui/preview/catalog-gallery'
 
@@ -35,7 +36,6 @@ import type { RendererProps } from '@copilotkit/a2ui-renderer'
 import type React from 'react'
 import type {
   ActivityCalendarProps,
-  ActivityDay,
   BreakdownCardProps,
   BreakdownItem,
   BreakdownSegment,
@@ -373,32 +373,15 @@ function A2uiPreviewPage() {
     footer: 'Benchmark sampled across 1.4M requests over 48 hours.'
   }
 
-  // 7. ActivityCalendar Data
-  const activityProps: ActivityCalendarProps = useMemo(() => {
-    const days: ActivityDay[] = []
-    const totalDays = 26 * 7
-    for (let i = 0; i < totalDays; i++) {
-      const count = Math.random() > 0.3 ? Math.floor(Math.random() * 12) : 0
-      const level = (count > 8 ? 4 : count > 5 ? 3 : count > 2 ? 2 : count > 0 ? 1 : 0) as
-        | 0
-        | 1
-        | 2
-        | 3
-        | 4
-      days.push({
-        date: `2026-04-${(i % 30) + 1}`,
-        count,
-        level,
-        tooltip: `${count} contributions on 2026-04-${(i % 30) + 1}`
-      })
-    }
-    return {
+  const activityProps: ActivityCalendarProps = useMemo(
+    () => ({
       title: 'Developer Contributions',
-      subtitle: '842 contributions in the last 6 months',
-      days,
+      subtitle: '近 26 周提交与发布',
+      days: buildDemoActivityDays(),
       footer: 'Includes pull requests, code reviews, and merged commits.'
-    }
-  }, [])
+    }),
+    []
+  )
 
   // 8. WaterfallChart Data
   const waterfallSteps: WaterfallStep[] = [
@@ -844,8 +827,8 @@ function A2uiPreviewPage() {
               <div className="border-b border-border pb-4">
                 <h2 className="text-lg font-bold">ActivityCalendar (活动日历点阵图)</h2>
                 <p className="text-xs text-muted-foreground">
-                  GitHub 风格 26 周热力图，带月份表头、周几表侧、0~4 级强度标度、Less/More
-                  图例与悬浮气泡。
+                  GitHub 风格 26 周热力图，带月份表头、周几表侧、0~4
+                  级强度标度、少/多图例与悬浮气泡。
                 </p>
               </div>
               <div className="max-w-4xl">

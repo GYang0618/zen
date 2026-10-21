@@ -20,7 +20,7 @@ export const CATALOG_DEMO_GROUPS: CatalogDemoGroup[] = [
   {
     id: 'primitives',
     title: '基础展示',
-    badge: 'Icon · Avatar · Badge · Item',
+    badge: 'Icon · Avatar · Badge · Tooltip · Item',
     demos: PRIMITIVE_DEMOS
   },
   {

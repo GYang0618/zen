@@ -124,8 +124,10 @@ export const getPostStatisticsTool = tool(
   {
     name: 'query_post_statistics',
     description:
-      '查询岗位与编制多维度聚合统计数据（岗位目录总数、启停分布、职级分布、岗位族分布以及组织岗位编制的规划人数、实际在岗人数、满编/缺编/超编/空置编制情况）。' +
-      '生成人岗编制分析、职级分布报表时优先使用本工具，严禁多次翻页遍历 query_job_profiles_list 手动累加。' +
+      '查询岗位与编制多维度聚合统计数据。' +
+      '生成人岗编制分析、缺编盘点、职级分布报表时优先使用本工具，严禁多次翻页遍历 query_job_profiles_list 手动累加。' +
+      '响应除原始计数外，series 可直接绑定图表：levelDistribution、familyDistribution、fillMix（空缺/缺编/满编/超编互斥，空缺不重复计入缺编）、staffingComparison（plan 编制与 actual 在岗）、staffingScatter（x 编制、y 在岗）。' +
+      'positions.overallFillRate 为 0-1 在岗率，topUnderstaffedPositions 为缺编缺口 Top 5。' +
       '可传 organizationId 按特定组织筛选编制统计范围。',
     schema: postStatisticsToolSchema
   }

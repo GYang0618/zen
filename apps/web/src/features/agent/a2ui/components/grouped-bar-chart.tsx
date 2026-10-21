@@ -5,8 +5,9 @@ import {
   ChartTooltip,
   ChartTooltipContent
 } from '@zen/ui'
-import { Bar, CartesianGrid, BarChart as RechartsBar, XAxis, YAxis } from 'recharts'
+import { Bar, CartesianGrid, BarChart as RechartsBar } from 'recharts'
 
+import { ChartCategoryXAxis, ChartValueYAxis } from './chart-axes'
 import { ChartCardShell, createMultiSeriesConfig } from './chart-shared'
 
 import type { RendererProps } from '@copilotkit/a2ui-renderer'
@@ -36,25 +37,15 @@ export function GroupedBarChart({ props }: RendererProps<GroupedBarChartProps>) 
         <RechartsBar
           accessibilityLayer
           data={data}
-          margin={{ top: 8, left: 8, right: 8, bottom: 4 }}
+          margin={{ top: 8, left: 8, right: 8, bottom: 8 }}
         >
           <CartesianGrid vertical={false} />
-          <XAxis
-            dataKey="label"
-            tickLine={false}
-            axisLine={false}
-            tickMargin={8}
-            tick={{ fontSize: 11 }}
-          />
-          <YAxis
-            tickLine={false}
-            axisLine={false}
-            tickMargin={8}
-            tick={{ fontSize: 11 }}
-            width={40}
-          />
+          <ChartCategoryXAxis count={data.length} />
+          <ChartValueYAxis />
           <ChartTooltip content={<ChartTooltipContent />} />
-          {showLegend && <ChartLegend content={<ChartLegendContent />} />}
+          {showLegend && (
+            <ChartLegend content={<ChartLegendContent className="flex-wrap px-2" />} />
+          )}
           {series.map((s) => (
             <Bar key={s.key} dataKey={s.key} fill={`var(--color-${s.key})`} radius={[4, 4, 0, 0]} />
           ))}

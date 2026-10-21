@@ -1,4 +1,5 @@
 export { auditTools } from './modules/audit'
+export { dictTools } from './modules/dict'
 export { organizationTools } from './modules/organization'
 export { postTools } from './modules/post'
 export { roleTools } from './modules/role'

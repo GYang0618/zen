@@ -262,8 +262,10 @@ export const getRoleStatisticsTool = tool(
   {
     name: 'query_role_statistics',
     description:
-      '查询角色多维度聚合统计数据（角色总量、系统/自定义种类分布、启用/禁用/过期状态分布、数据范围分布、空置角色数及绑定人数排名前 5 的热门角色）。' +
-      '生成权限配置概况、角色审计报表时优先使用本工具，严禁多次翻页遍历 query_roles_list 手动累加。',
+      '查询角色多维度聚合统计数据。' +
+      '生成权限配置概况、权限集权度分析、角色审计报表时优先使用本工具，严禁多次翻页遍历 query_roles_list 手动累加。' +
+      '响应除原始计数外，series 可直接绑定图表：rates（利用率与权限集中度，0-1）、kindDistribution、statusDistribution（启用/禁用/已过期互斥）、dataScopeDistribution、roleComparison（前 8 个角色的 userCount 与 permissionCount）。' +
+      'binding.topRoles 与 topRolesByPermissions 仍是成员数、权限数各自的 Top 5。',
     schema: roleStatisticsToolSchema
   }
 )

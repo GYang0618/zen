@@ -456,8 +456,10 @@ export const getOrganizationStatisticsTool = tool(
   {
     name: 'query_organization_statistics',
     description:
-      '查询组织架构多维度聚合统计数据（组织节点总数、各类型分布、根组织与最大层级深度、负责人健全度、无成员组织数及直属人数排名前 5 的部门）。' +
+      '查询组织架构多维度聚合统计数据。' +
       '生成组织架构分析、部门盘点报表时优先使用本工具，严禁多次翻页遍历 query_organizations_list 手动累加。' +
+      '响应除原始计数外，series 可直接绑定图表：typeDistribution（中文类型名）、leaderDistribution、memberSizeBuckets（人数分档）。' +
+      'structure.leaderCoverageRate 为 0-1 负责人覆盖率，structure.byLevel 为层级分布，members.topOrgsByMembers 为直属人数 Top 5。' +
       '可传 rootId 按特定根节点筛选子树范围。',
     schema: organizationStatisticsToolSchema
   }

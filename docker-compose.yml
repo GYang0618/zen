@@ -1,3 +1,5 @@
+name: zen
+
 services:
   zen-postgres:
     image: postgres:16-alpine
@@ -60,39 +62,104 @@ services:
       start_period: 15s
 
   api:
+    container_name: zen-api
+    init: true
+    restart: unless-stopped
     build:
       context: .
-      dockerfile: apps/api/Dockerfile
+      dockerfile: docker/Dockerfile
+      target: api
+    # 本地栈沿用上面的示例口令。生产校验会拒绝这些口令，因此这里保持 development。
     environment:
-      NODE_ENV: production
-      PORT: 3001
-      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL must be set for production compose}
-      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set for production compose}
-      CORS_ORIGIN: ${CORS_ORIGIN:?CORS_ORIGIN must be set for production compose}
-      THROTTLE_TTL: 60000
-      THROTTLE_LIMIT: 120
+      NODE_ENV: development
+      PORT: '3100'
+      DATABASE_URL: postgresql://admin:admin123@zen-postgres:5432/admin_dev?schema=public
+      CORS_ORIGIN: http://localhost:8080,http://127.0.0.1:8080
+      LANGGRAPH_DEPLOYMENT_URL: http://agent:3600
       STORAGE_ENDPOINT: http://zen-minio:9000
       STORAGE_PUBLIC_ENDPOINT: http://localhost:9000
       STORAGE_ACCESS_KEY: zen
-      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:?STORAGE_SECRET_KEY must be set for production compose}
+      STORAGE_SECRET_KEY: zenminio_secret
       STORAGE_BUCKET: zen-files
       STORAGE_FORCE_PATH_STYLE: 'true'
     ports:
-      - '3001:3001'
+      - '3100:3100'
     depends_on:
       zen-postgres:
         condition: service_healthy
       zen-minio:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          'fetch("http://127.0.0.1:3100/api/health").then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))'
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 90s
 
-  web:
+  agent:
+    container_name: zen-agent
+    init: true
+    restart: unless-stopped
     build:
       context: .
-      dockerfile: apps/web/Dockerfile
+      dockerfile: docker/Dockerfile
+      target: agent
+    environment:
+      PORT: '3600'
+      API_BASE_URL: http://api:3100
+    ports:
+      - '3600:3600'
+    volumes:
+      - zen_agent_state:/app/apps/agent/.langgraph_api
+    depends_on:
+      zen-langgraph-postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          'fetch("http://127.0.0.1:3600/ok").then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))'
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 120s
+    stop_grace_period: 20s
+
+  web:
+    container_name: zen-web
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: web
+      args:
+        VITE_APP_NAME: ${VITE_APP_NAME:-Zen Pilot 智航平台}
+        VITE_APP_BASE_URL: ${VITE_APP_BASE_URL:-http://localhost:8080/api}
+        VITE_APP_API_TIMEOUT: ${VITE_APP_API_TIMEOUT:-10000}
+        VITE_APP_CHAT_API: ${VITE_APP_CHAT_API:-http://localhost:8080/api/chat}
+        VITE_APP_COPILOT_KIT_API: ${VITE_APP_COPILOT_KIT_API:-http://localhost:8080/api/copilot}
+    environment:
+      API_UPSTREAM_PORT: '3100'
     ports:
       - '8080:80'
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1/']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
 volumes:
   zen_pg:
@@ -101,3 +168,5 @@ volumes:
     name: zen_langgraph_postgres_data
   zen_minio:
     name: zen_minio_data
+  zen_agent_state:
+    name: zen_agent_state

@@ -1,5 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common'
+import { isOrganizationType, ORGANIZATION_TYPE_LABELS } from '@zen/shared'
 
+import { withShare } from '../../common/stats/series.js'
 import { PrismaService } from '../../infra/prisma/prisma.service.js'
 
 import type { Prisma } from '@prisma/client'
@@ -604,16 +606,19 @@ export class OrganizationRepository {
     const [
       total,
       typeGroups,
+      levelGroups,
       rootCount,
       maxLevelAggregate,
       hasLeaderCount,
       noLeaderCount,
       totalMemberships,
       emptyOrgCount,
-      topOrgs
+      topOrgs,
+      memberCounts
     ] = await Promise.all([
       this.prisma.organization.count({ where: scopeWhere }),
       this.prisma.organization.groupBy({ by: ['type'], where: scopeWhere, _count: true }),
+      this.prisma.organization.groupBy({ by: ['level'], where: scopeWhere, _count: true }),
       this.prisma.organization.count({ where: { ...scopeWhere, parentId: null } }),
       this.prisma.organization.aggregate({ where: scopeWhere, _max: { level: true } }),
       this.prisma.organization.count({ where: { ...scopeWhere, leaderId: { not: null } } }),
@@ -641,6 +646,16 @@ export class OrganizationRepository {
           users: { _count: 'desc' }
         },
         take: 5
+      }),
+      this.prisma.organization.findMany({
+        where: scopeWhere,
+        select: {
+          _count: {
+            select: {
+              users: { where: { leftAt: null } }
+            }
+          }
+        }
       })
     ])
 
@@ -648,6 +663,26 @@ export class OrganizationRepository {
     for (const g of typeGroups) {
       byType[g.type.toLowerCase()] = g._count
     }
+
+    const byLevel: Record<string, number> = {}
+    for (const g of levelGroups) {
+      byLevel[String(g.level)] = g._count
+    }
+
+    const leaderCoverageRate = total > 0 ? Number((hasLeaderCount / total).toFixed(4)) : 0
+    const averageMembersPerOrg = total > 0 ? Number((totalMemberships / total).toFixed(1)) : 0
+
+    const memberSizeBuckets = countMemberSizeBuckets(
+      memberCounts.map((organization) => organization._count.users)
+    )
+    const typeDistribution = withShare(
+      Object.entries(byType)
+        .filter(([, value]) => value > 0)
+        .map(([type, value]) => ({
+          label: isOrganizationType(type) ? ORGANIZATION_TYPE_LABELS[type] : type,
+          value
+        }))
+    )
 
     const topOrgsByMembers = topOrgs.map((org) => ({
       id: org.id,
@@ -664,13 +699,41 @@ export class OrganizationRepository {
         rootCount,
         maxDepth: maxLevelAggregate._max.level ?? 1,
         hasLeaderCount,
-        noLeaderCount
+        noLeaderCount,
+        leaderCoverageRate,
+        byLevel
       },
       members: {
         totalMemberships,
         emptyOrgCount,
+        averageMembersPerOrg,
         topOrgsByMembers
+      },
+      series: {
+        typeDistribution,
+        leaderDistribution: withShare([
+          { label: '已配置负责人', value: hasLeaderCount },
+          { label: '未配置负责人', value: noLeaderCount }
+        ]),
+        memberSizeBuckets
       }
     }
   }
+}
+
+const MEMBER_SIZE_BUCKETS = [
+  { label: '空组织', matches: (count: number) => count === 0 },
+  { label: '1–5 人', matches: (count: number) => count >= 1 && count <= 5 },
+  { label: '6–20 人', matches: (count: number) => count >= 6 && count <= 20 },
+  { label: '21–50 人', matches: (count: number) => count >= 21 && count <= 50 },
+  { label: '50 人以上', matches: (count: number) => count > 50 }
+] as const
+
+function countMemberSizeBuckets(counts: number[]) {
+  return withShare(
+    MEMBER_SIZE_BUCKETS.map((bucket) => ({
+      label: bucket.label,
+      value: counts.filter((count) => bucket.matches(count)).length
+    }))
+  )
 }

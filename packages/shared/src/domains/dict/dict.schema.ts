@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { toolCallMetaSchema } from '../../agent/tool-meta.schema.js'
+
 export const dictKindSchema = z.enum(['business', 'system'])
 export type DictKind = z.infer<typeof dictKindSchema>
 
@@ -51,6 +53,22 @@ export const workspaceUpdateSchema = z.object({
 })
 export type WorkspaceUpdateInput = z.infer<typeof workspaceUpdateSchema>
 
+export const dictionaryListQuerySchema = z.object({
+  workspaceId: z
+    .string()
+    .trim()
+    .optional()
+    .describe("所属空间 ID，支持传入特定空间 ID、'all'（全部）或 'starred'（仅已收藏）"),
+  search: z.string().trim().optional().describe('模糊搜索关键字（匹配字典名称、编码或描述）'),
+  kind: dictKindSchema.optional().describe('字典性质：business（业务字典）或 system（系统字典）')
+})
+export type DictionaryListQuery = z.infer<typeof dictionaryListQuerySchema>
+
+export const dictionaryListQueryToolSchema = toolCallMetaSchema.extend(
+  dictionaryListQuerySchema.shape
+)
+export type DictionaryListQueryTool = z.infer<typeof dictionaryListQueryToolSchema>
+
 export interface DictionaryListItem {
   id: string
   name: string
@@ -76,9 +94,28 @@ export interface DictionaryDetail extends DictionaryListItem {
   }>
 }
 
+export interface DictionaryDistributionItem {
+  label: string
+  value: number
+  percentage: number
+}
+
 export interface DictionaryWorkspaceStats {
   allCount: number
   starredCount: number
+  itemCount: number
+  unassignedCount: number
+  byKind: {
+    business: number
+    system: number
+  }
+  kindDistribution: DictionaryDistributionItem[]
+  itemStatusDistribution: DictionaryDistributionItem[]
+  workspaceRanking: Array<{
+    id: string
+    name: string
+    dictionaryCount: number
+  }>
 }
 
 export interface DictionaryWorkspaceItem {

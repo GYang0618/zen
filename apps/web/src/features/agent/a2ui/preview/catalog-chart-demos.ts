@@ -106,11 +106,14 @@ export const CHART_DEMOS: CatalogDemo[] = [
         showValues: true,
         valueUnit: '次',
         data: [
-          { label: '/api/checkout', value: 12840 },
-          { label: '/api/search', value: 9640 },
-          { label: '/api/catalog', value: 7320 },
-          { label: '/api/auth', value: 5180 },
-          { label: '/api/billing', value: 2460 }
+          { label: 'GET /api/audit/access', value: 147 },
+          { label: 'OPTIONS /api/audit/access', value: 146 },
+          { label: 'GET /api/audit', value: 141 },
+          { label: 'OPTIONS /api/audit', value: 135 },
+          { label: 'POST /api/copilot/runtime/usage', value: 126 },
+          { label: 'GET /api/copilot/info', value: 111 },
+          { label: 'POST /api/auth/refresh', value: 111 },
+          { label: 'GET /api/user', value: 91 }
         ]
       }
     ]
@@ -239,11 +242,11 @@ export const CHART_DEMOS: CatalogDemo[] = [
       {
         id: 'gauge-danger',
         component: 'GaugeChart',
-        title: '错误率',
-        value: 6.4,
-        max: 10,
+        title: '接口错误率',
+        value: 7.08,
+        max: 100,
         unit: '%',
-        subtext: '超过 SLO',
+        subtext: '170 / 2,400，主要来自匿名调用与缺少鉴权的健康检查',
         status: 'destructive'
       }
     ],

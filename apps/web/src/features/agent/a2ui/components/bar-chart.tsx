@@ -1,6 +1,7 @@
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@zen/ui'
-import { Bar, CartesianGrid, BarChart as RechartsBar, XAxis, YAxis } from 'recharts'
+import { Bar, CartesianGrid, BarChart as RechartsBar } from 'recharts'
 
+import { ChartCategoryXAxis, ChartValueYAxis } from './chart-axes'
 import { ChartCardShell, createSingleSeriesConfig } from './chart-shared'
 
 import type { RendererProps } from '@copilotkit/a2ui-renderer'
@@ -15,22 +16,10 @@ export function BarChart({ props }: RendererProps<BarChartProps>) {
   return (
     <ChartCardShell title={props.title} description={props.description}>
       <ChartContainer config={config} className="aspect-auto h-72 w-full">
-        <RechartsBar accessibilityLayer data={data} margin={{ left: 8, right: 8 }}>
+        <RechartsBar accessibilityLayer data={data} margin={{ left: 8, right: 8, bottom: 8 }}>
           <CartesianGrid vertical={false} />
-          <XAxis
-            dataKey="label"
-            tickLine={false}
-            axisLine={false}
-            tickMargin={8}
-            tick={{ fontSize: 11 }}
-          />
-          <YAxis
-            tickLine={false}
-            axisLine={false}
-            tickMargin={8}
-            tick={{ fontSize: 11 }}
-            width={40}
-          />
+          <ChartCategoryXAxis count={data.length} />
+          <ChartValueYAxis />
           <ChartTooltip content={<ChartTooltipContent />} />
           <Bar dataKey="value" fill="var(--color-value)" radius={[4, 4, 0, 0]} />
         </RechartsBar>

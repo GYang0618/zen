@@ -44,19 +44,24 @@ export function CatalogGallery() {
               <h2 className="text-sm font-semibold tracking-tight">{group.title}</h2>
               <Badge variant="outline">{group.badge}</Badge>
             </div>
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              {group.demos.map((demo) => (
-                <article
-                  key={demo.id}
-                  className={cn('min-w-0 space-y-2', demo.span === 'full' && 'lg:col-span-2')}
-                >
-                  <div>
-                    <h3 className="text-xs font-medium">{demo.name}</h3>
-                    <p className="text-[11px] text-muted-foreground">{demo.description}</p>
-                  </div>
-                  <DemoSurface demo={demo} />
-                </article>
-              ))}
+            <div className="@container/gallery">
+              <div className="grid grid-cols-1 gap-6 @4xl/gallery:grid-cols-2">
+                {group.demos.map((demo) => (
+                  <article
+                    key={demo.id}
+                    className={cn(
+                      'min-w-0 space-y-2',
+                      demo.span === 'full' && '@4xl/gallery:col-span-2'
+                    )}
+                  >
+                    <div>
+                      <h3 className="text-xs font-medium">{demo.name}</h3>
+                      <p className="text-[11px] text-muted-foreground">{demo.description}</p>
+                    </div>
+                    <DemoSurface demo={demo} />
+                  </article>
+                ))}
+              </div>
             </div>
           </section>
         ))}

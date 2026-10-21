@@ -1,14 +1,77 @@
 import { z } from 'zod'
 
+export const AUDIT_STATS_DAYS_MIN = 1
+export const AUDIT_STATS_DAYS_MAX = 90
+export const AUDIT_STATS_DAYS_DEFAULT = 7
+export const AUDIT_STATS_TOP_MIN = 1
+export const AUDIT_STATS_TOP_MAX = 20
+export const AUDIT_STATS_TOP_DEFAULT = 10
+
 export const auditDateRangeSchema = z.object({
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional()
 })
 
 export const auditStatsQuerySchema = auditDateRangeSchema.extend({
-  days: z.coerce.number().int().min(1).max(90).default(7),
-  top: z.coerce.number().int().min(1).max(20).default(10)
+  days: z.coerce
+    .number()
+    .int()
+    .min(AUDIT_STATS_DAYS_MIN)
+    .max(AUDIT_STATS_DAYS_MAX)
+    .default(AUDIT_STATS_DAYS_DEFAULT)
+    .describe(
+      `统计天数，范围 ${AUDIT_STATS_DAYS_MIN}-${AUDIT_STATS_DAYS_MAX}，默认 ${AUDIT_STATS_DAYS_DEFAULT}`
+    ),
+  top: z.coerce
+    .number()
+    .int()
+    .min(AUDIT_STATS_TOP_MIN)
+    .max(AUDIT_STATS_TOP_MAX)
+    .default(AUDIT_STATS_TOP_DEFAULT)
+    .describe(
+      `排行条数，范围 ${AUDIT_STATS_TOP_MIN}-${AUDIT_STATS_TOP_MAX}，默认 ${AUDIT_STATS_TOP_DEFAULT}`
+    )
 })
+
+function clampBoundedInt(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, Math.trunc(value)))
+}
+
+/**
+ * Agent 工具入参。schema 必须能转成 JSON Schema，因此不能使用 preprocess / transform。
+ * days / top 的越界截断在 {@link normalizeAuditStatsQuery} 中完成。
+ * HTTP 查询仍使用 auditStatsQuerySchema，越界返回 400。
+ */
+export const auditStatsToolQuerySchema = auditDateRangeSchema.extend({
+  days: z
+    .number()
+    .default(AUDIT_STATS_DAYS_DEFAULT)
+    .describe(
+      `统计天数，范围 ${AUDIT_STATS_DAYS_MIN}-${AUDIT_STATS_DAYS_MAX}，默认 ${AUDIT_STATS_DAYS_DEFAULT}。超出范围按边界截断`
+    ),
+  top: z
+    .number()
+    .default(AUDIT_STATS_TOP_DEFAULT)
+    .describe(
+      `排行条数，范围 ${AUDIT_STATS_TOP_MIN}-${AUDIT_STATS_TOP_MAX}，默认 ${AUDIT_STATS_TOP_DEFAULT}。超出范围按边界截断`
+    )
+})
+
+export function normalizeAuditStatsQuery<T extends { days?: number; top?: number }>(query: T) {
+  return {
+    ...query,
+    days: clampBoundedInt(
+      query.days ?? AUDIT_STATS_DAYS_DEFAULT,
+      AUDIT_STATS_DAYS_MIN,
+      AUDIT_STATS_DAYS_MAX
+    ),
+    top: clampBoundedInt(
+      query.top ?? AUDIT_STATS_TOP_DEFAULT,
+      AUDIT_STATS_TOP_MIN,
+      AUDIT_STATS_TOP_MAX
+    )
+  }
+}
 
 export const auditLogsToolQuerySchema = z.object({
   keyword: z.string().trim().min(1).optional(),
@@ -73,3 +136,23 @@ export const agentModelCallsToolQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().positive().max(100).default(20)
 })
+
+export const loginStatsTrendItemSchema = z.object({
+  bucketStart: z.string().describe('分桶开始时间（ISO字符串）'),
+  total: z.number().int().nonnegative().describe('登录尝试总次数'),
+  successCount: z.number().int().nonnegative().describe('成功登录次数'),
+  failureCount: z.number().int().nonnegative().describe('失败登录次数')
+})
+
+export type LoginStatsTrendItem = z.infer<typeof loginStatsTrendItemSchema>
+
+export const agentUsageTrendItemSchema = z.object({
+  date: z.string().describe('统计日期 YYYY-MM-DD'),
+  runs: z.number().int().nonnegative().describe('Agent 执行次数'),
+  modelCalls: z.number().int().nonnegative().describe('LLM 模型调用次数'),
+  toolCalls: z.number().int().nonnegative().describe('工具调用总次数'),
+  totalTokens: z.number().int().nonnegative().describe('总消耗 Token 数'),
+  costMicros: z.number().int().nonnegative().describe('消耗成本（微元）')
+})
+
+export type AgentUsageTrendItem = z.infer<typeof agentUsageTrendItemSchema>

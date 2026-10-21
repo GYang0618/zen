@@ -17,6 +17,7 @@ import {
 
 import { bridgeOpenTextToToolCall } from './bridge-text-to-tool-call.js'
 
+import type { ProcessedEvents } from '@ag-ui/langgraph'
 import type { AuthContext } from '@zen/shared'
 
 const agents = {
@@ -26,6 +27,11 @@ const agents = {
 
 /** 补上正文切到工具调用时被适配器丢掉的 TOOL_CALL_START。 */
 class StreamingLangGraphAgent extends LangGraphAgent {
+  override dispatchEvent(event: ProcessedEvents): boolean {
+    if (typeof event.timestamp !== 'number') event.timestamp = Date.now()
+    return super.dispatchEvent(event)
+  }
+
   override handleSingleEvent(event: unknown): void {
     if (bridgeOpenTextToToolCall(this, event)) return
     super.handleSingleEvent(event)

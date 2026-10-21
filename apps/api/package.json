@@ -7,7 +7,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "prebuild": "pnpm -F @zen/shared build && pnpm -F @zen/plugin-sdk build && pnpm --filter '@zen/plugin-demo-notes' --filter '@zen/plugin-jobs' --filter '@zen/plugin-notifications' build && pnpm run prisma:generate",
+    "prebuild": "pnpm -F @zen/shared build && pnpm -F @zen/plugin-sdk build && pnpm run prisma:generate && pnpm --filter '@zen/plugin-demo-notes' --filter '@zen/plugin-jobs' --filter '@zen/plugin-notifications' build",
     "dev": "nest start --watch",
     "debug": "nest start --debug --watch",
     "build": "nest build",

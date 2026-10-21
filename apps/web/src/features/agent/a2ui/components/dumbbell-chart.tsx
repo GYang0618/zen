@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle, cn } from '@zen/ui'
 import { useMemo } from 'react'
 
+import { OverflowText } from './overflow-text'
+
 import type { RendererProps } from '@copilotkit/a2ui-renderer'
 
 export interface DumbbellItem {
@@ -31,13 +33,13 @@ export function DumbbellChart({ props }: RendererProps<DumbbellChartProps>) {
   const {
     title,
     subtitle,
-    summaryLabel = 'Median change',
+    summaryLabel = '中位变化',
     summaryValue,
-    beforeLabel = 'Before',
-    afterLabel = 'After',
+    beforeLabel = '之前',
+    afterLabel = '之后',
     items = [],
     min = 0,
-    unit = 'ms',
+    unit = '毫秒',
     ticks: explicitTicks,
     footer,
     className
@@ -62,10 +64,12 @@ export function DumbbellChart({ props }: RendererProps<DumbbellChartProps>) {
   const range = computedMax - min || 1
 
   return (
-    <Card className={cn('h-full w-full', className)}>
+    <Card className={cn('@container/chart h-full w-full', className)}>
       <CardHeader className="flex flex-row items-start justify-between pb-3">
-        <div className="space-y-1">
-          <CardTitle className="text-base font-semibold text-foreground">{title}</CardTitle>
+        <div className="min-w-0 space-y-1">
+          <CardTitle className="min-w-0 text-base font-semibold text-foreground">
+            <OverflowText>{title}</OverflowText>
+          </CardTitle>
           {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
         </div>
 
@@ -76,7 +80,7 @@ export function DumbbellChart({ props }: RendererProps<DumbbellChartProps>) {
                 {summaryLabel}
               </span>
             )}
-            <span className="font-mono text-base sm:text-lg font-bold tracking-tight text-foreground">
+            <span className="font-mono text-base font-bold tracking-tight text-foreground @sm/chart:text-lg">
               {summaryValue}
             </span>
           </div>
@@ -114,8 +118,10 @@ export function DumbbellChart({ props }: RendererProps<DumbbellChartProps>) {
                 className="flex items-center gap-4 text-xs transition-colors hover:bg-muted/10 py-1"
               >
                 {/* 接口/端点名称 */}
-                <div className="w-28 sm:w-36 shrink-0 truncate font-mono font-medium text-foreground">
-                  {item.label}
+                <div className="w-24 shrink-0 @sm/chart:w-36">
+                  <OverflowText className="font-mono font-medium text-foreground">
+                    {item.label}
+                  </OverflowText>
                 </div>
 
                 {/* 棒铃横杆与圆点坐标轴 */}
@@ -142,8 +148,10 @@ export function DumbbellChart({ props }: RendererProps<DumbbellChartProps>) {
                 </div>
 
                 {/* 右侧数值比对文案 */}
-                <div className="w-24 sm:w-28 shrink-0 text-right font-mono font-medium tabular-nums text-foreground">
-                  {valueText}
+                <div className="w-20 shrink-0 @sm/chart:w-28">
+                  <OverflowText className="text-end font-mono font-medium text-foreground tabular-nums">
+                    {valueText}
+                  </OverflowText>
                 </div>
               </div>
             )
@@ -152,7 +160,7 @@ export function DumbbellChart({ props }: RendererProps<DumbbellChartProps>) {
 
         {/* X 轴刻度尺 */}
         <div className="flex items-center gap-4 pt-2 border-t border-border/40 text-xs text-muted-foreground font-mono">
-          <div className="w-28 sm:w-36 shrink-0" aria-hidden />
+          <div className="w-24 shrink-0 @sm/chart:w-36" aria-hidden />
           <div className="relative flex-1 h-4">
             {ticks.map((tick, idx) => {
               const tickPct = Math.min(100, Math.max(0, ((tick - min) / range) * 100))
@@ -173,7 +181,7 @@ export function DumbbellChart({ props }: RendererProps<DumbbellChartProps>) {
               )
             })}
           </div>
-          <div className="w-24 sm:w-28 shrink-0" aria-hidden />
+          <div className="w-20 shrink-0 @sm/chart:w-28" aria-hidden />
         </div>
 
         {/* 底部补充说明 */}

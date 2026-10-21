@@ -40,6 +40,7 @@ import {
   StatCard,
   Tabs,
   Timeline,
+  Tooltip,
   UptimeCard,
   UserCard,
   WaterfallChart
@@ -83,6 +84,7 @@ export const commonRenderers = {
   Badge,
   ScrollArea,
   Tabs,
+  Tooltip,
   Progress,
   Item,
   ItemGroup,

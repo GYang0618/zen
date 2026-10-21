@@ -26,6 +26,7 @@ import { stampMissingEventTimestamps } from './agui-message-timing.js'
 import { CopilotThreadService } from './copilot-thread.service.js'
 import { extractBearerToken } from './copilot-token.util.js'
 import { CopilotUsageService } from './copilot-usage.service.js'
+import { loadIdleLangGraphProjection } from './langgraph-thread-projection.js'
 import {
   parseCopilotSseResponse,
   rewriteRunRequestWithoutDisplayMessages
@@ -34,6 +35,7 @@ import {
   buildHistoryReplaySse,
   CONNECT_THREAD_HEADER,
   filterRegressiveSnapshotStream,
+  rewriteSseTextWithTiming,
   stampConnectThreadRequest
 } from './thread-history-replay.js'
 
@@ -42,6 +44,8 @@ import type { OnModuleInit } from '@nestjs/common'
 import type { AuthContext } from '@zen/shared'
 import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface.js'
 import type { AppConfig, LanggraphConfig } from '../../config/index.js'
+import type { ThreadMessage } from './copilot-thread.service.js'
+import type { LangGraphDisplayProjection } from './langgraph-thread-projection.js'
 
 export function copilotKitBasePath(apiPrefix: string): string {
   const prefix = apiPrefix.startsWith('/') ? apiPrefix : `/${apiPrefix}`
@@ -294,7 +298,10 @@ export class CopilotService implements OnModuleInit {
     try {
       const store = ɵGLOBAL_STORE.peek(threadId)
       const busy = Boolean(store?.isRunning || store?.stopRequested)
-      const { messages } = await this.threadService.getThreadMessages({ threadId })
+      let { messages } = await this.threadService.getThreadMessages({ threadId })
+      if (!busy && messages.length === 0) {
+        messages = await this.restoreDisplayMessagesFromCheckpoint(threadId)
+      }
       if (!busy && messages.length > 0) {
         const sse = buildHistoryReplaySse(threadId, messages)
         if (sse) {
@@ -313,10 +320,77 @@ export class CopilotService implements OnModuleInit {
           headers
         })
       }
+      if (!busy) {
+        const text = await response.text()
+        const headers = new Headers(response.headers)
+        headers.delete('content-length')
+        const body = text.trim().length > 0 ? rewriteSseTextWithTiming(text, messages) : text
+        return new Response(body, { status: response.status, headers })
+      }
     } catch (error) {
       this.logger.error({ err: error, threadId }, '回放已保存的会话历史失败')
     }
     return response
+  }
+
+  /** 运行中断后展示表是空的，但图检查点还在。回填后这次连接就能看到原来的消息。 */
+  private async restoreDisplayMessagesFromCheckpoint(threadId: string): Promise<ThreadMessage[]> {
+    try {
+      const projection = await loadIdleLangGraphProjection(
+        this.langgraphCfg.deploymentUrl,
+        threadId
+      )
+      if (!projection) return []
+      const saved = await this.saveCheckpointProjection(threadId, projection)
+      if (saved.length === 0) return []
+      await this.settleIdleRun(threadId, projection.endedAt)
+      this.logger.warn({ threadId, count: saved.length }, '展示消息缺失，已从 LangGraph 检查点回填')
+      return saved
+    } catch (error) {
+      this.logger.error({ err: error, threadId }, '从 LangGraph 检查点回填展示消息失败')
+      return []
+    }
+  }
+
+  private async saveCheckpointProjection(
+    threadId: string,
+    projection: LangGraphDisplayProjection
+  ): Promise<ThreadMessage[]> {
+    const thread = await this.prisma.agentThread.findUnique({
+      where: { id: threadId },
+      select: { tenantId: true, userId: true, agentId: true }
+    })
+    if (!thread) return []
+    await this.threadService.saveThreadSnapshot({
+      threadId,
+      tenantId: thread.tenantId,
+      userId: thread.userId,
+      agentId: thread.agentId,
+      messages: projection.messages,
+      mode: 'replace'
+    })
+    const stored = await this.threadService.getThreadMessages({ threadId })
+    return stored.messages
+  }
+
+  private async settleIdleRun(threadId: string, endedAt: Date | undefined): Promise<void> {
+    const running = await this.prisma.agentRun.findMany({
+      where: { threadId, status: AgentRunStatus.running },
+      select: { id: true, startedAt: true }
+    })
+    const finishedAt = endedAt ?? new Date()
+    for (const run of running) {
+      const durationMs = run.startedAt ? finishedAt.getTime() - run.startedAt.getTime() : undefined
+      await this.prisma.agentRun.update({
+        where: { id: run.id },
+        data: {
+          status: AgentRunStatus.succeeded,
+          endReason: AgentEndReason.completed,
+          endedAt: finishedAt,
+          ...(durationMs !== undefined && durationMs >= 0 ? { durationMs } : {})
+        }
+      })
+    }
   }
 
   private async persistThreadSnapshotFromSse(response: Response): Promise<void> {

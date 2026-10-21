@@ -1,0 +1,16 @@
+.git
+.github
+.turbo
+**/.turbo
+**/node_modules
+**/dist
+coverage
+**/.langgraph_api
+apps/api/uploads
+docker/compose.runtime.yml
+
+.env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example

@@ -1,10 +1,22 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { ROLE_MEMBER_PREVIEW_LIMIT } from '@zen/shared'
 
+import { ratio, withShare } from '../../common/stats/series.js'
 import { PrismaService } from '../../infra/prisma/prisma.service.js'
 
 import type { Prisma } from '@prisma/client'
 import type { RoleStatisticsResponse } from './responses/role.response.js'
+
+const TOP_ROLE_LIMIT = 5
+const ROLE_COMPARISON_LIMIT = 8
+
+const DATA_SCOPE_LABELS: Record<string, string> = {
+  all: '全部数据',
+  organization: '组织及下级',
+  organization_only: '仅本组织',
+  self: '仅本人',
+  custom: '自定义范围'
+}
 
 export const ROLE_INCLUDE = {
   permissions: {
@@ -223,7 +235,10 @@ export class RoleRepository {
       dataScopeGroups,
       assignedUserTotal,
       emptyRoleCount,
-      topRoleRecords
+      disabledNotExpired,
+      topRoleRecords,
+      topRolePermissionRecords,
+      totalRolePermissions
     ] = await Promise.all([
       this.prisma.role.count(),
       this.prisma.role.groupBy({ by: ['kind'], _count: true }),
@@ -245,20 +260,41 @@ export class RoleRepository {
           users: { none: {} }
         }
       }),
+      this.prisma.role.count({
+        where: {
+          status: 'DISABLED',
+          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }]
+        }
+      }),
       this.prisma.role.findMany({
         select: {
           id: true,
           name: true,
           code: true,
           _count: {
-            select: { users: true }
+            select: { users: true, permissions: true }
           }
         },
         orderBy: {
           users: { _count: 'desc' }
         },
-        take: 5
-      })
+        take: ROLE_COMPARISON_LIMIT
+      }),
+      this.prisma.role.findMany({
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          _count: {
+            select: { permissions: true }
+          }
+        },
+        orderBy: {
+          permissions: { _count: 'desc' }
+        },
+        take: TOP_ROLE_LIMIT
+      }),
+      this.prisma.rolePermission.count()
     ])
 
     const byKind = {
@@ -298,12 +334,40 @@ export class RoleRepository {
       }
     }
 
-    const topRoles = topRoleRecords.map((r) => ({
+    const topRoles = topRoleRecords.slice(0, TOP_ROLE_LIMIT).map((role) => ({
+      id: role.id,
+      name: role.name,
+      code: role.code,
+      userCount: role._count.users
+    }))
+    const roleComparison = topRoleRecords.map((role) => ({
+      label: role.name,
+      userCount: role._count.users,
+      permissionCount: role._count.permissions
+    }))
+
+    const topRolesByPermissions = topRolePermissionRecords.map((r) => ({
       id: r.id,
       name: r.name,
       code: r.code,
-      userCount: r._count.users
+      permissionCount: r._count.permissions
     }))
+
+    const averagePermissionsPerRole =
+      total > 0 ? Number((totalRolePermissions / total).toFixed(1)) : 0
+    const activeNotExpired = Math.max(0, total - expired - disabledNotExpired)
+    const topPermissionSum = topRolesByPermissions.reduce(
+      (sum, role) => sum + role.permissionCount,
+      0
+    )
+    const dataScopeDistribution = withShare(
+      Object.entries(byDataScope)
+        .filter(([, value]) => value > 0)
+        .map(([key, value]) => ({
+          label: DATA_SCOPE_LABELS[key] ?? key,
+          value
+        }))
+    )
 
     return {
       total,
@@ -313,7 +377,26 @@ export class RoleRepository {
       binding: {
         assignedUserTotal,
         emptyRoleCount,
-        topRoles
+        averagePermissionsPerRole,
+        topRoles,
+        topRolesByPermissions
+      },
+      series: {
+        rates: {
+          utilizationRate: ratio(total - emptyRoleCount, total),
+          permissionConcentrationRate: ratio(topPermissionSum, totalRolePermissions)
+        },
+        kindDistribution: withShare([
+          { label: '系统角色', value: byKind.system },
+          { label: '自定义角色', value: byKind.custom }
+        ]),
+        statusDistribution: withShare([
+          { label: '启用', value: activeNotExpired },
+          { label: '禁用', value: disabledNotExpired },
+          { label: '已过期', value: expired }
+        ]),
+        dataScopeDistribution,
+        roleComparison
       }
     }
   }

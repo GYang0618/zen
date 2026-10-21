@@ -1,5 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common'
 
+import {
+  activityLevels,
+  eachLocalDate,
+  localDateKey,
+  ratio,
+  withShare
+} from '../../common/stats/series.js'
 import { PrismaService } from '../../infra/prisma/prisma.service.js'
 
 import type { Prisma, UserStatusCode } from '@prisma/client'
@@ -88,6 +95,42 @@ export type UserRoles = Prisma.UserGetPayload<{ select: typeof USER_ROLES_SELECT
 export type UserOrganizations = Prisma.UserGetPayload<{
   select: typeof USER_ORGANIZATIONS_SELECT
 }>
+
+const USER_TREND_DAYS = 14
+const USER_CALENDAR_DAYS = 84
+
+function buildCreationSeries(now: Date, createdAtList: Date[]) {
+  const calendarStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() - (USER_CALENDAR_DAYS - 1)
+  )
+  const dates = eachLocalDate(calendarStart, USER_CALENDAR_DAYS)
+  const counts = new Map(dates.map((date) => [date, 0]))
+  for (const createdAt of createdAtList) {
+    const key = localDateKey(createdAt)
+    if (!counts.has(key)) continue
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+
+  const values = dates.map((date) => counts.get(date) ?? 0)
+  const levels = activityLevels(values)
+  const creationCalendar = dates.map((date, index) => ({
+    date,
+    count: values[index] ?? 0,
+    level: levels[index] ?? 0,
+    tooltip: `${date}：新增 ${values[index] ?? 0} 人`
+  }))
+  const trend = creationCalendar.slice(-USER_TREND_DAYS).map(({ date, count }) => ({ date, count }))
+  const half = USER_TREND_DAYS / 2
+  const weeklyNewUsers = trend.slice(half).map((point, index) => ({
+    label: point.date.slice(5),
+    previous: trend[index]?.count ?? 0,
+    current: point.count
+  }))
+
+  return { trend, creationCalendar, weeklyNewUsers }
+}
 
 @Injectable()
 export class UserRepository {
@@ -352,7 +395,13 @@ export class UserRepository {
     const activeWhere: Prisma.UserWhereInput = { ...where, deletedAt: null }
     const now = new Date()
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000)
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+    const calendarStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() - (USER_CALENDAR_DAYS - 1)
+    )
 
     const [
       total,
@@ -366,7 +415,16 @@ export class UserRepository {
       unassignedCount,
       noRoleCount,
       newUsersLast7Days,
-      newUsersLast30Days
+      previous7DaysCount,
+      newUsersLast30Days,
+      activeUsersLast7Days,
+      activeUsersLast30Days,
+      neverLoggedInCount,
+      activatedAndAssigned,
+      activatedAssignedLoggedIn,
+      activatedAssignedActive30,
+      calendarUsers,
+      topOrgs
     ] = await Promise.all([
       this.prisma.user.count({ where: activeWhere }),
       this.prisma.user.count({ where: { deletedAt: { not: null } } }),
@@ -400,7 +458,69 @@ export class UserRepository {
         where: { ...activeWhere, createdAt: { gte: sevenDaysAgo } }
       }),
       this.prisma.user.count({
+        where: { ...activeWhere, createdAt: { gte: fourteenDaysAgo, lt: sevenDaysAgo } }
+      }),
+      this.prisma.user.count({
         where: { ...activeWhere, createdAt: { gte: thirtyDaysAgo } }
+      }),
+      this.prisma.user.count({
+        where: { AND: [activeWhere, userLoggedInSince(sevenDaysAgo)] }
+      }),
+      this.prisma.user.count({
+        where: { AND: [activeWhere, userLoggedInSince(thirtyDaysAgo)] }
+      }),
+      this.prisma.user.count({
+        where: { AND: [activeWhere, userNeverLoggedIn()] }
+      }),
+      this.prisma.user.count({
+        where: {
+          ...activeWhere,
+          status: 'ACTIVE',
+          organizations: { some: { leftAt: null } }
+        }
+      }),
+      this.prisma.user.count({
+        where: {
+          AND: [
+            activeWhere,
+            {
+              status: 'ACTIVE',
+              organizations: { some: { leftAt: null } },
+              ...userHasLoggedIn()
+            }
+          ]
+        }
+      }),
+      this.prisma.user.count({
+        where: {
+          AND: [
+            activeWhere,
+            {
+              status: 'ACTIVE',
+              organizations: { some: { leftAt: null } },
+              ...userLoggedInSince(thirtyDaysAgo)
+            }
+          ]
+        }
+      }),
+      this.prisma.user.findMany({
+        where: { ...activeWhere, createdAt: { gte: calendarStart } },
+        select: { createdAt: true }
+      }),
+      this.prisma.organization.findMany({
+        select: {
+          id: true,
+          name: true,
+          _count: {
+            select: {
+              users: { where: { leftAt: null } }
+            }
+          }
+        },
+        orderBy: {
+          users: { _count: 'desc' }
+        },
+        take: 5
       })
     ])
 
@@ -429,6 +549,24 @@ export class UserRepository {
       }
     }
 
+    const growthRate =
+      previous7DaysCount > 0
+        ? Number(((newUsersLast7Days - previous7DaysCount) / previous7DaysCount).toFixed(4))
+        : newUsersLast7Days > 0
+          ? 1
+          : 0
+
+    const { trend, creationCalendar, weeklyNewUsers } = buildCreationSeries(
+      now,
+      calendarUsers.map((user) => user.createdAt)
+    )
+
+    const topOrganizations = topOrgs.map((org) => ({
+      id: org.id,
+      name: org.name,
+      userCount: org._count.users
+    }))
+
     return {
       total,
       deletedCount,
@@ -444,10 +582,72 @@ export class UserRepository {
         unassignedCount,
         noRoleCount
       },
+      activity: {
+        activeUsersLast7Days,
+        activeUsersLast30Days,
+        neverLoggedInCount
+      },
       recentTrends: {
         newUsersLast7Days,
+        previous7DaysCount,
+        growthRate,
         newUsersLast30Days
+      },
+      trend,
+      topOrganizations,
+      series: {
+        rates: {
+          activationRate: ratio(byStatus.active, total),
+          mfaCoverageRate: ratio(mfaEnabledCount, total),
+          organizationAssignmentRate: ratio(assignedCount, total),
+          roleAssignmentRate: ratio(total - noRoleCount, total),
+          activeRate7d: ratio(activeUsersLast7Days, total),
+          activeRate30d: ratio(activeUsersLast30Days, total)
+        },
+        statusDistribution: withShare([
+          { label: '已激活', value: byStatus.active },
+          { label: '未激活', value: byStatus.inactive },
+          { label: '待审核', value: byStatus.pending },
+          { label: '已停用', value: byStatus.suspended }
+        ]),
+        genderDistribution: withShare([
+          { label: '男', value: byGender.male },
+          { label: '女', value: byGender.female },
+          { label: '未知', value: byGender.unknown }
+        ]),
+        funnel: [
+          { label: '在册用户', value: total },
+          { label: '已激活', value: byStatus.active },
+          { label: '已激活且已归属组织', value: activatedAndAssigned },
+          { label: '其中曾登录', value: activatedAssignedLoggedIn },
+          { label: '其中近 30 天活跃', value: activatedAssignedActive30 }
+        ],
+        health: [
+          { label: '激活率', value: Math.round(ratio(byStatus.active, total) * 100) },
+          { label: 'MFA 覆盖', value: Math.round(ratio(mfaEnabledCount, total) * 100) },
+          { label: '组织归属', value: Math.round(ratio(assignedCount, total) * 100) },
+          { label: '角色绑定', value: Math.round(ratio(total - noRoleCount, total) * 100) },
+          { label: '近 30 天活跃', value: Math.round(ratio(activeUsersLast30Days, total) * 100) },
+          { label: '未锁定', value: Math.round(ratio(total - lockedCount, total) * 100) }
+        ],
+        weeklyNewUsers,
+        creationCalendar
       }
     }
+  }
+}
+
+/** 最近登录时间落在 UserAudit，过滤必须走 audit 关系。 */
+function userLoggedInSince(since: Date): Prisma.UserWhereInput {
+  return { audit: { is: { lastLoginAt: { gte: since } } } }
+}
+
+function userHasLoggedIn(): Prisma.UserWhereInput {
+  return { audit: { is: { lastLoginAt: { not: null } } } }
+}
+
+function userNeverLoggedIn(): Prisma.UserWhereInput {
+  return {
+    OR: [{ audit: { is: null } }, { audit: { is: { lastLoginAt: null } } }]
   }
 }

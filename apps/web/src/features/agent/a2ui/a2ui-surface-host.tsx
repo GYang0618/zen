@@ -44,7 +44,7 @@ export const A2UISurfaceHost = memo(function A2UISurfaceHost({ surface }: A2UISu
   }
 
   return (
-    <div className="w-full" data-surface-id={surface.surfaceId}>
+    <div className="@container/a2ui w-full min-w-0" data-surface-id={surface.surfaceId}>
       <A2UIRenderer
         surfaceId={surface.surfaceId}
         className="w-full"

@@ -278,6 +278,12 @@ export const jobProfilesQueryToolSchema = toolCallMetaSchema.extend(
 )
 export type JobProfilesQueryTool = z.infer<typeof jobProfilesQueryToolSchema>
 
+const postShareItemSchema = z.object({
+  label: z.string().describe('分类名称'),
+  value: z.number().int().nonnegative().describe('数量'),
+  percentage: z.number().describe('占该分布合计的百分比，0-100')
+})
+
 export const postStatisticsQuerySchema = z.object({
   organizationId: z
     .string()
@@ -308,11 +314,60 @@ export const postStatisticsSchema = z.object({
     frozenCount: z.number().int().nonnegative().describe('冻结状态编制数'),
     totalPlanHeadcount: z.number().int().nonnegative().describe('规划编制总人数'),
     totalActualHeadcount: z.number().int().nonnegative().describe('实际在岗总人次'),
+    overallFillRate: z
+      .number()
+      .describe('编制整体满足率/在岗率（0-1 小数，可直接用于 GaugeChart）'),
     understaffedCount: z.number().int().nonnegative().describe('缺编编制项数（在岗 < 编制）'),
     fullCount: z.number().int().nonnegative().describe('满编编制项数（在岗 = 编制）'),
     overstaffedCount: z.number().int().nonnegative().describe('超编编制项数（在岗 > 编制）'),
-    vacantCount: z.number().int().nonnegative().describe('完全空缺编制项数（在岗 = 0）')
-  })
+    vacantCount: z.number().int().nonnegative().describe('完全空缺编制项数（在岗 = 0）'),
+    topUnderstaffedPositions: z
+      .array(
+        z.object({
+          id: z.string().describe('组织岗位编制 ID'),
+          postName: z.string().describe('岗位名称'),
+          orgName: z.string().describe('所属部门'),
+          planHeadcount: z.number().int().nonnegative().describe('编制人数'),
+          actualHeadcount: z.number().int().nonnegative().describe('在岗人数'),
+          vacantHeadcount: z.number().int().nonnegative().describe('缺编人数')
+        })
+      )
+      .describe('缺编人数排名前 5 的岗位编制（用于 HorizontalBarChart 或表格）')
+  }),
+  series: z
+    .object({
+      levelDistribution: z
+        .array(postShareItemSchema)
+        .describe('职级构成，label 为职级编码。供 DonutChart 或 BarChart'),
+      familyDistribution: z.array(postShareItemSchema).describe('岗位族构成。供 DonutChart'),
+      fillMix: z
+        .array(postShareItemSchema)
+        .describe(
+          '互斥的编制状态：空缺、缺编、满编、超编。空缺不重复计入缺编。供 DonutChart。understaffedCount 仍是“在岗 < 编制”的旧口径，含空缺'
+        ),
+      staffingComparison: z
+        .array(
+          z.object({
+            label: z.string().describe('岗位 · 部门'),
+            plan: z.number().int().nonnegative().describe('编制人数'),
+            actual: z.number().int().nonnegative().describe('在岗人数')
+          })
+        )
+        .describe(
+          '按编制与在岗差额绝对值取前 8。GroupedBarChart 的 key 为 plan（编制）与 actual（在岗）。DumbbellChart 用 before=plan、after=actual、unit 为「人」'
+        ),
+      staffingScatter: z
+        .array(
+          z.object({
+            label: z.string().describe('岗位 · 部门'),
+            x: z.number().int().nonnegative().describe('编制人数'),
+            y: z.number().int().nonnegative().describe('在岗人数'),
+            category: z.enum(['空缺', '缺编', '满编', '超编']).describe('编制状态')
+          })
+        )
+        .describe('按编制人数从高到低最多 40 个点。ScatterChart 的 x=编制、y=在岗、category=分组')
+    })
+    .describe('图表可直接绑定的序列，与上方原始计数来自同一次聚合')
 })
 
 export const postStatisticsToolSchema = toolCallMetaSchema.extend(postStatisticsQuerySchema.shape)

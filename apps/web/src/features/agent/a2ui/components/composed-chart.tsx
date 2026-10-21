@@ -5,15 +5,9 @@ import {
   ChartTooltip,
   ChartTooltipContent
 } from '@zen/ui'
-import {
-  Bar,
-  CartesianGrid,
-  Line,
-  ComposedChart as RechartsComposedChart,
-  XAxis,
-  YAxis
-} from 'recharts'
+import { Bar, CartesianGrid, Line, ComposedChart as RechartsComposedChart } from 'recharts'
 
+import { ChartCategoryXAxis, ChartValueYAxis } from './chart-axes'
 import { ChartCardShell } from './chart-shared'
 
 import type { RendererProps } from '@copilotkit/a2ui-renderer'
@@ -64,36 +58,11 @@ export function ComposedChart({ props }: RendererProps<ComposedChartProps>) {
           margin={{ top: 8, left: 8, right: secondaryAxis ? 16 : 8, bottom: 4 }}
         >
           <CartesianGrid vertical={false} />
-          <XAxis
-            dataKey="label"
-            tickLine={false}
-            axisLine={false}
-            tickMargin={8}
-            tick={{ fontSize: 11 }}
-          />
-          <YAxis
-            yAxisId="left"
-            tickLine={false}
-            axisLine={false}
-            tickMargin={8}
-            tick={{ fontSize: 11 }}
-            width={40}
-            unit={barUnit}
-          />
-          {secondaryAxis && (
-            <YAxis
-              yAxisId="right"
-              orientation="right"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              tick={{ fontSize: 11 }}
-              width={40}
-              unit={lineUnit}
-            />
-          )}
+          <ChartCategoryXAxis count={data.length} />
+          <ChartValueYAxis yAxisId="left" unit={barUnit} />
+          {secondaryAxis && <ChartValueYAxis yAxisId="right" orientation="right" unit={lineUnit} />}
           <ChartTooltip content={<ChartTooltipContent />} />
-          <ChartLegend content={<ChartLegendContent />} />
+          <ChartLegend content={<ChartLegendContent className="flex-wrap px-2" />} />
           <Bar
             yAxisId="left"
             dataKey="barValue"

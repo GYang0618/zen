@@ -2,6 +2,7 @@ import { ChartContainer, cn } from '@zen/ui'
 import { Cell, Pie, PieChart as RechartsPie } from 'recharts'
 
 import { ChartCardShell } from './chart-shared'
+import { OverflowText } from './overflow-text'
 
 import type { RendererProps } from '@copilotkit/a2ui-renderer'
 import type { ChartConfig } from '@zen/ui'
@@ -24,6 +25,9 @@ const STATUS_COLOR_MAP: Record<NonNullable<GaugeChartProps['status']>, string> =
   destructive: 'var(--destructive)'
 }
 
+/** 可见窗口略高于半圆直径，避免描边被裁切。 */
+const GAUGE_VIEWPORT_RATIO = '54%'
+
 export function GaugeChart({ props }: RendererProps<GaugeChartProps>) {
   const value = props.value ?? 0
   const min = props.min ?? 0
@@ -32,72 +36,64 @@ export function GaugeChart({ props }: RendererProps<GaugeChartProps>) {
   const subtext = props.subtext
   const status = props.status ?? 'default'
 
-  // 限制进度范围在 min 与 max 之间
   const clampedValue = Math.min(Math.max(value, min), max)
   const range = max - min || 1
   const progressRatio = (clampedValue - min) / range
-
   const progressValue = progressRatio * 100
-  const remainingValue = 100 - progressValue
-
   const activeColor = STATUS_COLOR_MAP[status] ?? STATUS_COLOR_MAP.default
 
   const chartData = [
     { name: 'progress', value: progressValue, fill: activeColor },
-    { name: 'track', value: remainingValue, fill: 'var(--muted)' }
+    { name: 'track', value: 100 - progressValue, fill: 'var(--muted)' }
   ]
 
   const config: ChartConfig = {
-    progress: {
-      label: '当前值',
-      color: activeColor
-    },
-    track: {
-      label: '剩余',
-      color: 'var(--muted)'
-    }
+    progress: { label: '当前值', color: activeColor },
+    track: { label: '剩余', color: 'var(--muted)' }
   }
 
   return (
     <ChartCardShell title={props.title} description={props.description}>
-      <div className="relative mx-auto flex h-64 w-full max-w-sm flex-col items-center justify-center">
-        <ChartContainer config={config} className="h-full w-full">
-          <RechartsPie accessibilityLayer>
-            <Pie
-              data={chartData}
-              dataKey="value"
-              startAngle={180}
-              endAngle={0}
-              innerRadius={72}
-              outerRadius={96}
-              cy="75%"
-              stroke="var(--background)"
-              strokeWidth={3}
-              cornerRadius={6}
-            >
-              {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.fill} />
-              ))}
-            </Pie>
-          </RechartsPie>
-        </ChartContainer>
-
-        {/* 仪表盘中心数值与辅助标签 */}
-        <div className="absolute top-[48%] flex max-w-[160px] flex-col items-center px-2 text-center">
-          <div className="flex items-baseline gap-0.5">
-            <span className="font-mono text-3xl font-bold tracking-tight text-foreground">
+      <div className="@container/gauge mx-auto flex w-full max-w-sm flex-col">
+        <div
+          className="relative w-full overflow-hidden"
+          style={{ paddingBottom: GAUGE_VIEWPORT_RATIO }}
+        >
+          <div className="absolute inset-x-0 top-0 aspect-square">
+            <ChartContainer config={config} className="aspect-square h-full w-full">
+              <RechartsPie accessibilityLayer>
+                <Pie
+                  data={chartData}
+                  dataKey="value"
+                  startAngle={180}
+                  endAngle={0}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius="62%"
+                  outerRadius="86%"
+                  stroke="var(--background)"
+                  strokeWidth={3}
+                  cornerRadius={6}
+                >
+                  {chartData.map((entry) => (
+                    <Cell key={entry.name} fill={entry.fill} />
+                  ))}
+                </Pie>
+              </RechartsPie>
+            </ChartContainer>
+          </div>
+          <div className="pointer-events-none absolute inset-x-[27%] top-[58%] flex items-baseline justify-center gap-0.5">
+            <span className="font-mono text-xl font-bold tracking-tight text-foreground @xs/gauge:text-2xl @sm/gauge:text-3xl">
               {value.toLocaleString()}
             </span>
-            {unit && <span className="text-sm font-medium text-muted-foreground">{unit}</span>}
+            {unit ? (
+              <span className="text-sm font-medium text-muted-foreground">{unit}</span>
+            ) : null}
           </div>
-          {subtext && (
-            <p className="mt-1 max-w-[200px] truncate text-xs text-muted-foreground">{subtext}</p>
-          )}
         </div>
 
-        {/* 底部量程端点 */}
-        <div className="absolute bottom-6 flex w-full max-w-[210px] items-center justify-between px-2 text-[11px] font-medium text-muted-foreground">
-          <span>
+        <div className="mt-2 flex items-center justify-between gap-2 px-1 text-[11px] font-medium text-muted-foreground">
+          <span className="shrink-0">
             {min}
             {unit}
           </span>
@@ -112,11 +108,17 @@ export function GaugeChart({ props }: RendererProps<GaugeChartProps>) {
           >
             {Math.round(progressRatio * 100)}%
           </span>
-          <span>
+          <span className="shrink-0">
             {max}
             {unit}
           </span>
         </div>
+
+        {subtext ? (
+          <OverflowText className="mt-1.5 px-1 text-center text-xs text-muted-foreground">
+            {subtext}
+          </OverflowText>
+        ) : null}
       </div>
     </ChartCardShell>
   )

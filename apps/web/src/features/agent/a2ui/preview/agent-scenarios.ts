@@ -1,3 +1,7 @@
+import { buildDemoActivityDays } from './activity-demo-days'
+
+const demoActivityDays = buildDemoActivityDays()
+
 export interface AgentScenario {
   id: string
   name: string
@@ -368,6 +372,7 @@ export const AGENT_SCENARIOS: AgentScenario[] = [
           id: 'activity-cal',
           component: 'ActivityCalendar',
           title: '研发交付与代码提交活跃度 (26 周)',
+          days: demoActivityDays,
           totalEvents: 1428,
           startDate: '2026-01-01',
           weeks: 26,
@@ -624,6 +629,7 @@ export const AGENT_SCENARIOS: AgentScenario[] = [
           id: 'root',
           component: 'ActivityCalendar',
           title: 'Team Commit & Deploy Activity',
+          days: demoActivityDays,
           totalEvents: 1428,
           startDate: '2026-01-01',
           weeks: 26,

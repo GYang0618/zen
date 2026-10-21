@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, cn } from '@zen/ui'
 import { ArrowDownRight, ArrowUpRight, Users } from 'lucide-react'
 
 import { A2uiDynamicIcon } from './icon'
+import { OverflowText } from './overflow-text'
 
 import type { RendererProps } from '@copilotkit/a2ui-renderer'
 
@@ -57,24 +58,24 @@ export function BreakdownCard({ props }: RendererProps<BreakdownCardProps>) {
     title,
     icon,
     totalValue,
-    totalLabel = 'total revenue',
+    totalLabel = '合计',
     segments = [],
     items = [],
     columns,
     className
   } = props
 
-  const channelHeader = columns?.channelLabel ?? 'Channels'
-  const valueHeader = columns?.valueLabel ?? 'Number'
-  const trendHeader = columns?.trendLabel ?? 'Total'
+  const channelHeader = columns?.channelLabel ?? '渠道'
+  const valueHeader = columns?.valueLabel ?? '数量'
+  const trendHeader = columns?.trendLabel ?? '合计'
 
   // 计算分段进度条的总和与各段比例
   const totalSegmentValue = segments.reduce((sum, seg) => sum + (seg.value || 0), 0)
 
   return (
-    <Card className={cn('h-full w-full', className)}>
+    <Card className={cn('@container/chart h-full w-full', className)}>
       <CardHeader className="pb-3">
-        <div className="flex items-center gap-2.5">
+        <div className="flex min-w-0 items-center gap-2.5">
           <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/30 text-muted-foreground">
             {icon ? (
               <A2uiDynamicIcon name={icon} size={16} className="size-4" />
@@ -82,16 +83,18 @@ export function BreakdownCard({ props }: RendererProps<BreakdownCardProps>) {
               <Users className="size-4" aria-hidden />
             )}
           </div>
-          <CardTitle className="text-base font-semibold text-foreground">{title}</CardTitle>
+          <CardTitle className="min-w-0 text-base font-semibold text-foreground">
+            <OverflowText>{title}</OverflowText>
+          </CardTitle>
         </div>
 
         {totalValue && (
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            <span className="text-2xl font-bold tracking-tight text-foreground @sm/chart:text-3xl">
               {totalValue}
             </span>
             {totalLabel && (
-              <span className="text-xs sm:text-sm font-normal text-muted-foreground">
+              <span className="text-xs font-normal text-muted-foreground @sm/chart:text-sm">
                 {totalLabel}
               </span>
             )}
@@ -182,7 +185,9 @@ export function BreakdownCard({ props }: RendererProps<BreakdownCardProps>) {
                       {initialLetter}
                     </div>
                   )}
-                  <span className="truncate text-sm font-medium text-foreground">{item.label}</span>
+                  <OverflowText className="text-sm font-medium text-foreground">
+                    {item.label}
+                  </OverflowText>
                 </div>
 
                 {/* 数值列 */}

@@ -7,6 +7,7 @@ import {
   createCategoryConfig,
   withCategoryFills
 } from './chart-shared'
+import { OverflowText } from './overflow-text'
 
 import type { RendererProps } from '@copilotkit/a2ui-renderer'
 import type { BaseChartProps } from './chart-shared'
@@ -57,7 +58,7 @@ export function FunnelChart({ props }: RendererProps<FunnelChartProps>) {
         </ChartContainer>
 
         {showConversionRate && data.length > 0 && (
-          <div className="grid grid-cols-2 gap-2 border-t border-border/50 pt-3 sm:grid-cols-3 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 border-t border-border/50 pt-3 @sm/chart:grid-cols-3 @lg/chart:grid-cols-4">
             {data.map((item, index) => {
               const prevValue = index > 0 ? data[index - 1].value : null
               const stepRate = prevValue ? ((item.value / prevValue) * 100).toFixed(1) : null
@@ -69,12 +70,12 @@ export function FunnelChart({ props }: RendererProps<FunnelChartProps>) {
                   key={item.label}
                   className="flex flex-col rounded-md border border-border/40 bg-muted/30 p-2 text-xs"
                 >
-                  <div className="flex items-center gap-1.5 font-medium text-foreground">
+                  <div className="flex min-w-0 items-center gap-1.5 font-medium text-foreground">
                     <span
-                      className="h-2 w-2 rounded-full shrink-0"
+                      className="h-2 w-2 shrink-0 rounded-full"
                       style={{ backgroundColor: color }}
                     />
-                    <span className="truncate">{item.label}</span>
+                    <OverflowText>{item.label}</OverflowText>
                   </div>
                   <div className="mt-1.5 flex items-baseline justify-between">
                     <span className="font-mono text-sm font-semibold tabular-nums">

@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, cn } from '@zen/ui'
 import { Activity, ArrowDownRight, ArrowUpRight, CreditCard, DollarSign, Users } from 'lucide-react'
 
 import { A2uiDynamicIcon } from './icon'
+import { OverflowText } from './overflow-text'
 
 import type { RendererProps } from '@copilotkit/a2ui-renderer'
 import type { LucideIcon } from 'lucide-react'
@@ -87,13 +88,13 @@ function StatCardView(props: StatCardProps) {
   const displayTrendValue = props.trendValue || props.description
 
   return (
-    <Card className={cn('h-full w-full', props.className)}>
+    <Card className={cn('@container/chart h-full w-full', props.className)}>
       {isInlineIcon ? (
         <CardHeader className="space-y-1 pb-2">
-          <div className="flex items-center gap-2">
-            {iconNode && <div className="text-muted-foreground">{iconNode}</div>}
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              {props.title}
+          <div className="flex min-w-0 items-center gap-2">
+            {iconNode && <div className="shrink-0 text-muted-foreground">{iconNode}</div>}
+            <CardTitle className="min-w-0 flex-1 text-sm font-medium text-muted-foreground">
+              <OverflowText>{props.title}</OverflowText>
             </CardTitle>
           </div>
           {hasPrevious && (
@@ -106,15 +107,17 @@ function StatCardView(props: StatCardProps) {
           )}
         </CardHeader>
       ) : (
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">{props.title}</CardTitle>
-          {iconNode && <div className="text-muted-foreground">{iconNode}</div>}
+        <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+          <CardTitle className="min-w-0 flex-1 text-sm font-medium">
+            <OverflowText>{props.title}</OverflowText>
+          </CardTitle>
+          {iconNode && <div className="shrink-0 text-muted-foreground">{iconNode}</div>}
         </CardHeader>
       )}
 
       <CardContent>
-        <div className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-          {props.value}
+        <div className="text-2xl font-bold tracking-tight text-foreground @sm/chart:text-3xl">
+          <OverflowText>{props.value}</OverflowText>
         </div>
 
         {props.period && !hasPrevious && (

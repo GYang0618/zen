@@ -10,6 +10,8 @@ import {
   TooltipTrigger
 } from '@zen/ui'
 
+import { OverflowText } from './overflow-text'
+
 import type { RendererProps } from '@copilotkit/a2ui-renderer'
 
 export type UptimeStatus = 'operational' | 'degraded' | 'outage'
@@ -90,15 +92,15 @@ export function UptimeCard({ props }: RendererProps<UptimeCardProps>) {
     className
   } = props
 
-  const operationalLabel = legend?.operationalLabel ?? 'Operational'
-  const degradedLabel = legend?.degradedLabel ?? 'Degraded'
-  const outageLabel = legend?.outageLabel ?? 'Outage'
+  const operationalLabel = legend?.operationalLabel ?? '正常'
+  const degradedLabel = legend?.degradedLabel ?? '降级'
+  const outageLabel = legend?.outageLabel ?? '故障'
 
   const numDays = Math.max(dateLabels.length, 1)
 
   return (
     <TooltipProvider delay={100}>
-      <Card className={cn('h-full w-full', className)}>
+      <Card className={cn('@container/chart h-full w-full', className)}>
         <CardHeader className="flex flex-row items-start justify-between pb-3">
           <div className="space-y-1">
             <CardTitle className="text-base font-semibold text-foreground">{title}</CardTitle>
@@ -127,7 +129,7 @@ export function UptimeCard({ props }: RendererProps<UptimeCardProps>) {
             <div className="min-w-[620px] space-y-2.5">
               {/* 表头列：Service + 日期刻度数字 + Uptime */}
               <div className="flex items-center gap-3 text-xs font-medium text-muted-foreground border-b border-border/40 pb-2">
-                <div className="w-24 sm:w-28 shrink-0">Service</div>
+                <div className="w-24 shrink-0 @sm/chart:w-28">服务</div>
                 <div
                   className="grid flex-1 gap-1 text-center font-mono text-[11px]"
                   style={{ gridTemplateColumns: `repeat(${numDays}, minmax(0, 1fr))` }}
@@ -136,7 +138,7 @@ export function UptimeCard({ props }: RendererProps<UptimeCardProps>) {
                     <span key={`date-${lbl}-${idx}`}>{lbl}</span>
                   ))}
                 </div>
-                <div className="w-16 shrink-0 text-right">Uptime</div>
+                <div className="w-16 shrink-0 text-right">可用率</div>
               </div>
 
               {/* 服务状态行列表 */}
@@ -145,7 +147,7 @@ export function UptimeCard({ props }: RendererProps<UptimeCardProps>) {
                   const serviceName =
                     item.service ||
                     (item as unknown as { name?: string }).name ||
-                    `Service ${sIdx + 1}`
+                    `服务 ${sIdx + 1}`
                   const rawDays =
                     item.days || (item as unknown as { statuses?: unknown[] }).statuses
                   const daysList = Array.isArray(rawDays) ? rawDays : []
@@ -153,8 +155,10 @@ export function UptimeCard({ props }: RendererProps<UptimeCardProps>) {
                   return (
                     <div key={`${serviceName}-${sIdx}`} className="flex items-center gap-3 text-xs">
                       {/* 服务名称 */}
-                      <div className="w-24 sm:w-28 shrink-0 font-medium text-foreground truncate">
-                        {serviceName}
+                      <div className="w-24 shrink-0 @sm/chart:w-28">
+                        <OverflowText className="font-medium text-foreground">
+                          {serviceName}
+                        </OverflowText>
                       </div>
 
                       {/* 30 天状态药丸块 */}
@@ -168,9 +172,9 @@ export function UptimeCard({ props }: RendererProps<UptimeCardProps>) {
                           const dateLabel =
                             typeof dayEntry === 'object' && dayEntry.date
                               ? dayEntry.date
-                              : dateLabels[dIdx] || `Day ${dIdx + 1}`
+                              : dateLabels[dIdx] || `第 ${dIdx + 1} 天`
                           const note =
-                            typeof dayEntry === 'object' && dayEntry.note ? dayEntry.note : status
+                            typeof dayEntry === 'object' && dayEntry.note ? dayEntry.note : null
 
                           const statusText =
                             status === 'operational'
@@ -201,8 +205,8 @@ export function UptimeCard({ props }: RendererProps<UptimeCardProps>) {
                                 <div className="font-semibold">
                                   {item.service} · {dateLabel}
                                 </div>
-                                <div className="text-[10px] text-background/80 capitalize">
-                                  {note}
+                                <div className="text-[10px] text-background/80">
+                                  {note ?? statusText}
                                 </div>
                               </TooltipContent>
                             </Tooltip>

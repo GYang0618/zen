@@ -39,7 +39,9 @@ export function PieChart({ props }: RendererProps<PieChartProps>) {
               <Cell key={item.category} fill={item.fill} />
             ))}
           </Pie>
-          <ChartLegend content={<ChartLegendContent nameKey="category" />} />
+          <ChartLegend
+            content={<ChartLegendContent nameKey="category" className="flex-wrap px-2" />}
+          />
         </RechartsPie>
       </ChartContainer>
     </ChartCardShell>

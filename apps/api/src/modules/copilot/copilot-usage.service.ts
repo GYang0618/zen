@@ -10,6 +10,7 @@ import { createAuditDiff, DEFAULT_TENANT_ID, formatCostMicros, formatTokens } fr
 
 import { AuditService } from '../../common/auth/audit.service.js'
 import { PrismaService } from '../../infra/prisma/index.js'
+import { quotaPeriodStart } from '../audit/quota-period.js'
 
 export type UsageReportItem = {
   tenantId?: string
@@ -328,11 +329,7 @@ export class CopilotUsageService {
   }
 
   private periodStart(period: AiQuotaPeriod): Date {
-    const now = new Date()
-    if (period === AiQuotaPeriod.DAY) {
-      return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
-    }
-    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+    return quotaPeriodStart(period)
   }
 
   private async resolveQuotaUsers(

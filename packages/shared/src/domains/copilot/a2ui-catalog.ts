@@ -9,7 +9,10 @@ const chartDataItemSchema = z.object({
 })
 
 const chartPropsSchema = z.object({
-  title: z.string().optional().describe('图表标题，如“营收概览”；组件已自带单层卡片，请尽量提供'),
+  title: z
+    .string()
+    .optional()
+    .describe('图表标题，概括这张图在比较或展示什么；组件已自带单层卡片，请尽量提供'),
   description: z
     .string()
     .optional()
@@ -18,17 +21,17 @@ const chartPropsSchema = z.object({
 })
 
 const horizontalBarChartPropsSchema = z.object({
-  title: z.string().optional().describe('图表标题，如“Top 10 销售人员排行”'),
-  description: z.string().optional().describe('可选说明'),
-  data: z.array(chartDataItemSchema).optional().describe('数据列表'),
+  title: z.string().optional().describe('图表标题，概括被比较的分类'),
+  description: z.string().optional().describe('可选说明；标题已足够时省略'),
+  data: z.array(chartDataItemSchema).optional().describe('分类及其数值'),
   sorted: z.enum(['asc', 'desc', 'none']).optional().describe('是否对数据自动排序，默认 none'),
   showValues: z.boolean().optional().describe('是否在条形尾部直接展示具体数值，默认 true'),
-  valueUnit: z.string().optional().describe('数值单位后缀，如“人”、“万元”、“ms”')
+  valueUnit: z.string().optional().describe('数值单位后缀，如“人”、“次”、“ms”')
 })
 
 const chartSeriesDefSchema = z.object({
-  key: z.string().describe('数据字段键名，如“online”或“budget”'),
-  label: z.string().describe('图例与悬浮提示展示的名称，如“线上渠道”或“预算”')
+  key: z.string().describe('数据字段键名，必须与 data 中的数值字段一致'),
+  label: z.string().describe('图例与悬浮提示中的系列名称')
 })
 
 const multiSeriesChartPropsSchema = z.object({
@@ -64,32 +67,35 @@ const stackedAreaChartPropsSchema = multiSeriesChartPropsSchema.extend({
 })
 
 const composedChartPropsSchema = z.object({
-  title: z.string().optional().describe('图表标题，如“营收与环比增长”'),
-  description: z.string().optional().describe('可选说明'),
+  title: z.string().optional().describe('图表标题，点明柱与折线各自表示的指标'),
+  description: z.string().optional().describe('可选说明；标题已足够时省略'),
   data: z
     .array(
       z.object({
-        label: z.string().describe('X 轴分类或时间'),
-        barValue: z.number().describe('柱状图对应数值（通常为绝对量，如订单量、营收）'),
-        lineValue: z.number().describe('折线图对应数值（通常为比率或次级指标，如增长率、客单价）')
+        label: z.string().describe('共用的分类或有序轴标签，柱与折线必须对齐到同一 label'),
+        barValue: z.number().describe('柱状系列数值，使用绝对量或主指标'),
+        lineValue: z.number().describe('折线系列数值，使用另一量纲，如比率或速率')
       })
     )
-    .describe('混合图表数据列表'),
+    .describe('同一分类轴上的两组不同量纲数值'),
   barLabel: z.string().optional().describe('柱状系列名称，默认“数值”'),
   lineLabel: z.string().optional().describe('折线系列名称，默认“比率”'),
-  barUnit: z.string().optional().describe('柱状系列数值单位，如“万”或“笔”'),
-  lineUnit: z.string().optional().describe('折线系列数值单位，如“%”'),
-  secondaryAxis: z.boolean().optional().describe('是否启用双 Y 轴（柱在左、折线在右），默认 true')
+  barUnit: z.string().optional().describe('柱状系列单位，如“次”或“人”'),
+  lineUnit: z.string().optional().describe('折线系列单位，如“%”'),
+  secondaryAxis: z
+    .boolean()
+    .optional()
+    .describe('是否分左右轴（柱在左、折线在右）。两个系列量纲不同时保持默认 true')
 })
 
 const gaugeChartPropsSchema = z.object({
-  title: z.string().optional().describe('仪表标题，如“季度目标达成率”或“CPU 负载”'),
-  description: z.string().optional().describe('可选说明'),
-  value: z.number().describe('当前数值，如 78.5'),
+  title: z.string().optional().describe('仪表标题，说明这一个比率或进度代表什么'),
+  description: z.string().optional().describe('可选说明；标题已足够时省略'),
+  value: z.number().describe('当前值，应落在 min 与 max 之间'),
   max: z.number().optional().describe('最大量程，默认 100'),
   min: z.number().optional().describe('最小量程，默认 0'),
-  unit: z.string().optional().describe('数值单位，如“%”、“分”、“ms”，默认“%”'),
-  subtext: z.string().optional().describe('仪表盘下方说明文案，如“达标”或“较上周 +4.2%”'),
+  unit: z.string().optional().describe('数值单位，默认“%”'),
+  subtext: z.string().optional().describe('仪表下方的短说明，如相对基准的变化；没有就省略'),
   status: z
     .enum(['default', 'success', 'warning', 'destructive'])
     .optional()
@@ -97,88 +103,99 @@ const gaugeChartPropsSchema = z.object({
 })
 
 const funnelChartPropsSchema = z.object({
-  title: z.string().optional().describe('漏斗标题，如“用户注册与转化漏斗”'),
-  description: z.string().optional().describe('可选说明'),
-  data: z.array(chartDataItemSchema).describe('漏斗阶段数据，按流程先后从上到下排列'),
+  title: z.string().optional().describe('漏斗标题，说明这组有序阶段'),
+  description: z.string().optional().describe('可选说明；标题已足够时省略'),
+  data: z
+    .array(chartDataItemSchema)
+    .describe('阶段数据。必须按流程先后排列，后一阶段应是前一阶段的子集，不要按数值重排'),
   showConversionRate: z.boolean().optional().describe('是否展示相邻阶段转化率，默认 true'),
-  unit: z.string().optional().describe('数值单位后缀，如“人”、“单”')
+  unit: z.string().optional().describe('数值单位后缀，如“人”或“次”')
 })
 
 const scatterChartPropsSchema = z.object({
-  title: z.string().optional().describe('散点图标题，如“客户价值与活跃度分布”'),
-  description: z.string().optional().describe('可选说明'),
+  title: z.string().optional().describe('散点图标题，说明两个变量之间要看的关系'),
+  description: z.string().optional().describe('可选说明；标题已足够时省略'),
   data: z
     .array(
       z.object({
-        x: z.number().describe('X 轴数值'),
-        y: z.number().describe('Y 轴数值'),
-        z: z.number().optional().describe('气泡大小参考值'),
-        label: z.string().optional().describe('数据点名称/标签'),
-        category: z.string().optional().describe('分组分类名称')
+        x: z.number().describe('横轴连续数值'),
+        y: z.number().describe('纵轴连续数值，必须与 x 来自同一批对象'),
+        z: z.number().optional().describe('可选的第三维，映射点的大小；没有大小含义时省略'),
+        label: z.string().optional().describe('点的名称。点很多时省略，避免标签重叠'),
+        category: z.string().optional().describe('可选分组，用于区分点的类别')
       })
     )
-    .describe('散点坐标数据列表'),
-  xAxisLabel: z.string().optional().describe('X 轴名称说明，如“活跃天数”'),
-  yAxisLabel: z.string().optional().describe('Y 轴名称说明，如“客单价”'),
-  xAxisUnit: z.string().optional().describe('X 轴单位，如“天”'),
-  yAxisUnit: z.string().optional().describe('Y 轴单位，如“元”')
+    .describe('同一批对象上的两个连续变量'),
+  xAxisLabel: z.string().optional().describe('横轴含义'),
+  yAxisLabel: z.string().optional().describe('纵轴含义'),
+  xAxisUnit: z.string().optional().describe('横轴单位'),
+  yAxisUnit: z.string().optional().describe('纵轴单位')
 })
 
 const donutChartPropsSchema = z.object({
-  title: z.string().optional().describe('环形图标题，如“Sales by Category”或“销售品类分布”'),
-  description: z.string().optional().describe('可选说明'),
-  icon: z.string().optional().describe('标题前置图标名，如 pie-chart 或 clock'),
-  trend: z.enum(['up', 'down', 'neutral']).optional().describe('指标增长或变化趋势'),
-  trendValue: z.string().optional().describe('趋势文案，如“+8.4% vs last month”'),
-  centerLabel: z.string().optional().describe('圆环中心下方/上方的标题，如“Total”或“总计”'),
+  title: z
+    .string()
+    .optional()
+    .describe('环形图标题，说明这个整体由哪些分类构成。必须填写，缺省为「分类占比」'),
+  description: z.string().optional().describe('可选说明；标题已足够时省略'),
+  icon: z.string().optional().describe('标题前置图标名，如 pie-chart'),
+  trend: z
+    .enum(['up', 'down', 'neutral'])
+    .optional()
+    .describe('整体相对基准的方向；没有可比基准时省略'),
+  trendValue: z.string().optional().describe('趋势文案，写明相对哪个基准变了多少'),
+  centerLabel: z
+    .string()
+    .optional()
+    .describe('中心合计的名称，如“合计”。缺省为合计，请按数据含义填写'),
   centerValue: z
     .union([z.string(), z.number()])
     .optional()
-    .describe('圆环中心大号数值，如“$250K”；缺省时自动计算 data 的 value 总和'),
+    .describe('中心合计的展示值；缺省时用各项 value 之和'),
   showLegend: z.boolean().optional().describe('是否显示图例，默认 true'),
   layout: z
     .enum(['side-by-side', 'stacked'])
     .optional()
-    .describe('布局模式：side-by-side 左环右表（默认，如销售品类卡片），stacked 上下图表居中'),
-  showActionMenu: z.boolean().optional().describe('是否展示右上角操作菜单（...），默认 true'),
+    .describe('布局：side-by-side 为环与明细并排（默认），stacked 为上下排列'),
+  showActionMenu: z.boolean().optional().describe('是否展示右上角操作菜单，默认 true'),
   data: z
     .array(
       z.object({
-        label: z.string().describe('分类标签，如“Electronics”'),
-        value: z.number().describe('数值，如 145000'),
-        formattedValue: z.string().optional().describe('格式化金额或文本，如“$145K”'),
+        label: z.string().describe('分类名称'),
+        value: z.number().describe('该分类的数值。各项应互斥，且能加总为同一个整体'),
+        formattedValue: z.string().optional().describe('该项的展示文案；缺省时界面使用 value'),
         percentage: z
           .union([z.string(), z.number()])
           .optional()
-          .describe('占比百分比，如“58%”或 58'),
-        color: z.string().optional().describe('自定义颜色')
+          .describe('该项占比，如“58%”或 58；不确定时省略，不要编造'),
+        color: z.string().optional().describe('仅在必须区分语义色时填写；通常省略，由主题着色')
       })
     )
     .optional()
-    .describe('分类数据项列表')
+    .describe('互斥分类及其数值，建议 2–6 项')
 })
 
 const statCardPropsSchema = z.object({
-  title: z.string().describe('指标标题，如“Monthly revenue”或“总营收”'),
-  value: z.string().describe('当前指标数值，如“$189,540.75”'),
-  description: z.string().optional().describe('底部说明，如“较上月增长 20.1%”'),
+  title: z.string().describe('指标名称'),
+  value: z.string().describe('当前值的展示文案'),
+  description: z.string().optional().describe('底部说明。标题和趋势已经说清时省略'),
   icon: z
     .string()
     .optional()
-    .describe('图标名称：dollar, users, creditCard, activity 或任意 Lucide 图标名'),
+    .describe('图标名称：dollar、users、creditCard、activity，或任意 Lucide 图标名'),
   iconPosition: z
     .enum(['left', 'right'])
     .optional()
-    .describe('图标位置：left 为标题同行前置（如月营收卡片），right 为右上角（默认）'),
+    .describe('图标位置：left 与标题同一行，right 在右上角（默认）'),
   trend: z
     .enum(['up', 'down', 'neutral'])
     .optional()
-    .describe('指标变化趋势，影响说明文字与箭头方向'),
-  trendValue: z.string().optional().describe('趋势变化值，如“+27.9%”'),
-  trendLabel: z.string().optional().describe('趋势后缀标签，如“vs last month”'),
-  previousValue: z.string().optional().describe('上一周期基准数值，如“$148,230.00”'),
-  previousLabel: z.string().optional().describe('上一周期标签，如“previous month”'),
-  period: z.string().optional().describe('时间周期说明，如“this week”'),
+    .describe('相对对比期的方向；没有可比基准时省略'),
+  trendValue: z.string().optional().describe('变化幅度的展示文案，如“+12%”'),
+  trendLabel: z.string().optional().describe('比较基准，如“较上期”'),
+  previousValue: z.string().optional().describe('对比期的展示值'),
+  previousLabel: z.string().optional().describe('对比期名称'),
+  period: z.string().optional().describe('统计周期'),
   sparkline: z
     .array(
       z.union([
@@ -190,65 +207,59 @@ const statCardPropsSchema = z.object({
       ])
     )
     .optional()
-    .describe('底部微型走势图数据列表（如 [12, 18, 15, 24, ...]），渲染为迷你柱状图')
+    .describe('很短的单序列，只作当前值的走势上下文；需要读刻度或比较时改用折线或柱状图')
 })
 
 const breakdownCardPropsSchema = z.object({
-  title: z.string().describe('卡片标题，如“Revenue Channels”'),
-  icon: z.string().optional().describe('标题前置图标名，如 users, layers, git-branch'),
-  totalValue: z.string().optional().describe('总指标大号数值，如“$98K”'),
-  totalLabel: z.string().optional().describe('总指标说明文案，如“total revenue”'),
+  title: z.string().describe('卡片标题，说明被拆开的整体'),
+  icon: z.string().optional().describe('标题前置图标名'),
+  totalValue: z.string().optional().describe('合计的展示值'),
+  totalLabel: z.string().optional().describe('合计的含义'),
   segments: z
     .array(
       z.object({
-        label: z.string().describe('分段标签，如“Online”'),
-        value: z.number().describe('分段数值，用于计算各段比例'),
-        color: z.string().optional().describe('分段色彩类名或自定义颜色')
+        label: z.string().describe('分段名称'),
+        value: z.number().describe('分段数值，用于计算各段占合计的比例'),
+        color: z.string().optional().describe('分段颜色；通常省略，由主题着色')
       })
     )
     .optional()
-    .describe('分段条形图系列（如渠道占比 Online / In-Store / Marketplace）'),
+    .describe('可加总的分段，用于顶部比例条。分段很多或不可加总时不要传'),
   items: z
     .array(
       z.object({
         id: z.string().optional().describe('唯一标识'),
-        label: z.string().describe('渠道/明细名称，如“Website”'),
-        initial: z.string().optional().describe('头像缩写首字母，如“W”；缺省时取 label 首字母'),
-        icon: z.string().optional().describe('前置图标名（优先级高于 initial）'),
-        avatar: z.string().optional().describe('头像图片地址 URL'),
-        value: z
-          .union([z.string(), z.number()])
-          .describe('对应数值或格式化文本，如 4821 或“4,821”'),
+        label: z.string().describe('分项名称'),
+        initial: z.string().optional().describe('缩写；缺省时取 label 首字母'),
+        icon: z.string().optional().describe('前置图标名，优先级高于 initial'),
+        avatar: z.string().optional().describe('头像图片地址'),
+        value: z.union([z.string(), z.number()]).describe('分项数值或展示文案'),
         trend: z
           .enum(['up', 'down', 'neutral'])
           .optional()
-          .describe('趋势方向：up 增长(绿色)，down 下跌(红色)'),
-        trendValue: z.string().optional().describe('趋势百分比或变化量，如“18.3%”'),
-        secondaryValue: z.string().optional().describe('辅助次要说明')
+          .describe('相对对比期的方向；没有可比基准时省略'),
+        trendValue: z.string().optional().describe('变化幅度的展示文案'),
+        secondaryValue: z.string().optional().describe('次要说明')
       })
     )
-    .describe('渠道或细分条目列表'),
+    .describe('分项明细，建议 3–8 项'),
   columns: z
     .object({
-      channelLabel: z.string().optional().describe('第一列标题，默认“Channels”'),
-      valueLabel: z.string().optional().describe('第二列标题，默认“Number”'),
-      trendLabel: z.string().optional().describe('第三列标题，默认“Total”')
+      channelLabel: z.string().optional().describe('第一列表头。默认“渠道”，请改成实际列名'),
+      valueLabel: z.string().optional().describe('第二列表头。默认“数量”，请改成实际列名'),
+      trendLabel: z.string().optional().describe('第三列表头。默认“合计”，请改成实际列名')
     })
     .optional()
-    .describe('自定义表头列文案')
+    .describe('表头文案，按分项的实际含义填写')
 })
 
 const heatmapCardPropsSchema = z.object({
-  title: z.string().describe('卡片标题，如“Traffic Sources”'),
-  icon: z.string().optional().describe('标题图标名，如 grid, network, activity'),
-  trend: z.enum(['up', 'down', 'neutral']).optional().describe('整体趋势'),
-  trendValue: z.string().optional().describe('右上角变化标签，如“+30%”'),
-  xLabels: z
-    .array(z.string())
-    .describe('X 轴列标签列表，如 [“Week 1”, “Week 2”, “Week 3”, “Week 4”]'),
-  yLabels: z
-    .array(z.string())
-    .describe('Y 轴行标签列表，如 [“6k”, “5k”, “4k”, “2k”, “3k”, “4.5k”]'),
+  title: z.string().describe('矩阵标题，说明行与列交叉后表示的强度'),
+  icon: z.string().optional().describe('标题图标名'),
+  trend: z.enum(['up', 'down', 'neutral']).optional().describe('整体相对基准的方向；没有就省略'),
+  trendValue: z.string().optional().describe('右上角变化文案；没有可比基准时省略'),
+  xLabels: z.array(z.string()).describe('列标签，一个分类维，如时间桶或分组'),
+  yLabels: z.array(z.string()).describe('行标签，另一个分类维'),
   cells: z
     .array(
       z.object({
@@ -263,9 +274,9 @@ const heatmapCardPropsSchema = z.object({
         value: z.union([z.string(), z.number()]).optional().describe('单元格数值'),
         tooltip: z
           .object({
-            title: z.string().optional().describe('悬浮提示第一行，如“Email”'),
-            subtitle: z.string().optional().describe('悬浮提示第二行，如“Week 1”'),
-            value: z.string().optional().describe('悬浮提示第三行高亮值，如“45%”')
+            title: z.string().optional().describe('悬浮提示第一行，通常是行的含义'),
+            subtitle: z.string().optional().describe('悬浮提示第二行，通常是列的含义'),
+            value: z.string().optional().describe('悬浮提示中的格值')
           })
           .optional()
           .describe('悬浮提示详情')
@@ -275,18 +286,18 @@ const heatmapCardPropsSchema = z.object({
   legend: z
     .array(
       z.object({
-        label: z.string().describe('图例文案，如“High”'),
+        label: z.string().describe('图例文案'),
         intensity: z.enum(['high', 'medium', 'low', 'none']).describe('对应强度等级')
       })
     )
     .optional()
-    .describe('自定义热力图例，缺省为 High/Medium/Low')
+    .describe('自定义热力图例，缺省为 高/中/低')
 })
 
 const sparklineCardPropsSchema = z.object({
-  title: z.string().describe('指标名称，如“API calls”或“Active users”'),
-  value: z.string().describe('当前指标大号数值，如“118k”或“189 ms”'),
-  period: z.string().optional().describe('时间周期说明，如“this week”'),
+  title: z.string().describe('指标名称'),
+  value: z.string().describe('当前汇总值的展示文案'),
+  period: z.string().optional().describe('统计周期'),
   data: z
     .array(
       z.union([
@@ -298,7 +309,7 @@ const sparklineCardPropsSchema = z.object({
       ])
     )
     .optional()
-    .describe('走势微图数据点（如最近 7 天或 8 个时间段数据）'),
+    .describe('短序列。点太多时迷你图不可读，改用折线或面积图'),
   type: z
     .enum(['bar', 'line'])
     .optional()
@@ -309,29 +320,35 @@ const sparklineCardPropsSchema = z.object({
 })
 
 const dumbbellChartPropsSchema = z.object({
-  title: z.string().describe('图表标题，如“p95 latency by endpoint”'),
-  subtitle: z
+  title: z.string().describe('标题，说明同一批条目正在比较的两种状态'),
+  subtitle: z.string().optional().describe('可选背景；没有就省略'),
+  summaryLabel: z
     .string()
     .optional()
-    .describe('副标题，如“Before and after the Jun 4 edge cache release”'),
-  summaryLabel: z.string().optional().describe('右上角概览标签，如“Median change”'),
-  summaryValue: z.string().optional().describe('右上角概览数值，如“39% faster”'),
-  beforeLabel: z.string().optional().describe('变动前图例文案，如“Before, May 28”'),
-  afterLabel: z.string().optional().describe('变动后图例文案，如“After, Jun 4”'),
+    .describe('右上角汇总名称。仅在传入 summaryValue 时出现；缺省为中位变化，请改成实际含义'),
+  summaryValue: z.string().optional().describe('右上角汇总展示值；不需要汇总时省略'),
+  beforeLabel: z
+    .string()
+    .optional()
+    .describe('第一种状态的图例。缺省为之前，必须改成数据中的状态名'),
+  afterLabel: z
+    .string()
+    .optional()
+    .describe('第二种状态的图例。缺省为之后，必须改成数据中的状态名'),
   items: z
     .array(
       z.object({
-        label: z.string().describe('端点或条目名称，如“POST /v1/checkout”'),
-        before: z.number().describe('变动前数值，如 480'),
-        after: z.number().describe('变动后数值，如 210'),
-        unit: z.string().optional().describe('单项单位，如“ms”'),
-        displayValue: z.string().optional().describe('右侧自定义对比文案，如“480 → 210 ms”')
+        label: z.string().describe('条目名称'),
+        before: z.number().describe('第一种状态的数值，必须与 after 同量纲'),
+        after: z.number().describe('第二种状态的数值，必须与 before 同量纲'),
+        unit: z.string().optional().describe('单项单位；与全局单位相同时省略'),
+        displayValue: z.string().optional().describe('右侧对比文案；缺省时用前后数值')
       })
     )
     .describe('对比条目列表'),
   min: z.number().optional().describe('X 轴刻度起始值，默认 0'),
   max: z.number().optional().describe('X 轴刻度最大值，缺省自动计算'),
-  unit: z.string().optional().describe('全局单位，默认“ms”'),
+  unit: z.string().optional().describe('全局单位。缺省为毫秒，不是时长时必须传入'),
   ticks: z
     .array(z.number())
     .optional()
@@ -340,8 +357,8 @@ const dumbbellChartPropsSchema = z.object({
 })
 
 const activityCalendarPropsSchema = z.object({
-  title: z.string().describe('日历标题，如“Activity calendar”'),
-  subtitle: z.string().optional().describe('副标题，如“Daily event count, Jan to Jun 2026”'),
+  title: z.string().describe('日历标题，说明每日计数的含义'),
+  subtitle: z.string().optional().describe('副标题，说明时间范围和计数口径'),
   months: z
     .array(z.string())
     .optional()
@@ -359,51 +376,45 @@ const activityCalendarPropsSchema = z.object({
       })
     )
     .optional()
-    .describe('每日活动数据列表，缺省时自动展示标准 26 周示例活动矩阵'),
+    .describe(
+      '每日活动数据。必须传入真实 date、count 与 level；缺省或空数组时组件只显示空态，不会生成示例矩阵'
+    ),
   footer: z.string().optional().describe('底部说明，如标注最暗活跃日或版本发布事件')
 })
 
 const waterfallChartPropsSchema = z.object({
-  title: z.string().describe('图表标题，如“Net MRR movement, June”'),
-  value: z.string().optional().describe('主指标大号数值，如“$48,210”'),
-  trendValue: z.string().optional().describe('增长或变化趋势文案，如“+$2,090 vs May”'),
+  title: z.string().describe('标题，说明从起点到终点的差额由哪些增减项构成'),
+  value: z.string().optional().describe('终点或当前合计的展示值'),
+  trendValue: z.string().optional().describe('相对起点或对比期的变化文案'),
   trend: z.enum(['up', 'down', 'neutral']).optional().describe('趋势方向'),
-  baseline: z.number().optional().describe('坐标轴起始基准值，如 40000（使细微变动更易读）'),
+  baseline: z
+    .number()
+    .optional()
+    .describe('坐标轴起始值。变化相对基数很小时可抬高起点，便于看见增减'),
   max: z.number().optional().describe('坐标轴上限最大值'),
   steps: z
     .array(
       z.object({
-        label: z
-          .string()
-          .describe('步骤名称，如“Starting MRR”、“New business”、“Churn”、“Ending MRR”'),
-        value: z.number().describe('变动数值（正数为收益，负数为损失；总额步骤为绝对值）'),
-        formattedValue: z
-          .string()
-          .optional()
-          .describe('右侧展示的格式化数值，如“+$2,480”或“$46,120”'),
-        isTotal: z
-          .boolean()
-          .optional()
-          .describe('是否为总额条（如起始 MRR 和期末 MRR），默认 false')
+        label: z.string().describe('步骤名。起点、增减项和终点都要能单独读懂'),
+        value: z.number().describe('增减项用带符号的变化量，合计项用绝对量'),
+        formattedValue: z.string().optional().describe('该步的展示文案'),
+        isTotal: z.boolean().optional().describe('是否为合计锚点（起点或终点），默认 false')
       })
     )
     .describe('瀑布变动步骤列表'),
   legend: z
     .object({
-      totalLabel: z.string().optional().describe('总计标签，默认“Total”'),
-      gainLabel: z.string().optional().describe('收益标签，默认“Gain”'),
-      lossLabel: z.string().optional().describe('损失标签，默认“Loss”')
+      totalLabel: z.string().optional().describe('合计项图例。缺省为合计，请改成实际含义'),
+      gainLabel: z.string().optional().describe('正向增减图例。缺省为增加，请改成实际含义'),
+      lossLabel: z.string().optional().describe('负向增减图例。缺省为减少，请改成实际含义')
     })
     .optional(),
   footer: z.string().optional().describe('底部备注说明文案')
 })
 
 const uptimeCardPropsSchema = z.object({
-  title: z.string().describe('卡片标题，如“Historical uptime”'),
-  subtitle: z
-    .string()
-    .optional()
-    .describe('副标题，如“30-day per-service reliability grid for the Acme platform”'),
+  title: z.string().describe('标题，说明这组对象的逐日离散状态'),
+  subtitle: z.string().optional().describe('副标题，说明时间范围'),
   dateLabels: z
     .array(z.string())
     .optional()
@@ -411,8 +422,8 @@ const uptimeCardPropsSchema = z.object({
   services: z
     .array(
       z.object({
-        service: z.string().describe('服务名称，如“API”、“Dashboard”、“Webhooks”、“CDN”'),
-        uptime: z.string().optional().describe('可用率百分比，如“99.98%”'),
+        service: z.string().describe('一行所代表的对象名称'),
+        uptime: z.string().optional().describe('该行的汇总比率展示文案，如“99.98%”'),
         days: z
           .array(
             z.union([
@@ -432,27 +443,30 @@ const uptimeCardPropsSchema = z.object({
     .describe('服务状态行列表'),
   legend: z
     .object({
-      operationalLabel: z.string().optional().describe('正常标签，默认“Operational”'),
-      degradedLabel: z.string().optional().describe('降级标签，默认“Degraded”'),
-      outageLabel: z.string().optional().describe('故障标签，默认“Outage”')
+      operationalLabel: z
+        .string()
+        .optional()
+        .describe('正常状态图例。缺省为正常，请改成实际状态名'),
+      degradedLabel: z.string().optional().describe('降级状态图例。缺省为降级，请改成实际状态名'),
+      outageLabel: z.string().optional().describe('故障状态图例。缺省为故障，请改成实际状态名')
     })
     .optional(),
   footer: z.string().optional().describe('底部备注说明')
 })
 
 const ganttChartPropsSchema = z.object({
-  title: z.string().optional().describe('甘特图标题，如“Sprint 14 敏捷冲刺排期”'),
-  subtitle: z.string().optional().describe('副标题说明'),
+  title: z.string().optional().describe('标题，说明这组带起止的事项'),
+  subtitle: z.string().optional().describe('副标题，说明时间范围或计划口径'),
   metrics: z
     .array(
       z.object({
-        label: z.string().describe('指标名称，如“Capacity”、“Completion”、“In progress”'),
-        value: z.string().describe('指标数值文本，如“36 / 40 pts committed”、“8 pts done (22%)”'),
+        label: z.string().describe('汇总指标名称'),
+        value: z.string().describe('汇总指标的展示文案'),
         progress: z.number().describe('进度百分比 (0-100)')
       })
     )
     .optional()
-    .describe('顶部进度汇总卡（容量、完成度、进行中点数）'),
+    .describe('顶部进度汇总。没有容量或完成度数据时省略'),
   dates: z
     .array(z.string())
     .describe(
@@ -466,28 +480,23 @@ const ganttChartPropsSchema = z.object({
     .array(
       z.object({
         id: z.string().optional().describe('任务唯一标识'),
-        title: z.string().describe('任务名称，如“API key rotation UI”'),
+        title: z.string().describe('事项名称'),
         status: z
           .enum(['done', 'in_progress', 'todo'])
           .optional()
           .describe('状态：done(已完成中灰)、in_progress(进行中深黑)、todo(待办浅灰)'),
-        statusLabel: z
-          .string()
+        statusLabel: z.string().optional().describe('状态展示文案，按事项的真实状态填写'),
+        points: z
+          .union([z.string(), z.number()])
           .optional()
-          .describe('状态显示文案，如“Done”、“In progress”、“To do”'),
-        points: z.union([z.string(), z.number()]).optional().describe('任务估算点数，如 5 或“5pt”'),
-        start: z.union([z.string(), z.number()]).describe('排期开始日期，对应 dates 中的标签'),
-        end: z.union([z.string(), z.number()]).describe('排期结束日期，对应 dates 中的标签'),
+          .describe('可选的工作量估计；没有就省略'),
+        start: z.union([z.string(), z.number()]).describe('开始刻度，必须取自 dates'),
+        end: z.union([z.string(), z.number()]).describe('结束刻度，必须取自 dates'),
         color: z.string().optional().describe('自定义排期条背景颜色')
       })
     )
     .describe('任务列表与排期起止'),
-  footer: z
-    .string()
-    .optional()
-    .describe(
-      '底部备注说明，如“Day numbers shown. Today is Jun 13. Bars reflect planned duration, not hours logged.”'
-    )
+  footer: z.string().optional().describe('底部说明，例如条表示计划区间而不是已发生的工作量')
 })
 
 /**
@@ -497,7 +506,7 @@ const ganttChartPropsSchema = z.object({
 export const zenA2uiCatalogDefinitions = {
   Row: {
     description:
-      '横向弹性布局容器，适合并排 KPI（StatCard）。多图等高网格请优先用 Grid；本组件子项已 stretch，卡片需 h-full 才视觉等高。',
+      '横向弹性布局容器，适合并排 KPI（StatCard）。子项按自身容器宽度换行，放不下时自动堆叠。多图等高网格请优先用 Grid。',
     props: z.object({
       children: z.array(z.string()).describe('子组件 ID 列表'),
       gap: z.number().optional().describe('子项间距（像素），默认 12'),
@@ -513,10 +522,16 @@ export const zenA2uiCatalogDefinitions = {
   },
   Grid: {
     description:
-      'CSS Grid 多列布局：同一行内子卡片默认等高。多图仪表盘（如 2×2 图表）请优先用本组件，勿用多层 Row 拼网格。',
+      'CSS Grid 多列布局：同一行内子卡片默认等高。columns 是期望的最大列数，画布变窄时按网格自身宽度自动降列，不要按屏幕宽度少给列。多图仪表盘请优先用本组件。',
     props: z.object({
       children: z.array(z.string()).describe('子组件 ID 列表，按行优先顺序排布'),
-      columns: z.number().int().min(1).max(4).optional().describe('列数，默认 2，取值 1–4'),
+      columns: z
+        .number()
+        .int()
+        .min(1)
+        .max(4)
+        .optional()
+        .describe('期望的最大列数，默认 2，取值 1–4。容器变窄时自动降列'),
       gap: z.number().optional().describe('格子间距（像素），默认 12')
     })
   },
@@ -531,42 +546,42 @@ export const zenA2uiCatalogDefinitions = {
   },
   StatCard: {
     description:
-      '运营统计卡片：标题 + 可选图标 + 大号数值 + 底部说明，适合顶栏 KPI（如总营收、订阅用户）。支持上一周期对比基准（previousValue/previousLabel）、时间周期（period）及底部微型柱状走势（sparkline）。',
+      '单个当前值（自带卡片）。适合总览里少数几个核心数字，可附对比期、方向和很短的走势。不适合分类对比、构成占比，或需要坐标轴才能读懂的序列。直接挂在 Grid/Row/Column 下。',
     props: statCardPropsSchema
   },
   SparklineCard: {
     description:
-      '微型走势统计卡片（自带单层卡片）：标题 + 大号指标数值 + 时间周期 + 底部迷你柱状走势（Mini Sparkline），最适合在 Grid(columns=4) 中并排排布系统监控指标（如 API 调用数、活跃用户数、错误数、p99 延迟等）。直接挂在 Grid/Row/Column 下。',
+      '紧凑的当前值加迷你走势（自带卡片）。适合一行并排多个短序列，看方向而不是读刻度。不适合多序列、长周期，或需要比较精确数值；那些改用折线、柱状或表格。直接挂在 Grid/Row/Column 下。',
     props: sparklineCardPropsSchema
   },
   BreakdownCard: {
     description:
-      '渠道分布/细分绩效卡片（自带单层卡片）：支持总额指标展示、分段条形比例条（Segmented Bar）、图例及带首字母圆点徽章的渠道指标列表（渠道名、具体数量、增长/下降百分比趋势）。适合营收渠道构成（Revenue Channels）、流量来源渠道分解等。直接挂在 Grid/Row/Column 下。',
+      '一个合计拆成少量分项（自带卡片）。比例条表示可加总的份额，明细列出每项数值和可选涨跌。适合大约 3–8 个互斥分项。不适合不可加总的指标、分项很多，或沿时间变化的序列。直接挂在 Grid/Row/Column 下。',
     props: breakdownCardPropsSchema
   },
   HeatmapCard: {
     description:
-      '热力矩阵/流量来源矩阵卡片（自带单层卡片）：二维行列矩阵（如 Y 轴渠道/分段，X 轴时间周/月份），单元格采用圆角药丸条展示强度等级（High 深黑/Medium 中灰/Low 浅灰），支持鼠标悬浮气泡查看明细（来源、时段、占比）。适合流量来源（Traffic Sources）、访问时段热力分布。直接挂在 Grid/Row/Column 下。',
+      '二维强度矩阵（自带卡片）。适合行、列都是分类、交叉格表示强弱的数据，用来看冷热区域而不是精确比较相邻格。不适合只有一个分类维、需要精确读数，或任一侧类别过多。必须有 cells。直接挂在 Grid/Row/Column 下。',
     props: heatmapCardPropsSchema
   },
   DumbbellChart: {
     description:
-      '棒铃图/区间对比图（自带单层卡片）：水平连接条展示发布/变动前后数值变化（如 Before vs After），圆点标示前后取值，右侧直接展示数值跃迁（如 480 → 210 ms），右上角支持中位数变动汇总（如 39% faster）。适合多端点性能对比（p95 latency by endpoint）、策略上线前后效果对比。直接挂在 Grid/Row/Column 下。',
+      '成对数值对比（自带卡片）。同一批条目各有两个同量纲数值，看每条的方向和幅度。不适合两种以上状态、量纲不同，或时间上有很多个点。图例缺省为之前/之后，单位缺省为毫秒，与数据不符时必须传入 beforeLabel、afterLabel 和 unit。直接挂在 Grid/Row/Column 下。',
     props: dumbbellChartPropsSchema
   },
   ActivityCalendar: {
     description:
-      '活动日历图/贡献热力矩阵（自带单层卡片）：仿 GitHub 活跃度矩阵，顶部月份标签（Jan–Jun），左侧星期标签（Mon/Wed/Fri），圆点阵列展示每日事件量级阶梯（0–4级色阶），支持鼠标悬浮查看具体日期与事件数，底部带 Less/More 色阶图例与里程碑事件说明。适合系统每日调用量、操作审计活跃度。直接挂在 Grid/Row/Column 下。',
+      '按日密度日历（自带卡片）。适合连续数周到数月、每天一个计数，看忙闲和空档。不适合非按日数据、只有汇总没有每日计数，或要判断斜率的趋势（改折线或面积）。必须传入真实 date，空数组只显示空态。直接挂在 Grid/Row/Column 下。',
     props: activityCalendarPropsSchema
   },
   WaterfallChart: {
     description:
-      '瀑布流图/财务增减流水变动卡片（自带单层卡片）：大号主指标与环比增长，通过浮动横向色块清晰展示从期初值经各项正向收益（Gain）、负向损失（Loss/Churn）到期末总额（Total）的流转过程。适合月度经常性收入变动（Net MRR movement）、资产/用户增减损益分析。直接挂在 Grid/Row/Column 下。',
+      '差额分解（自带卡片）。适合从一个起点经过若干可正可负的增减项，解释如何到达终点；合计步用 isTotal。不适合互不相关的分类对比、时间走势、占比，或各步加总后对不上终点。没有 steps 不要用。直接挂在 Grid/Row/Column 下。',
     props: waterfallChartPropsSchema
   },
   UptimeCard: {
     description:
-      '服务历史可用率状态网格卡片（自带单层卡片）：展示多个核心服务最近 30 天每日运行可靠性，顶部带 30 天数字刻度，每个服务一行 30 颗圆角胶囊块（Operational 正常/Degraded 性能降级/Outage 故障），支持鼠标悬浮提示与右侧整体可用率百分比（如 99.98%）。适合平台服务稳定性监控大盘（Historical uptime）。直接挂在 Grid/Row/Column 下。',
+      '多对象的逐日离散状态网格（自带卡片）。每行约 30 个三态：正常、降级、故障，用来看哪一天、哪个对象异常。不适合连续数值、没有逐日状态，或只有一个汇总比率（改 GaugeChart）。直接挂在 Grid/Row/Column 下。',
     props: uptimeCardPropsSchema
   },
   Metric: {
@@ -583,92 +598,92 @@ export const zenA2uiCatalogDefinitions = {
   },
   AreaChart: {
     description:
-      '单系列面积图（自带单层卡片：标题 + 可选描述 + 渐变面积图）。直接放在 Grid/Row/Column 下，勿再套 DashboardCard / Card。',
+      '单系列面积图（自带卡片）。适合有序轴上的一个连续量，用面积强调体量起伏。不适合无序分类比较、多个系列，或只有两三个点；点少时改 StatCard 或柱状图，要看斜率时改折线。直接放在 Grid/Row/Column 下，勿再套 DashboardCard / Card。',
     props: chartPropsSchema
   },
   BarChart: {
     description:
-      '单系列垂直柱状图（自带单层卡片：标题 + 可选描述 + 图表）。直接放在 Grid/Row/Column 下，勿再套 DashboardCard / Card。',
+      '单系列垂直柱（自带卡片）。适合少量、标签较短的离散分类比大小。不适合标签很长（改 HorizontalBarChart）、有序趋势（改折线或面积）、部分占整体（改饼图、环形或堆叠），或两个量纲（改 ComposedChart）。分类一多，横轴标签会挤在一起。直接放在 Grid/Row/Column 下，勿再套 DashboardCard / Card。',
     props: chartPropsSchema
   },
   HorizontalBarChart: {
     description:
-      '横向柱状图/条形图（自带单层卡片）。最适合 Top N 排名、排行榜、长标签分类展示，支持直接在条形右侧标注数值与单位。直接挂在 Grid/Row/Column 下。',
+      '横向条形（自带卡片）。适合排名和标签较长的分类比较，条尾可直接标出数值。不适合时间序列、占比构成，或类别少且标签很短的对比（那种用垂直柱更紧凑）。类别很多时只保留需要比较的前若干项。直接挂在 Grid/Row/Column 下。',
     props: horizontalBarChartPropsSchema
   },
   GroupedBarChart: {
     description:
-      '分组/对比柱状图（自带单层卡片）。适合同维度下多系列横向对比（如实际 vs 预算、各季度多渠道对比）。直接挂在 Grid/Row/Column 下。',
+      '分组柱（自带卡片）。适合同一分类下 2–4 个同量纲系列的并列比较。不适合系列更多（柱会挤住）、量纲不同（改 ComposedChart），或只关心加总后的内部构成（改 StackedBarChart）。直接挂在 Grid/Row/Column 下。',
     props: multiSeriesChartPropsSchema
   },
   StackedBarChart: {
     description:
-      '堆叠柱状图（自带单层卡片）。适合总量及内部各部分构成占比分析（如总工单按严重级别堆叠），支持纵向或横向堆叠。直接挂在 Grid/Row/Column 下。',
+      '堆叠柱（自带卡片），可纵向或横向。适合每个分类的总量，以及该总量由哪些同单位部分相加而成。不适合各部分要精确互比（堆叠后基线不同，改分组柱）、部分不能相加，或分类和系列都很多。直接挂在 Grid/Row/Column 下。',
     props: stackedBarChartPropsSchema
   },
   LineChart: {
     description:
-      '单系列折线图（自带单层卡片：标题 + 可选描述 + 图表）。直接放在 Grid/Row/Column 下，勿再套 DashboardCard / Card。',
+      '单系列折线（自带卡片）。适合有序轴上的变化、拐点和斜率。不适合无序分类比大小（改柱状）、占比，或只有两三个点。直接放在 Grid/Row/Column 下，勿再套 DashboardCard / Card。',
     props: chartPropsSchema
   },
   MultiLineChart: {
     description:
-      '多折线走势图（自带单层卡片）。适合多个指标的时序走势同屏对比（如日活/周活/月活、多环境响应时间曲线）。直接挂在 Grid/Row/Column 下。',
+      '多折线（自带卡片）。适合 2–5 条同量纲系列在同一有序轴上比较走势。不适合量纲不同（范围差大会把小系列压扁，改 ComposedChart）、系列过多互相缠绕，或无序分类。直接挂在 Grid/Row/Column 下。',
     props: multiLineChartPropsSchema
   },
   StackedAreaChart: {
     description:
-      '堆叠面积图（自带单层卡片）。带平滑渐变填充，适合累积总量随时间的演化趋势与各分类占比分析。直接挂在 Grid/Row/Column 下。',
+      '堆叠面积（自带卡片）。适合同单位、可相加的多个系列沿有序轴累积，同时看总量走势和构成变化。不适合不可加总、含负数、要精确比较各系列绝对值，或系列过多。直接挂在 Grid/Row/Column 下。',
     props: stackedAreaChartPropsSchema
   },
   ComposedChart: {
     description:
-      '柱折复合双轴图（自带单层卡片）。经典商业分析图表：左 Y 轴柱状图表示绝对数量（如营收、订单），右 Y 轴折线图表示比率或增速（如环比增速、利润率）。直接挂在 Grid/Row/Column 下。',
+      '柱与折线复合（自带卡片）。适合同一分类轴上两个量纲不同的指标：柱表示绝对量，折线表示比率或速率，默认分左右轴。不适合两个指标同量纲（改分组柱或多折线）、超过两个系列，或两条序列对不齐到同一 label。直接挂在 Grid/Row/Column 下。',
     props: composedChartPropsSchema
   },
   PieChart: {
     description:
-      '饼图/环形图（自带单层卡片：标题 + 可选描述 + 图表）。直接放在 Grid/Row/Column 下，勿再套 DashboardCard / Card。',
+      '单环占比图（自带卡片，带图例，没有中心合计和明细表）。适合 2–5 个互斥且加总为整体的分类，用来看谁占大头。不适合类别多、各项接近、需要读出具体数值、时间趋势，或各项不能加总。要中心合计和逐项数值时改 DonutChart；要精确比较时改条形或表格。直接放在 Grid/Row/Column 下，勿再套 DashboardCard / Card。',
     props: chartPropsSchema
   },
   DonutChart: {
     description:
-      '指标环形图/分类销售卡片（自带单层卡片）。结构占比分析，支持左侧厚环形图（圆心突出展示总额与 Total 标签）+ 右侧分类明细列表（颜色圆点、分类名、格式化金额与占比百分比），支持右上角操作菜单与环比增长标签。适合品类销售构成（Sales by Category）、费用预算分布等。直接挂在 Grid/Row/Column 下。',
+      '环形图加分类明细（自带卡片）。适合少量互斥分类占同一整体，并要在中心展示合计、在一侧列出各项数值和占比。不适合类别很多、时间序列、非互斥或不可加总的指标。只需要看份额形状时用 PieChart。必须传 title 和 centerLabel，缺省分别为「分类占比」和「合计」。直接挂在 Grid/Row/Column 下。',
     props: donutChartPropsSchema
   },
   RadarChart: {
     description:
-      '雷达图（自带单层卡片：标题 + 可选描述 + 图表）。直接放在 Grid/Row/Column 下，勿再套 DashboardCard / Card。',
+      '雷达图（自带卡片）。适合 4–8 个同一量表的维度，看轮廓强弱而不是精确读数。不适合维度过少或过多、量纲不一致、有序时间，或某一维远大于其余维（图形会被拉变形）。直接放在 Grid/Row/Column 下，勿再套 DashboardCard / Card。',
     props: chartPropsSchema
   },
   RadialChart: {
     description:
-      '径向条形图（自带单层卡片：标题 + 可选描述 + 图表）。直接放在 Grid/Row/Column 下，勿再套 DashboardCard / Card。',
+      '径向条（自带卡片）。分类名不画在图上，只出现在悬浮提示里，弧长也不如直柱好比较。只适合分类很少、标签不重要的相对大小。需要读出分类名、精确比较、时间趋势或占比时，改用柱状、横向条形、饼图或环形图。直接放在 Grid/Row/Column 下，勿再套 DashboardCard / Card。',
     props: chartPropsSchema
   },
   GaugeChart: {
     description:
-      '半圆仪表盘（自带单层卡片）。适合展示核心 KPI 达成率、资源配额使用率（如 CPU/内存）、健康度评分或安全指数，带进度弧与居中大号数值。直接挂在 Grid/Row/Column 下。',
+      '半圆仪表（自带卡片）。适合一个数值在明确上下限之间的位置，如比率、完成度或使用率。不适合多个分类对比、没有上下限的绝对量、时间趋势或分布。一个仪表只表达一个当前值。直接挂在 Grid/Row/Column 下。',
     props: gaugeChartPropsSchema
   },
   FunnelChart: {
     description:
-      '漏斗转化图（自带单层卡片）。适合营销获客、销售阶段推进、招聘流转、用户注册转化等阶段流失与转化率分析，底部自带转化率统计卡片。直接挂在 Grid/Row/Column 下。',
+      '阶段漏斗（自带卡片）。适合有严格先后顺序、后一阶段是前一阶段子集、数值整体递减的过程，并看相邻转化。不适合各阶段互不包含、数值不递减、无序占比或时间趋势。阶段宜为 3–6 个，必须按流程顺序，禁止按大小重排。直接挂在 Grid/Row/Column 下。',
     props: funnelChartPropsSchema
   },
   GanttChart: {
     description:
-      '甘特图/敏捷冲刺排期卡片（自带单层卡片）：顶部支持三段式进度汇总（Capacity 容量、Completion 完成度、In progress 进行中），日期时间刻度横轴，任务行包含任务名、状态胶囊（Done/In progress/To do）与故事点数，排期横条支持按状态着色，并带有垂直贯穿的今日基准线（Today Marker Line）。适合研发项目计划、Sprint 冲刺进度追踪、跨团队交付排期。直接挂在 Grid/Row/Column 下。',
+      '带起止的排期（自带卡片）。适合看事项的并行、重叠，以及相对今天的位置。不适合没有起止的列表、纯数值对比或分布。start/end 必须对应 dates 里的标签；没有真实起止不要用。直接挂在 Grid/Row/Column 下。',
     props: ganttChartPropsSchema
   },
   ScatterChart: {
     description:
-      '散点分布图（自带单层卡片）。适合双变量相关性分析与四象限聚类（如活跃天数 vs 客单价、并发量 vs 响应延迟）。直接挂在 Grid/Row/Column 下。',
+      '散点图（自带卡片）。适合同一批对象上的两个连续变量，看关系、离群和大致分群。不适合分类比大小、只有一个变量，或点很多还要读出每个名称（标签会叠）。直接挂在 Grid/Row/Column 下。',
     props: scatterChartPropsSchema
   },
   DataTable: {
     description:
-      '通用数据表格组件，支持多列定义、复合字段合并（图标/头像+标题+副标题）、状态标签、头像组、带图标数值展示及表头交互排序。',
+      '明细表。适合需要精确读数、多列、排序或状态标签的记录。不适合只看趋势、占比或排名形状，那些用对应的图。',
     props: z.object({
       title: z.string().optional().describe('表格标题'),
       description: z.string().optional().describe('表格描述'),
@@ -718,6 +733,19 @@ export const zenA2uiCatalogDefinitions = {
       data: z.array(z.record(z.string(), z.unknown())).describe('表格数据项列表'),
       enableSorting: z.boolean().optional().describe('是否全局开启表头排序'),
       emptyMessage: z.string().optional().describe('空数据时的提示文案')
+    })
+  },
+  Tooltip: {
+    description:
+      '悬浮提示。可见内容过长或需要补充口径时使用：悬停或聚焦展示 content。text 为单行可见文案，超出容器宽度自动截断；也可以用 child 包裹另一个组件。不要用它替代图表数据点自带的悬浮层。',
+    props: z.object({
+      content: z.string().describe('悬浮或聚焦时展示的完整说明'),
+      text: z.string().optional().describe('触发器上的可见文案；过长时按容器宽度单行截断'),
+      child: z.string().optional().describe('触发器子组件 ID。与 text 同时存在时优先使用 child'),
+      side: z
+        .enum(['top', 'right', 'bottom', 'left'])
+        .optional()
+        .describe('提示出现在触发器的哪一侧，默认 top')
     })
   },
   Icon: {
@@ -1067,67 +1095,65 @@ export const ZEN_A2UI_COMPOSITION_GUIDE = `
 - components: 扁平组件数组。每项必须有 id、component，属性平铺在对象上（不要再包一层 props）
 - data: 可选，写入 Surface 数据模型的纯 JSON（表单预填、path 绑定）
 
-自定义组件列表：
-- 布局与容器：Row、Column、Grid、DashboardCard、ScrollArea、Tabs
-- KPI与信息卡片：
-  * StatCard（运营统计卡片：标题、大号数值、图标、增长趋势，支持上一周期基准 previousValue/previousLabel、周期 period 与底部微型柱状走势 sparkline）
-  * SparklineCard（紧凑型微图指标卡：标题、数值、周期说明如 this week、底部 8-10 根垂直柱微走势，适合 4 卡等宽并排展示系统监控指标）
-  * BreakdownCard（渠道分布/绩效卡片：总额数值、分段比例条 Segmented Bar、图例、带首字母圆圈徽章的各渠道数量与涨跌幅表格）
-  * HeatmapCard（流量来源/时段热力矩阵：二维行列药丸条、High/Medium/Low 强度色阶、鼠标悬浮展示来源+周次+占比浮层）
-  * DumbbellChart（棒铃对比图：水平横杠连接 Before/After 点位、右侧跃迁文案如 480 → 210 ms、右上角中位数汇总，适合接口延迟对比或上线前后评测）
-  * ActivityCalendar（活动日历图：仿 GitHub 26周每日圆点活跃度矩阵、月份/星期标签、Less/More 色阶、悬浮日期与事件数）
-  * WaterfallChart（财务增减瀑布图：主指标+浮动条块展示 Starting MRR -> New business -> Churn -> Ending MRR 流水变动，Total/Gain/Loss 色阶）
-  * UptimeCard（30天服务可用率网格：顶部 30 天刻度数字，各服务一行 30 颗胶囊状态块 Operational/Degraded/Outage、右侧整体可用率如 99.98%）
-  * GanttChart（敏捷排期甘特图：顶部三段式进度汇总容量/完成度/进行中、今日指示竖线 Today Marker Line、任务状态胶囊与故事点数、排期横条，适合 Sprint 冲刺与项目交付计划）
+自定义组件列表（选型看数据形态，不看行业；各组件描述里的「适合 / 不适合」优先于任何举例）：
+- 布局与容器：Row、Column、Grid、DashboardCard、ScrollArea、Tabs、Tooltip
+- 单个值与结构化卡片：
+  * StatCard：一个当前值，可带对比期和很短走势。不适合分类对比或构成
+  * SparklineCard：一行并排多个短序列的当前值，看方向不读刻度
+  * BreakdownCard：一个合计拆成大约 3–8 个可加总分项
+  * HeatmapCard：两个分类维交叉后的强度。必须有 cells
+  * DumbbellChart：同一批条目的两个同量纲数值。缺省图例之前/之后、单位毫秒，不符时必须改
+  * ActivityCalendar：按日的一个计数。必须有真实 date；要看斜率改折线
+  * WaterfallChart：起点经带符号增减项到达终点。没有 steps 不要用
+  * UptimeCard：多个对象 × 约 30 个离散状态（正常/降级/故障）。连续数值不要用
+  * GanttChart：带起止的事项。没有起止不要用
   * Metric、Progress、Item、ItemGroup、UserCard、RoleCard、PostCard、OrganizationCard
-- 列表与表格：DataTable、Timeline、Avatar、Badge、Icon
-- 统计图表库（自带单层卡片）：
-  * 单指标常规：AreaChart（单系列面积）、BarChart（单系列垂直柱状）、LineChart（单系列折线）、PieChart（基础饼图）、RadarChart（雷达图）、RadialChart（径向条形）
-  * 排行与长标签：HorizontalBarChart（横向条形图，支持 auto 排序、条形末端直接显示数值与单位）
-  * 多系列对比：GroupedBarChart（并排分组柱状，如计划 vs 实际）、StackedBarChart（堆叠构成分析，支持横纵向）
-  * 多指标趋势：MultiLineChart（多折线同时刻走势，支持 smooth/step）、StackedAreaChart（堆叠面积渐变）
-  * 商业双轴混合：ComposedChart（柱折混合图：左 Y 轴为绝对量柱、右 Y 轴为比率/增速折线）
-  * 仪表盘计量：GaugeChart（半圆环形仪表盘，居中大号数值 + 进度弧，展示达成率、健康分、配额使用率）
-  * 漏斗转化：FunnelChart（阶段转化与留存流失分析，底部自动输出阶段流失率）
-  * 散点分布：ScatterChart（双变量相关性、四象限聚类）
-  * 环形指标：DonutChart（中心展示总计/核心指标 + 右侧品类明细列表、格式化金额与占比百分比的横向卡片）
+- 列表与表格：DataTable（精确明细）、Timeline、Avatar、Badge、Icon
+- 统计图（均自带单层卡片）：
+  * 离散分类、标签短、一类一个数：BarChart。标签长或要排名：HorizontalBarChart
+  * 同一分类 2–4 个同量纲系列：GroupedBarChart。同单位且要看总量里的部分：StackedBarChart
+  * 有序轴上的单系列：看体量用 AreaChart，看斜率用 LineChart。2–5 条同量纲走势：MultiLineChart。可加总构成沿有序轴变化：StackedAreaChart
+  * 同一轴上两个不同量纲：ComposedChart（柱为绝对量，折线为比率或速率）
+  * 2–5 个互斥分类占同一整体：只看份额用 PieChart；还要中心合计和明细用 DonutChart（必须传 title、centerLabel）
+  * 4–8 个同一量表的维度轮廓：RadarChart。RadialChart 的分类名不在图上，只在分类很少且不需要读名时用
+  * 一个有上下限的比率：GaugeChart。有序递减且后阶段是前阶段子集：FunnelChart。两个连续变量的关系：ScatterChart
 基础组件（basic catalog）：Text、Button、Card、List、Image、TextField 等
 
 组装与图表选型规则：
 1. 必须有 id="root" 的根节点，优先用 Column / Row / Grid 做布局
 2. 用 children / child 引用其它组件 id；id 在同一 surface 内唯一，禁止自引用
 3. StatCard / SparklineCard / BreakdownCard / HeatmapCard / DumbbellChart / ActivityCalendar / WaterfallChart / UptimeCard / GanttChart / 各类 Chart 组件已自带单层卡片：直接挂到 Grid/Row/Column，禁止再包 DashboardCard 或 basic Card（否则双层嵌套）
-4. 多图并排或 2×2 仪表盘：用 Grid（columns=2），不要用多层 Row 拼网格；同一行卡片会自动等高
-5. 顶栏 KPI 或系统监控指标行：
-   - 4 个微型指标（如 API 调用量、活跃用户、错误数、p99 延迟）：用 Grid(columns=4) 包裹 4 个 SparklineCard
-   - 营收月报/核心 KPI：用 StatCard，传 previousValue/previousLabel 显示上月基准与 +27.9% 环比增长
-   - 渠道构成与细分：用 BreakdownCard 展示 $98K 渠道占比条与各渠道转化明细
-   - 品类销售结构：用 DonutChart 展示 $250K 总额与 Electronics、Accessories、Software、Other 明细
-   - 流量来源矩阵/时段热力：用 HeatmapCard 展示 Week 1-4 与各来源阶梯分布
-   - 变动前后/优化效果比对（如 p95 延迟）：用 DumbbellChart 展示端点发布前后跃迁
-   - 日历活跃度/年度提交/日志密度：用 ActivityCalendar 展示 26 周每日密度
-   - 收入变动/资金池进出流水：用 WaterfallChart 展示 MRR 增减过程
-   - 平台稳定性监控大盘：用 UptimeCard 展示 30 天各微服务状态网格
-   - 研发项目冲刺排期/交付甘特：用 GanttChart 展示任务起止与今日基准线
-6. 根据分析场景精准选择最匹配的统计图表类型，避免千篇一律的单一柱状图：
-   - 排名排行榜（Top 5/10）、长名称分类（部门名、API 路由）：优先用 HorizontalBarChart
-   - 实际 vs 预算、同期对比：优先用 GroupedBarChart
-   - 包含成分比例的累加量：优先用 StackedBarChart 或 StackedAreaChart
-   - 多个关键时序指标同屏对比：优先用 MultiLineChart
-   - 「销售量 + 增长率」或「工单量 + 解决率」：优先用 ComposedChart（柱折双轴）
-   - KPI 达成率、资源配额使用率、健康分：优先用 GaugeChart
-   - 用户注册、商机流转、招聘流程转化：优先用 FunnelChart
-   - 占比与总计：优先用 DonutChart
-   - 发布前后优化对比：优先用 DumbbellChart
-   - 增减流水核算：优先用 WaterfallChart
-   - 服务可用性追踪：优先用 UptimeCard
-   - 敏捷排期与项目计划：优先用 GanttChart
-   - 审计 API 访问统计（响应含 trend、byCaller、topRoutes）：用 GaugeChart 展示总体 errorRate；用 ComposedChart 展示 trend 中 requestCount（柱）与 errorRate（折线，先乘 100 转百分数）；用 DonutChart 展示 byCaller 占比；用 HorizontalBarChart 展示 topRoutes 调用量或错误数排行。仪表盘至少采用两种不同的图表类型，避免重复表达同一指标。
-   - 审计操作统计：byAction / byResource 用 HorizontalBarChart 展示排行，byResult / byActorType 用 DonutChart 展示构成；不要把不同维度拼成没有共同含义的系列。
-   - 登录统计：trend 有数据时用 LineChart 展示每日登录量；successRate 用 GaugeChart；byEvent 用 DonutChart。没有 trend 字段时，不得伪造时间序列。
+4. 多图并排或 2×2 仪表盘：用 Grid（columns 为期望的最大列数，如 2 或 4）。列数按画布容器宽度自动下降，不要按屏幕宽度少给列，也不要用多层 Row 拼网格；同一行卡片会自动等高
+5. 顶栏和结构化卡片按数据形态放：
+   - 少数当前值用 StatCard；多个短序列并排用 Grid(columns=4) 包 SparklineCard
+   - 合计拆分用 BreakdownCard；二维强度用 HeatmapCard；成对数值用 DumbbellChart
+   - 按日密度用 ActivityCalendar；增减解释差额用 WaterfallChart；逐日离散状态用 UptimeCard；带起止的事项用 GanttChart
+6. 统计图按形态选，避免整页只有一种柱，也不要为了看起来丰富而套不匹配的图：
+   - 离散分类比大小、标签短：BarChart；标签长或要排名：HorizontalBarChart
+   - 同一分类上 2–4 个同量纲系列：GroupedBarChart；同单位且要看加总构成：StackedBarChart 或 StackedAreaChart
+   - 有序轴上的单系列变化：看体量用 AreaChart，看斜率用 LineChart；2–5 条同量纲走势：MultiLineChart
+   - 同一轴上的绝对量加另一量纲的比率：ComposedChart
+   - 2–5 个互斥分类占整体：只看份额用 PieChart；还要合计和明细用 DonutChart
+   - 4–8 个同量表维度的轮廓：RadarChart
+   - 一个有上下限的比率：GaugeChart
+   - 有序且递减、后阶段是前阶段子集：FunnelChart，禁止按大小重排
+   - 两个连续变量：ScatterChart
+   - 现有统计接口已经按上述形态给出序列时，按下面原样绑定。这是字段对应关系，不表示组件只服务该业务：
+   - 图表序列优先使用各统计接口的 series，以及审计接口的 sparklines、heatmap、calendar、quotas、trend。原始计数字段仍可用于核对，不要另算一套不一致的百分比。
+   - 用户看板：series.rates 的 0-1 比率给 GaugeChart（value=比率×100，max=100）；series.funnel 原序给 FunnelChart；series.health 给 RadarChart（value 已是 0-100）；series.statusDistribution / genderDistribution 给 DonutChart；series.weeklyNewUsers 给 GroupedBarChart（key 为 previous、current）；series.creationCalendar 原样作为 ActivityCalendar.days；trend 给 LineChart/AreaChart；topOrganizations 给 HorizontalBarChart；recentTrends.growthRate 给 StatCard。
+   - 岗位与组织看板：overallFillRate、leaderCoverageRate 给 GaugeChart；series.fillMix、series.familyDistribution、series.typeDistribution、series.leaderDistribution 给 DonutChart；series.staffingComparison 给 GroupedBarChart（key 为 plan、actual）或 DumbbellChart（before=plan，after=actual，unit 为「人」）；series.staffingScatter 给 ScatterChart（x=编制，y=在岗）；series.memberSizeBuckets 与 structure.byLevel 给 BarChart；topUnderstaffedPositions 给 HorizontalBarChart。
+   - 角色看板：series.roleComparison 给 GroupedBarChart（key 为 userCount、permissionCount）；series.kindDistribution、statusDistribution、dataScopeDistribution 给 DonutChart；series.rates 给 GaugeChart；topRoles / topRolesByPermissions 给 HorizontalBarChart。
+   - 登录统计：绘制活动日历或热力时把 days 设为 84。heatmap 的 xLabels、yLabels、cells 原样给 HeatmapCard；calendar 原样给 ActivityCalendar.days；trend 的 successCount/failureCount 给 StackedBarChart 或 MultiLineChart；successRate 给 GaugeChart；series.outcomeDistribution / eventDistribution 给 DonutChart。
+   - Agent 用量：trend 的 totalTokens 与 costMicros 给 ComposedChart，inputTokens 与 outputTokens 给 StackedAreaChart；series.purposeDistribution / statusDistribution 与 byModel 给 DonutChart；successRate 给 GaugeChart。只有 quotas 非空时才画配额仪表，value 用 usageRate×100；usageRate 大于 1 时 status=destructive。quotas 为空禁止编造配额。
+   - 审计概览 sparklines.dates 与 operations、logins、requests、agentRuns 等长，给 SparklineCard，禁止截断或补数。
+   - API 访问：errorRate 给 GaugeChart；trend 的 requestCount 与 errorRate×100 给 ComposedChart；series.callerDistribution / outcomeDistribution 给 DonutChart；series.latencyDistribution 给 BarChart；topRoutes 给 HorizontalBarChart。
+   - 操作审计：trend 的 successCount、failureCount、deniedCount 给 StackedBarChart；series.actionRanking / resourceRanking 给 HorizontalBarChart；series.resultDistribution / actorDistribution 给 DonutChart。安全统计 trend 的 denied、failed、failedLogins 给 MultiLineChart。
+   - 字典看板使用 query_dictionary_workspaces 的 stats：kindDistribution、itemStatusDistribution 给 DonutChart，workspaceRanking 给 HorizontalBarChart，allCount、itemCount、starredCount 给 StatCard。
+   - 系统统计没有服务可用率、项目排期或财务流水快照。禁止用 UptimeCard、GanttChart、WaterfallChart 展示这些统计。接口没有返回 days、cells 或 steps 时，也不要使用 ActivityCalendar、HeatmapCard、WaterfallChart。
    - 趋势规则：只有接口明确返回按时间分桶的数据时才使用折线、面积、热力或活动日历；只有同一分类含多个可比数值系列时才使用分组/堆叠图。缺少支撑维度时选用排行、构成、KPI 与表格，不生成示例或估算数据。
-7. 图表组件自身的 title 尽量填写；description 仅在需要补充上下文时填写，标题已足够则省略；不要传 color，配色由主题 token 自动决定
-8. Timeline 时间线支持丰富模式（请避免千篇一律只用同一种带圆圈图标的风格）：
+7. 图表组件自身的 title 尽量填写；DonutChart 的 title 和 centerLabel 必填。description 仅在需要补充口径时填写，标题已足够则省略。不要传 color，配色由主题 token 决定。DumbbellChart 在单位不是时长时必须传 unit，并传入两种状态的图例名
+8. 分类轴标签、GaugeChart.subtext、卡片标题写完整原文。界面会按所在卡片宽度截断，悬停显示全文，不要自行截成看不懂的缩写。需要给任意文字补说明时用 Tooltip（content 为悬浮全文，text 为可见文案，或用 child 包裹子组件）
+9. Timeline 时间线支持丰富模式（请避免千篇一律只用同一种带圆圈图标的风格）：
    - 跨多天/多阶段活动记录优先使用 groups 分组模式（按日期「2026年X月X日」断开连线，组头连组内）
    - 用户操作/团队动态优先用 variant="avatar" 人员头像节点模式
    - 状态追踪/审批进度优先用 variant="solid-dot" 实心彩色点或 variant="dot" 极简空心点

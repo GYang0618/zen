@@ -1,13 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Cuboid } from 'lucide-react'
+import { Building2 } from 'lucide-react'
 
 import { BIMScreen } from '@/features/bim'
 
 export const Route = createFileRoute('/_authenticated/_workbench/bim')({
   component: BIMScreen,
   staticData: {
-    title: '三维场景（BIM）',
-    icon: Cuboid,
+    title: 'BIM场景',
+    icon: Building2,
     order: 40
   }
 })

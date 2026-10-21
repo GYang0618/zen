@@ -1,8 +1,8 @@
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@zen/ui'
-import { useMemo } from 'react'
-import { Bar, CartesianGrid, LabelList, BarChart as RechartsBar, XAxis, YAxis } from 'recharts'
+import { Bar, CartesianGrid, LabelList, BarChart as RechartsBar } from 'recharts'
 
-import { ChartCardShell, createSingleSeriesConfig } from './chart-shared'
+import { ChartCategoryYAxis, ChartValueXAxis, horizontalBarChartHeight } from './chart-axes'
+import { ChartCardShell, createSingleSeriesConfig, useChartCanvasWidth } from './chart-shared'
 
 import type { RendererProps } from '@copilotkit/a2ui-renderer'
 import type { BaseChartProps } from './chart-shared'
@@ -13,70 +13,76 @@ export interface HorizontalBarChartProps extends BaseChartProps {
   valueUnit?: string
 }
 
+const END_LABEL_MIN_CANVAS = 300
+
 export function HorizontalBarChart({ props }: RendererProps<HorizontalBarChartProps>) {
-  const rawData = props.data ?? []
-  const sorted = props.sorted ?? 'none'
-  const showValues = props.showValues ?? true
-  const valueUnit = props.valueUnit ?? ''
-
-  const data = useMemo(() => {
-    if (sorted === 'desc') {
-      return [...rawData].sort((a, b) => b.value - a.value)
-    }
-    if (sorted === 'asc') {
-      return [...rawData].sort((a, b) => a.value - b.value)
-    }
-    return rawData
-  }, [rawData, sorted])
-
-  const config = createSingleSeriesConfig('数值')
-  const chartHeight = Math.max(280, data.length * 36)
-
   return (
     <ChartCardShell title={props.title} description={props.description}>
-      <ChartContainer
-        config={config}
-        className="aspect-auto w-full"
-        style={{ height: `${chartHeight}px` }}
-      >
-        <RechartsBar
-          accessibilityLayer
-          data={data}
-          layout="vertical"
-          margin={{ top: 8, right: showValues ? 48 : 16, bottom: 8, left: 16 }}
-        >
-          <CartesianGrid horizontal={false} />
-          <XAxis
-            type="number"
-            tickLine={false}
-            axisLine={false}
-            tickMargin={8}
-            tick={{ fontSize: 11 }}
-          />
-          <YAxis
-            type="category"
-            dataKey="label"
-            tickLine={false}
-            axisLine={false}
-            tickMargin={8}
-            tick={{ fontSize: 11 }}
-            width={90}
-            interval={0}
-          />
-          <ChartTooltip content={<ChartTooltipContent />} />
-          <Bar dataKey="value" fill="var(--color-value)" radius={[0, 4, 4, 0]}>
-            {showValues && (
-              <LabelList
-                dataKey="value"
-                position="right"
-                offset={8}
-                className="fill-foreground font-mono text-[11px]"
-                formatter={(val: unknown) => `${Number(val ?? 0).toLocaleString()}${valueUnit}`}
-              />
-            )}
-          </Bar>
-        </RechartsBar>
-      </ChartContainer>
+      <HorizontalBarBody
+        data={props.data ?? []}
+        sorted={props.sorted ?? 'none'}
+        showValues={props.showValues ?? true}
+        valueUnit={props.valueUnit ?? ''}
+      />
     </ChartCardShell>
   )
+}
+
+function HorizontalBarBody({
+  data: rawData,
+  sorted,
+  showValues,
+  valueUnit
+}: {
+  data: NonNullable<HorizontalBarChartProps['data']>
+  sorted: NonNullable<HorizontalBarChartProps['sorted']>
+  showValues: boolean
+  valueUnit: string
+}) {
+  const canvasWidth = useChartCanvasWidth()
+  const data = sortBars(rawData, sorted)
+  const labels = data.map((item) => item.label)
+  const config = createSingleSeriesConfig('数值')
+  const chartHeight = horizontalBarChartHeight(labels, canvasWidth)
+  const showEndLabels = showValues && (canvasWidth === 0 || canvasWidth >= END_LABEL_MIN_CANVAS)
+
+  return (
+    <ChartContainer
+      config={config}
+      className="aspect-auto w-full"
+      style={{ height: `${chartHeight}px` }}
+    >
+      <RechartsBar
+        accessibilityLayer
+        data={data}
+        layout="vertical"
+        margin={{ top: 8, right: showEndLabels ? 56 : 12, bottom: 8, left: 4 }}
+      >
+        <CartesianGrid horizontal={false} />
+        <ChartValueXAxis />
+        <ChartCategoryYAxis labels={labels} />
+        <ChartTooltip content={<ChartTooltipContent />} />
+        <Bar dataKey="value" fill="var(--color-value)" radius={[0, 4, 4, 0]}>
+          {showEndLabels && (
+            <LabelList
+              dataKey="value"
+              position="right"
+              offset={8}
+              className="fill-foreground font-mono text-[11px]"
+              formatter={(val: unknown) => `${Number(val ?? 0).toLocaleString()}${valueUnit}`}
+            />
+          )}
+        </Bar>
+      </RechartsBar>
+    </ChartContainer>
+  )
+}
+
+function sortBars(
+  data: NonNullable<HorizontalBarChartProps['data']>,
+  sorted: NonNullable<HorizontalBarChartProps['sorted']>
+) {
+  if (sorted === 'desc') return [...data].sort((a, b) => b.value - a.value)
+  if (sorted === 'asc') return [...data].sort((a, b) => a.value - b.value)
+  return data
 }

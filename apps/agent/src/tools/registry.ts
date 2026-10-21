@@ -1,4 +1,5 @@
 import { auditTools } from './modules/audit'
+import { dictTools } from './modules/dict'
 import { organizationTools } from './modules/organization'
 import { postTools } from './modules/post'
 import { roleTools } from './modules/role'
@@ -14,6 +15,7 @@ export const coreTools = [
   ...roleTools,
   ...organizationTools,
   ...postTools,
+  ...dictTools,
   ...auditTools
 ]
 

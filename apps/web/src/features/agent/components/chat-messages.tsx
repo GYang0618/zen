@@ -26,6 +26,7 @@ import {
   shouldShowA2uiCanvasBadge,
   turnHasInProgressA2uiActivity
 } from '../lib/a2ui-tools'
+import { resolveTurnWorkWindow } from '../lib/format-work-duration'
 import {
   getInlineStandardToolCalls,
   groupMessagesIntoTurns,
@@ -439,6 +440,12 @@ export function ChatMessages() {
         const isWaiting = isLastTurn && isRunWaiting
         const isWorking = isLastTurn && agent.isRunning && hasWork
         const finalInlineTools = getInlineStandardToolCalls(turn.finalAssistant?.toolCalls)
+        const workWindow = resolveTurnWorkWindow(
+          readZenMessageTiming(turn.user?.metadata),
+          [...turn.foldedBefore, ...turn.foldedAfter].map((message) =>
+            readZenMessageTiming(message.metadata)
+          )
+        )
 
         return (
           <Fragment key={turn.key}>
@@ -448,8 +455,8 @@ export function ChatMessages() {
                 turnKey={turn.key}
                 isWaiting={isWaiting}
                 isWorking={isWorking}
-                workStartedAt={readZenMessageTiming(turn.user?.metadata)?.workStartedAt}
-                workEndedAt={readZenMessageTiming(turn.user?.metadata)?.workEndedAt}
+                workStartedAt={workWindow?.startedAt}
+                workEndedAt={workWindow?.endedAt}
               >
                 <FoldedTurnMessages
                   messages={messages}

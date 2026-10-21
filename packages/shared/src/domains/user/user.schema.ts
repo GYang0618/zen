@@ -315,6 +315,21 @@ export const usersQuerySchema = pageQuerySchema.extend({
 
 export const usersQueryToolSchema = toolCallMetaSchema.extend(usersQuerySchema.shape)
 
+const shareItemSchema = z.object({
+  label: z.string().describe('分类名称'),
+  value: z.number().int().nonnegative().describe('数量'),
+  percentage: z.number().describe('占该分布合计的百分比，0-100，可写入 DonutChart.percentage')
+})
+
+const activityDaySchema = z.object({
+  date: z.string().describe('日期 YYYY-MM-DD'),
+  count: z.number().int().nonnegative().describe('当日新增用户数'),
+  level: z
+    .union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(4)])
+    .describe('活动强度 0-4，0 表示当天没有新增'),
+  tooltip: z.string().describe('悬浮提示，已含日期与人数')
+})
+
 export const userStatisticsQuerySchema = z.object({
   organizationId: z
     .string()
@@ -348,10 +363,96 @@ export const userStatisticsSchema = z.object({
     unassignedCount: z.number().int().nonnegative().describe('未分配组织归属用户数'),
     noRoleCount: z.number().int().nonnegative().describe('未绑定任何角色用户数')
   }),
+  activity: z.object({
+    activeUsersLast7Days: z.number().int().nonnegative().describe('近 7 天活跃登录用户数'),
+    activeUsersLast30Days: z.number().int().nonnegative().describe('近 30 天活跃登录用户数'),
+    neverLoggedInCount: z.number().int().nonnegative().describe('从未登录过的用户数')
+  }),
   recentTrends: z.object({
     newUsersLast7Days: z.number().int().nonnegative().describe('近 7 天新增用户数'),
+    previous7DaysCount: z
+      .number()
+      .int()
+      .nonnegative()
+      .describe('上一个 7 天新增用户数（用于环比）'),
+    growthRate: z.number().describe('近 7 天环比增长率（小数，如 0.25 表示 +25%）'),
     newUsersLast30Days: z.number().int().nonnegative().describe('近 30 天新增用户数')
-  })
+  }),
+  trend: z
+    .array(
+      z.object({
+        date: z.string().describe('日期 YYYY-MM-DD'),
+        count: z.number().int().nonnegative().describe('新增用户数')
+      })
+    )
+    .describe(
+      '近 14 天每日新增用户趋势（时间序列，可直接用于 LineChart / AreaChart / SparklineCard）'
+    ),
+  topOrganizations: z
+    .array(
+      z.object({
+        id: z.string().describe('组织 ID'),
+        name: z.string().describe('组织名称'),
+        userCount: z.number().int().nonnegative().describe('在职用户数')
+      })
+    )
+    .describe('用户规模排名前 5 的部门（用于 HorizontalBarChart）'),
+  series: z
+    .object({
+      rates: z.object({
+        activationRate: z
+          .number()
+          .describe('已激活 / 在册，0-1。GaugeChart 的 value 用该值×100，max=100'),
+        mfaCoverageRate: z.number().describe('已开启 MFA / 在册，0-1'),
+        organizationAssignmentRate: z.number().describe('已归属组织 / 在册，0-1'),
+        roleAssignmentRate: z.number().describe('已绑定角色 / 在册，0-1'),
+        activeRate7d: z.number().describe('近 7 天有登录 / 在册，0-1'),
+        activeRate30d: z.number().describe('近 30 天有登录 / 在册，0-1')
+      }),
+      statusDistribution: z
+        .array(shareItemSchema)
+        .describe(
+          '账号状态构成，固定含已激活/未激活/待审核/已停用。供 DonutChart 或 BreakdownCard'
+        ),
+      genderDistribution: z
+        .array(shareItemSchema)
+        .describe('性别构成，固定含男/女/未知。供 DonutChart'),
+      funnel: z
+        .array(
+          z.object({
+            label: z.string().describe('阶段名称'),
+            value: z.number().int().nonnegative().describe('该阶段人数')
+          })
+        )
+        .describe(
+          '严格嵌套的人员漏斗：在册 → 已激活 → 已激活且已归属组织 → 其中曾登录 → 其中近 30 天活跃。顺序即 FunnelChart 阶段，禁止重排或删阶段'
+        ),
+      health: z
+        .array(
+          z.object({
+            label: z.string().describe('维度名称'),
+            value: z.number().describe('0-100 分')
+          })
+        )
+        .describe('人员健康度，供 RadarChart。value 已是百分制，不要再乘 100'),
+      weeklyNewUsers: z
+        .array(
+          z.object({
+            label: z.string().describe('近 7 天中的月-日'),
+            previous: z.number().int().nonnegative().describe('再往前 7 天同一顺位的新增数'),
+            current: z.number().int().nonnegative().describe('近 7 天该日新增数')
+          })
+        )
+        .describe(
+          '逐日新增对比。GroupedBarChart 的 series key 为 previous（前 7 天）与 current（近 7 天）'
+        ),
+      creationCalendar: z
+        .array(activityDaySchema)
+        .describe(
+          '近 84 天每日新增，含数量为 0 的日期，level 为 0-4。ActivityCalendar 的 days 必须原样使用本数组'
+        )
+    })
+    .describe('图表可直接绑定的序列，与上方原始计数来自同一次聚合')
 })
 
 export const userStatisticsToolSchema = toolCallMetaSchema.extend(userStatisticsQuerySchema.shape)

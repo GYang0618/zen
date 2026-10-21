@@ -14,6 +14,7 @@ import { useMemo } from 'react'
 import { Cell, Pie, PieChart as RechartsPie } from 'recharts'
 
 import { A2uiDynamicIcon } from './icon'
+import { OverflowText } from './overflow-text'
 
 import type { RendererProps } from '@copilotkit/a2ui-renderer'
 import type { ChartConfig } from '@zen/ui'
@@ -52,12 +53,12 @@ const DEFAULT_DONUT_COLORS = [
 
 export function DonutChart({ props }: RendererProps<DonutChartProps>) {
   const {
-    title = 'Sales by Category',
+    title = '分类占比',
     description,
     icon,
     trend = 'up',
     trendValue,
-    centerLabel = 'Total',
+    centerLabel = '合计',
     innerRadius = 54,
     outerRadius = 82,
     layout = 'side-by-side',
@@ -118,10 +119,10 @@ export function DonutChart({ props }: RendererProps<DonutChartProps>) {
   const isSideBySide = layout === 'side-by-side'
 
   return (
-    <Card className={cn('h-full w-full', className)}>
+    <Card className={cn('@container/chart h-full w-full', className)}>
       <CardHeader className="flex flex-row items-start justify-between pb-2">
         <div className="space-y-1">
-          <div className="flex items-center gap-2.5">
+          <div className="flex min-w-0 items-center gap-2.5">
             <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/30 text-muted-foreground">
               {icon ? (
                 <A2uiDynamicIcon name={icon} size={16} className="size-4" />
@@ -129,7 +130,9 @@ export function DonutChart({ props }: RendererProps<DonutChartProps>) {
                 <PieIcon className="size-4" aria-hidden />
               )}
             </div>
-            <CardTitle className="text-base font-semibold text-foreground">{title}</CardTitle>
+            <CardTitle className="min-w-0 text-base font-semibold text-foreground">
+              <OverflowText>{title}</OverflowText>
+            </CardTitle>
           </div>
 
           {trendValue && (
@@ -168,12 +171,12 @@ export function DonutChart({ props }: RendererProps<DonutChartProps>) {
           className={cn(
             'flex w-full items-center',
             isSideBySide
-              ? 'flex-col sm:flex-row sm:justify-between sm:gap-6'
+              ? 'flex-col @md/chart:flex-row @md/chart:justify-between @md/chart:gap-6'
               : 'flex-col justify-center gap-4'
           )}
         >
           {/* 左侧环形图容器 */}
-          <div className="relative flex size-48 shrink-0 items-center justify-center sm:size-52">
+          <div className="relative flex size-48 shrink-0 items-center justify-center @md/chart:size-52">
             <ChartContainer config={chartConfig} className="size-full">
               <RechartsPie accessibilityLayer>
                 <ChartTooltip
@@ -217,16 +220,22 @@ export function DonutChart({ props }: RendererProps<DonutChartProps>) {
             </ChartContainer>
 
             {/* 环心指标展示 */}
-            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-              <span className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-mono">
-                {displayCenterValue}
-              </span>
-              <span className="text-xs font-medium text-muted-foreground">{centerLabel}</span>
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-[22%] text-center">
+              <div className="pointer-events-auto max-w-full">
+                <OverflowText className="font-mono text-xl font-bold tracking-tight text-foreground @sm/chart:text-2xl">
+                  {displayCenterValue}
+                </OverflowText>
+              </div>
+              <div className="pointer-events-auto max-w-full">
+                <OverflowText className="text-xs font-medium text-muted-foreground">
+                  {centerLabel}
+                </OverflowText>
+              </div>
             </div>
           </div>
 
           {/* 右侧详细明细列表 */}
-          <div className="w-full flex-1 space-y-3 pt-2 sm:pt-0">
+          <div className="w-full min-w-0 flex-1 space-y-3 pt-2 @md/chart:pt-0">
             {processedData.map((item) => (
               <div
                 key={item.category}
@@ -238,7 +247,9 @@ export function DonutChart({ props }: RendererProps<DonutChartProps>) {
                     className="size-2.5 shrink-0 rounded-full"
                     style={{ backgroundColor: item.color }}
                   />
-                  <span className="truncate font-medium text-muted-foreground">{item.label}</span>
+                  <OverflowText className="font-medium text-muted-foreground">
+                    {item.label}
+                  </OverflowText>
                 </div>
 
                 {/* 金额/数值与占比 */}

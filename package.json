@@ -4,8 +4,9 @@
   "scripts": {
     "web": "pnpm -F web dev",
     "api": "pnpm -F api dev",
-    "build": "turbo run build",
+    "build": "pnpm -F api prisma:generate && turbo run build",
     "dev": "turbo run dev",
+    "deploy": "node scripts/deploy.mjs",
     "lint": "turbo run lint",
     "check-types": "turbo run check-types",
     "test": "turbo run test",

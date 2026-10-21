@@ -59,9 +59,9 @@ const INTENSITY_CLASSES: Record<HeatmapIntensity, string> = {
 }
 
 const DEFAULT_LEGEND: Array<{ label: string; intensity: HeatmapIntensity }> = [
-  { label: 'High', intensity: 'high' },
-  { label: 'Medium', intensity: 'medium' },
-  { label: 'Low', intensity: 'low' }
+  { label: '高', intensity: 'high' },
+  { label: '中', intensity: 'medium' },
+  { label: '低', intensity: 'low' }
 ]
 
 export function HeatmapCard({ props }: RendererProps<HeatmapCardProps>) {

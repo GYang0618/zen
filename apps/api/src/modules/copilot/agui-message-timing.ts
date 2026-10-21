@@ -1,4 +1,4 @@
-import { withZenMessageTiming } from '@zen/shared'
+import { readZenMessageTiming, withZenMessageTiming } from '@zen/shared'
 
 import type { ZenMessageTiming } from '@zen/shared'
 import type { ThreadMessage } from './copilot-thread.service.js'
@@ -98,6 +98,174 @@ function applyWorkTiming(
 
 function writeTiming(message: ThreadMessage, timing: ZenMessageTiming) {
   message.metadata = withZenMessageTiming(message.metadata, timing)
+}
+
+export interface HistoryTimingWriter {
+  /** 把已保存或已观察到的起止时间写进这条事件里的消息。 */
+  rewrite(event: Record<string, unknown>): void
+}
+
+/**
+ * 历史回放的事件来自运行时内存时，消息上没有 `zen` 计时。
+ * 已保存的计时优先；事件自带时间戳时，用它补上还没落库的这一轮。
+ */
+export function createHistoryTimingWriter(stored: ThreadMessage[]): HistoryTimingWriter {
+  const storedById = storedTimingById(stored)
+  const reasoningStarts = new Map<string, number>()
+  const reasoningEnds = new Map<string, number>()
+  let workStartedAt: number | undefined
+  let lastTimestamp: number | undefined
+
+  const timingFor = (id: string, role: string) =>
+    resolveHistoryTiming(role, storedById.get(id), {
+      reasoningStart: reasoningStarts.get(id),
+      reasoningEnd: reasoningEnds.get(id),
+      workStartedAt,
+      lastTimestamp
+    })
+
+  return {
+    rewrite(event) {
+      noteHistoryTiming(event, {
+        reasoningStarts,
+        reasoningEnds,
+        getWorkStartedAt: () => workStartedAt,
+        setWorkStartedAt: (value) => {
+          workStartedAt = value
+        },
+        setLastTimestamp: (value) => {
+          lastTimestamp = value
+        }
+      })
+      stampEventMessageList(event, timingFor)
+      stampReasoningEndMetadata(event, timingFor)
+    }
+  }
+}
+
+interface HistoryTimingNote {
+  reasoningStarts: Map<string, number>
+  reasoningEnds: Map<string, number>
+  getWorkStartedAt: () => number | undefined
+  setWorkStartedAt: (value: number) => void
+  setLastTimestamp: (value: number) => void
+}
+
+function noteHistoryTiming(event: Record<string, unknown>, note: HistoryTimingNote) {
+  const timestamp = readEventTimestamp(event)
+  if (timestamp === undefined) return
+  note.setLastTimestamp(timestamp)
+  const type = typeof event.type === 'string' ? event.type : ''
+  if (WORK_START_TYPES.has(type) && note.getWorkStartedAt() === undefined) {
+    note.setWorkStartedAt(timestamp)
+  }
+  const messageId = readMessageId(event)
+  if (!messageId) return
+  if (REASONING_START_TYPES.has(type) && !note.reasoningStarts.has(messageId)) {
+    note.reasoningStarts.set(messageId, timestamp)
+  }
+  if (REASONING_END_TYPES.has(type)) note.reasoningEnds.set(messageId, timestamp)
+}
+
+function resolveHistoryTiming(
+  role: string,
+  stored: ZenMessageTiming | undefined,
+  observed: {
+    reasoningStart: number | undefined
+    reasoningEnd: number | undefined
+    workStartedAt: number | undefined
+    lastTimestamp: number | undefined
+  }
+): ZenMessageTiming | undefined {
+  if (role === 'reasoning') {
+    return mergeTiming(reasoningSpan(observed.reasoningStart, observed.reasoningEnd), stored)
+  }
+  if (role !== 'user') return stored
+  return mergeTiming(workSpan(observed.workStartedAt, observed.lastTimestamp), stored)
+}
+
+function reasoningSpan(
+  startedAt: number | undefined,
+  endedAt: number | undefined
+): ZenMessageTiming | undefined {
+  if (startedAt === undefined || endedAt === undefined || endedAt < startedAt) return undefined
+  return { startedAt, endedAt }
+}
+
+function workSpan(
+  startedAt: number | undefined,
+  endedAt: number | undefined
+): ZenMessageTiming | undefined {
+  if (startedAt === undefined || endedAt === undefined || endedAt <= startedAt) return undefined
+  return { workStartedAt: startedAt, workEndedAt: endedAt }
+}
+
+function mergeTiming(
+  computed: ZenMessageTiming | undefined,
+  stored: ZenMessageTiming | undefined
+): ZenMessageTiming | undefined {
+  if (!computed) return stored
+  if (!stored) return computed
+  return { ...computed, ...stored }
+}
+
+function storedTimingById(stored: ThreadMessage[]): Map<string, ZenMessageTiming> {
+  const timings = new Map<string, ZenMessageTiming>()
+  for (const message of stored) {
+    if (!message.id) continue
+    const timing = readZenMessageTiming(message.metadata)
+    if (timing) timings.set(message.id, timing)
+  }
+  return timings
+}
+
+function stampEventMessageList(
+  event: Record<string, unknown>,
+  timingFor: (id: string, role: string) => ZenMessageTiming | undefined
+) {
+  const type = typeof event.type === 'string' ? event.type : ''
+  if (type === 'MESSAGES_SNAPSHOT' && Array.isArray(event.messages)) {
+    stampMessages(event.messages, timingFor)
+  }
+  if (type !== 'RUN_STARTED' || !isRecord(event.input) || !Array.isArray(event.input.messages)) {
+    return
+  }
+  stampMessages(event.input.messages, timingFor)
+}
+
+function stampMessages(
+  messages: unknown[],
+  timingFor: (id: string, role: string) => ZenMessageTiming | undefined
+) {
+  for (const message of messages) stampMessage(message, timingFor)
+}
+
+function stampMessage(
+  message: unknown,
+  timingFor: (id: string, role: string) => ZenMessageTiming | undefined
+) {
+  if (!isRecord(message)) return
+  const id = typeof message.id === 'string' ? message.id : undefined
+  const role = typeof message.role === 'string' ? message.role : undefined
+  if (!id || !role) return
+  const timing = timingFor(id, role)
+  if (!timing) return
+  const metadata = isRecord(message.metadata) ? message.metadata : undefined
+  message.metadata = withZenMessageTiming(metadata, timing)
+}
+
+function stampReasoningEndMetadata(
+  event: Record<string, unknown>,
+  timingFor: (id: string, role: string) => ZenMessageTiming | undefined
+) {
+  const type = typeof event.type === 'string' ? event.type : ''
+  if (!REASONING_END_TYPES.has(type)) return
+  const messageId = readMessageId(event)
+  if (!messageId) return
+  const timing = timingFor(messageId, 'reasoning')
+  if (!timing) return
+  const metadata = isRecord(event.metadata) ? event.metadata : undefined
+  event.metadata = withZenMessageTiming(metadata, timing)
 }
 
 function stampSseBlock(block: string, now: number): string {

@@ -17,30 +17,53 @@ export function elapsedDurationSeconds(
   return Math.max(1, rounded)
 }
 
-/** 进行中：按最大单位显示，如 12s / 3m / 1h。 */
-export function formatWorkDurationLive(totalSeconds: number): string {
-  const safe = Math.max(0, Math.floor(totalSeconds))
-  if (safe < SECONDS_PER_MINUTE) return `${safe}s`
-  if (safe < SECONDS_PER_HOUR) return `${Math.floor(safe / SECONDS_PER_MINUTE)}m`
-  return `${Math.floor(safe / SECONDS_PER_HOUR)}h`
-}
-
-/** 完成后：组合单位，如 45s / 2m 15s / 1h 2m 3s。 */
-export function formatWorkDurationComplete(totalSeconds: number): string {
+/**
+ * 时、分、秒一起走表：10s / 1m 0s / 1h 20min 39s。
+ * 出现更高单位时，低位为 0 也保留，避免跨过整分、整时时秒数从标题上消失。
+ */
+export function formatWorkDuration(totalSeconds: number): string {
   const safe = Math.max(0, Math.floor(totalSeconds))
   const hours = Math.floor(safe / SECONDS_PER_HOUR)
   const minutes = Math.floor((safe % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE)
   const seconds = safe % SECONDS_PER_MINUTE
-  const parts: string[] = []
-  if (hours > 0) parts.push(`${hours}h`)
-  if (minutes > 0) parts.push(`${minutes}m`)
-  if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`)
-  return parts.join(' ')
+  if (hours > 0) return `${hours}h ${minutes}min ${seconds}s`
+  if (minutes > 0) return `${minutes}m ${seconds}s`
+  return `${seconds}s`
 }
 
 export const WORK_WAITING_TITLE = '容我掂量一下'
 
 export type WorkStatus = 'waiting' | 'working' | 'done'
+
+/** 用户消息上的工作区间优先；没有时用这一轮各步骤的起止时间拼出来。 */
+export function resolveTurnWorkWindow(
+  userTiming: { workStartedAt?: number; workEndedAt?: number } | undefined,
+  steps: Array<{ startedAt?: number; endedAt?: number } | undefined>
+): { startedAt: number; endedAt: number } | undefined {
+  if (
+    userTiming?.workStartedAt !== undefined &&
+    userTiming.workEndedAt !== undefined &&
+    userTiming.workEndedAt >= userTiming.workStartedAt
+  ) {
+    return { startedAt: userTiming.workStartedAt, endedAt: userTiming.workEndedAt }
+  }
+
+  let startedAt: number | undefined
+  let endedAt: number | undefined
+  for (const step of steps) {
+    if (
+      step?.startedAt === undefined ||
+      step.endedAt === undefined ||
+      step.endedAt < step.startedAt
+    ) {
+      continue
+    }
+    startedAt = startedAt === undefined ? step.startedAt : Math.min(startedAt, step.startedAt)
+    endedAt = endedAt === undefined ? step.endedAt : Math.max(endedAt, step.endedAt)
+  }
+  if (startedAt === undefined || endedAt === undefined) return undefined
+  return { startedAt, endedAt }
+}
 
 export function formatWorkStatusTitle(status: WorkStatus, durationSeconds?: number): string {
   if (status === 'waiting') return WORK_WAITING_TITLE
@@ -48,9 +71,7 @@ export function formatWorkStatusTitle(status: WorkStatus, durationSeconds?: numb
 }
 
 export function formatWorkDurationTitle(isWorking: boolean, durationSeconds?: number): string {
-  if (isWorking) {
-    return `工作了 ${formatWorkDurationLive(durationSeconds ?? 0)}`
-  }
+  if (isWorking) return `工作了 ${formatWorkDuration(durationSeconds ?? 0)}`
   if (durationSeconds === undefined) return '工作了片刻'
-  return `工作了 ${formatWorkDurationComplete(durationSeconds)}`
+  return `工作了 ${formatWorkDuration(durationSeconds)}`
 }

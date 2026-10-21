@@ -214,8 +214,10 @@ export const getUserStatisticsTool = tool(
   {
     name: 'query_user_statistics',
     description:
-      '查询用户多维度聚合统计数据（未删除总数、软删除数、状态分布、性别分布、账号锁定/MFA安全状况、组织与角色归属覆盖率及近 7/30 天新增趋势）。' +
-      '生成人员报表、账号状态概况、安全审计报表时优先使用本工具，严禁多次翻页遍历 query_users_list 手动累加。' +
+      '查询用户多维度聚合统计数据。' +
+      '生成人员报表、账号状态概况、组织分布与安全审计报表时优先使用本工具，严禁多次翻页遍历 query_users_list 手动累加。' +
+      '响应除原始计数外，series 已整理成可直接绑定的图表序列：rates（0-1 比率）、statusDistribution、genderDistribution、funnel（嵌套漏斗，禁止重排）、health（0-100）、weeklyNewUsers（previous/current）、creationCalendar（近 84 天，含 level，作为 ActivityCalendar.days）。' +
+      'trend 为近 14 天新增，topOrganizations 为部门规模 Top 5。' +
       '可传 organizationId 按特定组织筛选统计范围。',
     schema: userStatisticsToolSchema
   }

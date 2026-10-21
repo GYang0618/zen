@@ -6,7 +6,7 @@ import { CesiumScreen } from '@/features/gis'
 export const Route = createFileRoute('/_authenticated/_workbench/gis')({
   component: CesiumScreen,
   staticData: {
-    title: '三维场景（GIS）',
+    title: 'GIS场景',
     icon: Globe,
     order: 50
   }

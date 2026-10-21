@@ -1,6 +1,7 @@
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@zen/ui'
-import { CartesianGrid, Line, LineChart as RechartsLine, XAxis, YAxis } from 'recharts'
+import { CartesianGrid, Line, LineChart as RechartsLine } from 'recharts'
 
+import { ChartCategoryXAxis, ChartValueYAxis } from './chart-axes'
 import { ChartCardShell, createSingleSeriesConfig } from './chart-shared'
 
 import type { RendererProps } from '@copilotkit/a2ui-renderer'
@@ -15,22 +16,10 @@ export function LineChart({ props }: RendererProps<LineChartProps>) {
   return (
     <ChartCardShell title={props.title} description={props.description}>
       <ChartContainer config={config} className="aspect-auto h-72 w-full">
-        <RechartsLine accessibilityLayer data={data} margin={{ left: 8, right: 8 }}>
+        <RechartsLine accessibilityLayer data={data} margin={{ left: 8, right: 8, bottom: 8 }}>
           <CartesianGrid vertical={false} />
-          <XAxis
-            dataKey="label"
-            tickLine={false}
-            axisLine={false}
-            tickMargin={8}
-            tick={{ fontSize: 11 }}
-          />
-          <YAxis
-            tickLine={false}
-            axisLine={false}
-            tickMargin={8}
-            tick={{ fontSize: 11 }}
-            width={40}
-          />
+          <ChartCategoryXAxis count={data.length} />
+          <ChartValueYAxis />
           <ChartTooltip content={<ChartTooltipContent indicator="line" />} />
           <Line
             type="monotone"

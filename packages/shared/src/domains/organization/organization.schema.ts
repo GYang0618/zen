@@ -361,6 +361,12 @@ export type OrganizationTypeCatalogResponse = z.infer<typeof organizationTypeCat
 export type UpdateOrganizationTypeCatalog = z.infer<typeof updateOrganizationTypeCatalogSchema>
 export type ApplyOrganizationTypeTemplate = z.infer<typeof applyOrganizationTypeTemplateSchema>
 
+const organizationShareItemSchema = z.object({
+  label: z.string().describe('分类名称'),
+  value: z.number().int().nonnegative().describe('数量'),
+  percentage: z.number().describe('占该分布合计的百分比，0-100')
+})
+
 export const organizationStatisticsQuerySchema = z.object({
   rootId: z
     .string()
@@ -377,11 +383,16 @@ export const organizationStatisticsSchema = z.object({
     rootCount: z.number().int().nonnegative().describe('根组织数（无父组织）'),
     maxDepth: z.number().int().nonnegative().describe('组织树最大层级深度'),
     hasLeaderCount: z.number().int().nonnegative().describe('已配置负责人的组织数'),
-    noLeaderCount: z.number().int().nonnegative().describe('未配置负责人的组织数')
+    noLeaderCount: z.number().int().nonnegative().describe('未配置负责人的组织数'),
+    leaderCoverageRate: z.number().describe('负责人配置覆盖率（0-1 小数，可用于 GaugeChart）'),
+    byLevel: z
+      .record(z.string(), z.number().int().nonnegative())
+      .describe('按层级深度分布的组织数量（用于 BarChart / Column）')
   }),
   members: z.object({
     totalMemberships: z.number().int().nonnegative().describe('组织在职任职记录总数'),
     emptyOrgCount: z.number().int().nonnegative().describe('无任何直属在职成员的组织数'),
+    averageMembersPerOrg: z.number().describe('平均每个组织的在职成员数'),
     topOrgsByMembers: z
       .array(
         z.object({
@@ -393,7 +404,20 @@ export const organizationStatisticsSchema = z.object({
         })
       )
       .describe('直属在职人数前 5 的组织')
-  })
+  }),
+  series: z
+    .object({
+      typeDistribution: z
+        .array(organizationShareItemSchema)
+        .describe('数量大于 0 的组织类型，label 为中文类型名。供 DonutChart。完整计数仍看 byType'),
+      leaderDistribution: z
+        .array(organizationShareItemSchema)
+        .describe('负责人配置构成，固定含已配置与未配置。供 DonutChart'),
+      memberSizeBuckets: z
+        .array(organizationShareItemSchema)
+        .describe('按直属在职人数分档：空组织、1–5 人、6–20 人、21–50 人、50 人以上。供 BarChart')
+    })
+    .describe('图表可直接绑定的序列，与上方原始计数来自同一次聚合')
 })
 
 export const organizationStatisticsToolSchema = toolCallMetaSchema.extend(

@@ -123,6 +123,17 @@ export const TOOL_EXECUTION_POLICIES = {
   update_job_profile_info: write(PermissionCode.POST_MANAGE),
   delete_job_profile: destructive(PermissionCode.POST_MANAGE),
 
+  query_dictionary_workspaces: read(PermissionCode.DICT_LIST),
+  create_dictionary_workspace: write(PermissionCode.DICT_MANAGE),
+  update_dictionary_workspace: write(PermissionCode.DICT_MANAGE),
+  delete_dictionary_workspace: destructive(PermissionCode.DICT_MANAGE),
+  query_dictionaries_list: read(PermissionCode.DICT_LIST),
+  query_dictionary_detail: read(PermissionCode.DICT_LIST),
+  create_dictionary: write(PermissionCode.DICT_MANAGE),
+  update_dictionary_info: write(PermissionCode.DICT_MANAGE),
+  toggle_dictionary_star: write(PermissionCode.DICT_MANAGE),
+  delete_dictionary: destructive(PermissionCode.DICT_MANAGE),
+
   query_audit_logs: read(PermissionCode.AUDIT_LIST),
   query_login_events: read(PermissionCode.AUDIT_LOGIN),
   query_api_access_logs: read(PermissionCode.AUDIT_ACCESS),

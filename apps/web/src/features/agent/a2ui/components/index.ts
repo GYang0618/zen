@@ -109,6 +109,7 @@ export {
   type TimelineItemData,
   type TimelineVariant
 } from './timeline'
+export { A2uiTooltip as Tooltip, type A2uiTooltipProps } from './tooltip'
 export {
   UptimeCard,
   type UptimeCardProps,

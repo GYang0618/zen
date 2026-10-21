@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, cn } from '@zen/ui'
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react'
 
 import { A2uiDynamicIcon } from './icon'
+import { OverflowText } from './overflow-text'
 
 import type { RendererProps } from '@copilotkit/a2ui-renderer'
 
@@ -46,14 +47,14 @@ export function SparklineCard({ props }: RendererProps<SparklineCardProps>) {
   const minVal = Math.min(...points.map((p) => p.value), 0)
 
   return (
-    <Card className={cn('h-full w-full', className)}>
+    <Card className={cn('@container/chart h-full w-full', className)}>
       <CardHeader className="space-y-0.5 pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-xs sm:text-sm font-normal text-muted-foreground">
-            {title}
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <CardTitle className="min-w-0 text-xs font-normal text-muted-foreground @sm/chart:text-sm">
+            <OverflowText>{title}</OverflowText>
           </CardTitle>
           {icon && (
-            <div className="text-muted-foreground">
+            <div className="shrink-0 text-muted-foreground">
               <A2uiDynamicIcon name={icon} size={14} className="size-3.5" />
             </div>
           )}
@@ -62,14 +63,14 @@ export function SparklineCard({ props }: RendererProps<SparklineCardProps>) {
 
       <CardContent className="space-y-1">
         <div className="flex items-baseline justify-between gap-2">
-          <span className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-mono">
+          <OverflowText className="font-mono text-2xl font-bold tracking-tight text-foreground @sm/chart:text-3xl">
             {value}
-          </span>
+          </OverflowText>
 
           {trendValue && (
             <span
               className={cn(
-                'flex items-center gap-0.5 text-xs font-medium font-mono',
+                'flex shrink-0 items-center gap-0.5 text-xs font-medium font-mono',
                 isUp
                   ? 'text-emerald-600 dark:text-emerald-400'
                   : isDown

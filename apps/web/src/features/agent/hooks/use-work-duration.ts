@@ -21,7 +21,7 @@ function readSeconds(entry: WorkDurationEntry | undefined, now: number): number 
 
 /**
  * 按回合跟踪工作时长：进行中每秒刷新，结束后冻结。
- * 同一页面里切走再回来用内存记录；刷新后用持久化的事件时间。
+ * 历史消息用已保存的起止时间。重连时若两边都有，取更长的一段，避免被记成 1 秒。
  */
 export function useWorkDuration(
   turnKey: string,
@@ -51,8 +51,12 @@ export function useWorkDuration(
   }, [turnKey, isWorking])
 
   if (!turnKey) return undefined
-  const live = readSeconds(durations.get(turnKey), now)
-  if (live !== undefined) return live
-  if (isWorking || persisted?.endedAt === undefined) return undefined
-  return readSeconds(persisted, persisted.endedAt)
+  const live =
+    isWorking || durations.has(turnKey) ? readSeconds(durations.get(turnKey), now) : undefined
+  if (isWorking) return live
+  const stored =
+    persisted?.endedAt !== undefined ? readSeconds(persisted, persisted.endedAt) : undefined
+  if (live === undefined) return stored
+  if (stored === undefined) return live
+  return Math.max(live, stored)
 }

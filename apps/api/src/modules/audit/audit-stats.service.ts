@@ -1,7 +1,9 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common'
-import { AuditResult, Prisma } from '@prisma/client'
+import { AiQuotaMetric, AiQuotaPeriod, AiQuotaScope, AuditResult, Prisma } from '@prisma/client'
 
+import { activityLevels, heatmapIntensity, ratio, withShare } from '../../common/stats/series.js'
 import { PrismaService } from '../../infra/prisma/index.js'
+import { quotaPeriodStart } from './quota-period.js'
 
 import type { auditStatsQuerySchema } from '@zen/shared'
 import type { z } from 'zod'
@@ -75,6 +77,134 @@ function latencySummary(
   }
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000
+
+const WEEKDAYS = [
+  { dow: 1, label: '周一' },
+  { dow: 2, label: '周二' },
+  { dow: 3, label: '周三' },
+  { dow: 4, label: '周四' },
+  { dow: 5, label: '周五' },
+  { dow: 6, label: '周六' },
+  { dow: 0, label: '周日' }
+] as const
+
+const HOUR_LABELS = Array.from({ length: 24 }, (_, hour) => `${hour}时`)
+
+const ACTOR_LABELS: Record<string, string> = {
+  user: '用户',
+  agent: 'Agent',
+  system: '系统'
+}
+
+const CALLER_LABELS: Record<string, string> = {
+  user: '用户',
+  agent: 'Agent',
+  api_key: 'API Key',
+  anonymous: '匿名'
+}
+
+const LOGIN_EVENT_LABELS: Record<string, string> = {
+  login: '密码登录',
+  mfa: 'MFA 登录'
+}
+
+const PURPOSE_LABELS: Record<string, string> = {
+  chat: '对话',
+  summarization: '摘要',
+  title: '标题',
+  fallback: '回退模型'
+}
+
+const RUN_STATUS_LABELS: Record<string, string> = {
+  pending: '排队',
+  running: '执行中',
+  finishing: '收尾',
+  succeeded: '成功',
+  failed: '失败',
+  cancelled: '已取消',
+  timed_out: '超时',
+  interrupted: '中断'
+}
+
+const LATENCY_LABELS: Record<(typeof LATENCY_BUCKETS)[number][0], string> = {
+  latencyLt10Ms: '<10ms',
+  latency10To25Ms: '10–25ms',
+  latency25To50Ms: '25–50ms',
+  latency50To100Ms: '50–100ms',
+  latency100To250Ms: '100–250ms',
+  latency250To500Ms: '250–500ms',
+  latency500To1000Ms: '500–1000ms',
+  latency1000To2500Ms: '1–2.5s',
+  latency2500To5000Ms: '2.5–5s',
+  latencyGte5000Ms: '≥5s'
+}
+
+function labelOf(labels: Record<string, string>, raw: string): string {
+  return labels[raw] ?? labels[raw.toLowerCase()] ?? raw
+}
+
+function dayStamps(window: StatsWindow): number[] {
+  const stamps: number[] = []
+  let cursor = Math.floor(window.start.getTime() / DAY_MS) * DAY_MS
+  while (cursor < window.end.getTime()) {
+    stamps.push(cursor)
+    cursor += DAY_MS
+  }
+  return stamps
+}
+
+function dailyDates(window: StatsWindow): string[] {
+  return dayStamps(window).map((stamp) => new Date(stamp).toISOString().slice(0, 10))
+}
+
+function fillDailyCounts(
+  window: StatsWindow,
+  rows: Array<{ bucketStart: Date; count: bigint }>
+): number[] {
+  const indexed = new Map(
+    rows.map((row) => [row.bucketStart.getTime(), Number(row.count)] as const)
+  )
+  return dayStamps(window).map((stamp) => indexed.get(stamp) ?? 0)
+}
+
+function buildHeatmap(rows: Array<{ dow: number; hour: number; count: bigint }>) {
+  const indexed = new Map(rows.map((row) => [`${row.dow}:${row.hour}`, Number(row.count)] as const))
+  const cells = WEEKDAYS.flatMap((weekday) =>
+    HOUR_LABELS.map((hourLabel, hour) => ({
+      x: hourLabel,
+      y: weekday.label,
+      value: indexed.get(`${weekday.dow}:${hour}`) ?? 0
+    }))
+  )
+  const max = cells.reduce((peak, cell) => Math.max(peak, cell.value), 0)
+  return {
+    xLabels: [...HOUR_LABELS],
+    yLabels: WEEKDAYS.map((weekday) => weekday.label),
+    cells: cells.map((cell) => ({
+      ...cell,
+      intensity: heatmapIntensity(cell.value, max)
+    }))
+  }
+}
+
+function calendarFromBuckets(points: Array<{ bucketStart: string; total: number }>, unit: string) {
+  const byDate = new Map<string, number>()
+  for (const point of points) {
+    const date = point.bucketStart.slice(0, 10)
+    byDate.set(date, (byDate.get(date) ?? 0) + point.total)
+  }
+  const dates = [...byDate.keys()].sort()
+  const counts = dates.map((date) => byDate.get(date) ?? 0)
+  const levels = activityLevels(counts)
+  return dates.map((date, index) => ({
+    date,
+    count: counts[index] ?? 0,
+    level: levels[index] ?? 0,
+    tooltip: `${date}：${counts[index] ?? 0} ${unit}`
+  }))
+}
+
 @Injectable()
 export class AuditStatsService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
@@ -104,6 +234,7 @@ export class AuditStatsService {
 
   async overview(tenantId: string, query: AuditStatsQuery) {
     const window = this.resolveWindow(query)
+    const sparklinesPromise = this.loadDailySparklines(tenantId, window)
     const createdAt = this.timeWhere(window)
     const bucket = this.timeWhere(window)
     const date = { gte: window.start, lt: window.end }
@@ -138,8 +269,51 @@ export class AuditStatsService {
     const errorCount = access._sum.errorCount ?? 0
     const usage = agentUsage._sum
 
+    const periodMs = window.end.getTime() - window.start.getTime()
+    const prevStart = new Date(window.start.getTime() - periodMs)
+    const prevEnd = window.start
+    const prevTimeWhere = { gte: prevStart, lt: prevEnd }
+
+    const [prevOperations, prevLogins, prevAccess, prevAgentRuns] = await Promise.all([
+      this.prisma.auditLog.count({ where: { tenantId, createdAt: prevTimeWhere } }),
+      this.prisma.loginEvent.count({ where: { tenantId, createdAt: prevTimeWhere } }),
+      this.prisma.apiAccessStat.aggregate({
+        where: { tenantId, bucket: prevTimeWhere },
+        _sum: { count: true }
+      }),
+      this.prisma.agentRun.count({ where: { tenantId, createdAt: prevTimeWhere } })
+    ])
+    const prevRequests = prevAccess._sum.count ?? 0
+
+    const calcGrowth = (curr: number, prev: number) =>
+      prev > 0 ? Number(((curr - prev) / prev).toFixed(4)) : curr > 0 ? 1 : 0
+
+    const sparklines = await sparklinesPromise
+
+    const comparison = {
+      previousWindow: { start: prevStart.toISOString(), endExclusive: prevEnd.toISOString() },
+      operations: {
+        previousCount: prevOperations,
+        growthRate: calcGrowth(operationCount, prevOperations)
+      },
+      logins: {
+        previousCount: prevLogins,
+        growthRate: calcGrowth(loginCount, prevLogins)
+      },
+      apiAccess: {
+        previousRequestCount: prevRequests,
+        growthRate: calcGrowth(requestCount, prevRequests)
+      },
+      agent: {
+        previousRuns: prevAgentRuns,
+        growthRate: calcGrowth(runCount, prevAgentRuns)
+      }
+    }
+
     return {
       window: { start: window.startDate, endExclusive: window.endDate, timezone: 'UTC' },
+      sparklines,
+      comparison,
       operations: { count: operationCount },
       logins: { count: loginCount, failures: loginFailures },
       apiAccess: {
@@ -167,14 +341,35 @@ export class AuditStatsService {
       tenantId,
       createdAt: this.timeWhere(window)
     }
-    const [byAction, byResource, byResult, byActorType, denied, failed] = await Promise.all([
-      this.prisma.auditLog.groupBy({ by: ['action'], where, _count: { _all: true } }),
-      this.prisma.auditLog.groupBy({ by: ['resource'], where, _count: { _all: true } }),
-      this.prisma.auditLog.groupBy({ by: ['result'], where, _count: { _all: true } }),
-      this.prisma.auditLog.groupBy({ by: ['actorType'], where, _count: { _all: true } }),
-      this.prisma.auditLog.count({ where: { ...where, result: AuditResult.DENIED } }),
-      this.prisma.auditLog.count({ where: { ...where, result: AuditResult.FAILURE } })
-    ])
+    const [byAction, byResource, byResult, byActorType, denied, failed, operationTrend] =
+      await Promise.all([
+        this.prisma.auditLog.groupBy({ by: ['action'], where, _count: { _all: true } }),
+        this.prisma.auditLog.groupBy({ by: ['resource'], where, _count: { _all: true } }),
+        this.prisma.auditLog.groupBy({ by: ['result'], where, _count: { _all: true } }),
+        this.prisma.auditLog.groupBy({ by: ['actorType'], where, _count: { _all: true } }),
+        this.prisma.auditLog.count({ where: { ...where, result: AuditResult.DENIED } }),
+        this.prisma.auditLog.count({ where: { ...where, result: AuditResult.FAILURE } }),
+        this.prisma.$queryRaw<
+          Array<{
+            bucketStart: Date
+            successCount: bigint
+            failureCount: bigint
+            deniedCount: bigint
+          }>
+        >(Prisma.sql`
+        SELECT
+          date_trunc('day', "created_at") AS "bucketStart",
+          COUNT(*) FILTER (WHERE "result" = 'success')::bigint AS "successCount",
+          COUNT(*) FILTER (WHERE "result" = 'failure')::bigint AS "failureCount",
+          COUNT(*) FILTER (WHERE "result" = 'denied')::bigint AS "deniedCount"
+        FROM "audit_logs"
+        WHERE "tenant_id" = ${tenantId}
+          AND "created_at" >= ${window.start}
+          AND "created_at" < ${window.end}
+        GROUP BY 1
+        ORDER BY 1
+      `)
+      ])
 
     const top = <T extends { _count: { _all: number } }>(rows: T[]) =>
       [...rows]
@@ -182,15 +377,52 @@ export class AuditStatsService {
         .slice(0, query.top)
         .map((row) => ({ ...row, count: row._count._all }))
 
+    const total = await this.prisma.auditLog.count({ where })
+    const rankedActions = top(byAction)
+    const rankedResources = top(byResource)
+    const rankedResults = top(byResult)
+    const rankedActors = top(byActorType)
+    const trendIndex = new Map(
+      operationTrend.map((row) => [row.bucketStart.getTime(), row] as const)
+    )
+    const trend = dayStamps(window).map((stamp) => {
+      const row = trendIndex.get(stamp)
+      return {
+        bucketStart: new Date(stamp).toISOString(),
+        successCount: Number(row?.successCount ?? 0),
+        failureCount: Number(row?.failureCount ?? 0),
+        deniedCount: Number(row?.deniedCount ?? 0)
+      }
+    })
+
     return {
       window: { start: window.startDate, endExclusive: window.endDate, timezone: 'UTC' },
-      total: await this.prisma.auditLog.count({ where }),
+      total,
       denied,
       failed,
-      byAction: top(byAction),
-      byResource: top(byResource),
-      byResult: top(byResult),
-      byActorType: top(byActorType)
+      trend,
+      byAction: rankedActions,
+      byResource: rankedResources,
+      byResult: rankedResults,
+      byActorType: rankedActors,
+      series: {
+        actionRanking: rankedActions.map((row) => ({ label: row.action, value: row.count })),
+        resourceRanking: rankedResources.map((row) => ({
+          label: row.resource ?? '未分类',
+          value: row.count
+        })),
+        resultDistribution: withShare([
+          { label: '成功', value: Math.max(0, total - denied - failed) },
+          { label: '失败', value: failed },
+          { label: '拒绝', value: denied }
+        ]),
+        actorDistribution: withShare(
+          rankedActors.map((row) => ({
+            label: labelOf(ACTOR_LABELS, String(row.actorType)),
+            value: row.count
+          }))
+        )
+      }
     }
   }
 
@@ -200,22 +432,94 @@ export class AuditStatsService {
       tenantId,
       createdAt: this.timeWhere(window)
     }
-    const [total, successes, failures, byEvent, byOutcome] = await Promise.all([
-      this.prisma.loginEvent.count({ where }),
-      this.prisma.loginEvent.count({ where: { ...where, success: true } }),
-      this.prisma.loginEvent.count({ where: { ...where, success: false } }),
-      this.prisma.loginEvent.groupBy({ by: ['event'], where, _count: { _all: true } }),
-      this.prisma.loginEvent.groupBy({ by: ['success'], where, _count: { _all: true } })
-    ])
+    const granularity = window.days <= 2 ? 'hour' : 'day'
+    const [total, successes, failures, byEvent, byOutcome, trendRaw, heatmapRaw] =
+      await Promise.all([
+        this.prisma.loginEvent.count({ where }),
+        this.prisma.loginEvent.count({ where: { ...where, success: true } }),
+        this.prisma.loginEvent.count({ where: { ...where, success: false } }),
+        this.prisma.loginEvent.groupBy({ by: ['event'], where, _count: { _all: true } }),
+        this.prisma.loginEvent.groupBy({ by: ['success'], where, _count: { _all: true } }),
+        this.prisma.$queryRaw<
+          Array<{
+            bucketStart: Date
+            total: bigint
+            successCount: bigint
+            failureCount: bigint
+          }>
+        >(Prisma.sql`
+        SELECT
+          date_trunc(${granularity}, "created_at") AS "bucketStart",
+          COUNT(*)::bigint AS "total",
+          COUNT(*) FILTER (WHERE "success" = true)::bigint AS "successCount",
+          COUNT(*) FILTER (WHERE "success" = false)::bigint AS "failureCount"
+        FROM "login_events"
+        WHERE "tenant_id" = ${tenantId}
+          AND "created_at" >= ${window.start}
+          AND "created_at" < ${window.end}
+        GROUP BY 1
+        ORDER BY 1
+      `),
+        this.prisma.$queryRaw<Array<{ dow: number; hour: number; count: bigint }>>(Prisma.sql`
+        SELECT
+          EXTRACT(DOW FROM "created_at")::int AS dow,
+          EXTRACT(HOUR FROM "created_at")::int AS hour,
+          COUNT(*)::bigint AS count
+        FROM "login_events"
+        WHERE "tenant_id" = ${tenantId}
+          AND "created_at" >= ${window.start}
+          AND "created_at" < ${window.end}
+        GROUP BY 1, 2
+      `)
+      ])
+
+    const trendRows = new Map(trendRaw.map((row) => [row.bucketStart.getTime(), row] as const))
+    const bucketMs = granularity === 'hour' ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000
+    let bucketStartMs = Math.floor(window.start.getTime() / bucketMs) * bucketMs
+    const trend: Array<{
+      bucketStart: string
+      total: number
+      successCount: number
+      failureCount: number
+    }> = []
+
+    while (bucketStartMs < window.end.getTime()) {
+      const row = trendRows.get(bucketStartMs)
+      trend.push({
+        bucketStart: new Date(bucketStartMs).toISOString(),
+        total: Number(row?.total ?? 0),
+        successCount: Number(row?.successCount ?? 0),
+        failureCount: Number(row?.failureCount ?? 0)
+      })
+      bucketStartMs += bucketMs
+    }
+
+    const eventRows = byEvent.map((row) => ({ event: row.event, count: row._count._all }))
 
     return {
       window: { start: window.startDate, endExclusive: window.endDate, timezone: 'UTC' },
+      trendGranularity: granularity,
+      trend,
+      heatmap: buildHeatmap(heatmapRaw),
+      calendar: calendarFromBuckets(trend, '次登录'),
       total,
       successes,
       failures,
-      successRate: total ? successes / total : 0,
-      byEvent: byEvent.map((row) => ({ event: row.event, count: row._count._all })),
-      byOutcome: byOutcome.map((row) => ({ success: row.success, count: row._count._all }))
+      successRate: ratio(successes, total),
+      byEvent: eventRows,
+      byOutcome: byOutcome.map((row) => ({ success: row.success, count: row._count._all })),
+      series: {
+        outcomeDistribution: withShare([
+          { label: '成功', value: successes },
+          { label: '失败', value: failures }
+        ]),
+        eventDistribution: withShare(
+          eventRows.map((row) => ({
+            label: labelOf(LOGIN_EVENT_LABELS, row.event),
+            value: row.count
+          }))
+        )
+      }
     }
   }
 
@@ -227,27 +531,66 @@ export class AuditStatsService {
       createdAt,
       result: { in: [AuditResult.DENIED, AuditResult.FAILURE] }
     }
-    const [denied, failed, rateLimited, failedLogins, topActions, topIps] = await Promise.all([
-      this.prisma.auditLog.count({ where: { ...auditWhere, result: AuditResult.DENIED } }),
-      this.prisma.auditLog.count({ where: { ...auditWhere, result: AuditResult.FAILURE } }),
-      this.prisma.auditLog.count({ where: { ...auditWhere, action: 'security.rate_limited' } }),
-      this.prisma.loginEvent.count({ where: { tenantId, createdAt, success: false } }),
-      this.prisma.auditLog.groupBy({
-        by: ['action'],
-        where: auditWhere,
-        _count: { _all: true }
-      }),
-      this.prisma.auditLog.groupBy({
-        by: ['ip'],
-        where: { ...auditWhere, ip: { not: null } },
-        _count: { _all: true }
-      })
-    ])
+    const [denied, failed, rateLimited, failedLogins, topActions, topIps, auditTrend, loginTrend] =
+      await Promise.all([
+        this.prisma.auditLog.count({ where: { ...auditWhere, result: AuditResult.DENIED } }),
+        this.prisma.auditLog.count({ where: { ...auditWhere, result: AuditResult.FAILURE } }),
+        this.prisma.auditLog.count({ where: { ...auditWhere, action: 'security.rate_limited' } }),
+        this.prisma.loginEvent.count({ where: { tenantId, createdAt, success: false } }),
+        this.prisma.auditLog.groupBy({
+          by: ['action'],
+          where: auditWhere,
+          _count: { _all: true }
+        }),
+        this.prisma.auditLog.groupBy({
+          by: ['ip'],
+          where: { ...auditWhere, ip: { not: null } },
+          _count: { _all: true }
+        }),
+        this.prisma.$queryRaw<
+          Array<{ bucketStart: Date; deniedCount: bigint; failureCount: bigint }>
+        >(Prisma.sql`
+        SELECT
+          date_trunc('day', "created_at") AS "bucketStart",
+          COUNT(*) FILTER (WHERE "result" = 'denied')::bigint AS "deniedCount",
+          COUNT(*) FILTER (WHERE "result" = 'failure')::bigint AS "failureCount"
+        FROM "audit_logs"
+        WHERE "tenant_id" = ${tenantId}
+          AND "created_at" >= ${window.start}
+          AND "created_at" < ${window.end}
+          AND "result" IN ('denied', 'failure')
+        GROUP BY 1
+      `),
+        this.prisma.$queryRaw<Array<{ bucketStart: Date; count: bigint }>>(Prisma.sql`
+        SELECT date_trunc('day', "created_at") AS "bucketStart", COUNT(*)::bigint AS count
+        FROM "login_events"
+        WHERE "tenant_id" = ${tenantId}
+          AND "created_at" >= ${window.start}
+          AND "created_at" < ${window.end}
+          AND "success" = false
+        GROUP BY 1
+      `)
+      ])
     const top = <T extends { _count: { _all: number } }>(rows: T[]) =>
       [...rows]
         .sort((a, b) => b._count._all - a._count._all)
         .slice(0, query.top)
         .map((row) => ({ ...row, count: row._count._all }))
+
+    const deniedByDay = new Map(auditTrend.map((row) => [row.bucketStart.getTime(), row] as const))
+    const failedLoginsByDay = new Map(
+      loginTrend.map((row) => [row.bucketStart.getTime(), Number(row.count)] as const)
+    )
+    const trend = dayStamps(window).map((stamp) => {
+      const auditRow = deniedByDay.get(stamp)
+      return {
+        bucketStart: new Date(stamp).toISOString(),
+        denied: Number(auditRow?.deniedCount ?? 0),
+        failed: Number(auditRow?.failureCount ?? 0),
+        failedLogins: failedLoginsByDay.get(stamp) ?? 0
+      }
+    })
+    const rankedActions = top(topActions)
 
     return {
       window: { start: window.startDate, endExclusive: window.endDate, timezone: 'UTC' },
@@ -256,8 +599,12 @@ export class AuditStatsService {
       rateLimited,
       failedLogins,
       totalSecurityEvents: denied + failed + failedLogins,
-      byAction: top(topActions),
-      byIp: top(topIps)
+      trend,
+      byAction: rankedActions,
+      byIp: top(topIps),
+      series: {
+        actionRanking: rankedActions.map((row) => ({ label: row.action, value: row.count }))
+      }
     }
   }
 
@@ -391,7 +738,25 @@ export class AuditStatsService {
         errorCount: row._sum.errorCount ?? 0,
         ...latencySummary(row._sum.latencySumMs, row._sum, row._sum.count ?? 0)
       })),
-      topRoutes: routes
+      topRoutes: routes,
+      series: {
+        latencyDistribution: withShare(
+          LATENCY_BUCKETS.map(([key]) => ({
+            label: LATENCY_LABELS[key],
+            value: summary._sum[key] ?? 0
+          }))
+        ),
+        callerDistribution: withShare(
+          byCaller.map((row) => ({
+            label: labelOf(CALLER_LABELS, String(row.callerType)),
+            value: row._sum.count ?? 0
+          }))
+        ),
+        outcomeDistribution: withShare([
+          { label: '成功', value: Math.max(0, requestCount - errorCount) },
+          { label: '错误', value: errorCount }
+        ])
+      }
     }
   }
 
@@ -399,33 +764,80 @@ export class AuditStatsService {
     const window = this.resolveWindow(query)
     const date = { gte: window.start, lt: window.end }
     const createdAt = this.timeWhere(window)
-    const [usage, byModel, runs, byRunStatus] = await Promise.all([
-      this.prisma.agentUsageDaily.aggregate({
-        where: { tenantId, date },
-        _sum: {
-          modelCalls: true,
-          toolCalls: true,
-          inputTokens: true,
-          outputTokens: true,
-          totalTokens: true,
-          costMicros: true
-        }
-      }),
-      this.prisma.agentUsageDaily.groupBy({
-        by: ['model'],
-        where: { tenantId, date },
-        _sum: { modelCalls: true, totalTokens: true, costMicros: true }
-      }),
-      this.prisma.agentRun.count({ where: { tenantId, createdAt } }),
-      this.prisma.agentRun.groupBy({
-        by: ['status'],
-        where: { tenantId, createdAt },
-        _count: { _all: true }
-      })
-    ])
+    const [usage, byModel, runs, byRunStatus, dailyRows, byPurpose, tenantQuotas] =
+      await Promise.all([
+        this.prisma.agentUsageDaily.aggregate({
+          where: { tenantId, date },
+          _sum: {
+            modelCalls: true,
+            toolCalls: true,
+            inputTokens: true,
+            outputTokens: true,
+            totalTokens: true,
+            costMicros: true
+          }
+        }),
+        this.prisma.agentUsageDaily.groupBy({
+          by: ['model'],
+          where: { tenantId, date },
+          _sum: { modelCalls: true, totalTokens: true, costMicros: true }
+        }),
+        this.prisma.agentRun.count({ where: { tenantId, createdAt } }),
+        this.prisma.agentRun.groupBy({
+          by: ['status'],
+          where: { tenantId, createdAt },
+          _count: { _all: true }
+        }),
+        this.prisma.agentUsageDaily.groupBy({
+          by: ['date'],
+          where: { tenantId, date },
+          _sum: {
+            runs: true,
+            modelCalls: true,
+            toolCalls: true,
+            inputTokens: true,
+            outputTokens: true,
+            totalTokens: true,
+            costMicros: true
+          },
+          orderBy: { date: 'asc' }
+        }),
+        this.prisma.agentUsageDaily.groupBy({
+          by: ['purpose'],
+          where: { tenantId, date },
+          _sum: { modelCalls: true, totalTokens: true, costMicros: true }
+        }),
+        this.prisma.aiQuota.findMany({
+          where: { tenantId, enabled: true, scope: AiQuotaScope.TENANT }
+        })
+      ])
     const totalTokens = usage._sum.totalTokens ?? 0n
+    const dailyIndex = new Map(
+      dailyRows.map((row) => [row.date.toISOString().slice(0, 10), row] as const)
+    )
+    const trend = dailyDates(window).map((day) => {
+      const row = dailyIndex.get(day)
+      return {
+        date: day,
+        runs: row?._sum.runs ?? 0,
+        modelCalls: row?._sum.modelCalls ?? 0,
+        toolCalls: row?._sum.toolCalls ?? 0,
+        inputTokens: Number(row?._sum.inputTokens ?? 0n),
+        outputTokens: Number(row?._sum.outputTokens ?? 0n),
+        totalTokens: Number(row?._sum.totalTokens ?? 0n),
+        costMicros: Number(row?._sum.costMicros ?? 0n)
+      }
+    })
+    const succeeded = byRunStatus.find((row) => row.status === 'succeeded')?._count._all ?? 0
+    const statusRows = byRunStatus.map((row) => ({
+      status: row.status,
+      count: row._count._all
+    }))
+    const quotas = await this.loadTenantQuotas(tenantId, tenantQuotas)
+
     return {
       window: { start: window.startDate, endExclusive: window.endDate, timezone: 'UTC' },
+      trend,
       runs,
       modelCalls: usage._sum.modelCalls ?? 0,
       toolCalls: usage._sum.toolCalls ?? 0,
@@ -434,7 +846,9 @@ export class AuditStatsService {
       totalTokens: Number(totalTokens),
       costMicros: Number(usage._sum.costMicros ?? 0n),
       averageTokensPerRun: runs ? Number(totalTokens) / runs : 0,
-      byRunStatus: byRunStatus.map((row) => ({ status: row.status, count: row._count._all })),
+      successRate: ratio(succeeded, runs),
+      quotas,
+      byRunStatus: statusRows,
       byModel: [...byModel]
         .sort((a, b) => Number(b._sum.totalTokens ?? 0n) - Number(a._sum.totalTokens ?? 0n))
         .slice(0, query.top)
@@ -443,7 +857,113 @@ export class AuditStatsService {
           modelCalls: row._sum.modelCalls ?? 0,
           totalTokens: Number(row._sum.totalTokens ?? 0n),
           costMicros: Number(row._sum.costMicros ?? 0n)
-        }))
+        })),
+      series: {
+        statusDistribution: withShare(
+          statusRows.map((row) => ({
+            label: labelOf(RUN_STATUS_LABELS, row.status),
+            value: row.count
+          }))
+        ),
+        purposeDistribution: withShare(
+          byPurpose.map((row) => ({
+            label: labelOf(PURPOSE_LABELS, String(row.purpose)),
+            value: Number(row._sum.totalTokens ?? 0n)
+          }))
+        )
+      }
     }
+  }
+
+  private async loadDailySparklines(tenantId: string, window: StatsWindow) {
+    const [operations, logins, requests, agentRuns] = await Promise.all([
+      this.countRowsByDay('audit_logs', tenantId, window),
+      this.countRowsByDay('login_events', tenantId, window),
+      this.prisma.$queryRaw<Array<{ bucketStart: Date; count: bigint }>>(Prisma.sql`
+        SELECT date_trunc('day', "bucket") AS "bucketStart", SUM("count")::bigint AS count
+        FROM "api_access_stats"
+        WHERE "tenant_id" = ${tenantId}
+          AND "bucket" >= ${window.start}
+          AND "bucket" < ${window.end}
+        GROUP BY 1
+      `),
+      this.countRowsByDay('agent_runs', tenantId, window)
+    ])
+
+    return {
+      dates: dailyDates(window),
+      operations: fillDailyCounts(window, operations),
+      logins: fillDailyCounts(window, logins),
+      requests: fillDailyCounts(window, requests),
+      agentRuns: fillDailyCounts(window, agentRuns)
+    }
+  }
+
+  private countRowsByDay(
+    table: 'audit_logs' | 'login_events' | 'agent_runs',
+    tenantId: string,
+    window: StatsWindow
+  ) {
+    const query =
+      table === 'audit_logs'
+        ? Prisma.sql`
+            SELECT date_trunc('day', "created_at") AS "bucketStart", COUNT(*)::bigint AS count
+            FROM "audit_logs"
+            WHERE "tenant_id" = ${tenantId}
+              AND "created_at" >= ${window.start}
+              AND "created_at" < ${window.end}
+            GROUP BY 1
+          `
+        : table === 'login_events'
+          ? Prisma.sql`
+              SELECT date_trunc('day', "created_at") AS "bucketStart", COUNT(*)::bigint AS count
+              FROM "login_events"
+              WHERE "tenant_id" = ${tenantId}
+                AND "created_at" >= ${window.start}
+                AND "created_at" < ${window.end}
+              GROUP BY 1
+            `
+          : Prisma.sql`
+              SELECT date_trunc('day', "created_at") AS "bucketStart", COUNT(*)::bigint AS count
+              FROM "agent_runs"
+              WHERE "tenant_id" = ${tenantId}
+                AND "created_at" >= ${window.start}
+                AND "created_at" < ${window.end}
+              GROUP BY 1
+            `
+    return this.prisma.$queryRaw<Array<{ bucketStart: Date; count: bigint }>>(query)
+  }
+
+  private async loadTenantQuotas(
+    tenantId: string,
+    quotas: Array<{
+      period: AiQuotaPeriod
+      metric: AiQuotaMetric
+      softLimit: bigint | null
+      hardLimit: bigint | null
+    }>
+  ) {
+    return Promise.all(
+      quotas.map(async (quota) => {
+        const periodStart = quotaPeriodStart(quota.period)
+        const usage = await this.prisma.agentUsageDaily.aggregate({
+          where: { tenantId, date: { gte: periodStart } },
+          _sum: { totalTokens: true, costMicros: true }
+        })
+        const used =
+          quota.metric === AiQuotaMetric.COST
+            ? Number(usage._sum.costMicros ?? 0n)
+            : Number(usage._sum.totalTokens ?? 0n)
+        const hardLimit = quota.hardLimit === null ? null : Number(quota.hardLimit)
+        return {
+          period: quota.period === AiQuotaPeriod.DAY ? ('day' as const) : ('month' as const),
+          metric: quota.metric === AiQuotaMetric.COST ? ('cost' as const) : ('tokens' as const),
+          used,
+          softLimit: quota.softLimit === null ? null : Number(quota.softLimit),
+          hardLimit,
+          usageRate: hardLimit && hardLimit > 0 ? ratio(used, hardLimit) : null
+        }
+      })
+    )
   }
 }

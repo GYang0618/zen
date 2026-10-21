@@ -2,8 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
   pull_request:
+
+permissions:
+  contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -11,6 +13,7 @@ concurrency:
 
 jobs:
   quality:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -30,11 +33,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Plugin check (validate + generate --check)
-        run: pnpm run plugin:check
-
       - name: Lint
         run: pnpm run lint
+
+      - name: Build
+        run: pnpm run build
+        env:
+          # Prisma 生成客户端时只读取该变量，不会连接数据库。
+          DATABASE_URL: postgresql://build:build@127.0.0.1:5432/build?schema=public
+
+      - name: Plugin check (validate + generate --check)
+        run: pnpm run plugin:check
 
       - name: Typecheck
         run: pnpm run check-types
@@ -47,9 +56,6 @@ jobs:
 
       - name: Test
         run: pnpm run test
-
-      - name: Build
-        run: pnpm run build
 
       - name: Docs link check
         run: pnpm run docs:check-links

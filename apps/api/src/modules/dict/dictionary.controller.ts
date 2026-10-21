@@ -24,6 +24,7 @@ import { z } from 'zod'
 
 import { RequirePermission } from '../../common/decorators/require-permission.decorator.js'
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js'
+import { withShare } from '../../common/stats/series.js'
 import { ACCESS_TOKEN_AUTH, ApiStandardErrorResponses } from '../../common/swagger/index.js'
 import { PrismaService } from '../../infra/prisma/index.js'
 
@@ -52,17 +53,67 @@ export class DictionaryController {
   @RequirePermission(PermissionCode.DICT_LIST)
   @ApiOperation({ summary: '获取全部空间列表与统计' })
   async listWorkspaces() {
-    const [allCount, starredCount, folders] = await this.prisma.$transaction([
+    const [
+      allCount,
+      starredCount,
+      itemCount,
+      unassignedCount,
+      kindGroups,
+      itemStatusGroups,
+      folders
+    ] = await this.prisma.$transaction([
       this.prisma.dictType.count(),
       this.prisma.dictType.count({ where: { isStarred: true } }),
+      this.prisma.dictItem.count(),
+      this.prisma.dictType.count({ where: { folderId: null } }),
+      this.prisma.dictType.groupBy({ by: ['kind'], _count: true }),
+      this.prisma.dictItem.groupBy({ by: ['status'], _count: true }),
       this.prisma.dictFolder.findMany({
         orderBy: { createdAt: 'asc' },
         include: { _count: { select: { dictionaries: true } } }
       })
     ])
+    const byKind = { business: 0, system: 0 }
+    let otherKinds = 0
+    for (const group of kindGroups) {
+      if (group.kind === 'business') byKind.business = group._count
+      else if (group.kind === 'system') byKind.system = group._count
+      else otherKinds += group._count
+    }
+    let activeItems = 0
+    let disabledItems = 0
+    for (const group of itemStatusGroups) {
+      if (group.status === 'ACTIVE') activeItems = group._count
+      else if (group.status === 'DISABLED') disabledItems = group._count
+    }
+    const kindItems = [
+      { label: '业务字典', value: byKind.business },
+      { label: '系统字典', value: byKind.system }
+    ]
+    if (otherKinds > 0) kindItems.push({ label: '其他', value: otherKinds })
+    const workspaceRanking = [...folders]
+      .sort((left, right) => right._count.dictionaries - left._count.dictionaries)
+      .slice(0, 8)
+      .map((folder) => ({
+        id: folder.id,
+        name: folder.name,
+        dictionaryCount: folder._count.dictionaries
+      }))
 
     return {
-      stats: { allCount, starredCount },
+      stats: {
+        allCount,
+        starredCount,
+        itemCount,
+        unassignedCount,
+        byKind,
+        kindDistribution: withShare(kindItems),
+        itemStatusDistribution: withShare([
+          { label: '启用', value: activeItems },
+          { label: '停用', value: disabledItems }
+        ]),
+        workspaceRanking
+      },
       workspaces: folders.map((folder) => ({
         id: folder.id,
         name: folder.name,

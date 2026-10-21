@@ -1,7 +1,18 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, cn } from '@zen/ui'
+import { createContext, useContext } from 'react'
+
+import { OverflowText } from './overflow-text'
+import { useContainerWidth } from './use-container-width'
 
 import type { ChartConfig } from '@zen/ui'
 import type { ReactNode } from 'react'
+
+const ChartCanvasWidthContext = createContext(0)
+
+/** 当前图表卡片的内容宽度，供坐标轴分配标签空间。 */
+export function useChartCanvasWidth() {
+  return useContext(ChartCanvasWidthContext)
+}
 
 export interface ChartDataItem {
   label: string
@@ -26,16 +37,30 @@ export function ChartCardShell({
   children: ReactNode
   contentClassName?: string
 }) {
+  const { ref, width } = useContainerWidth<HTMLDivElement>()
+
   return (
-    <Card className="h-full w-full">
-      {(title || description) && (
-        <CardHeader>
-          {title ? <CardTitle>{title}</CardTitle> : null}
-          {description ? <CardDescription>{description}</CardDescription> : null}
-        </CardHeader>
-      )}
-      <CardContent className={cn('ps-2', contentClassName)}>{children}</CardContent>
-    </Card>
+    <ChartCanvasWidthContext.Provider value={width}>
+      <div ref={ref} className="@container/chart h-full min-w-0 w-full">
+        <Card className="h-full w-full">
+          {(title || description) && (
+            <CardHeader className="min-w-0">
+              {title ? (
+                <CardTitle className="min-w-0">
+                  <OverflowText>{title}</OverflowText>
+                </CardTitle>
+              ) : null}
+              {description ? (
+                <CardDescription className="min-w-0">
+                  <OverflowText lines={2}>{description}</OverflowText>
+                </CardDescription>
+              ) : null}
+            </CardHeader>
+          )}
+          <CardContent className={cn('min-w-0 ps-2', contentClassName)}>{children}</CardContent>
+        </Card>
+      </div>
+    </ChartCanvasWidthContext.Provider>
   )
 }
 
